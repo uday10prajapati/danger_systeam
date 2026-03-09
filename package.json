@@ -1,0 +1,38 @@
+{
+  "name": "superstore-desktop",
+  "version": "1.0.0",
+  "description": "Desktop supermarket management application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "dev:electron": "cd electron && npx electron main.js",
+    "dev:full": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\" \"wait-on http://localhost:5173 && npm run dev:electron\"",
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+    "start": "cd electron && npx electron main.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "electron"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^25.1.8",
+    "wait-on": "^7.0.1"
+  },
+  "build": {
+    "appId": "com.superstore.desktop",
+    "productName": "SuperStore",
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/dist/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    }
+  }
+}
