@@ -146,6 +146,31 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Create Item Master table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS item_master (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          company_id INT NOT NULL,
+          item_code VARCHAR(50) NOT NULL,
+          item_name VARCHAR(255) NOT NULL,
+          barcode VARCHAR(100),
+          category VARCHAR(100),
+          unit VARCHAR(20) DEFAULT 'PCS',
+          purchase_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          sale_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          tax_percentage DECIMAL(5, 2) DEFAULT 0,
+          reorder_level INT DEFAULT 0,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY unique_item_code (company_id, item_code),
+          UNIQUE KEY unique_barcode (company_id, barcode),
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          INDEX idx_category (category),
+          INDEX idx_company_active (company_id, is_active)
+        )
+      `);
+
       // Create Sale Items table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS sale_items (
@@ -183,31 +208,6 @@ export async function initializeDatabase() {
           INDEX idx_company_customer (company_id, customer_account_id),
           INDEX idx_created_at (created_at),
           INDEX idx_transaction_type (transaction_type)
-        )
-      `);
-
-      // Create Item Master table
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS item_master (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          company_id INT NOT NULL,
-          item_code VARCHAR(50) NOT NULL,
-          item_name VARCHAR(255) NOT NULL,
-          barcode VARCHAR(100),
-          category VARCHAR(100),
-          unit VARCHAR(20) DEFAULT 'PCS',
-          purchase_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          sale_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          tax_percentage DECIMAL(5, 2) DEFAULT 0,
-          reorder_level INT DEFAULT 0,
-          is_active BOOLEAN DEFAULT TRUE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          UNIQUE KEY unique_item_code (company_id, item_code),
-          UNIQUE KEY unique_barcode (company_id, barcode),
-          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
-          INDEX idx_category (category),
-          INDEX idx_company_active (company_id, is_active)
         )
       `);
 

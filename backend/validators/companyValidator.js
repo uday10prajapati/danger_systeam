@@ -14,19 +14,19 @@ export function validateCompany(data) {
     errors.push('Address must be at least 5 characters');
   }
 
-  // Validate phone (10-15 digits)
-  if (!data.phone || !/^[0-9]{10,15}$/.test(data.phone.replace(/[-\s]/g, ''))) {
-    errors.push('Phone must be 10-15 digits');
+  // Validate phone
+  if (!data.phone || data.phone.trim().length < 5) {
+    errors.push('Phone must be at least 5 characters');
   }
 
   // Validate email
-  if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+  if (!data.email || !data.email.includes('@')) {
     errors.push('Invalid email format');
   }
 
-  // Validate GST (15 characters for India)
-  if (data.gst_number && !/^[0-9A-Z]{15}$/.test(data.gst_number.toUpperCase())) {
-    errors.push('GST number must be 15 alphanumeric characters');
+  // Validate GST (15 characters for India) if provided
+  if (data.gst_number && data.gst_number.trim().length < 5) {
+    errors.push('GST number must be at least 5 characters');
   }
 
   // Validate financial year dates
@@ -39,16 +39,10 @@ export function validateCompany(data) {
     if (startDate >= endDate) {
       errors.push('Financial year start must be before end date');
     }
-    
-    // Check if dates are exactly 1 year apart (or 365 days for leap years)
-    const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
-    if (daysDiff < 360 || daysDiff > 370) {
-      errors.push('Financial year must be approximately 1 year');
-    }
   }
 
   // Validate currency
-  const validCurrencies = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD'];
+  const validCurrencies = ['INR'];
   if (!data.currency || !validCurrencies.includes(data.currency.toUpperCase())) {
     errors.push(`Currency must be one of: ${validCurrencies.join(', ')}`);
   }
