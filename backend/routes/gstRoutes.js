@@ -43,7 +43,7 @@ router.get('/master', async (req, res) => {
   try {
     const result = await query(`
       SELECT * FROM gst_master 
-      WHERE is_active = TRUE 
+      WHERE is_active = 1 
       ORDER BY gst_percent ASC
     `);
 

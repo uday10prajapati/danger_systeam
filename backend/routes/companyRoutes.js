@@ -209,7 +209,7 @@ export function registerCompanyRoutes(app) {
   app.delete('/api/company/:id', async (req, res) => {
     try {
       await execute(
-        'UPDATE company SET is_active = FALSE WHERE id = ?',
+        'UPDATE company SET is_active = 0 WHERE id = ?',
         [req.params.id]
       );
 
@@ -231,7 +231,7 @@ export function registerCompanyRoutes(app) {
   app.get('/api/company/info/summary', async (req, res) => {
     try {
       const company = await queryOne(
-        'SELECT id, company_name, email, phone, currency, created_at FROM company WHERE is_active = TRUE'
+        'SELECT id, company_name, email, phone, currency, created_at FROM company WHERE is_active = 1'
       );
 
       if (!company) {

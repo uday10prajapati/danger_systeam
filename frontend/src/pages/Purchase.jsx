@@ -38,7 +38,7 @@ export default function Purchase() {
       const start = startDate || dateRange.startDate;
       const end = endDate || dateRange.endDate;
       
-      const res = await axios.get('http://localhost:5000/api/purchases', {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases`, {
         params: {
           startDate: start,
           endDate: end
@@ -91,7 +91,7 @@ export default function Purchase() {
   // View purchase details
   const viewPurchaseDetails = async (purchaseId) => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/purchases/${purchaseId}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases/${purchaseId}`, {
         headers: { 'x-company-id': company.id }
       });
       if (res.data.success) {
@@ -106,7 +106,7 @@ export default function Purchase() {
   // Handle form submission
   const handleFormSubmit = async (formData) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/purchases', formData, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/purchases`, formData, {
         headers: {
           'x-company-id': company.id,
           'x-user-id': JSON.parse(localStorage.getItem('user'))?.id || 1

@@ -39,7 +39,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const fetchAllItems = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/items/company/${company.id}?active=true`,
+        `${import.meta.env.VITE_API_URL}/api/items/company/${company.id}?active=true`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -53,7 +53,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const fetchAllMembers = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/members/company/${company.id}`,
+        `${import.meta.env.VITE_API_URL}/api/members/company/${company.id}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -68,7 +68,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const fetchCustomerAccountInfo = async (accountId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/accounts/${accountId}`,
+        `${import.meta.env.VITE_API_URL}/api/accounts/${accountId}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -121,7 +121,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
     try {
       // Use the correct barcode API endpoint
       const response = await axios.get(
-        `http://localhost:5000/api/items/barcode/${encodeURIComponent(code)}`,
+        `${import.meta.env.VITE_API_URL}/api/items/barcode/${encodeURIComponent(code)}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 
@@ -265,7 +265,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
     setLoading(true);
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/sales',
+        `${import.meta.env.VITE_API_URL}/api/sales`,
         {
           invoice_date: new Date().toISOString().split('T')[0],
           customer_account_id: customerAccountId || null,

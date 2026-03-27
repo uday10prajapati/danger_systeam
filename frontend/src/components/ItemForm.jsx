@@ -69,12 +69,12 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
           tax_percentage: formData.tax_percentage,
           reorder_level: formData.reorder_level,
         };
-        await axios.put(`http://localhost:5000/api/items/${item.id}`, updateData, {
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/items/${item.id}`, updateData, {
           headers: { 'x-company-id': company.id }
         });
       } else {
         // Create
-        await axios.post('http://localhost:5000/api/items', formData, {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/items`, formData, {
           headers: { 'x-company-id': company.id }
         });
       }

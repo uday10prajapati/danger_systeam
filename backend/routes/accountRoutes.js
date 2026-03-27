@@ -17,7 +17,7 @@ router.post('/api/accounts', async (req, res) => {
 
     // Check if account name already exists for this company
     const existingAccount = await queryOne(
-      'SELECT id FROM accounts WHERE company_id = ? AND account_name = ? AND is_deleted = FALSE',
+      'SELECT id FROM accounts WHERE company_id = ? AND account_name = ? AND is_deleted = 0',
       [company_id, account_name]
     );
 
@@ -28,8 +28,8 @@ router.post('/api/accounts', async (req, res) => {
     // Insert account
     const result = await execute(
       `INSERT INTO accounts (company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
-      [company_id, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, opening_balance || 0]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company_id, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, opening_balance || 0, 1]
     );
 
     res.status(201).json({
@@ -65,7 +65,7 @@ router.get('/api/accounts/company/:company_id', async (req, res) => {
     let sql = `SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
                       is_active, created_at, updated_at
                FROM accounts 
-               WHERE company_id = ? AND is_deleted = FALSE`;
+               WHERE company_id = ? AND is_deleted = 0`;
     let params = [company_id];
 
     if (type && type !== 'all') {
@@ -97,7 +97,7 @@ router.get('/api/accounts/:id', async (req, res) => {
       `SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
               is_active, created_at, updated_at
        FROM accounts 
-       WHERE id = ? AND is_deleted = FALSE`,
+       WHERE id = ? AND is_deleted = 0`,
       [id]
     );
 
@@ -126,7 +126,7 @@ router.put('/api/accounts/:id', async (req, res) => {
 
     // Check account exists
     const account = await queryOne(
-      'SELECT id, company_id FROM accounts WHERE id = ? AND is_deleted = FALSE',
+      'SELECT id, company_id FROM accounts WHERE id = ? AND is_deleted = 0',
       [id]
     );
 
@@ -137,7 +137,7 @@ router.put('/api/accounts/:id', async (req, res) => {
     // Check if new account name conflicts
     if (account_name) {
       const duplicate = await queryOne(
-        'SELECT id FROM accounts WHERE company_id = ? AND account_name = ? AND id != ? AND is_deleted = FALSE',
+        'SELECT id FROM accounts WHERE company_id = ? AND account_name = ? AND id != ? AND is_deleted = 0',
         [account.company_id, account_name, id]
       );
 
@@ -182,7 +182,7 @@ router.post('/api/accounts/:id/deactivate', async (req, res) => {
     const { id } = req.params;
 
     const account = await queryOne(
-      'SELECT id, is_active FROM accounts WHERE id = ? AND is_deleted = FALSE',
+      'SELECT id, is_active FROM accounts WHERE id = ? AND is_deleted = 0',
       [id]
     );
 
@@ -195,7 +195,7 @@ router.post('/api/accounts/:id/deactivate', async (req, res) => {
     }
 
     await execute(
-      'UPDATE accounts SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE accounts SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [id]
     );
 
@@ -215,7 +215,7 @@ router.post('/api/accounts/:id/activate', async (req, res) => {
     const { id } = req.params;
 
     const account = await queryOne(
-      'SELECT id, is_active FROM accounts WHERE id = ? AND is_deleted = FALSE',
+      'SELECT id, is_active FROM accounts WHERE id = ? AND is_deleted = 0',
       [id]
     );
 
@@ -228,7 +228,7 @@ router.post('/api/accounts/:id/activate', async (req, res) => {
     }
 
     await execute(
-      'UPDATE accounts SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE accounts SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [id]
     );
 

@@ -37,7 +37,7 @@ export default function StockReport() {
   const fetchStockReport = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/stock-report', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report`, {
         headers: { 'x-company-id': company.id, 'x-user-id': 1 }
       });
       
@@ -45,7 +45,7 @@ export default function StockReport() {
         setStockData(response.data.data);
         
         // Fetch low stock items
-        const lowResponse = await axios.get('http://localhost:5000/api/stock-report/low-stock', {
+        const lowResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report/low-stock`, {
           headers: { 'x-company-id': company.id, 'x-user-id': 1 }
         });
         setLowStockData(lowResponse.data.data);
@@ -60,7 +60,7 @@ export default function StockReport() {
 
   const fetchItemHistory = async (itemId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/stock-report/item/${itemId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report/item/${itemId}`, {
         headers: { 'x-company-id': company.id, 'x-user-id': 1 }
       });
       

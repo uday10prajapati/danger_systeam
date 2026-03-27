@@ -1,231 +1,461 @@
-import mysql from 'mysql2/promise';
+import Database from 'better-sqlite3';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
 
-// XAMPP MySQL Configuration
-const config = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'superstore_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+// Embedded SQLite Configuration
+// Create the database in the AppData directory in production, or in the root of the project in dev.
+const isProd = process.versions && process.versions.electron && process.env.NODE_ENV !== 'development';
+const appDataPath = isProd 
+  ? path.join(process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + '/.local/share'), 'Superstore')
+  : path.join(process.cwd(), '..');
+
+if (!fs.existsSync(appDataPath)) {
+  fs.mkdirSync(appDataPath, { recursive: true });
+}
+
+const dbPath = path.join(appDataPath, 'superstore.db');
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL'); // Performance boost
+db.pragma('foreign_keys = ON');
+
+console.log('✅ Connected to Embedded SQLite Database');
+
+let pool = null; // Still declare pool for internal function references
+
+// Create a connection pool mock that behaves like mysql2/promise
+const mockConnection = {
+  query: async (originalSql, params = []) => {
+    let sql = originalSql;
+    
+    // Automatic MySQL to SQLite Syntax Translation for Migration Compatibility
+    if (sql.trim().toUpperCase().startsWith('CREATE') || sql.trim().toUpperCase().startsWith('ALTER')) {
+      sql = sql.replace(/AUTO_INCREMENT/gi, 'AUTOINCREMENT');
+      // Convert standard INT to INTEGER for PK compatibility with SQLite
+      sql = sql.replace(/INT\s+AUTOINCREMENT/gi, 'INTEGER AUTOINCREMENT');
+      sql = sql.replace(/INT\s+PRIMARY\s+KEY\s+AUTOINCREMENT/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT');
+      sql = sql.replace(/INTEGER\s+AUTOINCREMENT\s+PRIMARY\s+KEY/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT');
+      sql = sql.replace(/ON\s+UPDATE\s+CURRENT_TIMESTAMP/gi, '');
+      sql = sql.replace(/ENUM\([^)]+\)/gi, 'TEXT');
+      // SQLite ignores inline INDEX creation in CREATE TABLE. We strip them to avoid errors.
+      sql = sql.replace(/,\s*(UNIQUE\s+)?INDEX\s+\w+\s*\([^)]+\)/gi, '');
+      sql = sql.replace(/,\s*UNIQUE\s+KEY\s+\w+\s*\([^)]+\)/gi, ''); // Fallback for UNIQUE KEY
+    }
+
+    // Clean params for SQLite (undefined -> null)
+    const cleanParams = params.map(p => p === undefined ? null : p);
+
+    try {
+      if (sql.trim().toUpperCase().startsWith('SELECT')) {
+        const rows = db.prepare(sql).all(...cleanParams);
+        return [rows, []];
+      } else {
+        const result = db.prepare(sql).run(...cleanParams);
+        result.insertId = result.lastInsertRowid;
+        result.affectedRows = result.changes;
+        return [result, []];
+      }
+    } catch (err) {
+      console.error('SQL Error:', err.message, '\nIn query:', sql);
+      throw err;
+    }
+  },
+  execute: async (sql, params) => mockConnection.query(sql, params),
+  beginTransaction: async () => { db.prepare('BEGIN').run(); },
+  commit: async () => { db.prepare('COMMIT').run(); },
+  rollback: async () => { db.prepare('ROLLBACK').run(); },
+  release: () => { /* no-op */ }
 };
 
-let pool = null;
-
-// Create connection pool
-async function createConnectionPool() {
-  try {
-    pool = mysql.createPool(config);
-    const connection = await pool.getConnection();
-    console.log('✅ Connected to MySQL via XAMPP');
-    connection.release();
-    return pool;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    console.error('Make sure:');
-    console.error('1. XAMPP is running');
-    console.error('2. MySQL service is started');
-    console.error('3. Credentials in .env are correct');
-    throw error;
-  }
-}
+pool = {
+  getConnection: async () => mockConnection,
+  query: async (sql, params) => mockConnection.query(sql, params),
+  execute: async (sql, params) => mockConnection.query(sql, params),
+};
 
 // Initialize database and create tables
 export async function initializeDatabase() {
   try {
-    const p = pool || (await createConnectionPool());
-    const connection = await p.getConnection();
+    const connection = mockConnection;
+    await connection.beginTransaction();
 
     try {
       // Create Company table (FOUNDATION TABLE)
       await connection.query(`
         CREATE TABLE IF NOT EXISTS company (
-          id INT AUTO_INCREMENT PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           company_name VARCHAR(255) NOT NULL UNIQUE,
           address TEXT NOT NULL,
           phone VARCHAR(20) NOT NULL,
           email VARCHAR(100) NOT NULL UNIQUE,
-          gst_number VARCHAR(15) UNIQUE,
+          gst_number VARCHAR(15),
           financial_year_start DATE NOT NULL,
           financial_year_end DATE NOT NULL,
           currency VARCHAR(3) DEFAULT 'INR',
           logo_url VARCHAR(255),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          is_active BOOLEAN DEFAULT TRUE
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          is_active INTEGER DEFAULT 1
         )
       `);
 
-      // Create Users table with company_id foreign key
+      // Create Users table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS users (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          company_id INT NOT NULL,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
           username VARCHAR(100) NOT NULL,
           email VARCHAR(100) NOT NULL,
           password VARCHAR(255) NOT NULL,
           role VARCHAR(50) DEFAULT 'cashier',
-          is_active BOOLEAN DEFAULT TRUE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          UNIQUE KEY unique_username_per_company (company_id, username),
-          UNIQUE KEY unique_email_per_company (company_id, email),
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
 
-      // Create Accounts table with company_id foreign key
+      // Create Accounts table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS accounts (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          company_id INT NOT NULL,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
           account_name VARCHAR(100) NOT NULL,
           account_type VARCHAR(50) NOT NULL,
           phone VARCHAR(20),
           email VARCHAR(100),
           gst_no VARCHAR(15),
           tin_no VARCHAR(20),
-          opening_balance DECIMAL(12,2) DEFAULT 0,
-          is_active BOOLEAN DEFAULT TRUE,
-          is_deleted BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          UNIQUE KEY unique_account_per_company (company_id, account_name),
-          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
-          INDEX idx_company_type (company_id, account_type),
-          INDEX idx_account_type (account_type)
+          opening_balance REAL DEFAULT 0,
+          is_active INTEGER DEFAULT 1,
+          is_deleted INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
 
       // Create Products table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS products (
-          id INT AUTO_INCREMENT PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           name VARCHAR(255) NOT NULL,
           sku VARCHAR(100) UNIQUE NOT NULL,
           category VARCHAR(100) NOT NULL,
-          price DECIMAL(10,2) NOT NULL,
-          quantity INT DEFAULT 0,
+          price REAL NOT NULL,
+          quantity INTEGER DEFAULT 0,
           description TEXT,
           image_url VARCHAR(255),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
       // Create Sales table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS sales (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          company_id INT NOT NULL,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
           invoice_no VARCHAR(100) NOT NULL UNIQUE,
           invoice_date DATE NOT NULL,
-          customer_account_id INT,
-          member_id INT,
-          total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          discount_amount DECIMAL(12, 2) DEFAULT 0,
-          net_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          payment_type ENUM('cash', 'card', 'upi', 'credit') DEFAULT 'cash',
+          customer_account_id INTEGER,
+          member_id INTEGER,
+          total_amount REAL NOT NULL DEFAULT 0,
+          discount_amount REAL DEFAULT 0,
+          net_amount REAL NOT NULL DEFAULT 0,
+          payment_type TEXT DEFAULT 'cash',
           notes TEXT,
-          created_by INT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          created_by INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE RESTRICT,
           FOREIGN KEY (customer_account_id) REFERENCES accounts(id) ON DELETE SET NULL,
-          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
-          INDEX idx_company_id (company_id),
-          INDEX idx_customer_account_id (customer_account_id),
-          INDEX idx_invoice_date (invoice_date),
-          INDEX idx_created_at (created_at),
-          UNIQUE INDEX idx_invoice_unique (company_id, invoice_no)
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
         )
       `);
 
       // Create Item Master table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS item_master (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          company_id INT NOT NULL,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
           item_code VARCHAR(50) NOT NULL,
           item_name VARCHAR(255) NOT NULL,
           barcode VARCHAR(100),
           category VARCHAR(100),
           unit VARCHAR(20) DEFAULT 'PCS',
-          purchase_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          sale_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          tax_percentage DECIMAL(5, 2) DEFAULT 0,
-          reorder_level INT DEFAULT 0,
-          is_active BOOLEAN DEFAULT TRUE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          UNIQUE KEY unique_item_code (company_id, item_code),
-          UNIQUE KEY unique_barcode (company_id, barcode),
-          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
-          INDEX idx_category (category),
-          INDEX idx_company_active (company_id, is_active)
+          purchase_price REAL NOT NULL DEFAULT 0,
+          sale_price REAL NOT NULL DEFAULT 0,
+          tax_percentage REAL DEFAULT 0,
+          reorder_level INTEGER DEFAULT 0,
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
 
       // Create Sale Items table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS sale_items (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          sale_id INT NOT NULL,
-          item_id INT NOT NULL,
-          quantity DECIMAL(10, 2) NOT NULL,
-          sale_rate DECIMAL(12, 2) NOT NULL,
-          amount DECIMAL(12, 2) NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sale_id INTEGER NOT NULL,
+          item_id INTEGER NOT NULL,
+          quantity REAL NOT NULL,
+          sale_rate REAL NOT NULL,
+          amount REAL NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
-          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE RESTRICT,
-          INDEX idx_sale_id (sale_id),
-          INDEX idx_item_id (item_id)
+          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE RESTRICT
         )
       `);
 
-      // Create Customer Ledger table for AR tracking
+      // Create Customer Ledger table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS customer_ledger (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          company_id INT NOT NULL,
-          customer_account_id INT NOT NULL,
-          debit_amount DECIMAL(12, 2) DEFAULT 0,
-          credit_amount DECIMAL(12, 2) DEFAULT 0,
-          balance DECIMAL(12, 2) DEFAULT 0,
-          transaction_type ENUM('SALE', 'PAYMENT', 'RETURN', 'ADJUSTMENT') NOT NULL,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          customer_account_id INTEGER NOT NULL,
+          debit_amount REAL DEFAULT 0,
+          credit_amount REAL DEFAULT 0,
+          balance REAL DEFAULT 0,
+          transaction_type TEXT NOT NULL,
           reference_no VARCHAR(100),
           notes TEXT,
-          created_by INT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_by INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE RESTRICT,
           FOREIGN KEY (customer_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
-          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
-          INDEX idx_company_customer (company_id, customer_account_id),
-          INDEX idx_created_at (created_at),
-          INDEX idx_transaction_type (transaction_type)
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+        )
+      `);
+
+      // Create Member Master table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS member_master (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          member_name VARCHAR(255) NOT NULL,
+          member_code VARCHAR(50),
+          phone VARCHAR(20),
+          email VARCHAR(100),
+          address TEXT,
+          loyalty_points INTEGER DEFAULT 0,
+          total_purchases REAL DEFAULT 0,
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
 
       // Create Inventory Log table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS inventory_log (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          product_id INT NOT NULL,
-          quantity_changed INT NOT NULL,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id INTEGER NOT NULL,
+          quantity_changed INTEGER NOT NULL,
           reason VARCHAR(255),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (product_id) REFERENCES products(id)
         )
       `);
 
-      console.log('✅ Database tables created/verified');
-    } finally {
-      connection.release();
+      // Create Purchases table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchases (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          supplier_account_id INTEGER NOT NULL,
+          invoice_no VARCHAR(100) NOT NULL UNIQUE,
+          invoice_date DATE NOT NULL,
+          total_amount REAL NOT NULL DEFAULT 0,
+          notes TEXT,
+          created_by INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (supplier_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+        )
+      `);
+
+      // Create Purchase Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          purchase_id INTEGER NOT NULL,
+          item_id INTEGER NOT NULL,
+          quantity REAL NOT NULL,
+          purchase_rate REAL NOT NULL,
+          amount REAL NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE,
+          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE RESTRICT
+        )
+      `);
+
+      // Create Purchase Stock Ledger table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_stock_ledger (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          item_id INTEGER NOT NULL,
+          purchase_id INTEGER,
+          purchase_item_id INTEGER,
+          quantity_in REAL DEFAULT 0,
+          quantity_out REAL DEFAULT 0,
+          current_stock REAL DEFAULT 0,
+          transaction_type VARCHAR(50),
+          reference_no VARCHAR(100),
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE RESTRICT,
+          FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE SET NULL,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Create Supplier Ledger table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS supplier_ledger (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          supplier_account_id INTEGER NOT NULL,
+          purchase_id INTEGER,
+          debit_amount REAL DEFAULT 0,
+          credit_amount REAL DEFAULT 0,
+          balance REAL DEFAULT 0,
+          transaction_type VARCHAR(50),
+          reference_no VARCHAR(100),
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (supplier_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
+          FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE SET NULL,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Create Sale Returns table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS sale_returns (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          sale_id INTEGER NOT NULL,
+          return_date DATE NOT NULL,
+          return_amount REAL NOT NULL,
+          reason TEXT,
+          created_by INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+        )
+      `);
+
+      // Create Purchase Returns table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_returns (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          purchase_id INTEGER NOT NULL,
+          return_date DATE NOT NULL,
+          return_amount REAL NOT NULL,
+          reason TEXT,
+          created_by INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+        )
+      `);
+
+      // Create Cash Book table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS cash_book (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          transaction_date DATE NOT NULL,
+          transaction_type VARCHAR(50) NOT NULL,
+          reference_id INTEGER,
+          reference_no VARCHAR(100),
+          description TEXT,
+          debit_amount REAL DEFAULT 0,
+          credit_amount REAL DEFAULT 0,
+          balance REAL DEFAULT 0,
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Create Account Ledger table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS account_ledger (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          account_id INTEGER NOT NULL,
+          debit_amount REAL DEFAULT 0,
+          credit_amount REAL DEFAULT 0,
+          balance REAL DEFAULT 0,
+          transaction_type VARCHAR(50),
+          reference_no VARCHAR(100),
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Create Item Rates table (for GST/tax rates per item)
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS item_rates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          item_id INTEGER NOT NULL,
+          rate_name VARCHAR(100),
+          rate_value REAL NOT NULL,
+          rate_type VARCHAR(50),
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create GST table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS gst (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          company_id INTEGER NOT NULL,
+          transaction_id INTEGER,
+          transaction_type VARCHAR(50),
+          gst_amount REAL NOT NULL DEFAULT 0,
+          cgst_amount REAL DEFAULT 0,
+          sgst_amount REAL DEFAULT 0,
+          igst_amount REAL DEFAULT 0,
+          gst_rate REAL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+      
+      // Explicitly Create Indexes (which SQLite requires standalone)
+      db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS uidx_company_name ON company(company_name)").run();
+      db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS uidx_user_email ON users(company_id, email)").run();
+
+      await connection.commit();
+      console.log('✅ SQLite Database tables created/verified');
+    } catch (error) {
+      await connection.rollback();
+      throw error;
     }
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
@@ -233,11 +463,10 @@ export async function initializeDatabase() {
   }
 }
 
-// Query functions
+// Query functions that export the seamless api
 export async function query(sql, params = []) {
   try {
-    const p = pool || (await createConnectionPool());
-    const [results] = await p.query(sql, params);
+    const [results] = await mockConnection.query(sql, params);
     return results;
   } catch (error) {
     console.error('Query error:', error.message);
@@ -247,13 +476,12 @@ export async function query(sql, params = []) {
 
 export async function queryOne(sql, params = []) {
   const results = await query(sql, params);
-  return results.length > 0 ? results[0] : null;
+  return results && results.length > 0 ? results[0] : null;
 }
 
 export async function execute(sql, params = []) {
   try {
-    const p = pool || (await createConnectionPool());
-    const [result] = await p.query(sql, params);
+    const [result] = await mockConnection.query(sql, params);
     return { lastID: result.insertId, changes: result.affectedRows };
   } catch (error) {
     console.error('Execute error:', error.message);
@@ -1640,10 +1868,8 @@ export async function getProfitLossSummary(companyId) {
 
 // Export connection pool getter
 export async function getConnection() {
-  if (!pool) {
-    await createConnectionPool();
-  }
   return pool.getConnection();
 }
 
-export default { getConnection, createConnectionPool };
+export default db;
+

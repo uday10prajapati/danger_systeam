@@ -225,7 +225,7 @@ const [customerInfo, setCustomerInfo] = useState(null); // Store customer GST/TI
 const fetchCustomerAccountInfo = async (accountId) => {
   try {
     const response = await axios.get(
-      `http://localhost:5000/api/accounts/${accountId}`,
+      `${import.meta.env.VITE_API_URL}/api/accounts/${accountId}`,
       { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
     );
     if (response.data.success) {

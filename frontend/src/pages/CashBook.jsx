@@ -35,7 +35,7 @@ export default function CashBook() {
   const fetchCashBook = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/cash-book?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+        `${import.meta.env.VITE_API_URL}/api/cash-book?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -51,7 +51,7 @@ export default function CashBook() {
   const fetchBalance = async () => {
     try {
       const response = await axios.get(
-        'http://localhost:5000/api/cash-book/balance/current',
+        `${import.meta.env.VITE_API_URL}/api/cash-book/balance/current`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -65,7 +65,7 @@ export default function CashBook() {
   const fetchDailySummary = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/cash-book/summary/daily?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+        `${import.meta.env.VITE_API_URL}/api/cash-book/summary/daily?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -102,7 +102,7 @@ export default function CashBook() {
       }
 
       const response = await axios.post(
-        'http://localhost:5000/api/cash-book/manual',
+        `${import.meta.env.VITE_API_URL}/api/cash-book/manual`,
         {
           transaction_date: formData.transaction_date,
           description: formData.description,

@@ -25,7 +25,7 @@ export default function PurchaseForm({ company, onSubmit, onClose }) {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/accounts/company/${company.id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`, {
           headers: { 'x-company-id': company.id }
         });
         const supplierList = (res.data.data || res.data).filter(acc => acc.account_type === 'supplier');
@@ -41,7 +41,7 @@ export default function PurchaseForm({ company, onSubmit, onClose }) {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/items/company/${company.id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/items/company/${company.id}`, {
           headers: { 'x-company-id': company.id }
         });
         setItems(res.data.success ? res.data.data : []);
@@ -62,7 +62,7 @@ export default function PurchaseForm({ company, onSubmit, onClose }) {
   const fetchItemRate = async (itemId, index) => {
     try {
       setItemLoading(prev => ({ ...prev, [index]: true }));
-      const res = await axios.get(`http://localhost:5000/api/item-rates/item/${itemId}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/item-rates/item/${itemId}`, {
         headers: { 'x-company-id': company.id }
       });
       

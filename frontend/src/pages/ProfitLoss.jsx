@@ -38,7 +38,7 @@ export default function ProfitLoss() {
     try {
       setLoading(true);
       console.log('Fetching P&L for:', company.id, startDate, endDate);
-      const response = await axios.get('http://localhost:5000/api/profit-loss', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/profit-loss`, {
         params: { startDate, endDate },
         headers: { 'x-company-id': company.id, 'x-user-id': 1 }
       });
@@ -62,7 +62,7 @@ export default function ProfitLoss() {
   const fetchMonthlyData = async () => {
     try {
       const year = new Date(startDate).getFullYear();
-      const response = await axios.get(`http://localhost:5000/api/profit-loss/monthly/${year}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/profit-loss/monthly/${year}`, {
         headers: { 'x-company-id': company.id, 'x-user-id': 1 }
       });
 

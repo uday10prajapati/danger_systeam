@@ -68,7 +68,7 @@ export function registerUserRoutes(app) {
           email.toLowerCase().trim(),
           hashedPassword,
           role,
-          is_active !== undefined ? is_active : true
+          is_active !== undefined ? (is_active ? 1 : 0) : 1
         ]
       );
 
@@ -237,7 +237,7 @@ export function registerUserRoutes(app) {
       }
       if (is_active !== undefined) {
         updates.push('is_active = ?');
-        params.push(is_active);
+        params.push(is_active ? 1 : 0);
       }
 
       if (updates.length === 0) {
@@ -285,7 +285,7 @@ export function registerUserRoutes(app) {
       }
 
       const result = await execute(
-        'UPDATE users SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        'UPDATE users SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [id]
       );
 
@@ -319,7 +319,7 @@ export function registerUserRoutes(app) {
       }
 
       const result = await execute(
-        'UPDATE users SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        'UPDATE users SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [id]
       );
 

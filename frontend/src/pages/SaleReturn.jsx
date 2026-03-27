@@ -25,7 +25,7 @@ export default function SaleReturn() {
   const fetchReturns = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/sale-returns?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+        `${import.meta.env.VITE_API_URL}/api/sale-returns?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -48,7 +48,7 @@ export default function SaleReturn() {
   const viewReturnDetails = async (returnId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/sale-returns/${returnId}`,
+        `${import.meta.env.VITE_API_URL}/api/sale-returns/${returnId}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {

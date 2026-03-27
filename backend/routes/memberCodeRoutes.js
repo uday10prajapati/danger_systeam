@@ -273,7 +273,7 @@ router.delete('/:id', async (req, res) => {
 
     // Soft delete
     await execute(
-      `UPDATE member_master SET is_active = FALSE WHERE id = ?`,
+      `UPDATE member_master SET is_active = 0 WHERE id = ?`,
       [memberId]
     );
 

@@ -27,7 +27,7 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
         const startDate = new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0];
         const endDate = new Date().toISOString().split('T')[0];
         
-        const res = await axios.get('http://localhost:5000/api/purchases', {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases`, {
           params: { startDate, endDate },
           headers: { 'x-company-id': company.id }
         });
@@ -47,7 +47,7 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
   const handleSelectPurchase = async (purchase) => {
     try {
       // Fetch full purchase details with items
-      const res = await axios.get(`http://localhost:5000/api/purchase-returns/purchase/${purchase.id}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchase-returns/purchase/${purchase.id}`, {
         headers: { 'x-company-id': company.id }
       });
 

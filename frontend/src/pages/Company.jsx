@@ -4,7 +4,7 @@ import axios from 'axios'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-const API_URL = 'http://localhost:5000/api'
+const API_URL = `${import.meta.env.VITE_API_URL}/api`
 
 function CompanySetup() {
   const { t } = useTranslation()

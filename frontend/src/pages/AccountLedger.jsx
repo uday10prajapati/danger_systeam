@@ -32,7 +32,7 @@ export default function AccountLedger() {
   const fetchAccounts = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/accounts/company/${company.id}`,
+        `${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.data) {
@@ -47,7 +47,7 @@ export default function AccountLedger() {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/api/account-ledger/account/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+        `${import.meta.env.VITE_API_URL}/api/account-ledger/account/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -63,7 +63,7 @@ export default function AccountLedger() {
   const fetchAccountBalance = async (accountId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/account-ledger/balance/${accountId}`,
+        `${import.meta.env.VITE_API_URL}/api/account-ledger/balance/${accountId}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {
@@ -78,7 +78,7 @@ export default function AccountLedger() {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/api/account-ledger/trial-balance`,
+        `${import.meta.env.VITE_API_URL}/api/account-ledger/trial-balance`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       if (response.data.success) {

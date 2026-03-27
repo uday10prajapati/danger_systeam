@@ -35,7 +35,7 @@ export default function GSTCalculator({
 
   const fetchAllowedPercentages = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/gst/percentages');
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/gst/percentages`);
       if (response.data.success) {
         setAllowedPercentages(response.data.data);
       }
@@ -49,7 +49,7 @@ export default function GSTCalculator({
       setLoading(true);
       setError('');
 
-      const response = await axios.post('http://localhost:5000/api/gst/calculate', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/gst/calculate`, {
         taxable_amount: Number(taxableAmount),
         gst_percent: Number(gstPercent),
         is_intra_state: isIntraState

@@ -28,7 +28,7 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
   const fetchAvailableSales = async () => {
     try {
       const response = await axios.get(
-        'http://localhost:5000/api/sale-returns/available-sales',
+        `${import.meta.env.VITE_API_URL}/api/sale-returns/available-sales`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       setAvailableSales(response.data.data);
@@ -40,7 +40,7 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
   const handleSelectSale = async (sale) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/sale-returns/sale/${sale.id}`,
+        `${import.meta.env.VITE_API_URL}/api/sale-returns/sale/${sale.id}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
       setSelectedSale(response.data.data);
@@ -77,7 +77,7 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
 
       setLoading(true);
       const response = await axios.post(
-        'http://localhost:5000/api/sale-returns',
+        `${import.meta.env.VITE_API_URL}/api/sale-returns`,
         {
           sale_id: selectedSale.id,
           return_date: returnDate,

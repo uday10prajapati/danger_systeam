@@ -27,13 +27,13 @@ export default function BarcodeScannerPage() {
       setLoading(true);
       // Fetch items with basic info
       const itemsResponse = await axios.get(
-        `http://localhost:5000/api/items/company/${company.id}?active=true`,
+        `${import.meta.env.VITE_API_URL}/api/items/company/${company.id}?active=true`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 
       // Fetch stock report to get current_stock
       const stockResponse = await axios.get(
-        `http://localhost:5000/api/stock-report`,
+        `${import.meta.env.VITE_API_URL}/api/stock-report`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 

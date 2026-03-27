@@ -25,7 +25,7 @@ export default function Sale() {
   const fetchSales = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/sales?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+        `${import.meta.env.VITE_API_URL}/api/sales?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 
@@ -49,7 +49,7 @@ export default function Sale() {
   const viewSaleDetails = async (saleId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/sales/${saleId}`,
+        `${import.meta.env.VITE_API_URL}/api/sales/${saleId}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 

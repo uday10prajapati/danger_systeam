@@ -4,7 +4,7 @@
 
 When trying to scan barcode `8901234567891` in the Sale form, the system returned:
 ```
-GET http://localhost:5000/api/items/barcode/8901234567891 400 (Bad Request)
+GET ${import.meta.env.VITE_API_URL}/api/items/barcode/8901234567891 400 (Bad Request)
 ```
 
 ## Root Cause

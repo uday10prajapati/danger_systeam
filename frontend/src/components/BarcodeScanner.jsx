@@ -92,7 +92,7 @@ export default function BarcodeScanner({
     try {
       // Fetch item by barcode from API
       const response = await axios.get(
-        `http://localhost:5000/api/items/barcode/${encodeURIComponent(scannedCode)}`,
+        `${import.meta.env.VITE_API_URL}/api/items/barcode/${encodeURIComponent(scannedCode)}`,
         {
           headers: { 'x-company-id': companyId, 'x-user-id': 1 }
         }
