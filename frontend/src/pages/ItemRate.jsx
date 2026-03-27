@@ -19,16 +19,24 @@ export default function ItemRate() {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    const companyData = localStorage.getItem('company');
-    if (companyData) {
-      const parsedCompany = JSON.parse(companyData);
-      setCompany(parsedCompany);
-      fetchRates(parsedCompany.id);
-      fetchItems(parsedCompany.id);
-    } else {
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      setLoading(true);
+      // Fetch company directly from API instead of localStorage
+      const res = await axios.get('/api/company');
+      if (res.data.success && res.data.data) {
+        setCompany(res.data.data);
+        fetchRates(res.data.data.id);
+        fetchItems(res.data.data.id);
+      }
+    } catch (err) {
+      console.error('Fetch company error:', err);
       setLoading(false);
     }
-  }, []);
+  };
 
   const fetchRates = async (companyId) => {
     try {

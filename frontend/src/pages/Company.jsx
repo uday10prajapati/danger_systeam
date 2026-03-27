@@ -37,9 +37,6 @@ function CompanySetup() {
       const response = await axios.get(`${API_URL}/company`)
       const companyData = response.data.data
       
-      // Save to localStorage for other modules (Item Master, etc.)
-      localStorage.setItem('company', JSON.stringify(companyData))
-      
       // Format dates for input type="date" (YYYY-MM-DD format)
       const formattedData = {
         ...companyData,
@@ -87,13 +84,19 @@ function CompanySetup() {
         return
       }
 
+      console.log('Submitting company data:', formData)
+
       if (company && isEditing) {
         // Update company
+        console.log('Updating company with ID:', company.id)
         response = await axios.put(`${API_URL}/company/${company.id}`, formData)
       } else {
         // Create company
+        console.log('Creating new company')
         response = await axios.post(`${API_URL}/company`, formData)
       }
+
+      console.log('API Response:', response.data)
 
       if (response.data.success) {
         setSuccess(true)
@@ -103,14 +106,20 @@ function CompanySetup() {
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(false), 3000)
         
-        // Refetch company to get updated data
+        // Refetch company to get updated data from database
         setTimeout(fetchCompany, 1000)
+      } else {
+        setErrors([response.data.error || 'Failed to save company'])
       }
     } catch (error) {
+      console.error('Company submission error:', error)
+      
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors)
       } else if (error.response?.data?.error) {
         setErrors([error.response.data.error])
+      } else if (error.message) {
+        setErrors([`Error: ${error.message}`])
       } else {
         setErrors([t('company.failedToSaveCompany')])
       }

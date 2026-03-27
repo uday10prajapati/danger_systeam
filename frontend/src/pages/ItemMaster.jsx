@@ -18,16 +18,24 @@ export default function ItemMaster() {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    const companyData = localStorage.getItem('company');
-    if (companyData) {
-      const parsedCompany = JSON.parse(companyData);
-      setCompany(parsedCompany);
-      fetchItems(parsedCompany.id);
-      fetchCategories(parsedCompany.id);
-    } else {
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      setLoading(true);
+      // Fetch company directly from API instead of localStorage
+      const res = await axios.get('/api/company');
+      if (res.data.success && res.data.data) {
+        setCompany(res.data.data);
+        fetchItems(res.data.data.id);
+        fetchCategories(res.data.data.id);
+      }
+    } catch (err) {
+      console.error('Fetch company error:', err);
       setLoading(false);
     }
-  }, []);
+  };
 
   const fetchItems = async (companyId) => {
     try {

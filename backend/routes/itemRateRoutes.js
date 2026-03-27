@@ -1,5 +1,5 @@
 import express from 'express'
-import { query } from '../db.js'
+import { query, execute } from '../db.js'
 import { validateItemRate } from '../validators/itemRateValidator.js'
 
 const router = express.Router()
@@ -43,13 +43,13 @@ router.post('/', validateItemRate(), async (req, res) => {
     }
 
     // Deactivate previous active rate for this item
-    await query(
+    await execute(
       'UPDATE item_rate SET is_active = 0 WHERE item_id = ? AND company_id = ? AND is_active = 1',
       [item_id, companyId]
     )
 
     // Insert new rate
-    const result = await query(
+    const result = await execute(
       `INSERT INTO item_rate 
        (company_id, item_id, purchase_rate, sale_rate, mrp, effective_from, is_active) 
        VALUES (?, ?, ?, ?, ?, ?, 1)`,
