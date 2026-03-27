@@ -55,7 +55,7 @@ async function migrate() {
         try {
           await connection.query(
             `INSERT IGNORE INTO accounts (company_id, account_name, account_type, opening_balance, is_active)
-             VALUES (?, ?, ?, ?, TRUE)`,
+             VALUES (?, ?, ?, ?, 1)`,
             [companyId, account.name, account.type, account.balance]
           );
           console.log(`  ✓ Created ${account.name} account`);

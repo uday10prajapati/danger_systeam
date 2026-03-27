@@ -30,7 +30,7 @@ export async function getCustomerBalance(pool, companyId, customerId) {
     FROM customer_ledger
     WHERE company_id = ? 
       AND customer_account_id = ? 
-      AND is_deleted = FALSE
+      AND is_deleted = 0
   `;
   
   const [results] = await pool.query(sql, [companyId, customerId]);

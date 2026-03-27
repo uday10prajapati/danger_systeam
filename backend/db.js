@@ -237,17 +237,20 @@ export async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS member_master (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           company_id INTEGER NOT NULL,
+          account_id INTEGER,
           member_name VARCHAR(255) NOT NULL,
           member_code VARCHAR(50),
           phone VARCHAR(20),
           email VARCHAR(100),
           address TEXT,
+          discount_percentage REAL DEFAULT 0,
           loyalty_points INTEGER DEFAULT 0,
           total_purchases REAL DEFAULT 0,
           is_active INTEGER DEFAULT 1,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT
         )
       `);
 
@@ -911,7 +914,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
       // Try to find a Revenue account
       try {
         const salesAccountResult = await connection.query(
-          `SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'Revenue' OR account_type = 'Sales') AND is_deleted = FALSE LIMIT 1`,
+          `SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'Revenue' OR account_type = 'Sales') AND is_deleted = 0 LIMIT 1`,
           [companyId]
         );
         
@@ -924,7 +927,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
           // If no Revenue account exists, try to create one or use a default
           const createResult = await connection.query(
             `INSERT INTO accounts (company_id, account_name, account_type, is_active) 
-             VALUES (?, 'Sales Revenue', 'Revenue', TRUE)`,
+             VALUES (?, 'Sales Revenue', 'Revenue', 1)`,
             [companyId]
           );
           salesAccountId = createResult[0].insertId;

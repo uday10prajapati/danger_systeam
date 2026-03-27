@@ -71,7 +71,7 @@ export async function getMemberByCode(companyId, memberCode) {
         created_at,
         updated_at
        FROM member_master
-       WHERE company_id = ? AND member_code = ? AND is_active = TRUE
+       WHERE company_id = ? AND member_code = ? AND is_active = 1
       `,
       [companyId, Number(memberCode)]
     );
@@ -109,7 +109,7 @@ export async function searchMembersByCode(companyId, searchCode, limit = 10) {
         member_gst_no,
         is_active
        FROM member_master
-       WHERE company_id = ? AND member_code LIKE ? AND is_active = TRUE
+       WHERE company_id = ? AND member_code LIKE ? AND is_active = 1
        ORDER BY member_code ASC
        LIMIT ?
       `,
@@ -161,7 +161,7 @@ export async function getAllActiveMembers(companyId) {
         member_gst_no,
         account_id
        FROM member_master
-       WHERE company_id = ? AND is_active = TRUE
+       WHERE company_id = ? AND is_active = 1
        ORDER BY member_code ASC
       `,
       [companyId]
