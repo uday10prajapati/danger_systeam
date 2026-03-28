@@ -18,6 +18,8 @@ export default function MemberForm({
   const [formData, setFormData] = useState({
     account_id: '',
     member_name: '',
+    member_address: '',
+    member_gst_no: '',
     phone: '',
     email: '',
     discount_percentage: 0,
@@ -35,6 +37,8 @@ export default function MemberForm({
       setFormData({
         account_id: editingMember.account_id,
         member_name: editingMember.member_name,
+        member_address: editingMember.member_address || '',
+        member_gst_no: editingMember.member_gst_no || '',
         phone: editingMember.phone || '',
         email: editingMember.email || '',
         discount_percentage: editingMember.discount_percentage || 0,
@@ -105,12 +109,14 @@ export default function MemberForm({
 
       const url = editingMember ? `/api/members/${editingMember.id}` : '/api/members';
       const method = editingMember ? 'PUT' : 'POST';
-      const headers = !editingMember ? { 'x-company-id': companyId } : {};
+      const headers = { 'x-company-id': companyId };
 
       // For new members, use POST; for editing, use PUT
       const payload = {
         account_id: formData.account_id,
         member_name: formData.member_name,
+        member_address: formData.member_address,
+        member_gst_no: formData.member_gst_no,
         phone: formData.phone,
         email: formData.email,
         discount_percentage: formData.discount_percentage
@@ -130,6 +136,8 @@ export default function MemberForm({
           setFormData({
             account_id: '',
             member_name: '',
+            member_address: '',
+            member_gst_no: '',
             phone: '',
             email: '',
             discount_percentage: 0,

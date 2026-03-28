@@ -94,12 +94,12 @@ function startBackend() {
     let backendOutput = '';
     let backendStarted = false;
 
-    backendProcess = spawn('node', [serverPath], {
+    backendProcess = spawn(process.execPath, [serverPath], {
       cwd: cwd,
       stdio: 'pipe',
-      preferLocal: true,
       env: {
         ...process.env,
+        ELECTRON_RUN_AS_NODE: '1',
         NODE_ENV: isDev ? 'development' : 'production',
         PORT: 5000
       }

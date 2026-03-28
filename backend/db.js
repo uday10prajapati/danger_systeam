@@ -451,8 +451,20 @@ export async function initializeDatabase() {
       await connection.query("CREATE UNIQUE INDEX IF NOT EXISTS uidx_company_name ON company(company_name)");
       await connection.query("CREATE UNIQUE INDEX IF NOT EXISTS uidx_user_email ON users(company_id, email)");
 
+      // Schema upgrades (safe ALTER TABLE without assuming MySQL version)
+      try {
+        await connection.query("ALTER TABLE member_master ADD COLUMN member_address TEXT");
+      } catch (e) {
+        // Ignore error if column already exists (ER_DUP_FIELDNAME)
+      }
+      try {
+        await connection.query("ALTER TABLE member_master ADD COLUMN member_gst_no VARCHAR(25)");
+      } catch (e) {
+        // Ignore error if column already exists
+      }
+
       await connection.commit();
-      console.log('✅ MySQL Database tables created/verified');
+      console.log('✅ MySQL Database tables created/verified/upgraded');
     } catch (error) {
       await connection.rollback();
       throw error;

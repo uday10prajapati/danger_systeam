@@ -157,58 +157,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * UPDATE MEMBER
- * PUT /api/members/:id
- */
-router.put('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { member_name, phone, email, discount_percentage } = req.body;
-
-    // Build dynamic update query
-    const updates = [];
-    const values = [];
-
-    if (member_name !== undefined) {
-      updates.push('member_name = ?');
-      values.push(member_name);
-    }
-    if (phone !== undefined) {
-      updates.push('phone = ?');
-      values.push(phone || null);
-    }
-    if (email !== undefined) {
-      updates.push('email = ?');
-      values.push(email || null);
-    }
-    if (discount_percentage !== undefined) {
-      updates.push('discount_percentage = ?');
-      values.push(discount_percentage);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ success: false, error: 'No fields to update' });
-    }
-
-    updates.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(id);
-
-    const sql = `UPDATE member_master SET ${updates.join(', ')} WHERE id = ?`;
-    
-    await execute(sql, values);
-    res.json({ success: true, message: 'Member updated successfully' });
-  } catch (error) {
-    if (error.message.includes('UNIQUE') || error.message.includes('Duplicate')) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Phone or email already exists' 
-      });
-    }
-    console.error('Update member error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 /**
  * ACTIVATE MEMBER

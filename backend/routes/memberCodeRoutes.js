@@ -181,7 +181,10 @@ router.put('/:id', async (req, res) => {
       member_address,
       member_gst_no,
       account_id,
-      is_active
+      is_active,
+      phone,
+      email,
+      discount_percentage
     } = req.body;
 
     // Verify member exists and belongs to company
@@ -217,6 +220,18 @@ router.put('/:id', async (req, res) => {
     if (is_active !== undefined) {
       updates.push('is_active = ?');
       values.push(is_active);
+    }
+    if (phone !== undefined) {
+      updates.push('phone = ?');
+      values.push(phone || null);
+    }
+    if (email !== undefined) {
+      updates.push('email = ?');
+      values.push(email || null);
+    }
+    if (discount_percentage !== undefined) {
+      updates.push('discount_percentage = ?');
+      values.push(discount_percentage);
     }
 
     if (updates.length === 0) {
