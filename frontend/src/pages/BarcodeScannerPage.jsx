@@ -15,12 +15,30 @@ export default function BarcodeScannerPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [stats, setStats] = useState({ total: 0, withBarcode: 0, withoutBarcode: 0 });
   const [activeTab, setActiveTab] = useState('scan'); // scan or manage
-
-  const company = JSON.parse(localStorage.getItem('company')) || {};
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
-    fetchStats();
+    loadCompany();
   }, []);
+
+  useEffect(() => {
+    if (company?.id) {
+      fetchStats();
+    }
+  }, [company]);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -124,7 +142,7 @@ export default function BarcodeScannerPage() {
     document.body.removeChild(element);
   };
 
-  if (!company.id) {
+  if (!company?.id) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">

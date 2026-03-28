@@ -18,7 +18,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
   try {
-    const { supplier_account_id, invoice_no, invoice_date, items, notes } = req.body;
+    const { supplier_account_id, invoice_no, invoice_date, items, notes, gst_amount, gst_percent } = req.body;
     const companyId = req.headers['x-company-id'];
     const userId = req.headers['x-user-id'];
 
@@ -69,7 +69,9 @@ router.post('/', async (req, res) => {
       invoice_date,
       items,
       notes || null,
-      userId
+      userId,
+      gst_amount || 0,
+      gst_percent || 0
     );
 
     res.status(201).json({

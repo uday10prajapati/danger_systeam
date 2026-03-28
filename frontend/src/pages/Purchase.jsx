@@ -21,15 +21,22 @@ export default function Purchase() {
 
   // Load company
   useEffect(() => {
-    const companyData = localStorage.getItem('company');
-    if (companyData) {
-      const parsedCompany = JSON.parse(companyData);
-      setCompany(parsedCompany);
-      fetchPurchases(parsedCompany.id);
-    } else {
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+        fetchPurchases(response.data.data.id);
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
       setLoading(false);
     }
-  }, []);
+  };
 
   // Fetch purchases
   const fetchPurchases = async (companyId, startDate, endDate) => {

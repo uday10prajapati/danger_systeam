@@ -53,9 +53,9 @@ function AppContent() {
     <div>
       {location.pathname !== '/login' && <Navbar backendStatus={backendStatus} />}
       <Routes>
+        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/" element={<Dashboard />} />
         
         {/* Setup & Configuration */}
         <Route path="/company" element={<Company />} />

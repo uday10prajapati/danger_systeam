@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// MySQL Configuration (XAMPP)
+// MySQL Configuration (Local XAMPP)
 console.log('🔧 Database Configuration:');
 console.log('  Host:', process.env.DB_HOST || 'localhost');
 console.log('  User:', process.env.DB_USER || 'root');
@@ -373,6 +373,20 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Create Purchase Return Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_return_items (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          purchase_return_id INT NOT NULL,
+          item_id INT NOT NULL,
+          quantity DECIMAL(10, 2) NOT NULL,
+          purchase_rate DECIMAL(10, 2) NOT NULL,
+          amount DECIMAL(10, 2) NOT NULL,
+          FOREIGN KEY (purchase_return_id) REFERENCES purchase_returns(id) ON DELETE CASCADE,
+          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE RESTRICT
+        )
+      `);
+
       // Create Cash Book table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS cash_book (
@@ -523,7 +537,7 @@ export async function execute(sql, params = []) {
 
 // ============ PURCHASE OPERATIONS ============
 
-export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDate, items, notes, userId) {
+export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDate, items, notes, userId, gstAmount = 0, gstPercent = 0) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -570,10 +584,11 @@ export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDa
       );
     }
 
-    // 3. Update purchase total
+    // 3. Update purchase total with GST
+    const grandTotal = totalAmount + gstAmount;
     await connection.query(
       `UPDATE purchases SET total_amount = ? WHERE id = ?`,
-      [totalAmount, purchaseId]
+      [grandTotal, purchaseId]
     );
 
     // 4. Create supplier ledger entry (DEBIT = money owed to supplier)
@@ -586,17 +601,17 @@ export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDa
     );
 
     const previousBalance = supplierBalance[0][0]?.balance || 0;
-    const newBalance = previousBalance + totalAmount;
+    const newBalance = previousBalance + grandTotal;
 
     await connection.query(
       `INSERT INTO supplier_ledger 
        (company_id, supplier_account_id, purchase_id, debit_amount, balance, transaction_type, reference_no, created_by)
        VALUES (?, ?, ?, ?, ?, 'PURCHASE', ?, ?)`,
-      [companyId, supplierId, purchaseId, totalAmount, newBalance, invoiceNo, userId]
+      [companyId, supplierId, purchaseId, grandTotal, newBalance, invoiceNo, userId]
     );
 
     await connection.commit();
-    return { id: purchaseId, total_amount: totalAmount };
+    return { id: purchaseId, total_amount: totalAmount, gst_amount: gstAmount, grand_total: grandTotal };
   } catch (error) {
     await connection.rollback();
     console.error('Create purchase error:', error);
@@ -700,11 +715,11 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
   try {
     await connection.beginTransaction();
 
-    // 1. Insert purchase return header
+    // 1. Insert purchase return header (initialize with 0, update after calculating total)
     const [returnResult] = await connection.query(
-      `INSERT INTO purchase_returns (company_id, purchase_id, supplier_account_id, return_date, total_return_amount, notes, created_by) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [companyId, purchaseId, supplierId, returnDate, 0, notes, userId]
+      `INSERT INTO purchase_returns (company_id, purchase_id, return_date, return_amount, reason, created_by) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [companyId, purchaseId, returnDate, 0, notes, userId]
     );
     const returnId = returnResult.insertId;
 
@@ -736,15 +751,15 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
       // Insert stock ledger entry (STOCK OUT)
       await connection.query(
         `INSERT INTO purchase_stock_ledger 
-         (company_id, item_id, quantity_out, current_stock, transaction_type, reference_id, reference_no, created_by)
-         VALUES (?, ?, ?, ?, 'PURCHASE_RETURN', ?, ?, ?)`,
-        [companyId, item.item_id, item.quantity, newStock, returnId, `RETURN-${returnId}`, userId]
+         (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by)
+         VALUES (?, ?, ?, ?, 'PURCHASE_RETURN', ?, ?)`,
+        [companyId, item.item_id, item.quantity, newStock, `RETURN-${returnId}`, userId]
       );
     }
 
     // 3. Update purchase return total
     await connection.query(
-      `UPDATE purchase_returns SET total_return_amount = ? WHERE id = ?`,
+      `UPDATE purchase_returns SET return_amount = ? WHERE id = ?`,
       [totalReturnAmount, returnId]
     );
 
@@ -768,7 +783,7 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
     );
 
     await connection.commit();
-    return { id: returnId, total_return_amount: totalReturnAmount };
+    return { id: returnId, return_amount: totalReturnAmount };
   } catch (error) {
     await connection.rollback();
     console.error('Create purchase return error:', error);
@@ -779,22 +794,40 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
 }
 
 export async function getPurchaseReturnsByCompany(companyId, startDate, endDate) {
+  // Get purchase returns
   const sql = `
     SELECT 
-      pr.id, pr.purchase_id, pr.return_date, pr.total_return_amount, pr.notes,
+      pr.id, 
+      pr.purchase_id, 
+      pr.return_date, 
+      pr.return_amount,
+      pr.reason,
+      p.supplier_account_id,
       a.account_name as supplier_name,
       u.username as created_by_name,
-      COUNT(DISTINCT pri.id) as item_count,
       pr.created_at
     FROM purchase_returns pr
-    LEFT JOIN accounts a ON pr.supplier_account_id = a.id
+    LEFT JOIN purchases p ON pr.purchase_id = p.id
+    LEFT JOIN accounts a ON p.supplier_account_id = a.id
     LEFT JOIN users u ON pr.created_by = u.id
-    LEFT JOIN purchase_return_items pri ON pr.id = pri.purchase_return_id
     WHERE pr.company_id = ? AND DATE(pr.return_date) BETWEEN ? AND ?
-    GROUP BY pr.id
     ORDER BY pr.return_date DESC, pr.created_at DESC
   `;
-  return await query(sql, [companyId, startDate, endDate]);
+  
+  const returns = await query(sql, [companyId, startDate, endDate]);
+  
+  // Get item counts for each return
+  if (returns && returns.length > 0) {
+    for (const ret of returns) {
+      const [countResult] = await query(
+        'SELECT COUNT(*) as item_count FROM purchase_return_items WHERE purchase_return_id = ?',
+        [ret.id]
+      );
+      ret.item_count = countResult[0]?.item_count || 0;
+    }
+  }
+  
+  return returns;
 }
 
 export async function getPurchaseReturnDetails(returnId) {
@@ -802,15 +835,16 @@ export async function getPurchaseReturnDetails(returnId) {
   const returnSql = `
     SELECT 
       pr.*,
+      p.supplier_account_id,
       a.account_name as supplier_name,
       c.company_name,
       u.username as created_by_name,
       p.invoice_no as original_invoice_no
     FROM purchase_returns pr
-    LEFT JOIN accounts a ON pr.supplier_account_id = a.id
+    LEFT JOIN purchases p ON pr.purchase_id = p.id
+    LEFT JOIN accounts a ON p.supplier_account_id = a.id
     LEFT JOIN company c ON pr.company_id = c.id
     LEFT JOIN users u ON pr.created_by = u.id
-    LEFT JOIN purchases p ON pr.purchase_id = p.id
     WHERE pr.id = ?
   `;
   const returnHeader = await queryOne(returnSql, [returnId]);
@@ -906,9 +940,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
       // Insert stock ledger entry (STOCK OUT for sale)
       await connection.query(
         `INSERT INTO purchase_stock_ledger 
-         (company_id, item_id, quantity_out, current_stock, transaction_type, reference_id, reference_no, created_by)
-         VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?, ?)`,
-        [companyId, item.item_id, item.quantity, newStock, saleId, `SALE-${saleId}`, userId]
+         (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by)
+         VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?)`,
+        [companyId, item.item_id, item.quantity, newStock, `SALE-${saleId}`, userId]
       );
     }
 
@@ -1238,7 +1272,7 @@ export async function createSaleReturn(
       // Add to purchase stock ledger (stock IN via return)
       const stockSql = `
         INSERT INTO purchase_stock_ledger 
-        (company_id, item_id, quantity_in, quantity_out, transaction_type, reference_id, reference_no)
+        (company_id, item_id, quantity_in, quantity_out, transaction_type, reference_no, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
       await connection.query(stockSql, [
@@ -1247,8 +1281,8 @@ export async function createSaleReturn(
         item.quantity,
         0,
         'SALE_RETURN',
-        saleReturnId,
-        returnNo
+        `RETURN-${saleReturnId}`,
+        userId
       ]);
     }
 
@@ -1512,11 +1546,10 @@ export async function getAccountLedger(accountId, startDate, endDate) {
     SELECT 
       al.id,
       al.transaction_date,
-      al.reference_type,
+      al.transaction_type,
       al.reference_no,
-      al.description,
-      al.debit,
-      al.credit
+      al.debit_amount as debit,
+      al.credit_amount as credit
     FROM account_ledger al
     WHERE al.account_id = ? AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date ASC, al.created_at ASC
@@ -1531,9 +1564,9 @@ export async function getAccountBalance(accountId, upToDate = null) {
 
   const sql = `
     SELECT 
-      COALESCE(SUM(debit), 0) as total_debit,
-      COALESCE(SUM(credit), 0) as total_credit,
-      COALESCE(SUM(debit - credit), 0) as running_balance
+      COALESCE(SUM(debit_amount), 0) as total_debit,
+      COALESCE(SUM(credit_amount), 0) as total_credit,
+      COALESCE(SUM(debit_amount - credit_amount), 0) as running_balance
     FROM account_ledger al
     WHERE al.account_id = ? ${dateCondition}
   `;
@@ -1572,9 +1605,9 @@ export async function getTrialBalance(companyId, asOfDate = null) {
       a.id,
       a.account_name,
       a.account_type,
-      COALESCE(SUM(al.debit), 0) as total_debit,
-      COALESCE(SUM(al.credit), 0) as total_credit,
-      COALESCE(SUM(al.debit - al.credit), 0) as balance
+      COALESCE(SUM(al.debit_amount), 0) as total_debit,
+      COALESCE(SUM(al.credit_amount), 0) as total_credit,
+      COALESCE(SUM(al.debit_amount - al.credit_amount), 0) as balance
     FROM accounts a
     LEFT JOIN account_ledger al ON a.id = al.account_id ${dateCondition}
     WHERE a.company_id = ?
@@ -1582,7 +1615,7 @@ export async function getTrialBalance(companyId, asOfDate = null) {
     ORDER BY a.account_name
   `;
 
-  const params2 = params.length === 2 ? [params[0], params[1]] : [params[0]];
+  const params2 = params.length === 2 ? [params[1], params[0]] : [params[0]];
   return await query(sql, params2);
 }
 
@@ -1761,7 +1794,7 @@ export async function getProfitLossStatement(companyId, startDate, endDate) {
 
     // 5. PURCHASE RETURNS (Adjusting COGS downward)
     const purchaseReturnsResult = await query(
-      `SELECT COALESCE(SUM(total_return_amount), 0) as total_purchase_returns
+      `SELECT COALESCE(SUM(return_amount), 0) as total_purchase_returns
        FROM purchase_returns
        WHERE company_id = ? AND DATE(return_date) BETWEEN ? AND ?`,
       [companyId, startDate, endDate]
@@ -1780,7 +1813,7 @@ export async function getProfitLossStatement(companyId, startDate, endDate) {
       `SELECT 
         COALESCE(SUM(
           CASE 
-            WHEN a.account_type = 'Expense' THEN COALESCE(al.debit, 0)
+            WHEN a.account_type = 'Expense' THEN COALESCE(al.debit_amount, 0)
             ELSE 0
           END
         ), 0) as total_operating_expenses

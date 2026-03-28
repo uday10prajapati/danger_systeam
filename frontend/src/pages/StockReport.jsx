@@ -12,6 +12,7 @@ const formatNumber = (num) => {
   });
 };
 
+
 export default function StockReport() {
   const { t } = useTranslation();
   const [stockData, setStockData] = useState([]);
@@ -22,28 +23,41 @@ export default function StockReport() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [itemHistory, setItemHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-
-  const company = JSON.parse(localStorage.getItem('company')) || {};
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
-    if (!company.id) {
-      console.error('Company ID not found in localStorage');
-      setLoading(false);
-      return;
-    }
-    fetchStockReport();
+    loadCompany();
   }, []);
 
+  useEffect(() => {
+    if (company?.id) {
+      fetchStockReport();
+    }
+  }, [company]);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
+    }
+  };
+
+
   const fetchStockReport = async () => {
+    if (!company?.id) return;
     try {
       setLoading(true);
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report`, {
         headers: { 'x-company-id': company.id, 'x-user-id': 1 }
       });
-      
       if (response.data.success) {
         setStockData(response.data.data);
-        
         // Fetch low stock items
         const lowResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report/low-stock`, {
           headers: { 'x-company-id': company.id, 'x-user-id': 1 }
@@ -59,11 +73,11 @@ export default function StockReport() {
   };
 
   const fetchItemHistory = async (itemId) => {
+    if (!company?.id) return;
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report/item/${itemId}`, {
         headers: { 'x-company-id': company.id, 'x-user-id': 1 }
       });
-      
       if (response.data.success) {
         setItemHistory(response.data.data);
         setShowHistory(true);
@@ -102,12 +116,12 @@ export default function StockReport() {
     );
   }
 
-  if (!company.id) {
+  if (!company || !company.id) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
           <p className="text-gray-600 text-lg mb-4">Company information not found</p>
-          <p className="text-gray-500">Please log in again</p>
+          <p className="text-gray-500">Please log in again or set up a company.</p>
         </div>
       </div>
     );

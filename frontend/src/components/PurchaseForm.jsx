@@ -164,7 +164,39 @@ export default function PurchaseForm({ company, onSubmit, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrors({});
+    const newErrors = {};
+
+    // Front-end validation
+    if (!formData.supplier_account_id) {
+      newErrors.supplier_account_id = 'Please select a supplier';
+    }
+
+    if (!formData.invoice_no.trim()) {
+      newErrors.invoice_no = 'Please enter invoice number';
+    }
+
+    if (!formData.invoice_date) {
+      newErrors.invoice_date = 'Please select invoice date';
+    }
+
+    // Filter out empty items and validate
+    const validItems = formData.items.filter(item => 
+      item.item_id && item.quantity && item.purchase_rate
+    );
+
+    if (validItems.length === 0) {
+      newErrors.items = 'Please add at least one item with quantity and rate';
+    }
+
+    if (validItems.length < formData.items.length) {
+      newErrors.submit = `${formData.items.length - validItems.length} incomplete item(s) removed. Please fill all fields.`;
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setLoading(false);
+      return;
+    }
 
     try {
       // Convert form data to proper types for backend
@@ -172,12 +204,14 @@ export default function PurchaseForm({ company, onSubmit, onClose }) {
         supplier_account_id: parseInt(formData.supplier_account_id),
         invoice_no: formData.invoice_no.trim(),
         invoice_date: formData.invoice_date,
-        items: formData.items.map(item => ({
+        items: validItems.map(item => ({
           item_id: parseInt(item.item_id),
           quantity: parseFloat(item.quantity),
           purchase_rate: parseFloat(item.purchase_rate)
         })),
-        notes: formData.notes
+        notes: formData.notes || '',
+        gst_amount: gstData?.total_gst || 0,
+        gst_percent: gstData?.gst_percent || 0
       };
       await onSubmit(purchaseData);
       // Form will be reset by parent component
@@ -185,7 +219,7 @@ export default function PurchaseForm({ company, onSubmit, onClose }) {
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       } else {
-        setErrors({ submit: err.message });
+        setErrors({ submit: err.response?.data?.message || err.message });
       }
     } finally {
       setLoading(false);

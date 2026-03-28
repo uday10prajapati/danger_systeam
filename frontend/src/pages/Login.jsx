@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, Loader, AlertCircle, Zap, TrendingUp, Users, Shield, Sparkles } from 'lucide-react'
+import { Lock, Eye, EyeOff, Loader, AlertCircle, Sparkles, Shield, Zap, TrendingUp, Users } from 'lucide-react'
+import api from '../api'
 
 function Login() {
   const navigate = useNavigate()
@@ -21,26 +22,44 @@ function Login() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+  // Check if already logged in
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      // Simulate API call - Replace with actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      if (!email || !password) {
+        setError('Please fill in all fields')
+        setLoading(false)
+        return
+      }
 
-      if (email && password) {
-        localStorage.setItem('authToken', 'demo_token_' + Date.now())
+      const response = await api.post('/login', {
+        email: email.toLowerCase().trim(),
+        password: password
+      })
+
+      if (response.data.success) {
+        // Save user data and token
+        localStorage.setItem('user', JSON.stringify(response.data.user))
         if (rememberMe) {
           localStorage.setItem('rememberEmail', email)
         }
         navigate('/dashboard')
       } else {
-        setError('Please fill in all fields')
+        setError(response.data.error || 'Login failed')
       }
     } catch (err) {
-      setError('Login failed. Please try again.')
+      console.error('Login error:', err)
+      setError(err.response?.data?.error || 'Invalid email or password')
     } finally {
       setLoading(false)
     }
@@ -111,23 +130,7 @@ function Login() {
               </div>
 
               {/* Form section */}
-              <form onSubmit={(e) => {
-                e.preventDefault()
-                setError('')
-                setLoading(true)
-                setTimeout(() => {
-                  if (email && password) {
-                    localStorage.setItem('authToken', 'demo_token_' + Date.now())
-                    if (rememberMe) {
-                      localStorage.setItem('rememberEmail', email)
-                    }
-                    navigate('/dashboard')
-                  } else {
-                    setError('Please fill in all fields')
-                    setLoading(false)
-                  }
-                }, 1500)
-              }} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Error message with animation */}
                 {error && (
                   <div className="flex items-center gap-3 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-300 animate-in fade-in slide-in-from-top duration-300 backdrop-blur-sm">
@@ -139,7 +142,7 @@ function Login() {
                 {/* Email field */}
                 <div className="group/field">
                   <label htmlFor="email" className="block text-sm font-semibold text-slate-200 mb-3 group-hover/field:text-blue-400 transition-colors duration-300 flex items-center gap-2">
-                    <Mail size={16} />
+                    <span className="text-lg">📧</span>
                     Email Address
                   </label>
                   <div className={`relative transition-all duration-300 ${focusedField === 'email' ? 'scale-105' : ''}`}>
@@ -150,12 +153,11 @@ function Login() {
                       onChange={(e) => setEmail(e.target.value)}
                       onFocus={() => setFocusedField('email')}
                       onBlur={() => setFocusedField('')}
-                      placeholder="you@company.com"
+                      placeholder="Enter your email"
                       className="w-full pl-4 pr-4 py-3.5 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 disabled:bg-slate-900 disabled:cursor-not-allowed hover:border-slate-500 group-hover/field:border-slate-400"
                       required
                       disabled={loading}
                     />
-                    <Mail className={`absolute right-4 top-3.5 transition-colors duration-300 pointer-events-none ${focusedField === 'email' ? 'text-blue-400' : 'text-slate-500'}`} size={20} />
                   </div>
                 </div>
 
@@ -236,24 +238,6 @@ function Login() {
                     </>
                   )}
                 </button>
-
-                {/* Demo credentials with enhanced styling */}
-                <div className="bg-gradient-to-br from-blue-500/15 to-cyan-500/15 border border-blue-500/40 rounded-xl p-5 mt-6 hover:border-blue-500/80 transition-all duration-300 group/demo backdrop-blur-sm">
-                  <p className="text-xs font-bold text-blue-300 mb-3 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full animate-pulse"></span>
-                    Demo Credentials
-                  </p>
-                  <div className="space-y-2 text-xs text-blue-200 font-mono">
-                    <div className="flex items-center gap-2 group/cred">
-                      <span className="text-blue-400">📧</span>
-                      <span className="bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 transition-all group-hover/cred:border-blue-500/50">demo@superstore.com</span>
-                    </div>
-                    <div className="flex items-center gap-2 group/cred">
-                      <span className="text-blue-400">🔐</span>
-                      <span className="bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 transition-all group-hover/cred:border-blue-500/50">demo123</span>
-                    </div>
-                  </div>
-                </div>
               </form>
 
               {/* Footer section */}

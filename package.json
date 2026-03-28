@@ -42,6 +42,7 @@
     "files": [
       "electron/**/*",
       "backend/**/*",
+      "backend/.env",
       "frontend/dist/**/*",
       "node_modules/**/*"
     ],

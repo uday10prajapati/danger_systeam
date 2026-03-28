@@ -13,6 +13,7 @@ export default function AccountLedger() {
   const [totals, setTotals] = useState({ total_debit: 0, total_credit: 0, difference: 0 });
   const [accountBalance, setAccountBalance] = useState({ total_debit: 0, total_credit: 0, running_balance: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [company, setCompany] = useState(null);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
@@ -20,14 +21,32 @@ export default function AccountLedger() {
   const [loading, setLoading] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const company = JSON.parse(localStorage.getItem('company')) || {};
 
   useEffect(() => {
-    fetchAccounts();
-    if (view === 'trial-balance') {
-      fetchTrialBalance();
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
     }
-  }, [view]);
+  };
+
+  useEffect(() => {
+    if (company?.id) {
+      fetchAccounts();
+      if (view === 'trial-balance') {
+        fetchTrialBalance();
+      }
+    }
+  }, [view, company]);
 
   const fetchAccounts = async () => {
     try {
@@ -134,6 +153,17 @@ export default function AccountLedger() {
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      {/* Guard: Ensure company data is loaded */}
+      {!company?.id && (
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-center">
+            <p className="text-gray-600 text-lg mb-4">Loading company information...</p>
+          </div>
+        </div>
+      )}
+
+      {company?.id && (
+        <>
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -664,6 +694,8 @@ export default function AccountLedger() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

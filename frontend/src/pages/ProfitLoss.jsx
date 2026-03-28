@@ -11,8 +11,24 @@ export default function ProfitLoss() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [viewMode, setViewMode] = useState('summary'); // summary or monthly
+  const [company, setCompany] = useState(null);
 
-  const company = JSON.parse(localStorage.getItem('company')) || {};
+  useEffect(() => {
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
+    }
+  };
 
   // Set default dates (current month)
   useEffect(() => {
@@ -25,14 +41,14 @@ export default function ProfitLoss() {
   }, []);
 
   useEffect(() => {
-    if (!company.id) {
+    if (!company?.id) {
       setLoading(false);
       return;
     }
     if (startDate && endDate) {
       fetchProfitLoss();
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, company]);
 
   const fetchProfitLoss = async () => {
     try {
@@ -92,7 +108,7 @@ export default function ProfitLoss() {
     );
   }
 
-  if (!company.id) {
+  if (!company?.id) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">

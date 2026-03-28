@@ -64,8 +64,10 @@ export function validateUser(data) {
 export function validateLogin(data) {
   const errors = {};
 
-  if (!data.username || data.username.trim() === '') {
-    errors.username = 'Username is required';
+  if (!data.email || data.email.trim() === '') {
+    errors.email = 'Email is required';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+    errors.email = 'Email must be a valid email address';
   }
 
   if (!data.password || data.password === '') {

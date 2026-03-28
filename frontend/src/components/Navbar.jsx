@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, Home, ArrowLeft, Globe } from 'lucide-react'
+import { Menu, X, Home, ArrowLeft, Globe, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 function Navbar({ backendStatus }) {
@@ -14,6 +14,12 @@ function Navbar({ backendStatus }) {
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
     localStorage.setItem('language', lng)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('rememberUsername')
+    navigate('/login')
   }
 
   return (
@@ -71,6 +77,15 @@ function Navbar({ backendStatus }) {
                 GU
               </button>
             </div>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-medium">Logout</span>
+            </button>
 
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg border border-slate-200">
               <div className={`w-2 h-2 rounded-full ${backendStatus === 'Connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -134,6 +149,17 @@ function Navbar({ backendStatus }) {
                 GU
               </button>
             </div>
+
+            <button
+              onClick={() => {
+                handleLogout()
+                setMobileMenuOpen(false)
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left border border-red-200"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="font-medium">Logout</span>
+            </button>
 
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg border border-slate-200">
               <div className={`w-2 h-2 rounded-full ${backendStatus === 'Connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>

@@ -28,6 +28,14 @@ function Dashboard() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [stats, setStats] = useState(null)
+
+  // Check if user is logged in
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
+    }
+  }, [navigate]);
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 

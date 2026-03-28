@@ -5,7 +5,7 @@ export function validatePurchase(data) {
   if (!data.supplier_account_id) {
     errors.supplier_account_id = 'Supplier is required';
   } else if (typeof data.supplier_account_id !== 'number' || data.supplier_account_id <= 0) {
-    errors.supplier_account_id = 'Invalid supplier';
+    errors.supplier_account_id = 'Invalid supplier selected';
   }
 
   // Invoice No validation
@@ -33,7 +33,7 @@ export function validatePurchase(data) {
   if (!data.items || !Array.isArray(data.items)) {
     errors.items = 'Items are required';
   } else if (data.items.length === 0) {
-    errors.items = 'At least one item is required';
+    errors.items = 'Add at least one item to purchase';
   } else {
     const itemErrors = [];
     data.items.forEach((item, index) => {
@@ -46,7 +46,7 @@ export function validatePurchase(data) {
 
       // Quantity validation
       if (!item.quantity || typeof item.quantity !== 'number') {
-        itemError.quantity = 'Quantity is required and must be a number';
+        itemError.quantity = 'Quantity must be a number';
       } else if (item.quantity <= 0) {
         itemError.quantity = 'Quantity must be greater than 0';
       } else if (item.quantity > 999999.99) {
@@ -54,8 +54,8 @@ export function validatePurchase(data) {
       }
 
       // Purchase Rate validation
-      if (!item.purchase_rate || typeof item.purchase_rate !== 'number') {
-        itemError.purchase_rate = 'Purchase rate is required and must be a number';
+      if (item.purchase_rate === undefined || item.purchase_rate === null || typeof item.purchase_rate !== 'number') {
+        itemError.purchase_rate = 'Purchase rate must be a number';
       } else if (item.purchase_rate < 0) {
         itemError.purchase_rate = 'Purchase rate cannot be negative';
       } else if (item.purchase_rate > 999999.99) {
@@ -69,6 +69,13 @@ export function validatePurchase(data) {
 
     if (itemErrors.length > 0 && itemErrors.some(e => e)) {
       errors.items = itemErrors;
+    }
+  }
+
+  // Optional GST validation
+  if (data.gst_percent !== undefined && data.gst_percent !== null) {
+    if (typeof data.gst_percent !== 'number' || data.gst_percent < 0 || data.gst_percent > 100) {
+      errors.gst_percent = 'Invalid GST percentage';
     }
   }
 

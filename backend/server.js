@@ -30,6 +30,16 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
+// VPS Nginx Resilience Middleware: 
+// If Nginx strips the '/api' prefix (via proxy_pass trailing slash), this adds it back 
+// so the hardcoded Express routes still flawlessly trigger.
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api')) {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  next();
+});
+
 // Health check endpoint (no database required)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend Running', timestamp: new Date() });

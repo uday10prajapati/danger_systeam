@@ -11,6 +11,7 @@ export default function CashBook() {
   const [dailySummary, setDailySummary] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [company, setCompany] = useState(null);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
@@ -25,12 +26,30 @@ export default function CashBook() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const company = JSON.parse(localStorage.getItem('company')) || {};
 
   useEffect(() => {
-    fetchCashBook();
-    fetchBalance();
+    loadCompany();
   }, []);
+
+  useEffect(() => {
+    if (company?.id) {
+      fetchCashBook();
+      fetchBalance();
+    }
+  }, [company]);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
+    }
+  };
 
   const fetchCashBook = async () => {
     try {
@@ -144,6 +163,17 @@ export default function CashBook() {
     fetchCashBook();
     fetchBalance();
   };
+
+  if (!company || !company.id) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 text-lg mb-4">Company information not found</p>
+          <p className="text-gray-500">Setting up company data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">

@@ -21,15 +21,22 @@ export default function PurchaseReturn() {
 
   // Load company
   useEffect(() => {
-    const companyData = localStorage.getItem('company');
-    if (companyData) {
-      const parsedCompany = JSON.parse(companyData);
-      setCompany(parsedCompany);
-      fetchReturns(parsedCompany.id);
-    } else {
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+        fetchReturns(response.data.data.id);
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
       setLoading(false);
     }
-  }, []);
+  };
 
   // Fetch purchase returns
   const fetchReturns = async (companyId, startDate, endDate) => {
@@ -124,7 +131,7 @@ export default function PurchaseReturn() {
     }
   };
 
-  if (!company) {
+  if (!company?.id) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 flex items-center justify-center">
         <div className="text-center">

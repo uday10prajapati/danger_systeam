@@ -27,14 +27,33 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const [gstData, setGstData] = useState(null);
   const [customerState, setCustomerState] = useState('Gujarat');
   const [customerInfo, setCustomerInfo] = useState(null); // Store customer GST/TIN info
+  const [company, setCompany] = useState(null);
   const barcodeRef = useRef(null);
-  const company = JSON.parse(localStorage.getItem('company')) || {};
 
   useEffect(() => {
-    barcodeRef.current?.focus();
-    fetchAllItems();
-    fetchAllMembers();
+    loadCompany();
   }, []);
+
+  useEffect(() => {
+    if (company?.id) {
+      barcodeRef.current?.focus();
+      fetchAllItems();
+      fetchAllMembers();
+    }
+  }, [company]);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
+    }
+  };
 
   const fetchAllItems = async () => {
     try {
@@ -99,8 +118,11 @@ export default function SaleForm({ onSubmit, onCancel }) {
     setSelectedItemId(item.id);
     setBarcodeInput(item.barcode);
     setShowItemDropdown(false);
+    setErrors({});
     // Auto-add item to cart
-    await addItemByBarcode(item.barcode);
+    if (item.barcode) {
+      await addItemByBarcode(item.barcode);
+    }
     
     // Keep item visible for 1 second before clearing
     setTimeout(() => {
@@ -118,10 +140,20 @@ export default function SaleForm({ onSubmit, onCancel }) {
   };
 
   const addItemByBarcode = async (code) => {
+    if (!code || !code.trim()) {
+      setErrors({ barcode: 'Please enter a barcode' });
+      return;
+    }
+
+    if (!company?.id) {
+      setErrors({ barcode: 'Company ID not loaded. Please refresh the page.' });
+      return;
+    }
+
     try {
-      // Use the correct barcode API endpoint
+      setErrors({});
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/items/barcode/${encodeURIComponent(code)}`,
+        `${import.meta.env.VITE_API_URL}/api/items/barcode/${encodeURIComponent(code.trim())}`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 
@@ -143,9 +175,9 @@ export default function SaleForm({ onSubmit, onCancel }) {
         addItemToCart(item);
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Item not found';
+      const errorMsg = error.response?.data?.error || error.message || 'Item not found';
+      console.error('Barcode lookup error:', error.response?.data || error);
       setErrors({ barcode: errorMsg });
-      console.error('Barcode lookup error:', error);
     }
   };
 

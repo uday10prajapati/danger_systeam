@@ -17,13 +17,30 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [gstData, setGstData] = useState(null);
-  const company = JSON.parse(localStorage.getItem('company')) || {};
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
-    if (step === 1) {
+    loadCompany();
+  }, []);
+
+  const loadCompany = async () => {
+    try {
+      const response = await axios.get('/api/company');
+      if (response.data.success && response.data.data) {
+        setCompany(response.data.data);
+      } else {
+        setCompany(null);
+      }
+    } catch (error) {
+      setCompany(null);
+    }
+  };
+
+  useEffect(() => {
+    if (step === 1 && company?.id) {
       fetchAvailableSales();
     }
-  }, [step]);
+  }, [step, company]);
 
   const fetchAvailableSales = async () => {
     try {

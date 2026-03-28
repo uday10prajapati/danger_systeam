@@ -402,7 +402,7 @@ export function registerUserRoutes(app) {
   });
 
   // ===== LOGIN =====
-  // Authenticate user with username and password
+  // Authenticate user with email and password
   app.post('/api/login', async (req, res) => {
     try {
       const validation = validateLogin(req.body);
@@ -414,20 +414,20 @@ export function registerUserRoutes(app) {
         });
       }
 
-      const { username, password } = req.body;
+      const { email, password } = req.body;
 
-      // Find user by username (search across all companies)
+      // Find user by email (search across all companies)
       const user = await queryOne(
         `SELECT id, company_id, username, email, role, is_active, password
          FROM users
-         WHERE username = ?`,
-        [username.trim()]
+         WHERE email = ?`,
+        [email.toLowerCase().trim()]
       );
 
       if (!user) {
         return res.status(401).json({
           success: false,
-          error: 'Invalid username or password'
+          error: 'Invalid email or password'
         });
       }
 
@@ -445,7 +445,7 @@ export function registerUserRoutes(app) {
       if (!passwordMatch) {
         return res.status(401).json({
           success: false,
-          error: 'Invalid username or password'
+          error: 'Invalid email or password'
         });
       }
 
