@@ -25,6 +25,7 @@ function AppContent() {
   const [backendStatus, setBackendStatus] = useState('Checking...')
   const [products, setProducts] = useState([])
   const [sales, setSales] = useState([])
+  const [isAuth, setIsAuth] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
@@ -49,9 +50,15 @@ function AppContent() {
     checkBackend()
   }, [])
 
+  // Check if user is authenticated
+  useEffect(() => {
+    const user = localStorage.getItem('user')
+    setIsAuth(!!user)
+  }, [location])
+
   return (
     <div>
-      {location.pathname !== '/login' && <Navbar backendStatus={backendStatus} />}
+      {isAuth && location.pathname !== '/' && location.pathname !== '/login' && <Navbar backendStatus={backendStatus} />}
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
