@@ -405,11 +405,15 @@ export function registerUserRoutes(app) {
   // Authenticate user with email and password
   app.post('/api/login', async (req, res) => {
     try {
+      console.log('Login attempt:', { email: req.body.email, hasPassword: !!req.body.password });
+      
       const validation = validateLogin(req.body);
 
       if (!validation.isValid) {
+        console.log('Validation errors:', validation.errors);
         return res.status(400).json({
           success: false,
+          message: 'Validation failed',
           errors: validation.errors
         });
       }
