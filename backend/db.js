@@ -446,11 +446,25 @@ export async function initializeDatabase() {
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
-      
-      // Create Indexes for MySQL
-      await connection.query("CREATE UNIQUE INDEX IF NOT EXISTS uidx_company_name ON company(company_name)");
-      await connection.query("CREATE UNIQUE INDEX IF NOT EXISTS uidx_user_email ON users(company_id, email)");
 
+      // Create Indexes for MySQL
+      try {
+        await connection.query("CREATE UNIQUE INDEX uidx_company_name ON company(company_name)");
+        console.log('✅ Index uidx_company_name verified');
+      } catch (idxErr) {
+        if (idxErr.code === 'ER_DUP_KEYNAME') {
+          console.log('ℹ️ Index already exists, skipping.');
+        } else { throw idxErr; }
+      }
+
+      try {
+        await connection.query("CREATE UNIQUE INDEX uidx_user_email ON users(company_id, email)");
+        console.log('✅ Index uidx_user_email verified');
+      } catch (idxErr) {
+        if (idxErr.code === 'ER_DUP_KEYNAME') {
+          console.log('ℹ️ Index already exists, skipping.');
+        } else { throw idxErr; }
+      }
       // Schema upgrades (safe ALTER TABLE without assuming MySQL version)
       try {
         await connection.query("ALTER TABLE member_master ADD COLUMN member_address TEXT");
@@ -524,7 +538,7 @@ export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDa
 
     // 2. Calculate total and insert items with stock ledger entries
     let totalAmount = 0;
-    
+
     for (const item of items) {
       const itemAmount = item.quantity * item.purchase_rate;
       totalAmount += itemAmount;
@@ -543,7 +557,7 @@ export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDa
          WHERE company_id = ? AND item_id = ?`,
         [companyId, item.item_id]
       );
-      
+
       const currentStock = currentStockRow[0][0]?.current_stock || 0;
       const newStock = currentStock + item.quantity;
 
@@ -696,7 +710,7 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
 
     // 2. Calculate total and insert return items with stock ledger entries
     let totalReturnAmount = 0;
-    
+
     for (const item of items) {
       const itemAmount = item.quantity * item.purchase_rate;
       totalReturnAmount += itemAmount;
@@ -715,7 +729,7 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
          WHERE company_id = ? AND item_id = ?`,
         [companyId, item.item_id]
       );
-      
+
       const currentStock = currentStockRow[0][0]?.current_stock || 0;
       const newStock = currentStock - item.quantity; // Stock OUT
 
@@ -863,7 +877,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [companyId, invoiceNo, invoiceDate, customerId || null, memberId || null, discountAmount || 0, paymentType, notes, userId]
     );
-    
+
     const saleId = saleResult[0].insertId;
     let totalAmount = 0;
 
@@ -885,7 +899,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
          WHERE company_id = ? AND item_id = ?`,
         [companyId, item.item_id]
       );
-      
+
       const currentStock = currentStockRow[0][0]?.current_stock || 0;
       const newStock = currentStock - item.quantity; // Stock OUT
 
@@ -910,7 +924,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
     // 5. Create account ledger entries for ALL sales (double-entry bookkeeping)
     // Use customerId if available, otherwise use memberId (for Member Master customers)
     const accountIdForLedger = customerId || memberId;
-    
+
     if (accountIdForLedger) {
       // Entry 1: DEBIT Customer Account (customer owes us)
       try {
@@ -932,9 +946,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
           `SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'Revenue' OR account_type = 'Sales') AND is_deleted = 0 LIMIT 1`,
           [companyId]
         );
-        
+
         let salesAccountId = null;
-        
+
         // Check if we found a Revenue account
         if (salesAccountResult[0] && salesAccountResult[0].length > 0) {
           salesAccountId = salesAccountResult[0][0].id;
@@ -1377,7 +1391,7 @@ export async function insertCashBookEntry(
      description, cash_in, cash_out, created_by, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  
+
   const result = await query(sql, [
     companyId,
     transactionDate,
@@ -1428,7 +1442,7 @@ export async function getCashBalance(companyId, upToDate = null) {
     FROM cash_book
     WHERE company_id = ? ${dateCondition}
   `;
-  
+
   const result = await query(sql, params);
   return result?.[0] || { total_cash_in: 0, total_cash_out: 0, current_balance: 0 };
 }
@@ -1479,7 +1493,7 @@ export async function insertLedgerEntry(
      reference_no, description, debit, credit)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  
+
   return await query(sql, [
     companyId,
     accountId,
@@ -1523,7 +1537,7 @@ export async function getAccountBalance(accountId, upToDate = null) {
     FROM account_ledger al
     WHERE al.account_id = ? ${dateCondition}
   `;
-  
+
   const result = await query(sql, params);
   if (!result || result.length === 0) {
     return { total_debit: 0, total_credit: 0, running_balance: 0 };
@@ -1534,7 +1548,7 @@ export async function getAccountBalance(accountId, upToDate = null) {
 export async function getAccountLedgerWithRunningBalance(accountId, startDate, endDate) {
   // Get all transactions in order
   const entries = await getAccountLedger(accountId, startDate, endDate);
-  
+
   // Calculate running balance for each entry
   let runningBalance = 0;
   const entriesWithBalance = entries.map(entry => {
@@ -1652,7 +1666,7 @@ export async function getStockReport(companyId) {
     GROUP BY im.id, im.item_code, im.item_name, im.category, im.unit, im.reorder_level
     ORDER BY current_stock ASC
   `;
-  
+
   return await query(sql, [companyId, companyId]);
 }
 
@@ -1686,7 +1700,7 @@ export async function getLowStockItems(companyId) {
     HAVING current_stock <= im.reorder_level
     ORDER BY reorder_quantity DESC
   `;
-  
+
   return await query(sql, [companyId, companyId]);
 }
 
@@ -1705,7 +1719,7 @@ export async function getItemStockHistory(itemId, companyId) {
     WHERE pl.item_id = ? AND pl.company_id = ?
     ORDER BY pl.created_at DESC
   `;
-  
+
   return await query(sql, [itemId, companyId]);
 }
 
@@ -1858,8 +1872,8 @@ export async function getMonthlyProfitLoss(companyId, year) {
       purchaseCost: parseFloat(row.purchase_cost || 0),
       purchaseReturns: parseFloat(row.purchase_returns || 0),
       netCOGS: parseFloat(row.purchase_cost || 0) - parseFloat(row.purchase_returns || 0),
-      grossProfit: (parseFloat(row.sales_revenue || 0) - parseFloat(row.sales_returns || 0)) - 
-                   (parseFloat(row.purchase_cost || 0) - parseFloat(row.purchase_returns || 0))
+      grossProfit: (parseFloat(row.sales_revenue || 0) - parseFloat(row.sales_returns || 0)) -
+        (parseFloat(row.purchase_cost || 0) - parseFloat(row.purchase_returns || 0))
     }));
   } catch (error) {
     console.error('Error calculating monthly P&L:', error);
