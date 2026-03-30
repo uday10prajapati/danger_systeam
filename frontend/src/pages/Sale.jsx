@@ -293,7 +293,7 @@ export default function Sale() {
               </tr>
             </thead>
             <tbody>
-              ${selectedSale.items.map(item => `
+              ${(selectedSale.items || []).map(item => `
                 <tr>
                   <td>${item.item_name}</td>
                   <td class="text-center">${item.quantity}</td>
@@ -564,7 +564,7 @@ export default function Sale() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedSale.items.map((item) => (
+                    {(selectedSale.items || []).map((item) => (
                       <tr key={item.id} className="border-b">
                         <td className="px-3 py-2">{item.item_name}</td>
                         <td className="px-3 py-2 text-center">{item.quantity}</td>

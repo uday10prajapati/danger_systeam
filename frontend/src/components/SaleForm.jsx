@@ -539,7 +539,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
               </tr>
             </thead>
             <tbody>
-              ${successSale.items.map(item => `
+              ${(successSale.items || []).map(item => `
                 <tr>
                   <td>${item.item_name}</td>
                   <td class="text-center">${item.quantity}</td>
@@ -628,7 +628,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
             
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <p className="text-lg font-bold text-blue-600">₹{parseFloat(successSale.net_amount || 0).toFixed(2)}</p>
-              <p className="text-sm text-gray-600">{successSale.items.length} items</p>
+              <p className="text-sm text-gray-600">{(successSale.items || []).length} items</p>
             </div>
 
             <div className="space-y-3">
