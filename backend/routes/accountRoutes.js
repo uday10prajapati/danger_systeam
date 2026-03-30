@@ -88,30 +88,6 @@ router.get('/api/accounts/company/:company_id', async (req, res) => {
   }
 });
 
-// ==================== GET SINGLE ACCOUNT ====================
-router.get('/api/accounts/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const account = await queryOne(
-      `SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
-              is_active, created_at, updated_at
-       FROM accounts 
-       WHERE id = ? AND is_deleted = 0`,
-      [id]
-    );
-
-    if (!account) {
-      return res.status(404).json({ success: false, error: 'Account not found' });
-    }
-
-    res.json({ success: true, data: account });
-  } catch (error) {
-    console.error('Get account error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to fetch account' });
-  }
-});
-
 // ==================== GET ACCOUNT BALANCE STATS ====================
 router.get('/api/accounts/:id/balance', async (req, res) => {
   try {
@@ -135,10 +111,6 @@ router.get('/api/accounts/:id/balance', async (req, res) => {
     const totalDebit = parseFloat(ledgerStats.total_debit || 0);
     const totalCredit = parseFloat(ledgerStats.total_credit || 0);
     
-    // Assuming Opening Balance is Credit as seen in Rojmel (since liabilities/members are often Credit)
-    // Wait, let's just send the raw values and calculate closing balance in UI or here.
-    // If it's pure mathematical balance: Op Bal + Debit - Credit ? (If Debit balance)
-    // Co-op banking usually: Members = Liabilities = Credit balances. 
     res.json({
       success: true,
       data: {
@@ -151,6 +123,30 @@ router.get('/api/accounts/:id/balance', async (req, res) => {
   } catch (error) {
     console.error('Balance error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to fetch balance' });
+  }
+});
+
+// ==================== GET SINGLE ACCOUNT ====================
+router.get('/api/accounts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const account = await queryOne(
+      `SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
+              is_active, created_at, updated_at
+       FROM accounts 
+       WHERE id = ? AND is_deleted = 0`,
+      [id]
+    );
+
+    if (!account) {
+      return res.status(404).json({ success: false, error: 'Account not found' });
+    }
+
+    res.json({ success: true, data: account });
+  } catch (error) {
+    console.error('Get account error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch account' });
   }
 });
 
