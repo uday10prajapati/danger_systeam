@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { Plus, AlertCircle, Edit2, Trash2, CheckCircle, XCircle, Eye, X } from 'lucide-react';
+import { Plus, AlertCircle, Edit2, Trash2, CheckCircle, XCircle, Eye, X, Download } from 'lucide-react';
 import AccountForm from '../components/AccountForm';
 
 export default function AccountMaster() {
@@ -9,6 +9,7 @@ export default function AccountMaster() {
   const [company, setCompany] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
+  const [balanceTypeFilter, setBalanceTypeFilter] = useState('all'); // all, credit, debit, zero
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -143,6 +144,40 @@ export default function AccountMaster() {
     }
   };
 
+  const accountsArray = Array.isArray(accounts) ? accounts : [];
+  
+  const filteredAccounts = accountsArray.filter(acc => {
+    if (balanceTypeFilter === 'all') return true;
+    return acc.balance_type === balanceTypeFilter;
+  });
+
+  const handleDownloadCSV = () => {
+    const headers = [
+      t('accountMaster.accountName') || 'Account Name',
+      t('accountMaster.type') || 'Type',
+      t('accountMaster.status') || 'Status',
+      t('accountMaster.closingBalance') || 'Closing Balance',
+      'Balance Type (Cr/Dr)'
+    ];
+    
+    const rows = filteredAccounts.map(acc => [
+      `"${acc.account_name.replace(/"/g, '""')}"`,
+      `"${t(`accountMaster.${acc.account_type}`)}"`,
+      `"${acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}"`,
+      parseFloat(acc.closing_balance || 0).toFixed(2),
+      acc.balance_type === 'credit' ? t('accountMaster.jama') : acc.balance_type === 'debit' ? t('accountMaster.udhar') : 'Zero'
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Accounts_${balanceTypeFilter}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // If no company, show error
   if (!company) {
     return (
@@ -171,8 +206,6 @@ export default function AccountMaster() {
     );
   }
 
-  // Calculate statistics
-  const accountsArray = Array.isArray(accounts) ? accounts : [];
   const totalAccounts = accountsArray.length;
   const activeAccounts = accountsArray.filter(a => a.is_active).length;
   const inactiveAccounts = accountsArray.filter(a => !a.is_active).length;
@@ -250,21 +283,41 @@ export default function AccountMaster() {
           {/* Accounts List Section */}
           <div className={showForm ? 'lg:col-span-2' : 'lg:col-span-3'}>
             {/* Filter and Actions */}
-            <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-              <div className="flex flex-wrap gap-2">
-                {accountTypes.map(type => (
-                  <button
-                    key={type.value}
-                    onClick={() => handleTypeChange(type.value)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      selectedType === type.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    {type.label}
-                  </button>
-                ))}
+            <div className="mb-6 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                {/* Account Type Filter */}
+                <select
+                  value={selectedType}
+                  onChange={(e) => handleTypeChange(e.target.value)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  {accountTypes.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Balance Type Filter */}
+                <select
+                  value={balanceTypeFilter}
+                  onChange={(e) => setBalanceTypeFilter(e.target.value)}
+                  className="px-4 py-2 border border-blue-300 rounded-lg text-blue-800 font-medium bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  <option value="all">All Balances (બધા)</option>
+                  <option value="credit">Credit Balance / Jama (જમા)</option>
+                  <option value="debit">Debit Balance / Udhar (ઉધાર)</option>
+                  <option value="zero">Zero Balance (શૂન્ય)</option>
+                </select>
+                
+                <button
+                  onClick={handleDownloadCSV}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
+                  title="Download CSV"
+                >
+                  <Download className="w-4 h-4" />
+                  Download CSV
+                </button>
               </div>
               
               <button
@@ -272,7 +325,7 @@ export default function AccountMaster() {
                   setEditingAccount(null);
                   setShowForm(!showForm);
                 }}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2 transition-colors"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full xl:w-auto"
               >
                 <Plus className="w-5 h-5" />
                 {t('accountMaster.addNewAccount')}
@@ -293,13 +346,13 @@ export default function AccountMaster() {
                       <tr>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.accountName')}</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.type')}</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.openingBalance')}</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.closingBalance') || 'Closing Balance'}</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.status')}</th>
                         <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">{t('accountMaster.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {accounts.map(account => (
+                      {filteredAccounts.map(account => (
                         <tr key={account.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4 text-sm font-medium text-slate-900">{account.account_name}</td>
                           <td className="px-6 py-4 text-sm text-slate-600">
@@ -308,7 +361,12 @@ export default function AccountMaster() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm font-semibold text-slate-900">
-                            ₹{(parseFloat(account.opening_balance) || 0).toFixed(2)}
+                            <div className="flex flex-col">
+                              <span>₹{(parseFloat(account.closing_balance) || 0).toFixed(2)}</span>
+                              <span className={`text-[10px] ${account.balance_type === 'credit' ? 'text-green-600' : account.balance_type === 'debit' ? 'text-red-600' : 'text-slate-500'}`}>
+                                {account.balance_type === 'credit' ? `${t('accountMaster.jama')} (Cr)` : account.balance_type === 'debit' ? `${t('accountMaster.udhar')} (Dr)` : 'Zero'}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm">
                             {account.is_active ? (

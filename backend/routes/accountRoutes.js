@@ -62,25 +62,49 @@ router.get('/api/accounts/company/:company_id', async (req, res) => {
     const { company_id } = req.params;
     const { type } = req.query; // Optional filter by account_type
 
-    let sql = `SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
-                      is_active, created_at, updated_at
-               FROM accounts 
-               WHERE company_id = ? AND is_deleted = 0`;
+    let sql = `
+       SELECT 
+         a.id, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
+         a.opening_balance, a.is_active, a.created_at, a.updated_at,
+         COALESCE(SUM(al.debit_amount), 0) as total_debit,
+         COALESCE(SUM(al.credit_amount), 0) as total_credit
+       FROM accounts a
+       LEFT JOIN account_ledger al ON a.id = al.account_id
+       WHERE a.company_id = ? AND a.is_deleted = 0
+    `;
     let params = [company_id];
 
     if (type && type !== 'all') {
-      sql += ' AND account_type = ?';
+      sql += ' AND a.account_type = ?';
       params.push(type);
     }
 
-    sql += ' ORDER BY account_type ASC, account_name ASC';
+    sql += ' GROUP BY a.id ORDER BY a.account_type ASC, a.account_name ASC';
 
     const accounts = await query(sql, params);
 
+    const processedAccounts = accounts.map(acc => {
+      const op = parseFloat(acc.opening_balance || 0);
+      const cr = parseFloat(acc.total_credit || 0);
+      const dr = parseFloat(acc.total_debit || 0);
+      const closingBal = op + cr - dr;
+      
+      let balance_type = 'zero';
+      if (closingBal > 0) balance_type = 'credit';
+      else if (closingBal < 0) balance_type = 'debit';
+      
+      return {
+        ...acc,
+        closing_balance: Math.abs(closingBal),
+        balance_type_raw: closingBal,
+        balance_type
+      };
+    });
+
     res.json({
       success: true,
-      data: accounts,
-      count: accounts.length
+      data: processedAccounts,
+      count: processedAccounts.length
     });
   } catch (error) {
     console.error('List accounts error:', error.message);
