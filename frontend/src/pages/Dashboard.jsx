@@ -209,24 +209,9 @@ function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">{t('dashboard.superstore')}</h1>
-              <p className="text-slate-600">{t('dashboard.completeBusinessManagement')}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-slate-600">{t('dashboard.dashboard')}</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 w-full">
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="px-6 py-6 sm:px-8 w-full">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
           {/* Total Modules Card */}

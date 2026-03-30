@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { productAPI, salesAPI, healthCheck } from './api.js'
+import { SidebarProvider, useSidebar } from './context/SidebarContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Company from './pages/Company'
@@ -15,18 +16,32 @@ import Sale from './pages/Sale'
 import SaleReturn from './pages/SaleReturn'
 import CashBook from './pages/CashBook'
 import AccountLedger from './pages/AccountLedger'
+import SabhasadLedgerSummary from './pages/SabhasadLedgerSummary'
+import LedgerReport from './pages/LedgerReport'
+import Rojmel from './pages/Rojmel'
 import StockReport from './pages/StockReport'
 import ProfitLoss from './pages/ProfitLoss'
 import BarcodeScannerPage from './pages/BarcodeScannerPage'
 import ModulePage from './pages/ModulePage'
 import Navbar from './components/Navbar'
+import Sidebar from './components/Sidebar'
 
 function AppContent() {
   const [backendStatus, setBackendStatus] = useState('Checking...')
   const [products, setProducts] = useState([])
   const [sales, setSales] = useState([])
   const [isAuth, setIsAuth] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768)
   const location = useLocation()
+  const { sidebarOpen } = useSidebar()
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -57,43 +72,65 @@ function AppContent() {
   }, [location])
 
   return (
-    <div>
-      {isAuth && location.pathname !== '/' && location.pathname !== '/login' && <Navbar backendStatus={backendStatus} />}
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        
-        {/* Setup & Configuration */}
-        <Route path="/company" element={<Company />} />
-        <Route path="/users" element={<UserMaster />} />
-        <Route path="/accounts" element={<AccountMaster />} />
-        <Route path="/members" element={<MemberMaster />} />
-        <Route path="/items" element={<ItemMaster />} />
-        <Route path="/rates" element={<ItemRate />} />
-        
-        {/* Transactions */}
-        <Route path="/sales" element={<Sale />} />
-        <Route path="/sales-return" element={<SaleReturn />} />
-        <Route path="/purchase" element={<Purchase />} />
-        <Route path="/purchase-return" element={<PurchaseReturn />} />
-        
-        {/* Tools & Reports */}
-        <Route path="/barcode" element={<BarcodeScannerPage />} />
-        <Route path="/cashbook" element={<CashBook />} />
-        <Route path="/ledger" element={<AccountLedger />} />
-        <Route path="/profit-loss" element={<ProfitLoss />} />
-        <Route path="/stock" element={<StockReport />} />
-      </Routes>
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50">
+      {isAuth && location.pathname !== '/' && location.pathname !== '/login' && (
+        <div className="flex-none z-50 relative shadow-sm">
+          <Navbar backendStatus={backendStatus} />
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden relative">
+        {isAuth && location.pathname !== '/' && location.pathname !== '/login' && <Sidebar />}
+        <div 
+          className="flex-1 overflow-y-auto w-full h-full pb-10"
+          style={{
+            marginLeft: isAuth && location.pathname !== '/' && location.pathname !== '/login' && isDesktop
+              ? `${sidebarOpen ? 256 : 80}px` 
+              : '0px',
+            transition: 'margin-left 300ms ease-in-out',
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            
+            {/* Setup & Configuration */}
+            <Route path="/company" element={<Company />} />
+            <Route path="/users" element={<UserMaster />} />
+            <Route path="/accounts" element={<AccountMaster />} />
+            <Route path="/members" element={<MemberMaster />} />
+            <Route path="/items" element={<ItemMaster />} />
+            <Route path="/rates" element={<ItemRate />} />
+            
+            {/* Transactions */}
+            <Route path="/sales" element={<Sale />} />
+            <Route path="/sales-return" element={<SaleReturn />} />
+            <Route path="/purchase" element={<Purchase />} />
+            <Route path="/purchase-return" element={<PurchaseReturn />} />
+            
+            {/* Tools & Reports */}
+            <Route path="/barcode" element={<BarcodeScannerPage />} />
+            <Route path="/cashbook" element={<CashBook />} />
+            <Route path="/ledger" element={<AccountLedger />} />
+            <Route path="/ledger-report" element={<LedgerReport />} />
+            <Route path="/rojmel" element={<Rojmel />} />
+            <Route path="/sabhasad-ledger" element={<SabhasadLedgerSummary />} />
+            <Route path="/profit-loss" element={<ProfitLoss />} />
+            <Route path="/stock" element={<StockReport />} />
+          </Routes>
+        </div>
+      </div>
     </div>
   )
 }
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <SidebarProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </SidebarProvider>
   )
 }
 

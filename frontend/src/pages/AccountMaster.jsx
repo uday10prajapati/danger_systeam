@@ -16,11 +16,15 @@ export default function AccountMaster() {
 
   const accountTypes = [
     { value: 'all', label: t('accountMaster.allTypes') },
+    { value: 'assets', label: t('accountMaster.assets') },
+    { value: 'liabilities', label: t('accountMaster.liabilities') },
+    { value: 'capital', label: t('accountMaster.capital') },
+    { value: 'revenue', label: t('accountMaster.revenue') },
+    { value: 'expense', label: t('accountMaster.expense') },
     { value: 'customer', label: t('accountMaster.customer') },
     { value: 'supplier', label: t('accountMaster.supplier') },
     { value: 'cash', label: t('accountMaster.cash') },
-    { value: 'bank', label: t('accountMaster.bank') },
-    { value: 'expense', label: t('accountMaster.expense') }
+    { value: 'bank', label: t('accountMaster.bank') }
   ];
 
   // Load company

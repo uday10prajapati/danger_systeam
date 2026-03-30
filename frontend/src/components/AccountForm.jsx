@@ -19,11 +19,15 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   const [loading, setLoading] = useState(false);
 
   const accountTypes = [
+    { value: 'assets', label: t('accountMaster.assets') },
+    { value: 'liabilities', label: t('accountMaster.liabilities') },
+    { value: 'capital', label: t('accountMaster.capital') },
+    { value: 'revenue', label: t('accountMaster.revenue') },
+    { value: 'expense', label: t('accountMaster.expense') },
     { value: 'customer', label: t('accountMaster.customer') },
     { value: 'supplier', label: t('accountMaster.supplier') },
     { value: 'cash', label: t('accountMaster.cash') },
-    { value: 'bank', label: t('accountMaster.bank') },
-    { value: 'expense', label: t('accountMaster.expense') }
+    { value: 'bank', label: t('accountMaster.bank') }
   ];
 
   const handleChange = (e) => {

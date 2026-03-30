@@ -19,7 +19,9 @@ import profitLossRoutes from './routes/profitLossRoutes.js';
 import gstRoutes from './routes/gstRoutes.js';
 import saleGSTRoutes from './routes/saleGSTRoutes.js';
 import memberCodeRoutes from './routes/memberCodeRoutes.js';
-
+import sabhasadReportRoutes from './routes/sabhasadReportRoutes.js';
+import ledgerReportRoutes from './routes/ledgerReportRoutes.js';
+import rojmelRoutes from './routes/rojmelRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -71,6 +73,9 @@ async function startServer() {
     app.use('/api/stock-report', stockReportRoutes);
     app.use('/api/profit-loss', profitLossRoutes);
     app.use('/api/gst', gstRoutes);
+    app.use('/api/sabhasad-ledger-summary', sabhasadReportRoutes);
+    app.use('/api/ledger-report', ledgerReportRoutes);
+    app.use('/api/rojmel', rojmelRoutes);
 
     // Dashboard stats endpoint
     app.get('/api/dashboard/stats', async (req, res) => {

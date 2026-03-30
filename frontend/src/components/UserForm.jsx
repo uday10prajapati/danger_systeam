@@ -15,13 +15,46 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
     email: '',
     password: '',
     role: 'cashier',
-    is_active: true
+    is_active: true,
+    module_access: {} // Store module access permissions
   })
+
+  // Available modules for role-based access
+  const modules = [
+    { id: 'company', label: 'company', icon: '🏢' },
+    { id: 'users', label: 'userMaster', icon: '👥' },
+    { id: 'accounts', label: 'accountMaster', icon: '💳' },
+    { id: 'members', label: 'memberMaster', icon: '👤' },
+    { id: 'items', label: 'itemMaster', icon: '📦' },
+    { id: 'rates', label: 'itemRate', icon: '💰' },
+    { id: 'sales', label: 'sale', icon: '🛒' },
+    { id: 'sales-return', label: 'saleReturn', icon: '↩️' },
+    { id: 'purchase', label: 'purchase', icon: '📥' },
+    { id: 'purchase-return', label: 'purchaseReturn', icon: '↩️' },
+    { id: 'barcode', label: 'barcodeScanner', icon: '📱' },
+    { id: 'cashbook', label: 'cashBook', icon: '📖' },
+    { id: 'ledger', label: 'accountLedger', icon: '📋' },
+    { id: 'profit-loss', label: 'profitAndLoss', icon: '📊' },
+    { id: 'stock', label: 'stockReport', icon: '📈' },
+  ]
+
+  // Default module access for each role
+  const defaultModuleAccess = {
+    cashier: ['sales', 'sales-return', 'cashbook', 'ledger', 'barcode'],
+    manager: ['company', 'members', 'items', 'rates', 'sales', 'sales-return', 'purchase', 'purchase-return', 'cashbook', 'ledger', 'profit-loss', 'stock'],
+    hod: ['company', 'users', 'accounts', 'members', 'items', 'rates', 'sales', 'sales-return', 'purchase', 'purchase-return', 'barcode', 'cashbook', 'ledger', 'profit-loss', 'stock']
+  }
 
   // Load user data if editing
   useEffect(() => {
     if (userId) {
       loadUser()
+    } else {
+      // Set default module access for new user
+      setFormData(prev => ({
+        ...prev,
+        module_access: defaultModuleAccess[prev.role]
+      }))
     }
   }, [userId])
 
@@ -37,7 +70,8 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
           email: user.email,
           password: '',
           role: user.role,
-          is_active: user.is_active
+          is_active: user.is_active,
+          module_access: user.module_access || defaultModuleAccess[user.role] || []
         })
       }
     } catch (error) {
@@ -52,10 +86,21 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
+    
+    // When role changes, update module access to default
+    if (name === 'role') {
+      setFormData(prev => ({
+        ...prev,
+        role: value,
+        module_access: defaultModuleAccess[value]
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }))
+    }
+    
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
@@ -63,6 +108,26 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         [name]: null
       }))
     }
+  }
+
+  // Handle module checkbox toggle
+  const handleModuleToggle = (moduleId) => {
+    setFormData(prev => {
+      const currentAccess = Array.isArray(prev.module_access) ? prev.module_access : Object.keys(prev.module_access || {}).filter(k => prev.module_access[k])
+      const isChecked = currentAccess.includes(moduleId)
+      
+      if (isChecked) {
+        return {
+          ...prev,
+          module_access: currentAccess.filter(id => id !== moduleId)
+        }
+      } else {
+        return {
+          ...prev,
+          module_access: [...currentAccess, moduleId]
+        }
+      }
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -242,16 +307,57 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
           >
             <option value="cashier">{t('userMaster.cashier')}</option>
             <option value="manager">{t('userMaster.manager')}</option>
-            <option value="admin">{t('userMaster.admin')}</option>
+            <option value="hod">{t('userMaster.hod')}</option>
           </select>
           {errors.role && (
             <p className="mt-1 text-sm text-red-600">{errors.role}</p>
           )}
           <p className="mt-1 text-xs text-slate-600">
-            {formData.role === 'admin' && t('userMaster.adminCanManageUsers')}
+            {formData.role === 'hod' && t('userMaster.hodCanManageUsers')}
             {formData.role === 'manager' && t('userMaster.managerCanViewReports')}
             {formData.role === 'cashier' && t('userMaster.cashierCanProcessSales')}
           </p>
+        </div>
+
+        {/* Module Access */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-4">
+            {t('userMaster.moduleAccess')} - {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
+          </label>
+          <p className="text-xs text-slate-600 mb-4">{t('userMaster.selectModulesForRole')}</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => {
+              const currentAccess = Array.isArray(formData.module_access) ? formData.module_access : Object.keys(formData.module_access || {}).filter(k => formData.module_access[k])
+              const isChecked = currentAccess.includes(module.id)
+              
+              return (
+                <div
+                  key={module.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                    isChecked
+                      ? 'bg-blue-50 border-blue-500 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                  }`}
+                  onClick={() => handleModuleToggle(module.id)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleModuleToggle(module.id)}
+                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    disabled={loading}
+                  />
+                  <div className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{module.icon}</span>
+                      <span className="text-sm font-semibold text-slate-700">{t(`modules.${module.label}`)}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         {/* Active Status */}
