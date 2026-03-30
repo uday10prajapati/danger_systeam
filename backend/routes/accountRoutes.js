@@ -112,6 +112,48 @@ router.get('/api/accounts/:id', async (req, res) => {
   }
 });
 
+// ==================== GET ACCOUNT BALANCE STATS ====================
+router.get('/api/accounts/:id/balance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get account opening balance
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [id]);
+    if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+    
+    const openingBalance = parseFloat(account.opening_balance || 0);
+
+    // Get total ledger debits and credits
+    const ledgerStats = await queryOne(`
+       SELECT 
+         COALESCE(SUM(debit_amount), 0) as total_debit,
+         COALESCE(SUM(credit_amount), 0) as total_credit
+       FROM account_ledger
+       WHERE account_id = ?
+    `, [id]);
+
+    const totalDebit = parseFloat(ledgerStats.total_debit || 0);
+    const totalCredit = parseFloat(ledgerStats.total_credit || 0);
+    
+    // Assuming Opening Balance is Credit as seen in Rojmel (since liabilities/members are often Credit)
+    // Wait, let's just send the raw values and calculate closing balance in UI or here.
+    // If it's pure mathematical balance: Op Bal + Debit - Credit ? (If Debit balance)
+    // Co-op banking usually: Members = Liabilities = Credit balances. 
+    res.json({
+      success: true,
+      data: {
+        openingBalance,
+        totalDebit,
+        totalCredit
+      }
+    });
+
+  } catch (error) {
+    console.error('Balance error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch balance' });
+  }
+});
+
 // ==================== UPDATE ACCOUNT ====================
 router.put('/api/accounts/:id', async (req, res) => {
   try {

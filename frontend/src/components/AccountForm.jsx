@@ -14,9 +14,10 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
     tin_no: '',
     opening_balance: 0
   });
-  const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showBalanceDetails, setShowBalanceDetails] = useState(false);
 
   const accountTypes = [
     { value: 'assets', label: t('accountMaster.assets') },
@@ -281,28 +282,98 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
           <p className="mt-1 text-xs text-slate-500">11 digits only</p>
         </div>
 
-        {/* Opening Balance */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('accountMaster.openingBalance')}
-          </label>
-          <input
-            type="number"
-            name="opening_balance"
-            value={formData.opening_balance}
-            onChange={handleChange}
-            placeholder="0.00"
-            step="0.01"
-            min="0"
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.opening_balance ? 'border-red-500' : 'border-slate-300'
-            }`}
-            disabled={loading}
-          />
-          {errors.opening_balance && (
-            <p className="mt-1 text-sm text-red-600">{errors.opening_balance}</p>
-          )}
+        {/* Balance Details Button & Box */}
+        <div className="pt-2">
+           <button 
+             type="button" 
+             onClick={() => setShowBalanceDetails(!showBalanceDetails)}
+             className="text-blue-600 font-semibold hover:text-blue-800 text-sm flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-md border border-blue-100 transition-colors"
+           >
+             {showBalanceDetails ? '▼' : '▶'} {t('accountMaster.balanceDetails')}
+           </button>
         </div>
+
+        {showBalanceDetails && (
+          <div className="border border-blue-200 bg-[#f5f8ff] p-5 rounded-lg mt-2 relative shadow-inner">
+             <div className="absolute top-4 right-4 flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  checked={formData.is_subledger || false} 
+                  onChange={(e) => setFormData(p => ({...p, is_subledger: e.target.checked}))}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <span className="text-sm font-medium text-[#0d3b8e]">{t('accountMaster.isSubLedger')}</span>
+             </div>
+             
+             <div className="text-[#0d3b8e] font-bold text-base mb-5 border-b border-blue-200 pb-2 w-max pr-8">
+                {t('accountMaster.balanceDetails')} :
+             </div>
+             
+             <div className="space-y-4 max-w-md">
+                {/* Opening Balance */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.openingBalance')} :</span>
+                  <div className="flex-1 flex border border-blue-300 rounded shadow-sm bg-white overflow-hidden">
+                     <input
+                       type="number"
+                       name="opening_balance"
+                       value={formData.opening_balance}
+                       onChange={handleChange}
+                       className="w-full px-3 py-1.5 outline-none text-right font-medium text-slate-700"
+                       disabled={loading}
+                     />
+                     <select 
+                       className="bg-blue-50 border-l border-blue-300 px-3 py-1.5 outline-none text-sm font-bold text-blue-900 cursor-pointer"
+                       value={formData.opening_balance_type || 'credit'}
+                       onChange={(e) => setFormData(p => ({...p, opening_balance_type: e.target.value}))}
+                     >
+                        <option value="credit">{t('accountMaster.jama')}</option>
+                        <option value="debit">{t('accountMaster.udhar')}</option>
+                     </select>
+                  </div>
+                </div>
+
+                {/* Total Debit */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.totalDebit')} :</span>
+                  <div className="flex-1">
+                     <input
+                       type="text"
+                       value="0.00"
+                       readOnly
+                       className="w-full px-3 py-1.5 outline-none text-right bg-[#e4efff] border border-blue-200 rounded text-blue-900 font-medium cursor-not-allowed shadow-inner"
+                     />
+                  </div>
+                </div>
+
+                {/* Total Credit */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.totalCredit')} :</span>
+                  <div className="flex-1">
+                     <input
+                       type="text"
+                       value="0.00"
+                       readOnly
+                       className="w-full px-3 py-1.5 outline-none text-right bg-[#e4efff] border border-blue-200 rounded text-blue-900 font-medium cursor-not-allowed shadow-inner"
+                     />
+                  </div>
+                </div>
+
+                {/* Closing Balance */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.closingBalance')} :</span>
+                  <div className="flex-1">
+                     <input
+                       type="text"
+                       value="0.00"
+                       readOnly
+                       className="w-full px-3 py-1.5 outline-none text-right bg-[#c2d7f8] border border-blue-300 rounded text-blue-900 font-bold cursor-not-allowed shadow-inner"
+                     />
+                  </div>
+                </div>
+             </div>
+          </div>
+        )}
 
         {/* Form Actions */}
         <div className="flex gap-3 pt-4">

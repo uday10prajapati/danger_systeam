@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { Plus, AlertCircle, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, AlertCircle, Edit2, Trash2, CheckCircle, XCircle, Eye, X } from 'lucide-react';
 import AccountForm from '../components/AccountForm';
 
 export default function AccountMaster() {
@@ -13,6 +13,15 @@ export default function AccountMaster() {
   const [message, setMessage] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  
+  // Balance Modal state
+  const [balanceModal, setBalanceModal] = useState({
+    isOpen: false,
+    account: null,
+    data: null,
+    loading: false,
+    error: null
+  });
 
   const accountTypes = [
     { value: 'all', label: t('accountMaster.allTypes') },
@@ -106,6 +115,31 @@ export default function AccountMaster() {
       loadAccounts();
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.error || t('accountMaster.failedToActivate') });
+    }
+  };
+
+  const handleShowBalance = async (account) => {
+    setBalanceModal({ isOpen: true, account, data: null, loading: true, error: null });
+    
+    try {
+      const response = await axios.get(`/api/accounts/${account.id}/balance`);
+      if (response.data.success) {
+        setBalanceModal({ 
+          isOpen: true, 
+          account, 
+          data: response.data.data, 
+          loading: false, 
+          error: null 
+        });
+      }
+    } catch (error) {
+      setBalanceModal({
+        isOpen: true,
+        account,
+        data: null,
+        loading: false,
+        error: error.response?.data?.error || t('accountMaster.failedToLoadAccounts')
+      });
     }
   };
 
@@ -291,6 +325,13 @@ export default function AccountMaster() {
                           </td>
                           <td className="px-6 py-4 text-right flex gap-2 justify-end">
                             <button
+                              onClick={() => handleShowBalance(account)}
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title={t('accountMaster.balanceDetails')}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleEdit(account)}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                               title={t('accountMaster.edit')}
@@ -332,6 +373,112 @@ export default function AccountMaster() {
           </p>
         </div>
       </div>
+      {/* Balance Details Modal */}
+      {balanceModal.isOpen && balanceModal.account && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-indigo-600" />
+                {t('accountMaster.balanceDetails')}
+              </h3>
+              <button 
+                onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false, error: null })}
+                className="text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-1.5 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="mb-6 pb-4 border-b border-slate-100">
+                <p className="text-sm font-medium text-slate-500">{t('accountMaster.accountName')}</p>
+                <p className="text-xl font-bold text-slate-900">{balanceModal.account.account_name}</p>
+              </div>
+
+              {balanceModal.loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                </div>
+              ) : balanceModal.error ? (
+                <div className="p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p>{balanceModal.error}</p>
+                </div>
+              ) : balanceModal.data ? (
+                <div className="space-y-4">
+                  
+                  {/* Opening Balance */}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-slate-600 w-36">{t('accountMaster.openingBalance')} :</span>
+                    <div className="flex-1">
+                       <input
+                         type="text"
+                         readOnly
+                         value={balanceModal.data.openingBalance.toFixed(2)}
+                         className="w-full px-3 py-2 outline-none text-right bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold shadow-inner"
+                       />
+                    </div>
+                  </div>
+
+                  {/* Total Debit */}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-slate-600 w-36">{t('accountMaster.totalDebit')} :</span>
+                    <div className="flex-1">
+                       <input
+                         type="text"
+                         readOnly
+                         value={balanceModal.data.totalDebit.toFixed(2)}
+                         className="w-full px-3 py-2 outline-none text-right bg-[#e4efff] border border-blue-200 rounded-lg text-blue-900 font-medium shadow-inner"
+                       />
+                    </div>
+                  </div>
+
+                  {/* Total Credit */}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-slate-600 w-36">{t('accountMaster.totalCredit')} :</span>
+                    <div className="flex-1">
+                       <input
+                         type="text"
+                         readOnly
+                         value={balanceModal.data.totalCredit.toFixed(2)}
+                         className="w-full px-3 py-2 outline-none text-right bg-[#e4efff] border border-blue-200 rounded-lg text-blue-900 font-medium shadow-inner"
+                       />
+                    </div>
+                  </div>
+
+                  {/* Closing Balance */}
+                  <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                    <span className="text-sm font-bold text-slate-800 w-36">{t('accountMaster.closingBalance')} :</span>
+                    <div className="flex-1">
+                       <input
+                         type="text"
+                         readOnly
+                         value={(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toFixed(2)}
+                         className="w-full px-3 py-2 outline-none text-right bg-[#c2d7f8] border border-blue-300 rounded-lg text-blue-900 font-bold shadow-inner"
+                       />
+                    </div>
+                  </div>
+
+                </div>
+              ) : null}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false, error: null })}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-lg transition-colors"
+               >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
