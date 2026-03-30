@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Eye, Printer } from 'lucide-react';
+import { Plus, Search, Eye, Printer, X } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SaleForm from '../components/SaleForm';
@@ -84,6 +84,272 @@ export default function Sale() {
   const handleFormSubmit = (newSale) => {
     setShowForm(false);
     fetchSales();
+  };
+
+  const handlePrintBill = () => {
+    if (!selectedSale || !company) return;
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    const invoiceDate = new Date(selectedSale.invoice_date).toLocaleDateString('en-IN');
+    const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+          }
+          .invoice { 
+            background: white;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+          }
+          .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+          }
+          .company-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+          }
+          .invoice-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            color: #333;
+          }
+          .invoice-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+            font-size: 13px;
+          }
+          .meta-item {
+            display: flex;
+            justify-content: space-between;
+          }
+          .meta-label {
+            font-weight: bold;
+            color: #666;
+          }
+          .meta-value {
+            color: #333;
+          }
+          .items-table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+          }
+          .items-table thead {
+            background: #f0f0f0;
+            border-top: 2px solid #ddd;
+            border-bottom: 2px solid #ddd;
+          }
+          .items-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            font-size: 13px;
+          }
+          .items-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+          }
+          .items-table tr:last-child td {
+            border-bottom: 2px solid #ddd;
+          }
+          .text-right {
+            text-align: right;
+          }
+          .text-center {
+            text-align: center;
+          }
+          .totals {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .totals-box {
+            width: 300px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #ddd;
+          }
+          .total-row.subtotal {
+            color: #666;
+          }
+          .total-row.discount {
+            color: #ff6b35;
+          }
+          .total-row.net-amount {
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            font-weight: bold;
+            font-size: 16px;
+            color: #1e40af;
+            padding: 12px 0;
+            margin: 10px 0;
+          }
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #666;
+          }
+          .notes {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 3px solid #ff9800;
+            font-size: 12px;
+          }
+          .notes-label {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 5px;
+          }
+          @media print {
+            body { padding: 0; background: white; }
+            .invoice { box-shadow: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice">
+          <!-- Header -->
+          <div class="header">
+            <div class="company-name">${company.company_name}</div>
+            <div class="company-info">
+              Professional Sales Invoice
+            </div>
+            <div class="invoice-title">SALE BILL</div>
+          </div>
+
+          <!-- Invoice Meta -->
+          <div class="invoice-meta">
+            <div>
+              <div class="meta-item">
+                <span class="meta-label">Invoice #:</span>
+                <span class="meta-value">${selectedSale.invoice_no}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Invoice Date:</span>
+                <span class="meta-value">${invoiceDate}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Customer:</span>
+                <span class="meta-value">${selectedSale.customer_name}</span>
+              </div>
+            </div>
+            <div>
+              <div class="meta-item">
+                <span class="meta-label">Payment Type:</span>
+                <span class="meta-value">${selectedSale.payment_type.charAt(0).toUpperCase() + selectedSale.payment_type.slice(1)}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Created By:</span>
+                <span class="meta-value">${selectedSale.created_by_user}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Print Date:</span>
+                <span class="meta-value">${currentDate}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 40%;">Item</th>
+                <th class="text-center" style="width: 15%;">Quantity</th>
+                <th class="text-right" style="width: 15%;">Rate</th>
+                <th class="text-right" style="width: 30%;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${selectedSale.items.map(item => `
+                <tr>
+                  <td>${item.item_name}</td>
+                  <td class="text-center">${item.quantity}</td>
+                  <td class="text-right">₹${parseFloat(item.sale_rate || 0).toFixed(2)}</td>
+                  <td class="text-right">₹${parseFloat(item.amount || 0).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <!-- Totals -->
+          <div class="totals">
+            <div class="totals-box">
+              <div class="total-row subtotal">
+                <span>Subtotal:</span>
+                <span>₹${parseFloat(selectedSale.total_amount || 0).toFixed(2)}</span>
+              </div>
+              ${parseFloat(selectedSale.discount_amount || 0) > 0 ? `
+                <div class="total-row discount">
+                  <span>Discount:</span>
+                  <span>-₹${parseFloat(selectedSale.discount_amount || 0).toFixed(2)}</span>
+                </div>
+              ` : ''}
+              <div class="total-row net-amount">
+                <span>Net Amount:</span>
+                <span>₹${parseFloat(selectedSale.net_amount || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          ${selectedSale.notes ? `
+            <div class="notes">
+              <div class="notes-label">Notes:</div>
+              <div>${selectedSale.notes}</div>
+            </div>
+          ` : ''}
+
+          <!-- Footer -->
+          <div class="footer">
+            <p>Thank you for your business!</p>
+            <p style="margin-top: 10px; font-size: 11px;">This is a computer-generated receipt. No signature required.</p>
+          </div>
+        </div>
+
+        <script>
+          window.addEventListener('load', function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 1000);
+          });
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   const calculateStats = () => {
@@ -246,12 +512,22 @@ export default function Sale() {
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b bg-linear-to-r from-blue-600 to-blue-700 text-white">
               <h3 className="text-xl font-bold">{selectedSale.invoice_no}</h3>
-              <button
-                onClick={() => setShowDetails(false)}
-                className="text-2xl hover:bg-blue-800 p-1 rounded"
-              >
-                ✕
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePrintBill}
+                  className="p-2 hover:bg-blue-800 rounded transition-colors"
+                  title="Print Bill"
+                >
+                  <Printer size={20} />
+                </button>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="p-2 hover:bg-blue-800 rounded transition-colors"
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Content */}
