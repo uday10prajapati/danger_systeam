@@ -457,6 +457,38 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Create Journal Vouchers table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS journal_vouchers (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          voucher_date DATE NOT NULL,
+          voucher_type VARCHAR(50) DEFAULT 'JV', 
+          total_credit DECIMAL(10, 2) DEFAULT 0,
+          total_debit DECIMAL(10, 2) DEFAULT 0,
+          notes TEXT,
+          created_by INT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Journal Voucher Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS journal_voucher_items (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          voucher_id INT NOT NULL,
+          type VARCHAR(10) NOT NULL,
+          account_id INT NOT NULL,
+          amount DECIMAL(10, 2) NOT NULL,
+          reference_no VARCHAR(100),
+          member_id INT,
+          particulars TEXT,
+          FOREIGN KEY (voucher_id) REFERENCES journal_vouchers(id) ON DELETE CASCADE,
+          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT
+        )
+      `);
+
       // Create Item Rates table (for GST/tax rates per item)
       await connection.query(`
         CREATE TABLE IF NOT EXISTS item_rate (

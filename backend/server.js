@@ -23,6 +23,7 @@ import memberCodeRoutes from './routes/memberCodeRoutes.js';
 import sabhasadReportRoutes from './routes/sabhasadReportRoutes.js';
 import ledgerReportRoutes from './routes/ledgerReportRoutes.js';
 import rojmelRoutes from './routes/rojmelRoutes.js';
+import jvRoutes from './routes/jvRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -78,6 +79,7 @@ async function startServer() {
     app.use('/api/sabhasad-ledger-summary', sabhasadReportRoutes);
     app.use('/api/ledger-report', ledgerReportRoutes);
     app.use('/api/rojmel', rojmelRoutes);
+    app.use('/api/jv', jvRoutes);
 
     // Dashboard stats endpoint
     app.get('/api/dashboard/stats', async (req, res) => {

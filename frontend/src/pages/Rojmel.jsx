@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import PurchaseForm from '../components/PurchaseForm';
 import SaleForm from '../components/SaleForm';
 import CashEntryModal from '../components/CashEntryModal';
+import JVEntryModal from '../components/JVEntryModal';
 
 export default function Rojmel() {
   const { t } = useTranslation();
@@ -265,7 +266,7 @@ export default function Rojmel() {
               <button onClick={() => setActiveModal('credit')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Credit</button>
               <button onClick={() => setActiveModal('purchase')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Purchase</button>
               <button onClick={() => setActiveModal('sales')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Sales</button>
-              <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">J.V.</button>
+              <button onClick={() => setActiveModal('jv')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">J.V.</button>
               <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">Refresh</button>
               <button onClick={() => setActiveModal('debit')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Debit</button>
               <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-red-600">Close</button>
@@ -306,6 +307,14 @@ export default function Rojmel() {
          <CashEntryModal 
            company={company}
            type={activeModal}
+           onClose={() => setActiveModal(null)}
+           onSubmit={() => { setActiveModal(null); fetchRojmel(); }}
+         />
+      )}
+
+      {activeModal === 'jv' && (
+         <JVEntryModal 
+           company={company}
            onClose={() => setActiveModal(null)}
            onSubmit={() => { setActiveModal(null); fetchRojmel(); }}
          />
