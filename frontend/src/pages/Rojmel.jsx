@@ -69,18 +69,40 @@ export default function Rojmel() {
   // Helper to ensure both lists have the same number of rows for visually balanced table
   const jamaList = data?.jama || [];
   const udharList = data?.udhar || [];
-  const maxRows = Math.max(jamaList.length, udharList.length);
 
-  // Normalize arrays to maxRows
-  const normalizedJama = [...jamaList];
-  const normalizedUdhar = [...udharList];
+  let jamaClosed = null;
+  let udharClosed = null;
 
-  while (normalizedJama.length < maxRows) {
-    normalizedJama.push({ details: '', sub_amount: '', amount: '' });
+  // Separate closing rows out
+  const baseJama = jamaList.filter(r => {
+    if (r.isClosing) { jamaClosed = r; return false; }
+    return true;
+  });
+
+  const baseUdhar = udharList.filter(r => {
+    if (r.isClosing) { udharClosed = r; return false; }
+    return true;
+  });
+
+  // Calculate max rows for transactions
+  const maxBaseRows = Math.max(baseJama.length, baseUdhar.length);
+
+  // Pad to max elements
+  while (baseJama.length < maxBaseRows) {
+    baseJama.push({ details: '', sub_amount: '', amount: '' });
   }
-  while (normalizedUdhar.length < maxRows) {
-    normalizedUdhar.push({ details: '', sub_amount: '', amount: '' });
+  while (baseUdhar.length < maxBaseRows) {
+    baseUdhar.push({ details: '', sub_amount: '', amount: '' });
   }
+
+  // Append closing row at the absolute bottom
+  if (jamaClosed || udharClosed) {
+    baseJama.push(jamaClosed || { details: '', sub_amount: '', amount: '' });
+    baseUdhar.push(udharClosed || { details: '', sub_amount: '', amount: '' });
+  }
+
+  const normalizedJama = baseJama;
+  const normalizedUdhar = baseUdhar;
 
   return (
     <div className="p-4 md:p-6 bg-[#f3f4f6] min-h-full flex flex-col relative">
@@ -164,22 +186,30 @@ export default function Rojmel() {
                {/* Jama Side */}
                <div className="border-r border-blue-300 relative flex flex-col">
                  <div className="flex-1">
-                   {normalizedJama.map((row, idx) => (
-                     <div key={idx} className="grid grid-cols-12 border-b border-dashed border-slate-200 hover:bg-blue-50">
-                        <div className="col-span-6 p-2 border-r border-slate-100 uppercase">
-                          <div>{row.details}</div>
+                   {normalizedJama.map((row, idx) => {
+                     const isOpening = row.isOpening;
+                     const isClosing = row.isClosing;
+                     let rowClasses = "grid grid-cols-12 border-b border-dashed hover:bg-blue-50 ";
+                     if (isOpening) rowClasses += "bg-green-50 text-green-900 font-extrabold border-green-200";
+                     else if (isClosing) rowClasses += "bg-red-50 text-red-900 font-extrabold border-red-200 border-solid border-b-2";
+                     else rowClasses += "border-slate-200";
+                     
+                     return (
+                     <div key={idx} className={rowClasses}>
+                        <div className={`col-span-6 p-2 border-r ${isOpening || isClosing ? 'border-transparent' : 'border-slate-100'} uppercase`}>
+                          <div className={isOpening || isClosing ? "text-lg text-black font-black" : ""}>{row.details}</div>
                           {printItemDetails && row.notes && (
                             <div className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">{row.notes}</div>
                           )}
                         </div>
-                        <div className="col-span-3 p-2 border-r border-slate-100 text-right font-medium text-slate-600">
+                        <div className={`col-span-3 p-2 border-r ${isOpening || isClosing ? 'border-transparent' : 'border-slate-100'} text-right font-medium text-slate-600`}>
                           {row.sub_amount !== '' && row.sub_amount !== null ? parseFloat(row.sub_amount).toFixed(2) : ''}
                         </div>
-                        <div className="col-span-3 p-2 text-right font-bold text-slate-800">
+                        <div className={`col-span-3 p-2 text-right font-bold ${isOpening || isClosing ? 'text-black text-lg' : 'text-slate-800'}`}>
                           {row.amount !== '' && row.amount !== null ? parseFloat(row.amount).toFixed(2) : ''}
                         </div>
                      </div>
-                   ))}
+                   )})}
                  </div>
                  {data?.totals && (
                    <div className="mt-auto grid grid-cols-12 border-t-2 border-blue-400 text-[#0d3b8e] font-bold bg-[#e4efff]">
@@ -192,22 +222,30 @@ export default function Rojmel() {
                {/* Udhar Side */}
                <div className="relative flex flex-col">
                  <div className="flex-1">
-                   {normalizedUdhar.map((row, idx) => (
-                     <div key={idx} className="grid grid-cols-12 border-b border-dashed border-slate-200 hover:bg-blue-50">
-                        <div className="col-span-6 p-2 border-r border-slate-100 uppercase text-blue-900">
-                          <div>{row.details}</div>
+                   {normalizedUdhar.map((row, idx) => {
+                     const isOpening = row.isOpening;
+                     const isClosing = row.isClosing;
+                     let rowClasses = "grid grid-cols-12 border-b border-dashed hover:bg-blue-50 ";
+                     if (isOpening) rowClasses += "bg-green-50 text-green-900 font-extrabold border-green-200";
+                     else if (isClosing) rowClasses += "bg-red-50 text-red-900 font-extrabold border-red-200 border-solid border-b-2";
+                     else rowClasses += "border-slate-200";
+
+                     return (
+                     <div key={idx} className={rowClasses}>
+                        <div className={`col-span-6 p-2 border-r ${isOpening || isClosing ? 'border-transparent' : 'border-slate-100'} uppercase text-blue-900`}>
+                          <div className={isOpening || isClosing ? "text-lg text-black font-black" : ""}>{row.details}</div>
                           {printItemDetails && row.notes && (
                             <div className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">{row.notes}</div>
                           )}
                         </div>
-                        <div className="col-span-3 p-2 border-r border-slate-100 text-right font-medium text-slate-600">
+                        <div className={`col-span-3 p-2 border-r ${isOpening || isClosing ? 'border-transparent' : 'border-slate-100'} text-right font-medium text-slate-600`}>
                           {row.sub_amount !== '' && row.sub_amount !== null ? parseFloat(row.sub_amount).toFixed(2) : ''}
                         </div>
-                        <div className="col-span-3 p-2 text-right font-bold text-slate-800">
+                        <div className={`col-span-3 p-2 text-right font-bold ${isOpening || isClosing ? 'text-black text-lg' : 'text-slate-800'}`}>
                           {row.amount !== '' && row.amount !== null ? parseFloat(row.amount).toFixed(2) : ''}
                         </div>
                      </div>
-                   ))}
+                   )})}
                  </div>
                  {data?.totals && (
                    <div className="mt-auto grid grid-cols-12 border-t-2 border-blue-400 text-[#0d3b8e] font-bold bg-[#e4efff]">
@@ -228,7 +266,7 @@ export default function Rojmel() {
               <button onClick={() => setActiveModal('purchase')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Purchase</button>
               <button onClick={() => setActiveModal('sales')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Sales</button>
               <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">J.V.</button>
-              <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">Milk Entry</button>
+              <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">Refresh</button>
               <button onClick={() => setActiveModal('debit')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Debit</button>
               <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-red-600">Close</button>
               <div className="flex-[1.5] min-w-[140px] flex gap-1">

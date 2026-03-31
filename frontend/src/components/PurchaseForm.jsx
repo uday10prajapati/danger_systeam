@@ -353,8 +353,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   <th className="border-r border-[#1c3c72] p-1.5 w-20 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? 'IGST Amt' : 'CGST Amt'}</th>
                   <th className="border-r border-[#1c3c72] p-1.5 w-16 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? '' : 'SGST %'}</th>
                   <th className="border-r border-[#1c3c72] p-1.5 w-20 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? '' : 'SGST Amt'}</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-16 text-right px-1 bg-[#467FCF]">Cess %</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-16 text-right px-1 bg-[#467FCF]">Cess Amt</th>
+
                   <th className="p-1.5 w-24 text-right px-2 bg-[#467FCF]">Total Amt.</th>
                   <th className="border-l border-[#1c3c72] p-1.5 w-8 text-center bg-[#467FCF]">X</th>
                 </tr>
@@ -376,8 +375,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-gray-600">{taxType === 'IGST' ? '' : row.sgstPercent.toFixed(2)}</td>
                     <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-black">{taxType === 'IGST' ? '' : row.sgstAmt.toFixed(2)}</td>
                     
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-gray-600">0.00</td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-black">0.00</td>
+
                     
                     <td className="p-1 px-2 text-right font-mono font-extrabold text-[#1E3A8A]">{row.totalAmount.toFixed(2)}</td>
                     <td className="border-l border-[#E0E8F5] p-1 px-2 text-center text-red-500 font-bold hover:bg-red-200 cursor-pointer" onClick={() => handleRemoveItem(idx)}>X</td>
@@ -425,8 +423,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-500">{livePreview ? (taxType==='IGST'?livePreview.igstAmt:livePreview.cgstAmt).toFixed(2) : ''}</td>
                   <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-400">{livePreview ? (taxType==='IGST'?'':livePreview.sgstPercent).toFixed(2) : ''}</td>
                   <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-500">{livePreview ? (taxType==='IGST'?'':livePreview.sgstAmt).toFixed(2) : ''}</td>
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-400">0.00</td>
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-500">0.00</td>
+
                   <td className="p-1 px-2 text-right font-mono font-bold text-gray-400">{livePreview ? livePreview.totalAmount.toFixed(2) : ''}</td>
                   <td className="p-1 px-2 text-center text-blue-500 font-bold hover:bg-blue-100 cursor-pointer" onClick={handleAddItem}>+</td>
                 </tr>
@@ -486,10 +483,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                        <span className="font-bold text-[#1E3A8A]">CGST Amt :</span>
                        <span className="font-mono font-bold text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>{totalCgst.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">Cess Amt :</span>
-                       <span className="font-mono font-bold text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>0.00</span>
-                    </div>
+
                  </div>
 
                  {/* Computation Right Col */}
@@ -520,9 +514,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
         {/* Action Bar */}
         <div className="bg-[#E5EEF9] p-2 border-t border-[#7A93BE] flex items-center justify-between text-[11px] font-bold text-slate-500 shadow-inner shrink-0">
           <div className="flex gap-4">
-            <span>1. New - 'Insert'</span>
-            <span>2. Edit - 'Enter'</span>
-            <span>3. Delete - 'Delete'</span>
+            
           </div>
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={loading} className="px-6 py-1 bg-[#D3E1F1] border border-[#7A93BE] hover:bg-[#A6C8FF] text-slate-800 font-bold shadow-sm rounded-sm">

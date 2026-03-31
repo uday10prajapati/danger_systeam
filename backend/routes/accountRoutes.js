@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, queryOne, execute } from '../db.js';
 import { validateAccount } from '../validators/accountValidator.js';
+import { generateNextMemberCode } from '../utils/memberCodeGenerator.js';
 
 const router = express.Router();
 
@@ -48,6 +49,20 @@ router.post('/api/accounts', async (req, res) => {
          VALUES (?, CURRENT_DATE, 'OPENING_BALANCE', 'Opening Cash in Hand', ?, ?)`,
         [company_id, isDebit ? Math.abs(final_opening_balance) : 0, isDebit ? 0 : Math.abs(final_opening_balance)]
       );
+    }
+
+    // Auto generate member for customer accounts
+    if (account_type === 'customer') {
+      try {
+        const nextCode = await generateNextMemberCode(company_id);
+        await execute(
+          `INSERT INTO member_master (company_id, account_id, member_code, member_name, phone, email, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [company_id, result.insertId, nextCode, account_name, phone || null, email || null, 1]
+        );
+      } catch (err) {
+        console.error('Failed to auto-create member:', err);
+      }
     }
 
     res.status(201).json({

@@ -15,9 +15,9 @@ import { query, queryOne } from '../db.js';
  */
 export async function generateNextMemberCode(companyId) {
   try {
-    // Get current max member code for this company
+    // Get current max member code for this company (safely handling numeric codes)
     const result = await queryOne(
-      `SELECT MAX(member_code) as max_code FROM member_master WHERE company_id = ? AND member_code IS NOT NULL`,
+      `SELECT MAX(CAST(member_code AS UNSIGNED)) as max_code FROM member_master WHERE company_id = ? AND member_code REGEXP '^[0-9]+$'`,
       [companyId]
     );
 

@@ -185,7 +185,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const handleMemberSelect = (member) => {
     setSelectedMember(member);
     setMemberId(member.id);
-    setMemberSearchText(`${member.member_code || member.id} ${member.member_name}`);
+    setMemberSearchText(member.member_code ? String(member.member_code) : '');
     setShowMemberDropdown(false);
   };
 
@@ -233,7 +233,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
         invoice_date: invoiceDate,
         is_intra_state: taxType === 'CGST/SGST',
         payment_type: salesType, 
-        notes: isChequePayment ? `Cheque Payment: Bank ${bankName}, Chq No ${chequeNo}` : '',
+        notes: (salesType === 'cash' && isChequePayment) ? `Cheque Payment: Bank ${bankName}, Chq No ${chequeNo}` : '',
         discount_amount: 0,
         items: saleItems.map(row => ({
           item_id: row.id,
@@ -297,22 +297,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 flex flex-col gap-2 relative">
           
           {/* TOP SECTION : Dates (Milk / Deduction) */}
-          <div className="border border-[#9AAFD2] p-2 flex flex-col gap-2 pb-3 mb-1 bg-[#D3E1F1]">
-            <div className="flex items-center gap-4 ml-8">
-              <span className="font-bold text-[#1E3A8A] w-32 text-right text-[13px]">Milk Date :</span>
-              <input type="date" value={milkDateFrom} onChange={(e)=>setMilkDateFrom(e.target.value)} className="border border-[#7A93BE] px-1 py-0.5 text-[13px] bg-white w-32 outline-none shadow-inner" />
-              <span className="font-bold text-[#1E3A8A] text-[13px]">To</span>
-              <input type="date" value={milkDateTo} onChange={(e)=>setMilkDateTo(e.target.value)} className="border border-[#7A93BE] px-1 py-0.5 text-[13px] bg-white w-32 outline-none shadow-inner" />
-            </div>
-            <div className="flex items-center gap-4 ml-8">
-              <span className="font-bold text-[#1E3A8A] w-32 text-right text-[13px]">Deduction Date :</span>
-              <input type="date" value={deductionDateFrom} onChange={(e)=>setDeductionDateFrom(e.target.value)} className="border border-[#7A93BE] px-1 py-0.5 text-[13px] bg-white w-32 outline-none shadow-inner" />
-              <span className="font-bold text-[#1E3A8A] text-[13px]">To</span>
-              <input type="date" value={deductionDateTo} onChange={(e)=>setDeductionDateTo(e.target.value)} className="border border-[#7A93BE] px-1 py-0.5 text-[13px] bg-white w-32 outline-none shadow-inner" />
-            </div>
-          </div>
-
-          <div className="border-t border-[#FFFFFF] w-full mt-[-10px] mb-2 opacity-60"></div>
+          {/* Dates removed */}
 
           {/* SECOND SECTION : Bill Details */}
           <div className="flex flex-wrap gap-x-6 gap-y-3 px-2">
@@ -343,7 +328,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
           <div className="flex flex-wrap gap-x-6 gap-y-3 px-2 mt-1">
             {/* Member Dropdown */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-[#1E3A8A] w-20 text-right text-[13px]">Member :</span>
+              <span className="font-bold text-[#1E3A8A] w-20 text-right text-[13px]">Member Code :</span>
               
               <div className="relative flex items-center gap-1">
                  <input 
@@ -352,16 +337,33 @@ export default function SaleForm({ onSubmit, onCancel }) {
                    onChange={(e) => {
                      setMemberSearchText(e.target.value);
                      setShowMemberDropdown(true);
+                     // Auto-match if exact match typed quickly
+                     const exactMatch = availableMembers.find(m => String(m.member_code) === e.target.value);
+                     if (exactMatch) {
+                       setSelectedMember(exactMatch);
+                       setMemberId(exactMatch.id);
+                     } else {
+                       setSelectedMember(null);
+                     }
                    }}
                    onFocus={() => setShowMemberDropdown(true)}
-                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-white w-64 outline-none shadow-inner uppercase"
-                   placeholder="Search Member..."
+                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-white w-24 outline-none shadow-inner font-bold text-center uppercase"
+                   placeholder="CODE"
                  />
                  
+                 {/* Auto-Fetched Name Display */}
+                 <input 
+                   type="text" 
+                   value={selectedMember ? selectedMember.member_name : ''}
+                   readOnly
+                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-gray-200 w-64 outline-none shadow-inner text-[#1E3A8A] font-bold cursor-not-allowed"
+                   placeholder="MEMBER NAME..."
+                 />
+
                  {showMemberDropdown && (
-                    <div className="absolute top-full left-0 bg-white border border-[#7A93BE] shadow-xl w-[350px] max-h-48 overflow-y-auto z-40">
+                    <div className="absolute top-full left-0 bg-white border border-[#7A93BE] shadow-xl w-[350px] max-h-48 overflow-y-auto z-40 mt-1">
                        <div className="p-1 border-b bg-[#F0F5FA] flex justify-end"><X size={14} className="cursor-pointer hover:text-red-600" onClick={() => setShowMemberDropdown(false)}/></div>
-                       {availableMembers.filter(m => String(m.member_name).toLowerCase().includes(memberSearchText.toLowerCase()) || String(m.member_code).includes(memberSearchText)).map((m) => (
+                       {availableMembers.filter(m => String(m.member_code).includes(memberSearchText) || String(m.member_name).toLowerCase().includes(memberSearchText.toLowerCase())).map((m) => (
                          <div key={m.id} onClick={() => handleMemberSelect(m)} className="px-2 py-1 hover:bg-[#1E3A8A] hover:text-white cursor-pointer text-[13px] font-semibold flex justify-between">
                             <span>{m.member_name}</span>
                             <span className="text-[11px] opacity-70">[{m.member_code || m.id}]</span>
@@ -383,24 +385,28 @@ export default function SaleForm({ onSubmit, onCancel }) {
           </div>
 
           {/* Cheque Payment Row */}
-          <div className="flex flex-wrap gap-x-4 gap-y-3 px-2 mt-2 items-center">
-            <label className="flex items-center gap-2 ml-24 cursor-pointer">
-              <input type="checkbox" checked={isChequePayment} onChange={(e) => setIsChequePayment(e.target.checked)} className="w-4 h-4 border-[#7A93BE]" />
-              <span className="font-bold text-[#1E3A8A] text-[13px]">Is Cheque Payment ?</span>
-            </label>
-          </div>
-          
-          {isChequePayment && (
-            <div className="flex flex-wrap gap-x-4 gap-y-3 px-2 mt-1 items-center bg-[#D3E1F1] p-1 border border-[#9AAFD2] ml-2 w-fit">
-              <div className="flex items-center gap-2 text-[13px]">
-                <span className="font-bold text-[#1E3A8A]">Bank Name :</span>
-                <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} className="border border-[#7A93BE] px-2 py-0.5 w-64 outline-none shadow-inner bg-white uppercase" />
+          {salesType === 'cash' && (
+            <>
+              <div className="flex flex-wrap gap-x-4 gap-y-3 px-2 mt-2 items-center">
+                <label className="flex items-center gap-2 ml-24 cursor-pointer">
+                  <input type="checkbox" checked={isChequePayment} onChange={(e) => setIsChequePayment(e.target.checked)} className="w-4 h-4 border-[#7A93BE]" />
+                  <span className="font-bold text-[#1E3A8A] text-[13px]">Is Cheque Payment ?</span>
+                </label>
               </div>
-              <div className="flex items-center gap-2 text-[13px]">
-                <span className="font-bold text-[#1E3A8A]">Cheque No :</span>
-                <input type="text" value={chequeNo} onChange={(e) => setChequeNo(e.target.value)} className="border border-[#7A93BE] px-2 py-0.5 w-40 outline-none shadow-inner bg-white font-mono" />
-              </div>
-            </div>
+              
+              {isChequePayment && (
+                <div className="flex flex-wrap gap-x-4 gap-y-3 px-2 mt-1 items-center bg-[#D3E1F1] p-1 border border-[#9AAFD2] ml-2 w-fit">
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <span className="font-bold text-[#1E3A8A]">Bank Name :</span>
+                    <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} className="border border-[#7A93BE] px-2 py-0.5 w-64 outline-none shadow-inner bg-white uppercase" />
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <span className="font-bold text-[#1E3A8A]">Cheque No :</span>
+                    <input type="text" value={chequeNo} onChange={(e) => setChequeNo(e.target.value)} className="border border-[#7A93BE] px-2 py-0.5 w-40 outline-none shadow-inner bg-white font-mono" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* DATA GRID TABLE */}
@@ -415,10 +421,12 @@ export default function SaleForm({ onSubmit, onCancel }) {
                   <th className="border-r border-[#7A93BE] p-1 w-24 text-right px-2 bg-[#A6C8FF]">Amount</th>
                   <th className="border-r border-[#7A93BE] p-1 w-16 text-right px-1 bg-[#A6C8FF]">{taxType === 'IGST' ? 'IGST %' : 'CGST %'}</th>
                   <th className="border-r border-[#7A93BE] p-1 w-20 text-right px-1 bg-[#A6C8FF]">{taxType === 'IGST' ? 'IGST Amt' : 'CGST Amt'}</th>
-                  <th className="border-r border-[#7A93BE] p-1 w-16 text-right px-1 bg-[#A6C8FF]">{taxType === 'IGST' ? '' : 'SGST %'}</th>
-                  <th className="border-r border-[#7A93BE] p-1 w-20 text-right px-1 bg-[#A6C8FF]">{taxType === 'IGST' ? '' : 'SGST Amt'}</th>
-                  <th className="border-r border-[#7A93BE] p-1 w-16 text-right px-1 bg-[#A6C8FF]">CESS %</th>
-                  <th className="border-r border-[#7A93BE] p-1 w-16 text-right px-1 bg-[#A6C8FF]">CESS Amt</th>
+                  {taxType !== 'IGST' && (
+                    <>
+                      <th className="border-r border-[#7A93BE] p-1 w-16 text-right px-1 bg-[#A6C8FF]">SGST %</th>
+                      <th className="border-r border-[#7A93BE] p-1 w-20 text-right px-1 bg-[#A6C8FF]">SGST Amt</th>
+                    </>
+                  )}
                   <th className="p-1 w-24 text-right px-2 bg-[#A6C8FF]">Total Amount</th>
                   <th className="p-1 w-10 text-center bg-[#A6C8FF]">X</th>
                 </tr>
@@ -437,11 +445,12 @@ export default function SaleForm({ onSubmit, onCancel }) {
                     <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-600">{taxType === 'IGST' ? row.igstPercent.toFixed(2) : row.cgstPercent.toFixed(2)}</td>
                     <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono">{taxType === 'IGST' ? row.igstAmt.toFixed(2) : row.cgstAmt.toFixed(2)}</td>
                     
-                    <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-600">{taxType === 'IGST' ? '' : row.sgstPercent.toFixed(2)}</td>
-                    <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono">{taxType === 'IGST' ? '' : row.sgstAmt.toFixed(2)}</td>
-                    
-                    <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-600">0.00</td>
-                    <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono">0.00</td>
+                    {taxType !== 'IGST' && (
+                      <>
+                        <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-600">{row.sgstPercent.toFixed(2)}</td>
+                        <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono">{row.sgstAmt.toFixed(2)}</td>
+                      </>
+                    )}
                     
                     <td className="p-1 px-2 text-right font-mono font-bold text-blue-900">{row.totalAmount.toFixed(2)}</td>
                     <td className="p-1 px-2 text-center text-red-500 font-bold hover:bg-red-200 cursor-pointer" onClick={() => handleRemoveItem(idx)}>X</td>
@@ -494,14 +503,18 @@ export default function SaleForm({ onSubmit, onCancel }) {
                         <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono font-bold bg-[#E4EFFF] text-[#1E3A8A]">{livePreview.amount.toFixed(2)}</td>
                         <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(2) : livePreview.cgstPercent.toFixed(2)}</td>
                         <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(2) : livePreview.cgstAmt.toFixed(2)}</td>
-                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(2)}</td>
-                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(2)}</td>
-                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">0.00</td>
-                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">0.00</td>
+                        
+                        {taxType !== 'IGST' && (
+                          <>
+                            <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">{livePreview.sgstPercent.toFixed(2)}</td>
+                            <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">{livePreview.sgstAmt.toFixed(2)}</td>
+                          </>
+                        )}
+                        
                         <td className="p-1 px-2 text-right font-mono font-bold text-red-700 bg-[#E4EFFF] border-r border-[#A3C2EA] shadow-inner">{livePreview.totalAmount.toFixed(2)}</td>
                       </>
                    ) : (
-                      <td colSpan="8" className="bg-[#E4EFFF] p-1 text-[11px] text-indigo-800 font-bold text-center border-r border-[#A3C2EA]">
+                      <td colSpan={taxType === 'IGST' ? 4 : 6} className="bg-[#E4EFFF] p-1 text-[11px] text-indigo-800 font-bold text-center border-r border-[#A3C2EA]">
                           [ Press Enter on Qty or Rate to Add to Grid ]
                       </td>
                    )}
@@ -517,21 +530,18 @@ export default function SaleForm({ onSubmit, onCancel }) {
           {/* TOTALS BOTTOM SECTION */}
           <div className="mt-1 flex justify-between items-start px-1 font-bold">
              
-             {/* Left Shortcuts */}
-             <div className="flex flex-col text-[12px] text-[#1E3A8A] gap-1 mt-2 font-mono">
-                <p>1. New Entry 'Insert'</p>
-                <p>2. Edit 'Enter' <span className="text-xs text-gray-500 font-sans italic ml-2">(Future update)</span></p>
-                <p>3. Delete 'Delete' <span className="text-xs text-gray-500 font-sans italic ml-1">(Click X in grid)</span></p>
-             </div>
+             {/* Empty Space where Shortcuts were */}
+             <div className="flex flex-col text-[12px] text-[#1E3A8A] gap-1 mt-2 font-mono w-[300px]"></div>
 
              {/* Right Calculation Map matching column widths! */}
-             <div className="flex flex-col items-end gap-1">
+             <div className="flex flex-col items-end gap-1 mt-2">
                
                <div className="flex bg-[#A6C8FF] border border-[#7A93BE] shadow-inner font-mono text-sm mr-12 h-6 items-center">
                   <div className="w-[100px] text-right px-2 border-r border-[#7A93BE] h-full flex items-center justify-end text-[#1E3A8A] font-bold bg-[#E4EFFF]">{totalBaseAmount.toFixed(2)}</div>
-                  <div className="w-[110px] text-right px-2 border-r border-[#7A93BE] h-full flex items-center justify-end text-[#1E3A8A] font-bold">{taxType === 'IGST' ? totalIgst.toFixed(2) : totalCgst.toFixed(2)}</div>
-                  <div className="w-[110px] text-right px-2 border-r border-[#7A93BE] h-full flex items-center justify-end text-[#1E3A8A] font-bold">{taxType === 'IGST' ? '0.00' : totalSgst.toFixed(2)}</div>
-                  <div className="w-[110px] text-right px-2 h-full flex items-center justify-end text-[#1E3A8A] font-bold">0.00</div>
+                  <div className={`w-[110px] text-right px-2 h-full flex items-center justify-end text-[#1E3A8A] font-bold ${taxType !== 'IGST' ? 'border-r border-[#7A93BE]' : ''}`}>{taxType === 'IGST' ? totalIgst.toFixed(2) : totalCgst.toFixed(2)}</div>
+                  {taxType !== 'IGST' && (
+                    <div className="w-[110px] text-right px-2 h-full flex items-center justify-end text-[#1E3A8A] font-bold">{totalSgst.toFixed(2)}</div>
+                  )}
                </div>
 
                <div className="flex items-center gap-2 mt-2">

@@ -90,7 +90,22 @@ router.post('/with-gst', async (req, res) => {
     const gstCalculation = calculateBulkGST(itemsWithGST);
 
     // Generate invoice number
-    const invoiceNo = `INV-${Date.now()}`;
+    let invoiceNo = `GR0001`; // Default
+    try {
+      const lastSaleRows = await query(
+        `SELECT invoice_no FROM sales WHERE company_id = ? AND invoice_no LIKE 'GR%' ORDER BY id DESC LIMIT 1`,
+        [companyId]
+      );
+      if (lastSaleRows && lastSaleRows.length > 0 && lastSaleRows[0].invoice_no) {
+        const match = lastSaleRows[0].invoice_no.match(/GR0*(\d+)/);
+        if (match) {
+          const nextNum = parseInt(match[1], 10) + 1;
+          invoiceNo = `GR${String(nextNum).padStart(4, '0')}`;
+        }
+      }
+    } catch (err) {
+      console.error('Invoice Number Gen Error:', err);
+    }
 
     // Get database connection for transaction
     const connection = await getConnection();
