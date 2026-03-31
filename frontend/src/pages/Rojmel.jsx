@@ -243,38 +243,25 @@ export default function Rojmel() {
 
       {/* Modals Container */}
       {activeModal === 'purchase' && (
-        <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
-           <div className="min-h-screen flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl relative">
-                 <PurchaseForm 
-                    company={company} 
-                    onClose={() => setActiveModal(null)} 
-                    onSubmit={() => {
-                       setActiveModal(null);
-                       fetchRojmel();
-                    }} 
-                 />
-              </div>
-           </div>
-        </div>
+         <PurchaseForm 
+            company={company} 
+            onCancel={() => setActiveModal(null)} 
+            onSubmit={() => {
+               setActiveModal(null);
+               fetchRojmel();
+            }} 
+         />
       )}
 
       {activeModal === 'sales' && (
-        <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
-           <div className="min-h-screen flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl relative">
-                 <SaleForm 
-                    company={company} 
-                    onCancel={() => setActiveModal(null)}
-                    onClose={() => setActiveModal(null)} 
-                    onSubmit={() => {
-                       setActiveModal(null);
-                       fetchRojmel();
-                    }} 
-                 />
-              </div>
-           </div>
-        </div>
+         <SaleForm 
+            company={company} 
+            onCancel={() => setActiveModal(null)}
+            onSubmit={() => {
+               setActiveModal(null);
+               fetchRojmel();
+            }} 
+         />
       )}
 
       {(activeModal === 'credit' || activeModal === 'debit') && (
