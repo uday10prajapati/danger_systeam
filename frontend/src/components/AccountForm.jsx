@@ -27,6 +27,8 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
     { value: 'expense', label: t('accountMaster.expense') },
     { value: 'customer', label: t('accountMaster.customer') },
     { value: 'supplier', label: t('accountMaster.supplier') },
+    { value: 'purchase', label: t('accountMaster.purchase', 'Purchase') },
+    { value: 'sales', label: t('accountMaster.sales', 'Sales') },
     { value: 'cash', label: t('accountMaster.cash') },
     { value: 'bank', label: t('accountMaster.bank') }
   ];

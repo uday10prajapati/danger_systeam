@@ -309,7 +309,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                 type="text" 
                 value={formData.purchase_account_id}
                 onChange={(e) => setFormData(p => ({ ...p, purchase_account_id: e.target.value }))}
-                className="w-16 text-center"
+                className="w-16 text-center bg-white"
               />
               <select 
                 name="purchase_account_id" 
@@ -318,7 +318,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                 className="flex-1 px-2 py-1 text-sm border border-blue-300 bg-white"
               >
                 <option value="">-- {t('itemMaster.selectAccount') || 'Select Account'} --</option>
-                {accounts.map(acc => (
+                {accounts.filter(a => ['purchase', 'expense', 'supplier'].includes(a.account_type)).map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                 ))}
               </select>
@@ -331,7 +331,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                 type="text" 
                 value={formData.sales_account_id}
                 onChange={(e) => setFormData(p => ({ ...p, sales_account_id: e.target.value }))}
-                className="w-16 text-center"
+                className="w-16 text-center bg-white"
               />
               <select 
                 name="sales_account_id" 
@@ -340,7 +340,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                 className="flex-1 px-2 py-1 text-sm border border-blue-300 bg-white"
               >
                 <option value="">-- {t('itemMaster.selectAccount') || 'Select Account'} --</option>
-                {accounts.map(acc => (
+                {accounts.filter(a => ['sales', 'revenue', 'customer'].includes(a.account_type)).map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                 ))}
               </select>
