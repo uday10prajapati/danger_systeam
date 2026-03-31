@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 
     // 2. Fetch all transactions for the day
     const txSql = `
-      SELECT id, transaction_date, reference_no, description, cash_in, cash_out
+      SELECT id, transaction_date, reference_no, description, notes, cash_in, cash_out
       FROM cash_book
       WHERE company_id = ? AND transaction_date = ?
       ORDER BY id ASC
@@ -51,6 +51,7 @@ router.get('/', async (req, res) => {
       if (cIn > 0) {
         jamaList.push({
           details: tx.description,
+          notes: tx.notes,
           sub_amount: cIn, // For visual structure, we can map it straight to amount
           amount: cIn
         });
@@ -60,6 +61,7 @@ router.get('/', async (req, res) => {
       if (cOut > 0) {
         udharList.push({
           details: tx.description,
+          notes: tx.notes,
           sub_amount: cOut,
           amount: cOut
         });

@@ -166,7 +166,12 @@ export default function Rojmel() {
                  <div className="flex-1">
                    {normalizedJama.map((row, idx) => (
                      <div key={idx} className="grid grid-cols-12 border-b border-dashed border-slate-200 hover:bg-blue-50">
-                        <div className="col-span-6 p-2 border-r border-slate-100 uppercase">{row.details}</div>
+                        <div className="col-span-6 p-2 border-r border-slate-100 uppercase">
+                          <div>{row.details}</div>
+                          {printItemDetails && row.notes && (
+                            <div className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">{row.notes}</div>
+                          )}
+                        </div>
                         <div className="col-span-3 p-2 border-r border-slate-100 text-right font-medium text-slate-600">
                           {row.sub_amount !== '' && row.sub_amount !== null ? parseFloat(row.sub_amount).toFixed(2) : ''}
                         </div>
@@ -189,7 +194,12 @@ export default function Rojmel() {
                  <div className="flex-1">
                    {normalizedUdhar.map((row, idx) => (
                      <div key={idx} className="grid grid-cols-12 border-b border-dashed border-slate-200 hover:bg-blue-50">
-                        <div className="col-span-6 p-2 border-r border-slate-100 uppercase text-blue-900">{row.details}</div>
+                        <div className="col-span-6 p-2 border-r border-slate-100 uppercase text-blue-900">
+                          <div>{row.details}</div>
+                          {printItemDetails && row.notes && (
+                            <div className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">{row.notes}</div>
+                          )}
+                        </div>
                         <div className="col-span-3 p-2 border-r border-slate-100 text-right font-medium text-slate-600">
                           {row.sub_amount !== '' && row.sub_amount !== null ? parseFloat(row.sub_amount).toFixed(2) : ''}
                         </div>
@@ -239,8 +249,7 @@ export default function Rojmel() {
                  <PurchaseForm 
                     company={company} 
                     onClose={() => setActiveModal(null)} 
-                    onSubmit={async (data) => {
-                       await axios.post(`${import.meta.env.VITE_API_URL}/api/purchases`, data, { headers: { 'x-company-id': company.id, 'x-user-id': 1 }});
+                    onSubmit={() => {
                        setActiveModal(null);
                        fetchRojmel();
                     }} 
@@ -258,8 +267,7 @@ export default function Rojmel() {
                     company={company} 
                     onCancel={() => setActiveModal(null)}
                     onClose={() => setActiveModal(null)} 
-                    onSubmit={async (data) => {
-                       await axios.post(`${import.meta.env.VITE_API_URL}/api/sales/with-gst`, data, { headers: { 'x-company-id': company.id, 'x-user-id': 1 }});
+                    onSubmit={() => {
                        setActiveModal(null);
                        fetchRojmel();
                     }} 

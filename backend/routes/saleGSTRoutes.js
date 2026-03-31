@@ -14,7 +14,8 @@ import db, {
   getItemRate,
   insertCashBookEntry,
   query,
-  queryOne
+  queryOne,
+  getConnection
 } from '../db.js';
 import { validateSale } from '../validators/saleValidator.js';
 import { calculateGST, calculateBulkGST } from '../utils/gstCalculator.js';
@@ -92,7 +93,7 @@ router.post('/with-gst', async (req, res) => {
     const invoiceNo = `INV-${Date.now()}`;
 
     // Get database connection for transaction
-    const connection = await db.pool.getConnection();
+    const connection = await getConnection();
     try {
       await connection.beginTransaction();
 
@@ -152,9 +153,9 @@ router.post('/with-gst', async (req, res) => {
         // Insert stock ledger entry
         await connection.query(
           `INSERT INTO purchase_stock_ledger 
-           (company_id, item_id, quantity_out, current_stock, transaction_type, reference_id, reference_no, created_by)
-           VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?, ?)`,
-          [companyId, item.item_id, item.quantity, newStock, saleId, `SALE-${saleId}`, userId]
+           (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by)
+           VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?)`,
+          [companyId, item.item_id, item.quantity, newStock, `SALE-${saleId}`, userId]
         );
 
         itemIndex++;
@@ -172,16 +173,16 @@ router.post('/with-gst', async (req, res) => {
       );
 
       // 5. Create account ledger entries
-      const accountIdForLedger = customer_account_id || member_id;
+      const accountIdForLedger = customer_account_id;
       
       if (accountIdForLedger) {
         try {
           // DEBIT Customer Account
           await connection.query(
             `INSERT INTO account_ledger 
-             (account_id, company_id, transaction_date, reference_type, reference_id, reference_no, description, debit, credit)
-             VALUES (?, ?, ?, 'SALE', ?, ?, ?, ?, 0)`,
-            [accountIdForLedger, companyId, invoice_date, saleId, `SALE-${saleId}`, `Sale (GST-${is_intra_state !== false ? 'Intra' : 'Inter'}-State) - ${invoiceNo}`, finalNetAmount]
+             (account_id, company_id, transaction_date, transaction_type, reference_no, debit_amount, credit_amount, created_by)
+             VALUES (?, ?, ?, 'SALE', ?, ?, 0, ?)`,
+            [accountIdForLedger, companyId, invoice_date, `SALE-${saleId}`, finalNetAmount, userId]
           );
 
           // CREDIT Sales Revenue Account
@@ -202,27 +203,29 @@ router.post('/with-gst', async (req, res) => {
             salesAccountId = createResult.insertId;
           }
 
-          if (salesAccountId) {
             await connection.query(
               `INSERT INTO account_ledger 
-               (account_id, company_id, transaction_date, reference_type, reference_id, reference_no, description, debit, credit)
-               VALUES (?, ?, ?, 'SALE', ?, ?, ?, 0, ?)`,
-              [salesAccountId, companyId, invoice_date, saleId, `SALE-${saleId}`, `Sale - ${invoiceNo}`, finalNetAmount]
+               (account_id, company_id, transaction_date, transaction_type, reference_no, debit_amount, credit_amount, created_by)
+               VALUES (?, ?, ?, 'SALE', ?, 0, ?, ?)`,
+              [salesAccountId, companyId, invoice_date, `SALE-${saleId}`, finalNetAmount, userId]
             );
-          }
         } catch (err) {
           console.error('Error creating ledger entries:', err);
         }
       }
 
+      // Normalize payment_type matching to support 'Credit Sales' and 'credit'
+      const isCreditSale = payment_type && payment_type.toLowerCase().includes('credit');
+
       // 6. Create customer ledger entry for credit sales
-      if (payment_type === 'credit' && customer_account_id) {
+      if (isCreditSale && (customer_account_id || member_id)) {
+        const queryTargetId = customer_account_id || member_id;
         const [balanceRow] = await connection.query(
           `SELECT COALESCE(SUM(CASE WHEN debit_amount > 0 THEN debit_amount ELSE 0 END) - 
                            SUM(CASE WHEN credit_amount > 0 THEN credit_amount ELSE 0 END), 0) as balance
            FROM customer_ledger 
            WHERE company_id = ? AND customer_account_id = ?`,
-          [companyId, customer_account_id]
+          [companyId, queryTargetId]
         );
 
         const previousBalance = balanceRow[0]?.balance || 0;
@@ -232,48 +235,63 @@ router.post('/with-gst', async (req, res) => {
           `INSERT INTO customer_ledger 
            (company_id, customer_account_id, debit_amount, balance, transaction_type, reference_no, created_by)
            VALUES (?, ?, ?, ?, 'SALE', ?, ?)`,
-          [companyId, customer_account_id, finalNetAmount, newBalance, `SALE-${saleId}`, userId]
+          [companyId, queryTargetId, finalNetAmount, newBalance, `SALE-${saleId}`, userId]
         );
       }
 
       await connection.commit();
 
       // 7. Auto-insert Cash Book entries explicitly separating Base & GST on the Receipts (Jama) side
-      if ((payment_type || 'cash') === 'cash') {
-        try {
-          // Base Sale Amount
-          await insertCashBookEntry(
-            companyId, invoice_date, 'sale', saleId, invoiceNo,
-            `Sale Base Amount - ${invoiceNo}`, gstCalculation.total_taxable_amount - (discount_amount || 0), 0, userId, ''
-          );
-
-          if (is_intra_state !== false) {
-             // CGST
-             if (gstCalculation.total_cgst_amount > 0) {
-               await insertCashBookEntry(
-                 companyId, invoice_date, 'sale', saleId, invoiceNo,
-                 `CGST Collected - ${invoiceNo}`, gstCalculation.total_cgst_amount, 0, userId, ''
-               );
-             }
-             // SGST
-             if (gstCalculation.total_sgst_amount > 0) {
-               await insertCashBookEntry(
-                 companyId, invoice_date, 'sale', saleId, invoiceNo,
-                 `SGST Collected - ${invoiceNo}`, gstCalculation.total_sgst_amount, 0, userId, ''
-               );
-             }
-          } else {
-             // IGST
-             if (gstCalculation.total_igst_amount > 0) {
-               await insertCashBookEntry(
-                 companyId, invoice_date, 'sale', saleId, invoiceNo,
-                 `IGST Collected - ${invoiceNo}`, gstCalculation.total_igst_amount, 0, userId, ''
-               );
-             }
-          }
-        } catch (cashErr) {
-          console.error('Failed to insert cash book entries for GST Sale:', cashErr);
+      // and balancing the Udhar side for Credit Sales (Deshi Nama Havala System)
+      try {
+        // Fetch Item Names for detail string
+        let productDetails = '';
+        for (const item of items) {
+          const [itemRow] = await connection.query('SELECT item_name FROM item_master WHERE id = ?', [item.item_id]);
+          const itemName = itemRow[0]?.item_name || 'Item';
+          productDetails += `${item.quantity} ${itemName} * ${item.sale_rate} = ${(item.quantity * item.sale_rate).toFixed(2)}\n`;
         }
+
+        // --- JAMA SIDE (Receipts for Sales Accounts/GST Liability) ---
+        // Base Sale Amount
+        await insertCashBookEntry(
+          companyId, invoice_date, 'sale', saleId, invoiceNo,
+          `SALE A/C - ${invoiceNo}`, gstCalculation.total_taxable_amount - (discount_amount || 0), 0, userId, productDetails
+        );
+
+        if (is_intra_state !== false) {
+           if (gstCalculation.total_cgst_amount > 0) {
+             await insertCashBookEntry(companyId, invoice_date, 'sale', saleId, invoiceNo, `CGST IN/OUT - ${invoiceNo}`, gstCalculation.total_cgst_amount, 0, userId, '');
+           }
+           if (gstCalculation.total_sgst_amount > 0) {
+             await insertCashBookEntry(companyId, invoice_date, 'sale', saleId, invoiceNo, `SGST IN/OUT - ${invoiceNo}`, gstCalculation.total_sgst_amount, 0, userId, '');
+           }
+        } else {
+           if (gstCalculation.total_igst_amount > 0) {
+             await insertCashBookEntry(companyId, invoice_date, 'sale', saleId, invoiceNo, `IGST IN/OUT - ${invoiceNo}`, gstCalculation.total_igst_amount, 0, userId, '');
+           }
+        }
+
+        // --- UDHAR SIDE (Payments/Debit for Customer Account IF CREDIT SALE) ---
+        if (isCreditSale) {
+          // Fetch exact customer name
+          let customerName = 'Walk-in Customer';
+          if (member_id) {
+            const [mRow] = await connection.query('SELECT member_name FROM member_master WHERE id = ?', [member_id]);
+            if (mRow.length > 0) customerName = mRow[0].member_name;
+          } else if (customer_account_id) {
+            const [aRow] = await connection.query('SELECT account_name FROM accounts WHERE id = ?', [customer_account_id]);
+            if (aRow.length > 0) customerName = aRow[0].account_name;
+          }
+          
+          await insertCashBookEntry(
+            companyId, invoice_date, 'sale_credit', saleId, invoiceNo,
+            `PARTY: ${customerName.toUpperCase()} - ${invoiceNo}`, 0, finalNetAmount, userId, ''
+          );
+        }
+
+      } catch (cashErr) {
+        console.error('Failed to insert cash book entries for GST Sale:', cashErr);
       }
 
       return res.status(201).json({

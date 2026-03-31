@@ -110,25 +110,11 @@ export default function Purchase() {
     }
   };
 
-  // Handle form submission
-  const handleFormSubmit = async (formData) => {
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/purchases`, formData, {
-        headers: {
-          'x-company-id': company.id,
-          'x-user-id': JSON.parse(localStorage.getItem('user'))?.id || 1
-        }
-      });
-
-      if (res.data.success) {
-        setShowForm(false);
-        fetchPurchases(company.id);
-      }
-    } catch (err) {
-      if (err.response?.data?.errors) {
-        throw err;
-      }
-      throw new Error(err.response?.data?.message || 'Failed to create purchase');
+  // Handle form completion
+  const handleFormSubmit = (data) => {
+    setShowForm(false);
+    if (company) {
+      fetchPurchases(company.id);
     }
   };
 
@@ -169,15 +155,10 @@ export default function Purchase() {
 
         {/* Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-3xl w-full max-h-screen overflow-y-auto">
-              <PurchaseForm
-                company={company}
-                onSubmit={handleFormSubmit}
-                onClose={() => setShowForm(false)}
-              />
-            </div>
-          </div>
+          <PurchaseForm
+            onSubmit={handleFormSubmit}
+            onCancel={() => setShowForm(false)}
+          />
         )}
 
         {/* Purchase Details Modal */}

@@ -53,6 +53,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
     tax_percentage: item?.tax_percentage || 0,
     reorder_level: item?.reorder_level || 0,
     purchase_price: item?.purchase_price || 0, // This represents Purchase Rate
+    sale_price: item?.sale_price || 0, // This represents Sales Rate
   });
 
   const [accounts, setAccounts] = useState([]);
@@ -131,6 +132,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
           tax_percentage: existingItem.tax_percentage || 0,
           reorder_level: existingItem.reorder_level || 0,
           purchase_price: existingItem.purchase_price || 0,
+          sale_price: existingItem.sale_price || 0,
         });
         return;
       } else {
@@ -142,7 +144,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
       const newData = {
         ...prev,
         [name]: type === 'checkbox' ? (checked ? 1 : 0) : 
-                ['opening_stock', 'opening_stock_value', 'minimum_stock', 'loss_per_kg', 'sgst_percent', 'cgst_percent', 'igst_percent', 'cess_percent', 'purchase_price', 'tax_percentage'].includes(name) 
+                ['opening_stock', 'opening_stock_value', 'minimum_stock', 'loss_per_kg', 'sgst_percent', 'cgst_percent', 'igst_percent', 'cess_percent', 'purchase_price', 'sale_price', 'tax_percentage'].includes(name) 
                 ? (value === '' ? '' : parseFloat(value)) 
                 : finalValue
       };
@@ -374,6 +376,10 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
               {/* Purchase Rate */}
               <FormLabel>Purchase Rate :</FormLabel>
               <FormInput type="number" step="0.01" name="purchase_price" value={formData.purchase_price} onChange={handleChange} className="text-right" />
+
+              {/* Sales Rate */}
+              <FormLabel className="text-blue-800">Sales Rate :</FormLabel>
+              <FormInput type="number" step="0.01" name="sale_price" value={formData.sale_price} onChange={handleChange} className="text-right font-bold text-blue-900 border-blue-400" />
 
               {/* Inward */}
               <FormLabel>Inward :</FormLabel>

@@ -9,6 +9,7 @@ import memberRoutes from './routes/memberRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import itemRateRoutes from './routes/itemRateRoutes.js';
 import purchaseRoutes from './routes/purchaseRoutes.js';
+import purchaseGSTRoutes from './routes/purchaseGSTRoutes.js';
 import purchaseReturnRoutes from './routes/purchaseReturnRoutes.js';
 import saleRoutes from './routes/saleRoutes.js';
 import saleReturnRoutes from './routes/saleReturnRoutes.js';
@@ -64,6 +65,7 @@ async function startServer() {
     app.use('/api/items', itemRoutes);
     app.use('/api/item-rates', itemRateRoutes);
     app.use('/api/purchases', purchaseRoutes);
+    app.use('/api/purchases', purchaseGSTRoutes);
     app.use('/api/purchase-returns', purchaseReturnRoutes);
     app.use('/api/sales', saleRoutes);
     app.use('/api/sales', saleGSTRoutes);

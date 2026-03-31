@@ -42,9 +42,29 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const [currentRate, setCurrentRate] = useState('');
   const [itemSearchText, setItemSearchText] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Input Refs for hotkeys
   const itemInputRef = useRef(null);
+
+  const calculateDropdownPos = () => {
+     if (itemInputRef.current) {
+        const rect = itemInputRef.current.getBoundingClientRect();
+        setDropdownPos({
+           top: rect.bottom, // Render right below the input box
+           left: rect.left,
+           width: Math.max(rect.width, 400)
+        });
+     }
+  };
+
+  useEffect(() => {
+     if (showItemDropdown) {
+        calculateDropdownPos();
+        window.addEventListener('resize', calculateDropdownPos);
+        return () => window.removeEventListener('resize', calculateDropdownPos);
+     }
+  }, [showItemDropdown]);
 
   useEffect(() => {
     loadCompanyAndData();
@@ -70,11 +90,20 @@ export default function SaleForm({ onSubmit, onCancel }) {
         }
 
         // Auto-generate Bill No (fetch last and increment)
-        const lastSale = await axios.get(`/api/sales/company/${comp.id}?limit=1`, { headers: { 'x-company-id': comp.id } });
-        if (lastSale.data.success && lastSale.data.data.length > 0) {
-           const lastNo = parseInt(lastSale.data.data[0].invoice_no) || 0;
-           setBillNo(String(lastNo + 1).padStart(6, '0'));
-        } else {
+        try {
+           const lastSale = await axios.get(`/api/sales`, { headers: { 'x-company-id': comp.id } });
+           if (lastSale.data.success && lastSale.data.data && lastSale.data.data.length > 0) {
+              // Assuming data is sorted by date desc or we just take the last invoice_no
+              const lastInv = lastSale.data.data[lastSale.data.data.length - 1].invoice_no;
+              // Extract digits using regex
+              const matches = String(lastInv).match(/(\d+)/);
+              const lastNo = matches ? parseInt(matches[0]) : 0;
+              setBillNo(String(lastNo + 1).padStart(6, '0'));
+           } else {
+              setBillNo('000001');
+           }
+        } catch (saleErr) {
+           console.warn('Could not auto-fetch last bill number:', saleErr.message);
            setBillNo('000001');
         }
         
@@ -97,15 +126,21 @@ export default function SaleForm({ onSubmit, onCancel }) {
     let sgstPercent = 0, sgstAmt = 0;
     let igstPercent = 0, igstAmt = 0;
 
-    if (item && item.gst_rate) {
-       const totalGstRate = parseFloat(item.gst_rate) || 0;
+    if (item) {
+       // Support database fields cgst_percent, sgst_percent, igst_percent, or just tax_percentage fallback
        if (taxType === 'CGST/SGST') {
-          cgstPercent = totalGstRate / 2;
-          sgstPercent = totalGstRate / 2;
+          cgstPercent = parseFloat(item.cgst_percent) || 0;
+          sgstPercent = parseFloat(item.sgst_percent) || 0;
+          
+          if (cgstPercent === 0 && sgstPercent === 0 && item.tax_percentage) {
+             cgstPercent = parseFloat(item.tax_percentage) / 2;
+             sgstPercent = parseFloat(item.tax_percentage) / 2;
+          }
+
           cgstAmt = amount * (cgstPercent / 100);
           sgstAmt = amount * (sgstPercent / 100);
        } else {
-          igstPercent = totalGstRate;
+          igstPercent = parseFloat(item.igst_percent) || parseFloat(item.tax_percentage) || 0;
           igstAmt = amount * (igstPercent / 100);
        }
     }
@@ -119,7 +154,9 @@ export default function SaleForm({ onSubmit, onCancel }) {
     if (e) e.preventDefault();
     if (!currentItem || !currentQty || currentQty <= 0) return;
 
-    const rate = currentRate !== '' ? parseFloat(currentRate) : parseFloat(currentItem.sale_rate || 0);
+    // Use currentRate if typed, otherwise fallback to item's default price
+    const defaultRate = currentItem.sale_price !== undefined ? currentItem.sale_price : currentItem.sale_rate || 0;
+    const rate = currentRate !== '' ? parseFloat(currentRate) : parseFloat(defaultRate);
     const details = calculateRowDetails(currentItem, parseFloat(currentQty), rate);
 
     const newItem = {
@@ -155,7 +192,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const handleItemSelect = (item) => {
     setCurrentItem(item);
     setItemSearchText(`${item.item_code} ${item.item_name}`);
-    setCurrentRate(item.sale_rate || '');
+    const defaultRate = item.sale_price !== undefined ? item.sale_price : item.sale_rate || '';
+    setCurrentRate(defaultRate);
     setShowItemDropdown(false);
   };
 
@@ -167,6 +205,12 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const grossTotal = totalBaseAmount + totalCgst + totalSgst + totalIgst;
   const netAmount = Math.round(grossTotal);
   const rounding = netAmount - grossTotal;
+
+  // Live preview calculation for the input row
+  const currentDefaultRate = currentItem?.sale_price !== undefined ? currentItem.sale_price : currentItem?.sale_rate || 0;
+  const liveRate = currentRate !== '' ? parseFloat(currentRate) : parseFloat(currentDefaultRate);
+  const liveQty = parseFloat(currentQty) || 0;
+  const livePreview = currentItem ? calculateRowDetails(currentItem, liveQty, liveRate) : null;
 
   const handleSave = async () => {
     if (saleItems.length === 0) {
@@ -194,7 +238,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
         items: saleItems.map(row => ({
           item_id: row.id,
           quantity: row.quantity,
-          sale_rate: row.rate
+          sale_rate: row.rate,
+          gst_percent: taxType === 'IGST' ? row.igstPercent : (row.cgstPercent + row.sgstPercent)
         }))
       };
 
@@ -406,33 +451,23 @@ export default function SaleForm({ onSubmit, onCancel }) {
                 {/* Input Row for New Item */}
                 <tr className="bg-[#E4EFFF] border-b-2 border-[#7A93BE] sticky bottom-0">
                    <td className="border-r border-[#A3C2EA] p-1 text-center text-[10px] text-gray-500 font-bold">*</td>
-                   <td className="border-r border-[#A3C2EA] p-0 relative">
-                      <input 
-                        ref={itemInputRef}
-                        type="text" 
-                        value={itemSearchText}
-                        onChange={(e) => {
-                          setItemSearchText(e.target.value);
-                          setShowItemDropdown(true);
-                        }}
-                        onFocus={() => setShowItemDropdown(true)}
-                        placeholder="Search Item..."
-                        className="w-full h-full min-h-[22px] px-2 outline-none border-none text-[12px] bg-white font-bold uppercase text-[#1E3A8A]"
-                      />
-                      {showItemDropdown && (
-                        <div className="absolute bottom-full left-0 bg-white border-2 border-[#1E3A8A] shadow-2xl w-[400px] max-h-64 overflow-y-auto flex flex-col z-50">
-                           <div className="bg-[#1E3A8A] text-white px-2 py-0.5 text-xs font-bold flex justify-between">
-                             <span>Select Item (Up/Down + Enter)</span>
-                             <X size={14} className="cursor-pointer" onClick={()=>setShowItemDropdown(false)}/>
-                           </div>
-                           {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).toLowerCase().includes(itemSearchText.toLowerCase()) || (i.barcode && i.barcode.includes(itemSearchText))).map(i => (
-                             <div key={i.id} onClick={() => handleItemSelect(i)} className="px-2 py-1.5 border-b border-gray-100 hover:bg-[#A6C8FF] cursor-pointer text-xs font-bold text-[#1E3A8A] flex justify-between">
-                               <span>{i.item_name}</span>
-                               <span className="text-gray-500 text-[10px] bg-gray-100 px-1 rounded border border-gray-300">₹{i.sale_rate} | Stock:{i.current_stock}</span>
-                             </div>
-                           ))}
-                        </div>
-                      )}
+                   <td className="border-r border-[#A3C2EA] p-0">
+                      <div className="w-full h-full">
+                        <input 
+                          ref={itemInputRef}
+                          type="text" 
+                          value={itemSearchText}
+                          onChange={(e) => {
+                            setItemSearchText(e.target.value);
+                            setShowItemDropdown(true);
+                          }}
+                          onFocus={() => {
+                            setShowItemDropdown(true);
+                          }}
+                          placeholder="Search Item..."
+                          className="w-full h-[24px] px-2 outline-none border-none text-[12px] bg-white font-bold uppercase text-[#1E3A8A]"
+                        />
+                      </div>
                    </td>
                    <td className="border-r border-[#A3C2EA] p-0">
                       <input 
@@ -453,9 +488,24 @@ export default function SaleForm({ onSubmit, onCancel }) {
                         className="w-full h-full min-h-[22px] px-1 text-right outline-none bg-yellow-50 font-bold font-mono text-[12px]" 
                       />
                    </td>
-                   <td colSpan="8" className="bg-[#E4EFFF] p-1 text-[11px] text-indigo-800 font-bold text-center border-r border-[#A3C2EA]">
-                       [ Press Enter on Qty or Rate to Add to Grid ]
-                   </td>
+                   
+                   {livePreview ? (
+                      <>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono font-bold bg-[#E4EFFF] text-[#1E3A8A]">{livePreview.amount.toFixed(2)}</td>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(2) : livePreview.cgstPercent.toFixed(2)}</td>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(2) : livePreview.cgstAmt.toFixed(2)}</td>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(2)}</td>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(2)}</td>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-gray-500 bg-[#E4EFFF]">0.00</td>
+                        <td className="border-r border-[#A3C2EA] p-1 px-2 text-right font-mono text-[#1E3A8A] bg-[#E4EFFF]">0.00</td>
+                        <td className="p-1 px-2 text-right font-mono font-bold text-red-700 bg-[#E4EFFF] border-r border-[#A3C2EA] shadow-inner">{livePreview.totalAmount.toFixed(2)}</td>
+                      </>
+                   ) : (
+                      <td colSpan="8" className="bg-[#E4EFFF] p-1 text-[11px] text-indigo-800 font-bold text-center border-r border-[#A3C2EA]">
+                          [ Press Enter on Qty or Rate to Add to Grid ]
+                      </td>
+                   )}
+
                    <td className="bg-[#E4EFFF]">
                       <button onClick={handleAddItem} className="w-full h-full px-1 bg-[#1E3A8A] hover:bg-green-600 text-white font-bold text-[10px]">Add</button>
                    </td>
@@ -508,6 +558,34 @@ export default function SaleForm({ onSubmit, onCancel }) {
           </div>
 
         </div>
+
+        {/* Global Fixed Position Dropdown */}
+        {showItemDropdown && (
+          <div 
+            style={{ 
+              position: 'fixed', 
+              top: `${dropdownPos.top}px`, 
+              left: `${dropdownPos.left}px`, 
+              width: `${dropdownPos.width}px` 
+            }}
+            className="bg-white border-2 border-[#1E3A8A] shadow-[0_20px_50px_rgba(0,0,0,0.5)] max-h-64 overflow-y-auto flex flex-col z-[99999]"
+          >
+             <div className="bg-[#1E3A8A] text-white px-2 py-0.5 text-xs font-bold flex justify-between sticky top-0">
+               <span>Select Item</span>
+               <X size={14} className="cursor-pointer" onClick={()=>setShowItemDropdown(false)}/>
+             </div>
+             {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).toLowerCase().includes(itemSearchText.toLowerCase()) || (i.barcode && i.barcode.includes(itemSearchText))).map(i => (
+               <div key={i.id} onClick={() => handleItemSelect(i)} className="px-2 py-1.5 border-b border-gray-100 hover:bg-[#A6C8FF] cursor-pointer text-xs font-bold text-[#1E3A8A] flex justify-between">
+                 <span>{i.item_name}</span>
+                 <span className="text-gray-500 text-[10px] bg-gray-100 px-1 rounded border border-gray-300">₹{i.sale_price !== undefined ? i.sale_price : i.sale_rate} | Stock:{i.current_stock || i.opening_stock}</span>
+               </div>
+             ))}
+             {availableItems.length === 0 && (
+                <div className="px-2 py-2 text-xs text-gray-400">Loading items or none match...</div>
+             )}
+          </div>
+        )}
+
       </div>
     </div>
   );

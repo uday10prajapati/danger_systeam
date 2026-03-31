@@ -28,7 +28,7 @@ router.post('/', validateCreateItem, handleValidationErrors, async (req, res) =>
       unit, unit_gu, purchase_account_id, sales_account_id,
       do_auto_stock_in_sales, opening_stock, opening_stock_value, minimum_stock, loss_per_kg,
       effective_date, sgst_percent, cgst_percent, igst_percent, cess_percent, hsn_code,
-      barcode, category, tax_percentage, reorder_level, purchase_price
+      barcode, category, tax_percentage, reorder_level, purchase_price, sale_price
     } = req.body;
     
     const company_id = req.headers['x-company-id'];
@@ -57,14 +57,14 @@ router.post('/', validateCreateItem, handleValidationErrors, async (req, res) =>
         unit, unit_gu, purchase_account_id, sales_account_id,
         do_auto_stock_in_sales, opening_stock, opening_stock_value, minimum_stock, loss_per_kg,
         effective_date, sgst_percent, cgst_percent, igst_percent, cess_percent, hsn_code,
-        barcode, category, tax_percentage, reorder_level, purchase_price
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        barcode, category, tax_percentage, reorder_level, purchase_price, sale_price
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company_id, item_code, consider_in_autostock ? 1 : 0, item_name, item_name_gu || null, desc_en || null, desc_gu || null,
         unit || 'PCS', unit_gu || null, purchase_account_id || null, sales_account_id || null,
         do_auto_stock_in_sales ? 1 : 0, opening_stock || 0, opening_stock_value || 0, minimum_stock || 0, loss_per_kg || 0,
         effective_date || null, sgst_percent || 0, cgst_percent || 0, igst_percent || 0, cess_percent || 0, hsn_code || null,
-        barcode || null, category || null, tax_percentage || 0, reorder_level || 0, purchase_price || 0
+        barcode || null, category || null, tax_percentage || 0, reorder_level || 0, purchase_price || 0, sale_price || 0
       ]
     );
 
@@ -297,7 +297,7 @@ router.put('/:id', validateUpdateItem, handleValidationErrors, async (req, res) 
       unit, unit_gu, purchase_account_id, sales_account_id,
       do_auto_stock_in_sales, opening_stock, opening_stock_value, minimum_stock, loss_per_kg,
       effective_date, sgst_percent, cgst_percent, igst_percent, cess_percent, hsn_code,
-      category, tax_percentage, reorder_level, purchase_price
+      category, tax_percentage, reorder_level, purchase_price, sale_price
     } = req.body;
 
     const updates = [];
@@ -340,6 +340,7 @@ router.put('/:id', validateUpdateItem, handleValidationErrors, async (req, res) 
     addUpdate('tax_percentage', tax_percentage);
     addUpdate('reorder_level', reorder_level);
     addUpdate('purchase_price', purchase_price);
+    addUpdate('sale_price', sale_price);
 
     if (updates.length === 0) {
       return res.status(400).json({ success: false, error: 'No fields to update' });

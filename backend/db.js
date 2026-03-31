@@ -141,7 +141,17 @@ export async function initializeDatabase() {
           member_id INT,
           total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
           discount_amount DECIMAL(10, 2) DEFAULT 0,
+          taxable_amount DECIMAL(10, 2) DEFAULT 0,
+          gst_percent DECIMAL(5, 2) DEFAULT 0,
+          cgst_percent DECIMAL(5, 2) DEFAULT 0,
+          sgst_percent DECIMAL(5, 2) DEFAULT 0,
+          igst_percent DECIMAL(5, 2) DEFAULT 0,
+          cgst_amount DECIMAL(10, 2) DEFAULT 0,
+          sgst_amount DECIMAL(10, 2) DEFAULT 0,
+          igst_amount DECIMAL(10, 2) DEFAULT 0,
+          total_tax DECIMAL(10, 2) DEFAULT 0,
           net_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          is_intra_state INT DEFAULT 1,
           payment_type VARCHAR(50) DEFAULT 'cash',
           notes TEXT,
           created_by INT NOT NULL,
@@ -201,6 +211,9 @@ export async function initializeDatabase() {
           quantity DECIMAL(10, 2) NOT NULL,
           sale_rate DECIMAL(10, 2) NOT NULL,
           amount DECIMAL(10, 2) NOT NULL,
+          taxable_amount DECIMAL(10, 2) DEFAULT 0,
+          gst_percent DECIMAL(5, 2) DEFAULT 0,
+          gst_amount DECIMAL(10, 2) DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
           FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE RESTRICT
@@ -505,9 +518,49 @@ export async function initializeDatabase() {
       }
       try {
         await connection.query("ALTER TABLE member_master ADD COLUMN member_gst_no VARCHAR(25)");
-      } catch (e) {
-        // Ignore error if column already exists
-      }
+      } catch (e) {}
+
+      // Add Sales GST tracking columns
+      try { await connection.query("ALTER TABLE sales ADD COLUMN taxable_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN gst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN cgst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN sgst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN igst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN cgst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN sgst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN igst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN total_tax DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN is_intra_state INT DEFAULT 1"); } catch (e) {}
+
+      try { await connection.query("ALTER TABLE sale_items ADD COLUMN taxable_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sale_items ADD COLUMN gst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE sale_items ADD COLUMN gst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      
+      // Add Purchases GST tracking columns (to match Sales structure perfectly)
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN taxable_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN gst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN cgst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN sgst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN igst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN cgst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN sgst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN igst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN total_tax DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN is_intra_state INT DEFAULT 1"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN payment_type VARCHAR(50) DEFAULT 'credit'"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchases ADD COLUMN net_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN taxable_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN gst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN cgst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN sgst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN igst_percent DECIMAL(5, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN cgst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN sgst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN igst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN gst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE purchase_items ADD COLUMN total_tax DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+
 
       await connection.commit();
       console.log('✅ MySQL Database tables created/verified/upgraded');
