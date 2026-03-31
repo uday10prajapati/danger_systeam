@@ -256,6 +256,7 @@ export default function Rojmel() {
               <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl relative">
                  <SaleForm 
                     company={company} 
+                    onCancel={() => setActiveModal(null)}
                     onClose={() => setActiveModal(null)} 
                     onSubmit={async (data) => {
                        await axios.post(`${import.meta.env.VITE_API_URL}/api/sales/with-gst`, data, { headers: { 'x-company-id': company.id, 'x-user-id': 1 }});

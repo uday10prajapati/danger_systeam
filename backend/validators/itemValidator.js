@@ -8,12 +8,11 @@ export const validateCreateItem = [
   body('item_code')
     .notEmpty().withMessage('Item code (SKU) is required')
     .trim()
-    .isLength({ min: 2, max: 100 }).withMessage('Item code must be 2-100 characters')
-    .matches(/^[A-Z0-9\-_]+$/).withMessage('Item code must contain only uppercase letters, numbers, hyphens, and underscores'),
+    .isLength({ min: 1, max: 100 }).withMessage('Item code must be 1-100 characters'),
   body('barcode')
-    .notEmpty().withMessage('Barcode is required')
+    .optional({ checkFalsy: true })
     .trim()
-    .isLength({ min: 5, max: 100 }).withMessage('Barcode must be 5-100 characters'),
+    .isLength({ min: 1, max: 100 }).withMessage('Barcode must be 1-100 characters'),
   body('category')
     .optional({ checkFalsy: true })
     .trim()
