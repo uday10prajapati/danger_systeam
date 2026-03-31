@@ -318,7 +318,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                 className="flex-1 px-2 py-1 text-sm border border-blue-300 bg-white"
               >
                 <option value="">-- {t('itemMaster.selectAccount') || 'Select Account'} --</option>
-                {accounts.filter(a => ['purchase', 'expense', 'supplier'].includes(a.account_type)).map(acc => (
+                {accounts.filter(a => a.account_type === 'purchase').map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                 ))}
               </select>
@@ -340,7 +340,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                 className="flex-1 px-2 py-1 text-sm border border-blue-300 bg-white"
               >
                 <option value="">-- {t('itemMaster.selectAccount') || 'Select Account'} --</option>
-                {accounts.filter(a => ['sales', 'revenue', 'customer'].includes(a.account_type)).map(acc => (
+                {accounts.filter(a => a.account_type === 'sales').map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                 ))}
               </select>
