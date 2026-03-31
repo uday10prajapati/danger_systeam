@@ -238,6 +238,44 @@ router.post('/with-gst', async (req, res) => {
 
       await connection.commit();
 
+      // 7. Auto-insert Cash Book entries explicitly separating Base & GST on the Receipts (Jama) side
+      if ((payment_type || 'cash') === 'cash') {
+        try {
+          // Base Sale Amount
+          await insertCashBookEntry(
+            companyId, invoice_date, 'sale', saleId, invoiceNo,
+            `Sale Base Amount - ${invoiceNo}`, gstCalculation.total_taxable_amount - (discount_amount || 0), 0, userId, ''
+          );
+
+          if (is_intra_state !== false) {
+             // CGST
+             if (gstCalculation.total_cgst_amount > 0) {
+               await insertCashBookEntry(
+                 companyId, invoice_date, 'sale', saleId, invoiceNo,
+                 `CGST Collected - ${invoiceNo}`, gstCalculation.total_cgst_amount, 0, userId, ''
+               );
+             }
+             // SGST
+             if (gstCalculation.total_sgst_amount > 0) {
+               await insertCashBookEntry(
+                 companyId, invoice_date, 'sale', saleId, invoiceNo,
+                 `SGST Collected - ${invoiceNo}`, gstCalculation.total_sgst_amount, 0, userId, ''
+               );
+             }
+          } else {
+             // IGST
+             if (gstCalculation.total_igst_amount > 0) {
+               await insertCashBookEntry(
+                 companyId, invoice_date, 'sale', saleId, invoiceNo,
+                 `IGST Collected - ${invoiceNo}`, gstCalculation.total_igst_amount, 0, userId, ''
+               );
+             }
+          }
+        } catch (cashErr) {
+          console.error('Failed to insert cash book entries for GST Sale:', cashErr);
+        }
+      }
+
       return res.status(201).json({
         success: true,
         data: {

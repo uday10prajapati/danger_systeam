@@ -110,7 +110,7 @@ function AppContent() {
             
             {/* Tools & Reports */}
             <Route path="/barcode" element={<BarcodeScannerPage />} />
-            <Route path="/cashbook" element={<CashBook />} />
+            <Route path="/cashbook" element={<Rojmel />} />
             <Route path="/ledger" element={<AccountLedger />} />
             <Route path="/ledger-report" element={<LedgerReport />} />
             <Route path="/rojmel" element={<Rojmel />} />

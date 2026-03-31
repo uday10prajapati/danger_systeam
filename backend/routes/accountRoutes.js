@@ -7,7 +7,15 @@ const router = express.Router();
 // ==================== CREATE ACCOUNT ====================
 router.post('/api/accounts', async (req, res) => {
   try {
-    const { company_id, account_name, account_type, phone, email, opening_balance, gst_no, tin_no } = req.body;
+    const { company_id, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no } = req.body;
+
+    // Credit balances are stored as negative numbers internally to differentiate
+    let final_opening_balance = parseFloat(opening_balance || 0);
+    if (opening_balance_type === 'credit') {
+      final_opening_balance = -Math.abs(final_opening_balance);
+    } else if (opening_balance_type === 'debit') {
+      final_opening_balance = Math.abs(final_opening_balance);
+    }
 
     // Validate input
     const error = validateAccount({ company_id, account_name, account_type, phone, email, opening_balance, gst_no, tin_no });
@@ -29,8 +37,18 @@ router.post('/api/accounts', async (req, res) => {
     const result = await execute(
       `INSERT INTO accounts (company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company_id, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, opening_balance || 0, 1]
+      [company_id, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1]
     );
+
+    // If it's a cash account, inject the opening balance directly into Cashbook
+    if (account_type === 'cash' && final_opening_balance !== 0) {
+      const isDebit = final_opening_balance > 0;
+      await execute(
+        `INSERT INTO cash_book (company_id, transaction_date, reference_type, description, cash_in, cash_out)
+         VALUES (?, CURRENT_DATE, 'OPENING_BALANCE', 'Opening Cash in Hand', ?, ?)`,
+        [company_id, isDebit ? Math.abs(final_opening_balance) : 0, isDebit ? 0 : Math.abs(final_opening_balance)]
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -178,7 +196,17 @@ router.get('/api/accounts/:id', async (req, res) => {
 router.put('/api/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { account_name, phone, email, opening_balance, gst_no, tin_no } = req.body;
+    const { account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no } = req.body;
+
+    let final_opening_balance = undefined;
+    if (opening_balance !== undefined) {
+      final_opening_balance = parseFloat(opening_balance || 0);
+      if (opening_balance_type === 'credit') {
+        final_opening_balance = -Math.abs(final_opening_balance);
+      } else if (opening_balance_type === 'debit') {
+        final_opening_balance = Math.abs(final_opening_balance);
+      }
+    }
 
     // Validate input
     const error = validateAccount({ account_name, phone, email, opening_balance, gst_no, tin_no }, true);
@@ -219,7 +247,7 @@ router.put('/api/accounts/:id', async (req, res) => {
            opening_balance = COALESCE(?, opening_balance),
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [account_name || null, phone || null, email || null, gst_no !== undefined ? gst_no : null, gst_no || null, tin_no !== undefined ? tin_no : null, tin_no || null, opening_balance !== undefined ? opening_balance : null, id]
+      [account_name || null, phone || null, email || null, gst_no !== undefined ? gst_no : null, gst_no || null, tin_no !== undefined ? tin_no : null, tin_no || null, final_opening_balance !== undefined ? final_opening_balance : null, id]
     );
 
     const updatedAccount = await queryOne(

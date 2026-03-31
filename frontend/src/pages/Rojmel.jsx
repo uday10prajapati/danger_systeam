@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Search, Printer, FileText } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import PurchaseForm from '../components/PurchaseForm';
+import SaleForm from '../components/SaleForm';
+import CashEntryModal from '../components/CashEntryModal';
 
 export default function Rojmel() {
   const { t } = useTranslation();
@@ -15,6 +18,9 @@ export default function Rojmel() {
   // Checkboxes
   const [showSubledger, setShowSubledger] = useState(false);
   const [printItemDetails, setPrintItemDetails] = useState(false);
+  
+  // Modal State
+  const [activeModal, setActiveModal] = useState(null); // 'credit', 'debit', 'purchase', 'sales', null
 
   useEffect(() => {
     loadCompany();
@@ -77,8 +83,8 @@ export default function Rojmel() {
   }
 
   return (
-    <div className="p-4 md:p-6 bg-[#f3f4f6] min-h-full">
-      <div className="max-w-[1400px] mx-auto space-y-4">
+    <div className="p-4 md:p-6 bg-[#f3f4f6] min-h-full flex flex-col relative">
+      <div className="max-w-[1400px] mx-auto space-y-4 w-full">
         
         {/* Header Ribbon matching screenshot */}
         <div className="bg-[#46a2de] text-white py-2 px-4 shadow-sm flex items-center justify-between font-bold text-lg print:hidden">
@@ -205,7 +211,71 @@ export default function Rojmel() {
           </div>
         )}
 
+        {/* Footer Action Bar directly below the card */}
+        <div className="border border-blue-400 bg-[#cbdcf5] shadow-sm p-2 print:hidden flex justify-center mt-2 rounded-b">
+           <div className="flex flex-wrap gap-1 md:gap-2 w-full justify-between">
+              <button onClick={() => setActiveModal('credit')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Credit</button>
+              <button onClick={() => setActiveModal('purchase')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Purchase</button>
+              <button onClick={() => setActiveModal('sales')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Sales</button>
+              <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">J.V.</button>
+              <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70">Milk Entry</button>
+              <button onClick={() => setActiveModal('debit')} className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Debit</button>
+              <button className="flex-1 min-w-[80px] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-red-600">Close</button>
+              <div className="flex-[1.5] min-w-[140px] flex gap-1">
+                 <button onClick={handlePrint} className="flex-1 py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e]">Print</button>
+                 <button className="flex-[1.5] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] px-1 line-clamp-1 opacity-70">Receipt Print</button>
+              </div>
+              <button className="flex-[1.5] py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold text-[#0d3b8e] opacity-70 whitespace-nowrap">Cashbook Date List</button>
+           </div>
+        </div>
+
       </div>
+
+      {/* Modals Container */}
+      {activeModal === 'purchase' && (
+        <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
+           <div className="min-h-screen flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl relative">
+                 <PurchaseForm 
+                    company={company} 
+                    onClose={() => setActiveModal(null)} 
+                    onSubmit={async (data) => {
+                       await axios.post(`${import.meta.env.VITE_API_URL}/api/purchases`, data, { headers: { 'x-company-id': company.id, 'x-user-id': 1 }});
+                       setActiveModal(null);
+                       fetchRojmel();
+                    }} 
+                 />
+              </div>
+           </div>
+        </div>
+      )}
+
+      {activeModal === 'sales' && (
+        <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
+           <div className="min-h-screen flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl relative">
+                 <SaleForm 
+                    company={company} 
+                    onClose={() => setActiveModal(null)} 
+                    onSubmit={async (data) => {
+                       await axios.post(`${import.meta.env.VITE_API_URL}/api/sales/with-gst`, data, { headers: { 'x-company-id': company.id, 'x-user-id': 1 }});
+                       setActiveModal(null);
+                       fetchRojmel();
+                    }} 
+                 />
+              </div>
+           </div>
+        </div>
+      )}
+
+      {(activeModal === 'credit' || activeModal === 'debit') && (
+         <CashEntryModal 
+           company={company}
+           type={activeModal}
+           onClose={() => setActiveModal(null)}
+           onSubmit={() => { setActiveModal(null); fetchRojmel(); }}
+         />
+      )}
       
       {/* Print Styles representing standard Deshi Nama */}
       <style dangerouslySetInnerHTML={{__html: `

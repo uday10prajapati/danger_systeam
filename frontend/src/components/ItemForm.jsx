@@ -2,56 +2,165 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import GSTSelector from './GSTSelector';
+
+// Traditional Layout Label Component
+const FormLabel = ({ children, className = "" }) => (
+  <label className={`text-sm font-semibold text-slate-800 tracking-tight whitespace-nowrap text-right pr-2 select-none ${className}`}>
+    {children}
+  </label>
+);
+
+// Traditional Input field
+const FormInput = ({ className = "", ...props }) => (
+  <input 
+    className={`w-full px-2 py-1 text-sm border border-blue-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-[#CFE2F3] text-slate-800 disabled:font-bold ${className}`} 
+    {...props} 
+  />
+);
 
 export default function ItemForm({ item = null, company, onSubmit, onClose }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isGuj = i18n.language === 'gu';
+
+  const [currentItem, setCurrentItem] = useState(item);
+  const [itemsList, setItemsList] = useState([]);
   const [formData, setFormData] = useState({
-    item_name: item?.item_name || '',
     item_code: item?.item_code || '',
+    consider_in_autostock: item?.consider_in_autostock || 0,
+    item_name: item?.item_name || '',
+    item_name_gu: item?.item_name_gu || '',
+    desc_en: item?.desc_en || '',
+    desc_gu: item?.desc_gu || '',
+    unit: item?.unit || 'Nos',
+    unit_gu: item?.unit_gu || 'નંગ',
     barcode: item?.barcode || '',
     category: item?.category || '',
-    unit: item?.unit || 'pcs',
+    purchase_account_id: item?.purchase_account_id || '',
+    sales_account_id: item?.sales_account_id || '',
+    do_auto_stock_in_sales: item?.do_auto_stock_in_sales || 0,
+    opening_stock: item?.opening_stock || 0.000,
+    inward: item?.inward || 0.000,
+    outward: item?.outward || 0.000,
+    opening_stock_value: item?.opening_stock_value || 0.00,
+    minimum_stock: item?.minimum_stock || 0.000,
+    loss_per_kg: item?.loss_per_kg || 0.000,
+    effective_date: item?.effective_date || new Date().toISOString().split('T')[0],
+    sgst_percent: item?.sgst_percent !== undefined && item?.sgst_percent !== null ? parseFloat(item.sgst_percent) : 2.50,
+    cgst_percent: item?.cgst_percent !== undefined && item?.cgst_percent !== null ? parseFloat(item.cgst_percent) : 2.50,
+    igst_percent: item?.igst_percent !== undefined && item?.igst_percent !== null ? parseFloat(item.igst_percent) : 0.00,
+    cess_percent: item?.cess_percent !== undefined && item?.cess_percent !== null ? parseFloat(item.cess_percent) : 0.00,
+    hsn_code: item?.hsn_code || '21069099',
     tax_percentage: item?.tax_percentage || 0,
     reorder_level: item?.reorder_level || 0,
-    sale_price: item?.sale_price || 0,
-    purchase_price: item?.purchase_price || 0,
+    purchase_price: item?.purchase_price || 0, // This represents Purchase Rate
   });
-  const [categories, setCategories] = useState([]);
+
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [gstData, setGstData] = useState(null);
 
+  // Fetch Accounts to populate Purchase Account and Sales Account
   useEffect(() => {
     if (company?.id) {
-      fetchCategories();
+      fetchAccounts();
+      fetchItems();
     }
   }, [company]);
 
-  const fetchCategories = async () => {
+  const fetchItems = async () => {
     try {
-      const res = await axios.get(`/api/items/categories/${company.id}`);
+      const res = await axios.get(`/api/items/company/${company.id}`);
       if (res.data.success) {
-        setCategories(res.data.data);
+        setItemsList(res.data.data);
       }
     } catch (err) {
-      console.error('Fetch categories error:', err);
+      console.error('Fetch items error:', err);
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await axios.get(`/api/accounts/company/${company.id}`);
+      if (res.data.success) {
+        setAccounts(res.data.data);
+      }
+    } catch (err) {
+      console.error('Fetch accounts error:', err);
     }
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     let finalValue = value;
     
-    // Auto-uppercase item_code and barcode (must be uppercase only)
+    // Auto-uppercase item_code and barcode
     if (name === 'item_code' || name === 'barcode') {
       finalValue = value.toUpperCase();
     }
+
+    if (name === 'item_code' && !item) {
+      const existingItem = itemsList.find(i => i.item_code.toUpperCase() === finalValue);
+      if (existingItem) {
+        setCurrentItem(existingItem);
+        setFormData({
+          item_code: existingItem.item_code || '',
+          consider_in_autostock: existingItem.consider_in_autostock || 0,
+          item_name: existingItem.item_name || '',
+          item_name_gu: existingItem.item_name_gu || '',
+          desc_en: existingItem.desc_en || '',
+          desc_gu: existingItem.desc_gu || '',
+          unit: existingItem.unit || 'Nos',
+          unit_gu: existingItem.unit_gu || 'નંગ',
+          barcode: existingItem.barcode || '',
+          category: existingItem.category || '',
+          purchase_account_id: existingItem.purchase_account_id || '',
+          sales_account_id: existingItem.sales_account_id || '',
+          do_auto_stock_in_sales: existingItem.do_auto_stock_in_sales || 0,
+          opening_stock: existingItem.opening_stock || 0.000,
+          inward: existingItem.inward || 0.000,
+          outward: existingItem.outward || 0.000,
+          opening_stock_value: existingItem.opening_stock_value || 0.00,
+          minimum_stock: existingItem.minimum_stock || 0.000,
+          loss_per_kg: existingItem.loss_per_kg || 0.000,
+          effective_date: existingItem.effective_date ? existingItem.effective_date.split('T')[0] : new Date().toISOString().split('T')[0],
+          sgst_percent: parseFloat(existingItem.sgst_percent) || (parseFloat(existingItem.tax_percentage) > 0 ? parseFloat(existingItem.tax_percentage)/2 : 2.50),
+          cgst_percent: parseFloat(existingItem.cgst_percent) || (parseFloat(existingItem.tax_percentage) > 0 ? parseFloat(existingItem.tax_percentage)/2 : 2.50),
+          igst_percent: parseFloat(existingItem.igst_percent) || 0.00,
+          cess_percent: parseFloat(existingItem.cess_percent) || 0.00,
+          hsn_code: existingItem.hsn_code || '21069099',
+          tax_percentage: existingItem.tax_percentage || 0,
+          reorder_level: existingItem.reorder_level || 0,
+          purchase_price: existingItem.purchase_price || 0,
+        });
+        return;
+      } else {
+        setCurrentItem(null);
+      }
+    }
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'tax_percentage' || name === 'reorder_level' ? (value ? parseFloat(value) : 0) : finalValue
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? (checked ? 1 : 0) : 
+                ['opening_stock', 'opening_stock_value', 'minimum_stock', 'loss_per_kg', 'sgst_percent', 'cgst_percent', 'igst_percent', 'cess_percent', 'purchase_price', 'tax_percentage'].includes(name) 
+                ? (value === '' ? '' : parseFloat(value)) 
+                : finalValue
+      };
+
+      // Automatically calculate Opening Stock Value if Opening Stock or Rate changes
+      if (name === 'opening_stock' || name === 'purchase_price') {
+        const qty = name === 'opening_stock' ? parseFloat(value || 0) : parseFloat(newData.opening_stock || 0);
+        const rate = name === 'purchase_price' ? parseFloat(value || 0) : parseFloat(newData.purchase_price || 0);
+        newData.opening_stock_value = (qty * rate).toFixed(2);
+      }
+
+      // Automatically set CGST same as SGST
+      if (name === 'sgst_percent') {
+        newData.cgst_percent = newData.sgst_percent;
+      }
+
+      return newData;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -60,16 +169,9 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
     setError('');
 
     try {
-      if (item) {
-        // Update - Cannot change item_code or barcode
-        const updateData = {
-          item_name: formData.item_name,
-          category: formData.category,
-          unit: formData.unit,
-          tax_percentage: formData.tax_percentage,
-          reorder_level: formData.reorder_level,
-        };
-        await axios.put(`${import.meta.env.VITE_API_URL}/api/items/${item.id}`, updateData, {
+      if (currentItem) {
+        // Update
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/items/${currentItem.id}`, formData, {
           headers: { 'x-company-id': company.id }
         });
       } else {
@@ -87,249 +189,263 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
     }
   };
 
+  // Field Name Mapping based on Language
+  const fieldKeys = {
+    itemName: isGuj ? 'item_name_gu' : 'item_name',
+    desc: isGuj ? 'desc_gu' : 'desc_en',
+    unit: isGuj ? 'unit_gu' : 'unit'
+  };
+
+
+
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-slate-900">
-          {item ? t('itemMaster.editItem') : t('itemMaster.createItem')}
-        </h3>
-        <button onClick={onClose} className="text-slate-500 hover:text-slate-700">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Item Name */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('itemMaster.itemName')} *
-            </label>
-            <input
-              type="text"
-              name="item_name"
-              value={formData.item_name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder={t('itemMaster.enterItemName')}
-            />
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 overflow-auto">
+      {/* Container mimics standard VB / WinForms Application Window */}
+      <div className="bg-[#f0f0f0] border-2 border-[#1E3A8A] rounded shadow-2xl m-4 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col font-sans">
+        
+        {/* Title Bar */}
+        <div className="bg-[#1E3A8A] text-white px-3 py-1 flex justify-between items-center select-none cursor-move">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm tracking-wide">
+              {currentItem ? t('itemMaster.editItem') || 'Edit Item Master' : t('itemMaster.createItem') || 'Add Item Master'}
+            </span>
           </div>
-
-          {/* Item Code (SKU) - Read-only on edit */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('itemMaster.itemCode')} (SKU) *
-            </label>
-            <input
-              type="text"
-              name="item_code"
-              value={formData.item_code}
-              onChange={handleChange}
-              required
-              disabled={!!item}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100"
-              placeholder={t('itemMaster.enterItemCode')}
-            />
-          </div>
-
-          {/* Barcode - Read-only on edit */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('itemMaster.barcode')} *
-            </label>
-            <input
-              type="text"
-              name="barcode"
-              value={formData.barcode}
-              onChange={handleChange}
-              required
-              disabled={!!item}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100"
-              placeholder={t('itemMaster.enterBarcode')}
-            />
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('itemMaster.category')}
-            </label>
-            <input
-              type="text"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              list="category-list"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder={t('itemMaster.enterCategory')}
-            />
-            <datalist id="category-list">
-              {categories.map(cat => (
-                <option key={cat} value={cat} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* Unit */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('itemMaster.unit')} *
-            </label>
-            <select
-              name="unit"
-              value={formData.unit}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">-- Select Unit --</option>
-              <optgroup label="Weight">
-                <option value="kg">Kilogram (kg)</option>
-                <option value="gm">Gram (gm)</option>
-              </optgroup>
-              <optgroup label="Volume">
-                <option value="liter">Liter (liter)</option>
-                <option value="ml">Milliliter (ml)</option>
-              </optgroup>
-              <optgroup label="Count">
-                <option value="unit">Unit</option>
-                <option value="number">Number</option>
-              </optgroup>
-              <optgroup label="Packaging">
-                <option value="box">Box</option>
-                <option value="dozen">Dozen</option>
-              </optgroup>
-            </select>
-          </div>
-
-          {/* Price Fields */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              💰 Sale Price (₹) *
-            </label>
-            <input
-              type="number"
-              name="sale_price"
-              value={formData.sale_price}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter selling price"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              📦 Purchase Price (₹)
-            </label>
-            <input
-              type="number"
-              name="purchase_price"
-              value={formData.purchase_price}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter cost price (optional)"
-            />
-          </div>
-
-          {/* Reorder Level */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              🛍️ {t('itemMaster.taxPercentage')} - Select GST Rate (%)
-            </label>
-            <div className="grid grid-cols-5 gap-2 mb-3">
-              {[0, 5, 12, 18, 28].map(gst => (
-                <button
-                  key={gst}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, tax_percentage: gst }))}
-                  className={`px-3 py-2 rounded-lg font-semibold transition ${
-                    formData.tax_percentage === gst
-                      ? 'bg-indigo-600 text-white border-2 border-indigo-700'
-                      : 'bg-gray-100 text-gray-700 border-2 border-gray-300 hover:border-indigo-500'
-                  }`}
-                >
-                  {gst}%
-                </button>
-              ))}
-            </div>
-            <input
-              type="number"
-              name="tax_percentage"
-              value={formData.tax_percentage}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              step="0.01"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Or enter custom tax percentage"
-            />
-          </div>
-
-          {/* GST Breakdown Preview - Always visible */}
-          <div className="col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200">
-            <h4 className="font-bold text-gray-800 mb-3 text-lg">
-              📊 GST Breakdown (Selected: {formData.tax_percentage}%)
-            </h4>
-            <GSTSelector
-              amount={100}
-              isIntraState={true}
-              showBreakdown={true}
-              onGSTChange={(data) => setGstData(data)}
-            />
-            <div className="mt-4 p-3 bg-white rounded border border-blue-100">
-              <p className="text-sm font-semibold text-gray-700">💡 How this works:</p>
-              <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                <li>• <strong>Intra-State Sale:</strong> CGST {formData.tax_percentage / 2}% + SGST {formData.tax_percentage / 2}%</li>
-                <li>• <strong>Inter-State Sale:</strong> IGST {formData.tax_percentage}%</li>
-                <li>• <strong>Example:</strong> On ₹100 sale @ {formData.tax_percentage}%, tax = ₹{formData.tax_percentage}</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Reorder Level */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('itemMaster.reorderLevel')}
-            </label>
-            <input
-              type="number"
-              name="reorder_level"
-              value={formData.reorder_level}
-              onChange={handleChange}
-              min="0"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-3 justify-end pt-4 border-t border-slate-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50"
-          >
-            {t('common.cancel')}
+          <button onClick={onClose} className="hover:bg-red-500 rounded p-[2px] transition-colors">
+            <X className="w-4 h-4" />
           </button>
-          <button
-            type="submit"
+        </div>
+
+        {error && (
+          <div className="px-4 py-2 bg-red-100 border-b border-red-300 text-red-700 text-xs font-semibold">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4">
+          
+          {/* TOP GRID (Rows 1-6) */}
+          <div className="grid grid-cols-[140px_1fr_120px_1fr] items-center gap-x-2 gap-y-[10px] mb-6">
+            
+            {/* ROW 1: Item Code & AutoStock */}
+            <FormLabel>{t('itemMaster.itemCode') || 'Item Code'} :</FormLabel>
+            <div className="col-span-1">
+              <FormInput 
+                name="item_code" 
+                value={formData.item_code} 
+                onChange={handleChange} 
+                required 
+                disabled={!!item}
+                list="item-codes-list"
+                autoComplete="off"
+                className="w-40 font-bold bg-[#A3C7FF] border-[#6ea5ff]" // Mimic screenshot blue bg
+              />
+              <datalist id="item-codes-list">
+                {itemsList.map((i) => (
+                  <option key={i.id} value={i.item_code}>
+                    {i.item_name}
+                  </option>
+                ))}
+              </datalist>
+            </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                name="consider_in_autostock" 
+                checked={formData.consider_in_autostock === 1} 
+                onChange={handleChange} 
+                className="w-3.5 h-3.5 border-slate-400"
+              />
+              <span className="text-sm font-semibold text-slate-800 select-none">Consider in AutoStock process ?</span>
+            </div>
+
+            {/* ROW 2: Item Name */}
+            <FormLabel>{t('itemMaster.itemName') || 'Item Name'} :</FormLabel>
+            <div className="col-span-3">
+              <FormInput 
+                name={fieldKeys.itemName} 
+                value={formData[fieldKeys.itemName]} 
+                onChange={handleChange} 
+                required 
+              />
+            </div>
+
+            {/* ROW 3: Description */}
+            <FormLabel>{t('itemMaster.description') || 'Description'} :</FormLabel>
+            <div className="col-span-3">
+              <FormInput 
+                name={fieldKeys.desc} 
+                value={formData[fieldKeys.desc]} 
+                onChange={handleChange} 
+              />
+            </div>
+
+            {/* ROW 4: Unit */}
+            <FormLabel>{t('itemMaster.unit') || 'Unit'} :</FormLabel>
+            <div className="col-span-1 flex items-center">
+              <input 
+                name={fieldKeys.unit} 
+                value={formData[fieldKeys.unit]} 
+                onChange={handleChange} 
+                className="w-24 px-2 py-1 text-sm border border-blue-300 bg-white"
+              />
+              <select 
+                onChange={(e) => setFormData(p => ({ ...p, [fieldKeys.unit]: e.target.value }))}
+                value={formData[fieldKeys.unit]} 
+                className="w-6 px-0 py-1 border border-l-0 border-blue-300 bg-slate-200"
+              >
+                <option value="Nos">Nos</option>
+                <option value="નંગ">નંગ</option>
+                <option value="Kg">Kg</option>
+                <option value="Pcs">Pcs</option>
+                <option value="Ltr">Ltr</option>
+              </select>
+            </div>
+            <div className="col-span-2"></div> {/* Spacing */}
+
+            {/* ROW 5: Purchase Account */}
+            <FormLabel>Purchase Account :</FormLabel>
+            <div className="col-span-3 flex items-center gap-1">
+              <FormInput 
+                type="text" 
+                value={formData.purchase_account_id}
+                onChange={(e) => setFormData(p => ({ ...p, purchase_account_id: e.target.value }))}
+                className="w-16 text-center"
+              />
+              <select 
+                name="purchase_account_id" 
+                value={formData.purchase_account_id} 
+                onChange={handleChange}
+                className="flex-1 px-2 py-1 text-sm border border-blue-300 bg-white"
+              >
+                <option value="">-- {t('itemMaster.selectAccount') || 'Select Account'} --</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.account_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* ROW 6: Sales Account */}
+            <FormLabel>Sales Account :</FormLabel>
+            <div className="col-span-3 flex items-center gap-1">
+              <FormInput 
+                type="text" 
+                value={formData.sales_account_id}
+                onChange={(e) => setFormData(p => ({ ...p, sales_account_id: e.target.value }))}
+                className="w-16 text-center"
+              />
+              <select 
+                name="sales_account_id" 
+                value={formData.sales_account_id} 
+                onChange={handleChange}
+                className="flex-1 px-2 py-1 text-sm border border-blue-300 bg-white"
+              >
+                <option value="">-- {t('itemMaster.selectAccount') || 'Select Account'} --</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.account_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+
+          {/* STOCK INFORMATION GROUP BOX */}
+          <div className="relative border border-slate-400 p-4 mt-8 pb-5">
+            <div className="absolute -top-3 left-2 bg-[#f0f0f0] px-2 flex items-center gap-4">
+              <span className="text-sm font-semibold text-[#1E3A8A]">Stock Information</span>
+              <label className="flex items-center gap-1 text-sm font-semibold text-slate-800 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name="do_auto_stock_in_sales" 
+                  checked={formData.do_auto_stock_in_sales === 1}
+                  onChange={handleChange}
+                  className="w-3.5 h-3.5"
+                /> 
+                <span>Do Auto Stock In Sales</span>
+              </label>
+            </div>
+
+            {/* INNER GRID */}
+            <div className="grid grid-cols-[140px_100px_140px_100px] gap-x-6 gap-y-[10px] items-center justify-center mt-2">
+              
+              {/* Op Stock */}
+              <FormLabel>Opening Stock :</FormLabel>
+              <FormInput type="number" step="0.001" name="opening_stock" value={formData.opening_stock} onChange={handleChange} className="text-right" />
+              
+              {/* Purchase Rate */}
+              <FormLabel>Purchase Rate :</FormLabel>
+              <FormInput type="number" step="0.01" name="purchase_price" value={formData.purchase_price} onChange={handleChange} className="text-right" />
+
+              {/* Inward */}
+              <FormLabel>Inward :</FormLabel>
+              <FormInput disabled value={parseFloat(formData.inward || 0).toFixed(3)} className="text-right text-slate-700 bg-[#CFE2F3] font-bold" />
+              
+              {/* Op Stock Value */}
+              <FormLabel>Opening Stock Value :</FormLabel>
+              <FormInput disabled value={formData.opening_stock_value} className="text-right bg-slate-100" />
+
+              {/* Outward */}
+              <FormLabel>Outward :</FormLabel>
+              <FormInput disabled value={parseFloat(formData.outward || 0).toFixed(3)} className="text-right text-slate-700 bg-[#CFE2F3] font-bold" />
+              
+              {/* Min Stock */}
+              <FormLabel>Minimum Stock :</FormLabel>
+              <FormInput type="number" step="0.001" name="minimum_stock" value={formData.minimum_stock} onChange={handleChange} className="text-right" />
+
+              {/* Closing Stock */}
+              <FormLabel>Closing Stock :</FormLabel>
+              <FormInput disabled value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0) - parseFloat(formData.outward || 0)).toFixed(3)} className="text-right text-slate-700 bg-[#CFE2F3] font-bold" />
+              
+              {/* Loss / Kg */}
+              <FormLabel>Loss Per Kg :</FormLabel>
+              <FormInput type="number" step="0.001" name="loss_per_kg" value={formData.loss_per_kg} onChange={handleChange} className="text-right" />
+            </div>
+
+            {/* BOTTOM Inner grid (Dates and Taxes) */}
+            <div className="grid grid-cols-[140px_100px_140px_100px] gap-x-6 gap-y-[10px] items-center justify-center mt-6">
+              <FormLabel>Effective Date :</FormLabel>
+              <div className="flex">
+                <FormInput type="date" name="effective_date" value={formData.effective_date} onChange={handleChange} className="w-[100px] text-xs" />
+              </div>
+
+              <FormLabel>HSN Code :</FormLabel>
+              <FormInput name="hsn_code" value={formData.hsn_code} onChange={handleChange} />
+
+              <FormLabel>SGST % :</FormLabel>
+              <FormInput type="number" step="0.01" name="sgst_percent" value={formData.sgst_percent} onChange={handleChange} className="text-right" />
+
+              <FormLabel>CGST % :</FormLabel>
+              <FormInput type="number" step="0.01" name="cgst_percent" value={formData.cgst_percent} onChange={handleChange} className="text-right" />
+
+              <FormLabel>IGST % :</FormLabel>
+              <FormInput type="number" step="0.01" name="igst_percent" value={formData.igst_percent} onChange={handleChange} className="text-right" />
+
+              <FormLabel>Cess % :</FormLabel>
+              <FormInput type="number" step="0.01" name="cess_percent" value={formData.cess_percent} onChange={handleChange} className="text-right" />
+            </div>
+          </div>
+
+        </form>
+
+        {/* Action Buttons */}
+        <div className="bg-[#e0e0e0] border-t border-slate-300 px-4 py-3 flex justify-end gap-3 rounded-b">
+          <button 
+            type="submit" 
+            onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            className="w-24 px-4 py-1 bg-slate-200 border border-slate-400 hover:bg-white hover:border-slate-500 shadow-sm text-sm font-semibold rounded disabled:opacity-50"
           >
-            {loading ? t('common.saving') : (item ? t('common.update') : t('common.create'))}
+            {loading ? '...' : 'Ok'}
+          </button>
+          <button 
+            type="button" 
+            onClick={onClose}
+            className="w-24 px-4 py-1 bg-slate-200 border border-slate-400 hover:bg-white hover:border-slate-500 shadow-sm text-sm font-semibold rounded"
+          >
+            Cancel
           </button>
         </div>
-      </form>
+
+      </div>
     </div>
   );
 }

@@ -4,7 +4,8 @@ import {
   getAccountBalance,
   getAccountLedgerWithRunningBalance,
   getTrialBalance,
-  getLedgerByDateRange
+  getLedgerByDateRange,
+  query
 } from '../db.js';
 
 const router = express.Router();
@@ -102,6 +103,34 @@ router.get('/trial-balance', async (req, res) => {
     });
   } catch (error) {
     console.error('Get trial balance error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST: Add manual ledger entry
+router.post('/', async (req, res) => {
+  try {
+    const companyId = req.header('x-company-id');
+    if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
+
+    const {
+      account_id, transaction_date, transaction_type, reference_type, 
+      reference_id, reference_no, debit_amount, credit_amount, description, created_by
+    } = req.body;
+
+    const result = await query(
+      `INSERT INTO account_ledger 
+      (company_id, account_id, transaction_date, reference_type, 
+       reference_id, reference_no, debit, credit, description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [companyId, account_id, transaction_date, reference_type || null, 
+       reference_id || null, reference_no || null, debit_amount || 0, credit_amount || 0, 
+       description || null]
+    );
+
+    res.json({ success: true, entryId: result.insertId });
+  } catch (error) {
+    console.error('Add ledger error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
