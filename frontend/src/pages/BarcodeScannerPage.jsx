@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { Plus, Search, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
+import { Plus, Search, AlertCircle, CheckCircle, BarChart3, Database, Activity, LayoutGrid, ScanLine, X, Download, Trash2, DatabaseZap } from 'lucide-react';
 import BarcodeScanner from '../components/BarcodeScanner';
 
 export default function BarcodeScannerPage() {
@@ -43,13 +43,11 @@ export default function BarcodeScannerPage() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      // Fetch items with basic info
       const itemsResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/items/company/${company.id}?active=true`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 
-      // Fetch stock report to get current_stock
       const stockResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/stock-report`,
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
@@ -59,13 +57,11 @@ export default function BarcodeScannerPage() {
         const items = itemsResponse.data.data || [];
         const stockData = stockResponse.data.data || [];
         
-        // Create a map of stock info by item_id for quick lookup
         const stockMap = {};
         stockData.forEach(stock => {
           stockMap[stock.id] = stock.current_stock || 0;
         });
 
-        // Merge stock data into items
         const itemsWithStock = items.map(item => ({
           ...item,
           current_stock: stockMap[item.id] !== undefined ? stockMap[item.id] : 0
@@ -91,7 +87,6 @@ export default function BarcodeScannerPage() {
   };
 
   const handleScanSuccess = (item) => {
-    // Add to scanned items list
     const newScannedItem = {
       id: item.id,
       item_code: item.item_code,
@@ -103,7 +98,7 @@ export default function BarcodeScannerPage() {
     };
 
     setScannedItems([newScannedItem, ...scannedItems]);
-    setSuccessMessage(`✓ ${item.item_name} scanned successfully`);
+    setSuccessMessage(`✓ ${item.item_name} isolation complete`);
     setTimeout(() => setSuccessMessage(''), 3000);
     setErrorMessage('');
   };
@@ -144,138 +139,156 @@ export default function BarcodeScannerPage() {
 
   if (!company?.id) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center">
-          <p className="text-gray-600 text-lg mb-4">Company information not found</p>
-          <p className="text-gray-500">Please log in again</p>
+      <div className="flex justify-center items-center h-screen bg-slate-50 font-sans">
+        <div className="text-center p-12 bg-white rounded-2xl shadow-2xl max-w-md border-4 border-black">
+          <DatabaseZap className="w-16 h-16 text-slate-900 mx-auto mb-6" />
+          <h2 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tighter italic">Identity Failure</h2>
+          <p className="text-slate-500 mb-8 font-bold uppercase tracking-widest text-[10px]">Active company context not detected in secure session buffer.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Barcode Scanner</h1>
-          <p className="text-gray-600">Scan and manage product barcodes</p>
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-900">
+      <div className="max-w-[1600px] mx-auto space-y-6">
+        
+        {/* Header - Industrial Monochrome */}
+        <div className="flex justify-between items-end border-b-4 border-black pb-4">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Barcode Control Interface</h1>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-1">{company.company_name} / REAL-TIME NOMENCLATURE SCANNER</p>
+          </div>
+          <ScanLine size={32} className="text-slate-200" strokeWidth={1} />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
+        {/* Stats Cards - Sharp Grayscale */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-900 group hover:bg-slate-900 transition-all duration-300">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-600 text-sm font-semibold">Total Items</p>
-                <p className="text-3xl font-bold text-blue-600 mt-2">{stats.total}</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Repository Density</p>
+                <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white underline decoration-slate-100 decoration-4 underline-offset-8">
+                  {stats.total}
+                </p>
               </div>
-              <BarChart3 className="text-blue-500" size={40} />
+              <Database size={24} className="text-slate-200 group-hover:text-white transition-colors" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-500 group hover:bg-slate-800 transition-all duration-300">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-600 text-sm font-semibold">With Barcode</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">{stats.withBarcode}</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Monitized Vectors</p>
+                <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">
+                  {stats.withBarcode}
+                </p>
               </div>
-              <CheckCircle className="text-green-500" size={40} />
+              <CheckCircle size={24} className="text-slate-200 group-hover:text-white transition-colors" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-red-600 group hover:bg-red-900 transition-all duration-300">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-600 text-sm font-semibold">Without Barcode</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">{stats.withoutBarcode}</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-red-300">Unassigned NOMENCLATURE</p>
+                <p className="text-4xl font-black text-red-600 mt-1 tracking-tighter group-hover:text-white italic">
+                  {stats.withoutBarcode}
+                </p>
               </div>
-              <AlertCircle className="text-orange-500" size={40} />
+              <AlertCircle size={24} className="text-red-200 group-hover:text-white transition-colors" />
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-md mb-6">
-          <div className="flex border-b">
+        {/* Tab Interface - Unified Industrial */}
+        <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="flex bg-slate-100 p-2 border-b-2 border-slate-200">
             <button
               onClick={() => setActiveTab('scan')}
-              className={`flex-1 py-4 px-6 text-center font-semibold transition ${
+              className={`flex-1 py-4 px-6 text-center font-black uppercase tracking-widest text-[10px] transition-all rounded-2xl ${
                 activeTab === 'scan'
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-black text-white shadow-xl italic'
+                  : 'text-slate-400 hover:text-black hover:bg-white/50'
               }`}
             >
-              Live Scanner
+              Live Registry Injection
             </button>
             <button
               onClick={() => setActiveTab('manage')}
-              className={`flex-1 py-4 px-6 text-center font-semibold transition ${
+              className={`flex-1 py-4 px-6 text-center font-black uppercase tracking-widest text-[10px] transition-all rounded-2xl ${
                 activeTab === 'manage'
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-black text-white shadow-xl italic'
+                  : 'text-slate-400 hover:text-black hover:bg-white/50'
               }`}
             >
-              Manage Barcodes
+              Repository Manifest Control
             </button>
           </div>
 
-          {/* Scanner Tab */}
+          {/* Scanner Tab Content */}
           {activeTab === 'scan' && (
-            <div className="p-6">
-              {/* Messages */}
-              {successMessage && (
-                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-2">
-                  <CheckCircle size={20} />
-                  {successMessage}
-                </div>
-              )}
-
-              {errorMessage && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
-                  <AlertCircle size={20} />
-                  {errorMessage}
-                </div>
-              )}
-
-              {/* Barcode Input */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Scanner Input (Auto-focus)
-                </label>
-                <BarcodeScanner
-                  companyId={company.id}
-                  onScanSuccess={handleScanSuccess}
-                  onScanError={handleScanError}
-                  autoFocus={true}
-                  placeholder="Ready to scan... Scan barcode or enter code + Press Enter"
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Tip: Connect a barcode scanner or manually type barcode + Enter
-                </p>
+            <div className="p-10 space-y-10">
+              {/* Message Banners */}
+              <div className="flex flex-col gap-4">
+                 {successMessage && (
+                  <div className="p-4 bg-black text-white rounded-xl border-l-[1rem] border-white font-black uppercase tracking-widest text-[10px] flex items-center gap-3 animate-in fade-in duration-300">
+                    <CheckCircle size={18} strokeWidth={3} />
+                    {successMessage}
+                  </div>
+                )}
+                {errorMessage && (
+                  <div className="p-4 bg-red-900 text-white rounded-xl border-l-[1rem] border-red-500 font-black uppercase tracking-widest text-[10px] flex items-center gap-3 animate-in fade-in duration-300">
+                    <AlertCircle size={18} strokeWidth={3} />
+                    {errorMessage}
+                  </div>
+                )}
               </div>
 
-              {/* Scanned Items List */}
-              <div className="mt-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    Scanned Items ({scannedItems.length})
+              {/* Heavy Scanner Input Module */}
+              <div className="bg-slate-50 border-4 border-slate-100 p-10 rounded-[2.5rem] relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-200/50 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4 mb-6 relative z-10 italic">
+                   <ScanLine size={16} strokeWidth={3} /> SENSORY INPUT FIELD
+                </h4>
+                
+                <div className="relative z-10">
+                  <BarcodeScanner
+                    companyId={company.id}
+                    onScanSuccess={handleScanSuccess}
+                    onScanError={handleScanError}
+                    autoFocus={true}
+                    placeholder="AWAITING SYSTEM SCAN OR MANUAL OVERRIDE..."
+                    className="w-full h-20 bg-white border-2 border-slate-200 rounded-3xl px-8 text-xl font-black italic tracking-tighter uppercase focus:border-black transition-all outline-none shadow-inner"
+                  />
+                  <div className="mt-6 flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-[9px] italic">
+                     <div className="w-2 h-2 bg-slate-900 rounded-full animate-ping"></div>
+                     Optical injection buffer ready for processing
+                  </div>
+                </div>
+              </div>
+
+              {/* Scanned Items Record - Industrial Grid */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                    Isolation Stream <span className="text-slate-300 ml-2">[{scannedItems.length} OBJECTS]</span>
                   </h2>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     {scannedItems.length > 0 && (
                       <>
                         <button
                           onClick={exportScannedData}
-                          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition"
+                          className="px-6 py-2.5 bg-slate-100 hover:bg-black hover:text-white text-black rounded-xl font-black uppercase tracking-widest text-[10px] transition-all border-2 border-slate-200 shadow-sm flex items-center gap-2"
                         >
-                          Export CSV
+                          <Download size={14} strokeWidth={3} /> Export Manifest
                         </button>
                         <button
                           onClick={clearScannedItems}
-                          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition"
+                          className="px-6 py-2.5 bg-white hover:bg-red-600 hover:text-white text-slate-400 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all border-2 border-slate-100 shadow-sm flex items-center gap-2"
                         >
-                          Clear
+                          <Trash2 size={14} strokeWidth={3} /> Flush Buffer
                         </button>
                       </>
                     )}
@@ -283,45 +296,42 @@ export default function BarcodeScannerPage() {
                 </div>
 
                 {scannedItems.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <p className="text-gray-500">No items scanned yet</p>
-                    <p className="text-gray-400 text-sm mt-2">Start scanning to see items here</p>
+                  <div className="text-center py-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl opacity-40">
+                    <DatabaseZap className="w-16 h-16 text-slate-200 mx-auto mb-6" strokeWidth={1} />
+                    <p className="font-black text-slate-300 uppercase tracking-[0.4em] italic text-xs">Awaiting Primary Optical Stream</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="bg-white rounded-2xl border-2 border-slate-100 overflow-hidden shadow-xl">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b-2 border-gray-200">
+                      <thead className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest italic">
                         <tr>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Code</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Barcode</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700">Stock</th>
-                          <th className="text-right py-3 px-4 font-semibold text-gray-700">Rate</th>
-                          <th className="text-right py-3 px-4 font-semibold text-gray-700">Time</th>
+                          <th className="px-6 py-5 text-left border-r border-slate-800">Doc. Code</th>
+                          <th className="px-6 py-5 text-left border-r border-slate-800">Nomenclature</th>
+                          <th className="px-6 py-5 text-left border-r border-slate-800">Optical Pattern</th>
+                          <th className="px-6 py-5 text-center border-r border-slate-800">Inventory Pool</th>
+                          <th className="px-6 py-5 text-right border-r border-slate-800">Final Yield</th>
+                          <th className="px-6 py-5 text-right">Time Hash</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100 text-xs">
                         {scannedItems.map((item, idx) => (
-                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="py-3 px-4 font-semibold text-gray-800">{item.item_code}</td>
-                            <td className="py-3 px-4 text-gray-700">{item.item_name}</td>
-                            <td className="py-3 px-4 text-gray-600 font-mono text-sm">{item.barcode}</td>
-                            <td className="py-3 px-4 text-center">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-6 py-4 font-black text-slate-400 tracking-tighter uppercase">{item.item_code}</td>
+                            <td className="px-6 py-4 font-black text-slate-900 uppercase tracking-tight">{item.item_name}</td>
+                            <td className="px-6 py-4 text-[10px] text-slate-400 font-mono font-bold tracking-widest italic">{item.barcode}</td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase border-2 ${
                                 item.current_stock > 0 
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
+                                  ? 'bg-white text-black border-black'
+                                  : 'bg-red-50 text-red-800 border-red-800 animate-pulse'
                               }`}>
                                 {item.current_stock}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right font-semibold text-gray-800">
-                              ₹{parseFloat(item.sale_rate || 0).toLocaleString('en-IN', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              })}
+                            <td className="px-6 py-4 text-right font-black text-[13px] bg-slate-50 group-hover:bg-slate-100 transition-colors italic">
+                              ₹{parseFloat(item.sale_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 text-right text-gray-600 text-sm">{item.timestamp}</td>
+                            <td className="px-6 py-4 text-right font-mono font-bold text-slate-300 text-[10px]">{item.timestamp}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -332,106 +342,118 @@ export default function BarcodeScannerPage() {
             </div>
           )}
 
-          {/* Manage Tab */}
+          {/* Manage Tab Content */}
           {activeTab === 'manage' && (
-            <div className="p-6">
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Search Items</label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by item code or name..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            <div className="p-10 space-y-10">
+              {/* Search Toolbar */}
+              <div className="bg-slate-50 border-2 border-slate-100 p-6 rounded-2xl">
+                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Global Registry Search</span>
+                 <div className="relative group">
+                    <Search className="absolute left-4 top-3 text-slate-300 group-focus-within:text-black transition-colors" size={18} strokeWidth={3} />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="ISOLATE OBJECTS BY NOMENCLATURE OR UNIQUE ID..."
+                      className="w-full pl-12 pr-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:border-black transition-all font-black uppercase text-xs h-12"
+                    />
+                 </div>
               </div>
 
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-orange-900 mb-3">Items Without Barcode</h3>
-                <p className="text-sm text-orange-700 mb-4">
-                  {itemsWithoutBarcode.length} item(s) don't have barcodes assigned
-                </p>
+              {/* Critical Attention Module */}
+              <div className="bg-red-50 border-2 border-red-100 rounded-[2rem] p-10 relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/50 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-6 mb-8 pb-6 border-b border-red-100">
+                      <div className="p-4 bg-red-900 rounded-2xl text-white shadow-xl animate-pulse">
+                         <AlertCircle size={24} strokeWidth={3} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-red-900 uppercase italic tracking-tighter">Manifest Fault Detect</h3>
+                        <p className="text-[10px] font-bold text-red-700/60 uppercase tracking-widest mt-1">
+                          {itemsWithoutBarcode.length} Object(s) missing unique optical pattern association
+                        </p>
+                      </div>
+                    </div>
 
-                {itemsWithoutBarcode.length === 0 ? (
-                  <p className="text-green-700 text-sm">✓ All items have barcodes!</p>
-                ) : (
-                  <div className="space-y-2">
-                    {itemsWithoutBarcode
-                      .filter(item =>
-                        item.item_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        item.item_name.toLowerCase().includes(searchTerm.toLowerCase())
-                      )
-                      .map(item => (
-                        <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded border border-orange-200">
-                          <div>
-                            <p className="font-semibold text-gray-800">{item.item_code}</p>
-                            <p className="text-sm text-gray-600">{item.item_name}</p>
-                          </div>
-                          <button className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-semibold transition">
-                            Add Barcode
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* All Items with Barcodes Table */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">All Items ({allItems.length})</h3>
-                <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                  <table className="w-full bg-white">
-                    <thead className="bg-gray-100 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Item Code</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Item Name</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Barcode</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Category</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Stock</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allItems.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="py-8 text-center text-gray-500">
-                            No items found
-                          </td>
-                        </tr>
-                      ) : (
-                        allItems
+                    {itemsWithoutBarcode.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {itemsWithoutBarcode
                           .filter(item =>
                             item.item_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (item.barcode && item.barcode.includes(searchTerm))
+                            item.item_name.toLowerCase().includes(searchTerm.toLowerCase())
                           )
-                          .map((item) => (
-                            <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
-                              <td className="py-3 px-4 font-medium text-gray-800">{item.item_code}</td>
-                              <td className="py-3 px-4 text-gray-700">{item.item_name}</td>
-                              <td className="py-3 px-4 font-mono text-sm bg-gray-50 p-2 rounded border border-gray-200">{item.barcode || '—'}</td>
-                              <td className="py-3 px-4 text-center text-gray-600 text-sm">{item.category || '—'}</td>
-                              <td className="py-3 px-4 text-right font-semibold text-gray-800">{item.current_stock || 0}</td>
-                            </tr>
-                          ))
-                      )}
+                          .map(item => (
+                            <div key={item.id} className="flex items-center justify-between bg-white/50 backdrop-blur-sm p-4 rounded-xl border border-red-100 group hover:bg-white hover:border-red-900 transition-all">
+                              <div>
+                                <p className="text-[9px] font-black text-red-900/40 uppercase tracking-widest mb-0.5">{item.item_code}</p>
+                                <p className="text-xs font-black text-slate-900 uppercase tracking-tight group-hover:italic">{item.item_name}</p>
+                              </div>
+                              <button className="p-2 bg-red-900 text-white rounded-lg hover:bg-black transition-all active:scale-90 shadow-lg">
+                                <Plus size={16} strokeWidth={3} />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                 </div>
+              </div>
+
+              {/* Total Registry View */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter italic border-b-2 border-slate-100 pb-4">
+                  Full Nomenclature Repository <span className="text-slate-300 ml-2">[{allItems.length} ALL_TIME]</span>
+                </h3>
+                <div className="bg-white rounded-2xl border-2 border-slate-100 overflow-hidden shadow-xl">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest italic border-b-2 border-slate-100">
+                      <tr>
+                        <th className="px-6 py-5 text-left border-r border-slate-100">System ID</th>
+                        <th className="px-6 py-5 text-left border-r border-slate-100">Nomenclature</th>
+                        <th className="px-6 py-5 text-left border-r border-slate-100">Pattern Manifest</th>
+                        <th className="px-6 py-5 text-center border-r border-slate-100">Classification</th>
+                        <th className="px-6 py-5 text-right">Pool Stk.</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-xs">
+                      {allItems
+                        .filter(item =>
+                          item.item_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.barcode && item.barcode.includes(searchTerm))
+                        )
+                        .map((item) => (
+                          <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-6 py-4 border-r border-slate-50 font-black text-slate-400 uppercase tracking-widest text-[10px]">{item.item_code}</td>
+                            <td className="px-6 py-4 border-r border-slate-50 font-black text-slate-900 uppercase tracking-tight group-hover:italic">{item.item_name}</td>
+                            <td className="px-6 py-4 border-r border-slate-50">
+                               <span className={`px-3 py-1 rounded-md font-mono text-[10px] font-bold border ${item.barcode ? 'bg-slate-900 text-white border-black' : 'bg-slate-50 text-slate-300 border-slate-100'}`}>
+                                  {item.barcode || 'PATTERN_NULL'}
+                               </span>
+                            </td>
+                            <td className="px-6 py-4 text-center border-r border-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{item.category || 'N/A'}</td>
+                            <td className="px-6 py-4 text-right font-black text-slate-900 italic font-mono">₹{item.current_stock || 0}</td>
+                          </tr>
+                        ))
+                      }
                     </tbody>
                   </table>
                 </div>
               </div>
-
-              {/* Info Card */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                <h3 className="font-semibold text-blue-900 mb-2">Barcode Management</h3>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>✓ Barcodes must be unique across the system</li>
-                  <li>✓ Each item can have only one active barcode</li>
-                  <li>✓ Barcode format: UPC-A, UPC-E, EAN-13, Code128, etc.</li>
-                  <li>✓ Use barcode scanner in Sale → Create Sale for POS operations</li>
-                </ul>
-              </div>
             </div>
           )}
         </div>
+
+        {/* Global Registry Summary Footer */}
+        <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[8px] italic pt-12 pb-10 border-t border-slate-200">
+           <div className="flex items-center gap-4">
+              <span>SCANNER_MODE: OPTICAL_V3_ISOLATION</span>
+              <div className="w-1 h-1 bg-slate-100 rounded-full"></div>
+              <span>REGISTRY_AUTH: VERIFIED_CORE</span>
+           </div>
+           <div>SYSTEM_CHRONO: {new Date().toISOString()}</div>
+        </div>
+
       </div>
     </div>
   );

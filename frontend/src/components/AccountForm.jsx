@@ -133,26 +133,26 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-slate-200">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">
+    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-8">
+      <h3 className="text-2xl font-black text-slate-900 mb-8 border-b-4 border-black pb-2 uppercase tracking-tighter italic">
         {initialData?.id ? t('accountMaster.editAccount') : t('accountMaster.createAccount')}
       </h3>
 
       {message && (
-        <div className={`mb-4 p-3 rounded-lg flex gap-2 ${
+        <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 shadow-sm border-l-4 ${
           message.type === 'error' 
-            ? 'bg-red-50 text-red-700 border border-red-200' 
-            : 'bg-green-50 text-green-700 border border-green-200'
+            ? 'bg-white border-red-600 text-red-900' 
+            : 'bg-white border-slate-900 text-slate-900'
         }`}>
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <span>{message.text}</span>
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="font-bold uppercase text-xs tracking-widest leading-none">{message.text}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Account Name */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
             {t('accountMaster.accountName')} *
           </label>
           <input
@@ -161,27 +161,27 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
             value={formData.account_name}
             onChange={handleChange}
             placeholder={t('accountMaster.accountNamePlaceholder')}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.account_name ? 'border-red-500' : 'border-slate-300'
+            className={`w-full px-4 py-3 border-2 rounded-lg bg-slate-50 outline-none focus:border-black focus:bg-white transition-all font-bold ${
+              errors.account_name ? 'border-red-500' : 'border-slate-100'
             }`}
             disabled={loading}
           />
           {errors.account_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.account_name}</p>
+            <p className="mt-2 text-[10px] font-bold text-red-600 uppercase tracking-widest">{errors.account_name}</p>
           )}
         </div>
 
         {/* Account Type */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
             {t('accountMaster.accountType')} *
           </label>
           <select
             name="account_type"
             value={formData.account_type}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.account_type ? 'border-red-500' : 'border-slate-300'
+            className={`w-full px-4 py-3 border-2 rounded-lg bg-slate-50 outline-none focus:border-black focus:bg-white transition-all font-black text-xs uppercase tracking-widest ${
+              errors.account_type ? 'border-red-500' : 'border-slate-100'
             }`}
             disabled={loading || initialData?.id}
           >
@@ -192,140 +192,141 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
             ))}
           </select>
           {errors.account_type && (
-            <p className="mt-1 text-sm text-red-600">{errors.account_type}</p>
+            <p className="mt-2 text-[10px] font-bold text-red-600 uppercase tracking-widest">{errors.account_type}</p>
           )}
         </div>
 
-        {/* Phone */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('accountMaster.phone')}
-          </label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder={t('accountMaster.phonePlaceholder')}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.phone ? 'border-red-500' : 'border-slate-300'
-            }`}
-            disabled={loading}
-          />
-          {errors.phone && (
-            <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Phone */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              {t('accountMaster.phone')}
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="Primary Phone"
+              className={`w-full px-4 py-3 border-2 rounded-lg bg-slate-50 outline-none focus:border-black focus:bg-white transition-all font-bold ${
+                errors.phone ? 'border-red-500' : 'border-slate-100'
+              }`}
+              disabled={loading}
+            />
+            {errors.phone && (
+              <p className="mt-2 text-[10px] font-bold text-red-600 uppercase tracking-widest">{errors.phone}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              {t('accountMaster.email')}
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Contact Email"
+              className={`w-full px-4 py-3 border-2 rounded-lg bg-slate-50 outline-none focus:border-black focus:bg-white transition-all font-bold ${
+                errors.email ? 'border-red-500' : 'border-slate-100'
+              }`}
+              disabled={loading}
+            />
+            {errors.email && (
+              <p className="mt-2 text-[10px] font-bold text-red-600 uppercase tracking-widest">{errors.email}</p>
+            )}
+          </div>
         </div>
 
-        {/* Email */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('accountMaster.email')}
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder={t('accountMaster.emailPlaceholder')}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.email ? 'border-red-500' : 'border-slate-300'
-            }`}
-            disabled={loading}
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          {/* GST Number */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              {t('accountMaster.gstNumber')}
+            </label>
+            <input
+              type="text"
+              name="gst_no"
+              value={formData.gst_no}
+              onChange={handleChange}
+              placeholder="GSTIN (Optional)"
+              maxLength="15"
+              className={`w-full px-4 py-3 border-2 rounded-lg bg-slate-50 outline-none focus:border-black focus:bg-white transition-all font-bold uppercase ${
+                errors.gst_no ? 'border-red-500' : 'border-slate-100'
+              }`}
+              disabled={loading}
+            />
+            {errors.gst_no && (
+              <p className="mt-2 text-[10px] font-bold text-red-600 uppercase tracking-widest">{errors.gst_no}</p>
+            )}
+          </div>
+
+          {/* TIN Number */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              {t('accountMaster.tinNumber')}
+            </label>
+            <input
+              type="text"
+              name="tin_no"
+              value={formData.tin_no}
+              onChange={handleChange}
+              placeholder="TIN (Optional)"
+              maxLength="11"
+              className={`w-full px-4 py-3 border-2 rounded-lg bg-slate-50 outline-none focus:border-black focus:bg-white transition-all font-bold ${
+                errors.tin_no ? 'border-red-500' : 'border-slate-100'
+              }`}
+              disabled={loading}
+            />
+            {errors.tin_no && (
+              <p className="mt-2 text-[10px] font-bold text-red-600 uppercase tracking-widest">{errors.tin_no}</p>
+            )}
+          </div>
         </div>
 
-        {/* GST Number */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('accountMaster.gstNumber')} {t('accountMaster.optional')}
-          </label>
-          <input
-            type="text"
-            name="gst_no"
-            value={formData.gst_no}
-            onChange={handleChange}
-            placeholder="15-digit GSTIN (e.g., 27AABCT1234A1Z5)"
-            maxLength="15"
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase ${
-              errors.gst_no ? 'border-red-500' : 'border-slate-300'
-            }`}
-            disabled={loading}
-          />
-          {errors.gst_no && (
-            <p className="mt-1 text-sm text-red-600">{errors.gst_no}</p>
-          )}
-          <p className="mt-1 text-xs text-slate-500">15 alphanumeric characters</p>
-        </div>
-
-        {/* TIN Number */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('accountMaster.tinNumber')} {t('accountMaster.optional')} {t('accountMaster.legacy')}
-          </label>
-          <input
-            type="text"
-            name="tin_no"
-            value={formData.tin_no}
-            onChange={handleChange}
-            placeholder="11-digit TIN (Legacy taxation number)"
-            maxLength="11"
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.tin_no ? 'border-red-500' : 'border-slate-300'
-            }`}
-            disabled={loading}
-          />
-          {errors.tin_no && (
-            <p className="mt-1 text-sm text-red-600">{errors.tin_no}</p>
-          )}
-          <p className="mt-1 text-xs text-slate-500">11 digits only</p>
-        </div>
-
-        {/* Balance Details Button & Box */}
+        {/* Balance Details Tray */}
         <div className="pt-2">
            <button 
              type="button" 
              onClick={() => setShowBalanceDetails(!showBalanceDetails)}
-             className="text-blue-600 font-semibold hover:text-blue-800 text-sm flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-md border border-blue-100 transition-colors"
+             className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-slate-900 border-2 border-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-lg transition-all active:scale-95 shadow-md"
            >
              {showBalanceDetails ? '▼' : '▶'} {t('accountMaster.balanceDetails')}
            </button>
         </div>
 
         {showBalanceDetails && (
-          <div className="border border-blue-200 bg-[#f5f8ff] p-5 rounded-lg mt-2 relative shadow-inner">
-             <div className="absolute top-4 right-4 flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  checked={formData.is_subledger || false} 
-                  onChange={(e) => setFormData(p => ({...p, is_subledger: e.target.checked}))}
-                  className="w-4 h-4 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-[#0d3b8e]">{t('accountMaster.isSubLedger')}</span>
+          <div className="bg-slate-50 p-6 rounded-xl border-2 border-slate-900 space-y-6 shadow-inner animate-in slide-in-from-top-2 duration-200 mt-4">
+             <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                <span className="text-xs font-black text-slate-900 uppercase tracking-widest italic leading-none">Ledger Registry Control</span>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.is_subledger || false} 
+                    onChange={(e) => setFormData(p => ({...p, is_subledger: e.target.checked}))}
+                    className="w-4 h-4 accent-black border-2 border-slate-900 rounded"
+                  />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-black">{t('accountMaster.isSubLedger')}</span>
+                </label>
              </div>
              
-             <div className="text-[#0d3b8e] font-bold text-base mb-5 border-b border-blue-200 pb-2 w-max pr-8">
-                {t('accountMaster.balanceDetails')} :
-             </div>
-             
-             <div className="space-y-4 max-w-md">
+             <div className="space-y-4">
                 {/* Opening Balance */}
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.openingBalance')} :</span>
-                  <div className="flex-1 flex border border-blue-300 rounded shadow-sm bg-white overflow-hidden">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.openingBalance')} :</span>
+                  <div className="flex-1 flex border-2 border-slate-100 rounded-lg bg-white overflow-hidden focus-within:border-black transition-all">
                      <input
                        type="number"
                        name="opening_balance"
                        value={formData.opening_balance}
                        onChange={handleChange}
-                       className="w-full px-3 py-1.5 outline-none text-right font-medium text-slate-700"
+                       className="w-full px-4 py-3 outline-none text-right font-black italic text-slate-900"
                        disabled={loading}
                      />
                      <select 
-                       className="bg-blue-50 border-l border-blue-300 px-3 py-1.5 outline-none text-sm font-bold text-blue-900 cursor-pointer"
+                       className="bg-slate-100 border-l-2 border-slate-100 px-4 py-3 outline-none text-[10px] font-black text-slate-900 uppercase tracking-widest cursor-pointer hover:bg-slate-200 transition-colors"
                        value={formData.opening_balance_type || 'credit'}
                        onChange={(e) => setFormData(p => ({...p, opening_balance_type: e.target.value}))}
                      >
@@ -335,41 +336,15 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
                   </div>
                 </div>
 
-                {/* Total Debit */}
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.totalDebit')} :</span>
+                {/* Closing Balance (Read-only Industrial) */}
+                <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-200">
+                  <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest w-36 italic">{t('accountMaster.closingBalance')} :</span>
                   <div className="flex-1">
                      <input
                        type="text"
                        value="0.00"
                        readOnly
-                       className="w-full px-3 py-1.5 outline-none text-right bg-[#e4efff] border border-blue-200 rounded text-blue-900 font-medium cursor-not-allowed shadow-inner"
-                     />
-                  </div>
-                </div>
-
-                {/* Total Credit */}
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.totalCredit')} :</span>
-                  <div className="flex-1">
-                     <input
-                       type="text"
-                       value="0.00"
-                       readOnly
-                       className="w-full px-3 py-1.5 outline-none text-right bg-[#e4efff] border border-blue-200 rounded text-blue-900 font-medium cursor-not-allowed shadow-inner"
-                     />
-                  </div>
-                </div>
-
-                {/* Closing Balance */}
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm font-medium text-slate-700 w-36">{t('accountMaster.closingBalance')} :</span>
-                  <div className="flex-1">
-                     <input
-                       type="text"
-                       value="0.00"
-                       readOnly
-                       className="w-full px-3 py-1.5 outline-none text-right bg-[#c2d7f8] border border-blue-300 rounded text-blue-900 font-bold cursor-not-allowed shadow-inner"
+                       className="w-full px-4 py-3 outline-none text-right bg-black text-white rounded-lg font-black italic shadow-lg cursor-not-allowed"
                      />
                   </div>
                 </div>
@@ -378,21 +353,28 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
         )}
 
         {/* Form Actions */}
-        <div className="flex gap-3 pt-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors"
-          >
-            {loading ? t('accountMaster.saving') : t('accountMaster.save')}
-          </button>
+        <div className="flex gap-4 pt-6 border-t border-slate-50">
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors"
+            className="flex-1 px-6 py-4 bg-white border-2 border-slate-200 hover:border-slate-900 text-slate-600 hover:text-slate-900 font-black uppercase tracking-widest text-xs rounded-xl transition-all active:scale-95 shadow-sm"
           >
             {t('accountMaster.cancel')}
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 px-6 py-4 bg-black border-2 border-black hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-xl transition-all active:scale-95 shadow-xl flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {t('accountMaster.saving')}
+              </>
+            ) : (
+              t('accountMaster.save')
+            )}
           </button>
         </div>
       </form>

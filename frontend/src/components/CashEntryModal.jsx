@@ -100,96 +100,104 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 font-sans print:hidden">
-      <div className="bg-[#e4efff] rounded border-2 border-slate-500 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
-        {/* Header Ribbon styled like user image */}
-        <div className="bg-[#46a2de] text-white py-1.5 px-3 flex justify-between items-center border-b-2 border-slate-400">
-          <h2 className="font-bold text-[15px]">{title}</h2>
-          <button onClick={onClose} className="hover:bg-blue-600 rounded p-1">
-            <X size={18} />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans print:hidden">
+      <div className="bg-slate-200 rounded-lg border-2 border-slate-900 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-2xl overflow-hidden flex flex-col">
+        {/* Header Ribbon - High Contrast Monochrome */}
+        <div className="bg-black text-white py-1.5 px-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+            <h2 className="font-black text-xs uppercase tracking-widest">{title}</h2>
+          </div>
+          <button onClick={onClose} className="hover:bg-red-600 text-white rounded-lg p-0.5 transition-all">
+            <X size={16} strokeWidth={3} />
           </button>
         </div>
 
-        <div className="p-4 flex-1 space-y-3">
+        <div className="p-4 flex-1 space-y-3 bg-white">
           {error && (
-            <div className="text-red-700 bg-red-100 px-3 py-2 rounded text-sm italic font-semibold flex items-center gap-2">
-               <AlertCircle size={16} /> {error}
+            <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] italic font-bold flex items-center gap-2 animate-pulse">
+               <AlertCircle size={14} /> {error}
             </div>
           )}
 
-          <div className="flex items-center gap-2 border-b border-blue-200 pb-3">
-            <label className="text-[14px] text-blue-900 font-bold w-20">Date :</label>
+          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest w-20">Date :</label>
             <input 
               type="date"
               name="transaction_date"
               value={formData.transaction_date}
               onChange={handleChange}
-              className="border border-slate-400 px-2 py-1 outline-none focus:border-blue-600"
+              className="border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-bold h-8 text-xs transition-all bg-white shadow-sm"
             />
           </div>
 
-          <div className="grid grid-cols-12 gap-3 items-center">
-             <label className="col-span-2 text-[14px] text-blue-900 font-bold">Account :</label>
+          <div className="grid grid-cols-12 gap-3 items-center px-1">
+             <label className="col-span-2 text-[9px] text-slate-500 font-black uppercase tracking-widest">Account :</label>
              <select 
                name="account_id"
                value={formData.account_id}
                onChange={handleChange}
-               className="col-span-10 border border-slate-400 px-2 py-1 outline-none focus:border-blue-600"
+               className="col-span-10 border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-white shadow-sm"
              >
-               <option value="">-- Select Account / Party --</option>
+               <option value="">-- SELECT ACCOUNT / PARTY --</option>
                {accounts.map(acc => (
                  <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                ))}
              </select>
           </div>
 
-          <div className="grid grid-cols-12 gap-3 items-center">
-             <label className="col-span-2 text-[14px] text-blue-900 font-bold">Amount :</label>
-             <input 
-               type="number"
-               name="amount"
-               value={formData.amount}
-               onChange={handleChange}
-               className="col-span-4 border border-slate-400 px-2 py-1 outline-none text-right font-bold focus:border-blue-600"
-               placeholder="0.00"
-             />
-             <label className="col-span-2 text-[14px] text-blue-900 font-bold text-right pr-2">Receipt No:</label>
-             <input 
-               type="text"
-               name="reference_no"
-               value={formData.reference_no}
-               onChange={handleChange}
-               className="col-span-4 border border-slate-400 px-2 py-1 outline-none focus:border-blue-600"
-             />
+          <div className="grid grid-cols-12 gap-4 items-center px-1">
+             <div className="col-span-6 flex flex-col gap-1">
+               <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Amount (₹) :</label>
+               <input 
+                 type="number"
+                 name="amount"
+                 value={formData.amount}
+                 onChange={handleChange}
+                 className="w-full border border-slate-300 px-3 py-1.5 rounded outline-none text-right font-black text-base focus:border-black transition-all bg-white shadow flex items-center h-10"
+                 placeholder="0.00"
+               />
+             </div>
+             <div className="col-span-6 flex flex-col gap-1">
+               <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Reference No :</label>
+               <input 
+                 type="text"
+                 name="reference_no"
+                 value={formData.reference_no}
+                 onChange={handleChange}
+                 className="w-full border border-slate-300 px-3 py-1.5 rounded outline-none font-bold focus:border-black h-10 text-[11px] transition-all bg-white text-slate-900 shadow-sm"
+                 placeholder="Optional"
+               />
+             </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-3 items-center pb-8 border-b border-slate-300">
-             <label className="col-span-2 text-[14px] text-blue-900 font-bold">Description :</label>
+          <div className="flex flex-col gap-1 px-1 pb-4">
+             <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Description :</label>
              <input 
                type="text"
                name="description"
                value={formData.description}
                onChange={handleChange}
-               className="col-span-10 border border-slate-400 px-2 py-1 outline-none focus:border-blue-600"
+               className="w-full border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-medium text-[11px] transition-all bg-white italic shadow-sm"
                placeholder="Optional remarks"
              />
           </div>
         </div>
 
-        {/* Footer actions matching user interface style */}
-        <div className="bg-[#cbdcf5] p-2 border-t border-slate-400 flex justify-center gap-2">
+        {/* Footer actions - High Balance Monochrome */}
+        <div className="bg-slate-100 p-3 border-t border-slate-300 flex justify-end gap-3">
+           <button 
+             onClick={onClose}
+             className="min-w-[120px] px-6 py-2.5 border border-slate-300 bg-white rounded-xl shadow-sm hover:bg-slate-50 text-slate-600 font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+           >
+             Cancel
+           </button>
            <button 
              onClick={handleSave}
              disabled={loading}
-             className="min-w-[80px] px-4 py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold"
+             className="min-w-[140px] px-6 py-2.5 bg-black border border-black text-white rounded-xl shadow-lg hover:bg-slate-800 font-black uppercase tracking-widest text-xs transition-all active:scale-95 disabled:bg-slate-400"
            >
-             {loading ? 'Saving...' : 'Ok'}
-           </button>
-           <button 
-             onClick={onClose}
-             className="min-w-[80px] px-4 py-1.5 border border-slate-500 bg-gradient-to-b from-slate-100 to-slate-300 rounded shadow hover:from-slate-200 hover:to-slate-400 text-[13px] font-bold"
-           >
-             Cancel
+             {loading ? 'Processing...' : 'Confirm Entry'}
            </button>
         </div>
       </div>

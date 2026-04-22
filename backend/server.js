@@ -1,3 +1,5 @@
+// admin@superstore.com and store@gmail.com
+// 123456
 import express from 'express';
 import cors from 'cors';
 import db, { initializeDatabase, query, queryOne, execute } from './db.js';

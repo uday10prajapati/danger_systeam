@@ -114,17 +114,24 @@ export default function MemberMaster() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">👥</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('memberMaster.title')}</h1>
+    <div className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header - Monochrome Style */}
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">{t('memberMaster.title')}</h1>
+            <p className="text-slate-500 font-medium">{company.name}</p>
           </div>
-          <p className="text-slate-600">{company.name}</p>
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingMember(null);
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-bold shadow-lg transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            {t('memberMaster.addNew')}
+          </button>
         </div>
 
         {/* Messages */}
@@ -138,23 +145,23 @@ export default function MemberMaster() {
           </div>
         )}
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-slate-600">{t('memberMaster.totalMembers')}</p>
-            <p className="text-xl font-bold text-purple-600">{members.length}</p>
+        {/* Statistics Cards - Sleek Grayscale */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-900">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('memberMaster.totalMembers')}</p>
+            <p className="text-3xl font-black text-slate-900">{members.length}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-slate-600">{t('memberMaster.activeMembers')}</p>
-            <p className="text-xl font-bold text-green-600">{members.filter(m => m.is_active).length}</p>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-500">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('memberMaster.activeMembers')}</p>
+            <p className="text-3xl font-black text-slate-900">{members.filter(m => m.is_active).length}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-slate-600">{t('memberMaster.inactiveMembers')}</p>
-            <p className="text-xl font-bold text-red-600">{members.filter(m => !m.is_active).length}</p>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-400">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('memberMaster.inactiveMembers')}</p>
+            <p className="text-3xl font-black text-slate-700">{members.filter(m => !m.is_active).length}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-slate-600">{t('memberMaster.avgDiscount')}</p>
-            <p className="text-xl font-bold text-indigo-600">
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-300">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('memberMaster.avgDiscount')}</p>
+            <p className="text-3xl font-black text-slate-900">
               {members.length > 0 
                 ? (members.reduce((sum, m) => sum + m.discount_percentage, 0) / members.length).toFixed(2)
                 : 0}%
@@ -181,149 +188,142 @@ export default function MemberMaster() {
 
           {/* Members List Section */}
           <div className={`${showForm ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
-            {/* Filter Buttons */}
-            <div className="flex gap-2 mb-6 flex-wrap">
+            {/* Toolbar - Monochrome Tabs */}
+            <div className="bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-start gap-3 mb-6">
               <button
                 onClick={() => handleStatusChange('all')}
-                className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                className={`px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                   statusFilter === 'all'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-purple-600 border border-purple-200 hover:bg-purple-50'
+                    ? 'bg-slate-900 text-white shadow-lg'
+                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 {t('memberMaster.allStatus')}
               </button>
               <button
                 onClick={() => handleStatusChange('active')}
-                className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                className={`px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                   statusFilter === 'active'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-white text-green-600 border border-green-200 hover:bg-green-50'
+                    ? 'bg-slate-900 text-white shadow-lg'
+                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 {t('memberMaster.activeOnly')}
               </button>
               <button
                 onClick={() => handleStatusChange('inactive')}
-                className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                className={`px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                   statusFilter === 'inactive'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+                    ? 'bg-slate-900 text-white shadow-lg'
+                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 {t('memberMaster.inactiveOnly')}
               </button>
-              <button
-                onClick={() => {
-                  setShowForm(!showForm);
-                  setEditingMember(null);
-                }}
-                className="ml-auto bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                {t('memberMaster.addNew')}
-              </button>
             </div>
 
-            {/* Members Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            {/* Members Table - High Contrast Monochrome */}
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
               {loading ? (
-                <div className="p-6 text-center text-slate-500">Loading members...</div>
+                <div className="p-12 text-center">
+                  <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Loading members...</p>
+                </div>
               ) : members.length === 0 ? (
-                <div className="p-6 text-center">
-                  <p className="text-slate-500 mb-3">{t('memberMaster.noMembers')}</p>
+                <div className="p-12 text-center">
+                  <AlertCircle className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-6">{t('memberMaster.noMembers')}</p>
                   <button
                     onClick={() => {
                       setShowForm(true);
                       setEditingMember(null);
                     }}
-                    className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                    className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-slate-800 transition-all"
                   >
-                    <Plus className="w-5 h-5" />
                     {t('memberMaster.createFirst')}
                   </button>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.memberName')}</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.account')}</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.phone')}</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.discount')}</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.loyaltyPoints')}</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.status')}</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">{t('memberMaster.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((member) => (
-                      <tr key={member.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium text-slate-900">{member.member_name}</td>
-                        <td className="px-6 py-4 text-sm text-slate-600">
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                            {member.account_name}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600">{member.phone || '-'}</td>
-                        <td className="px-6 py-4 text-sm font-semibold text-slate-900">{(parseFloat(member.discount_percentage) || 0).toFixed(2)}%</td>
-                        <td className="px-6 py-4 text-sm font-semibold text-indigo-600">{member.loyalty_points}</td>
-                        <td className="px-6 py-4 text-sm">
-                          {member.is_active ? (
-                            <div className="flex items-center gap-1 text-green-600">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>{t('memberMaster.active')}</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-red-600">
-                              <XCircle className="w-4 h-4" />
-                              <span>{t('memberMaster.inactive')}</span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm flex gap-2">
-                          <button
-                            onClick={() => handleEdit(member)}
-                            className="p-2 hover:bg-blue-100 rounded text-blue-600 transition-colors"
-                            title={t('memberMaster.edit')}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          {member.is_active ? (
-                            <button
-                              onClick={() => handleDeactivate(member.id)}
-                              className="p-2 hover:bg-red-100 rounded text-red-600 transition-colors"
-                              title={t('memberMaster.deactivate')}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleActivate(member.id)}
-                              className="p-2 hover:bg-green-100 rounded text-green-600 transition-colors"
-                              title={t('memberMaster.activate')}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-900 text-white text-left">
+                      <tr>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('memberMaster.memberName')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">Member Code</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('memberMaster.phone')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('memberMaster.discount')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('memberMaster.status')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs text-right">{t('memberMaster.actions')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {members.map((member) => (
+                        <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 font-black text-slate-900 tracking-tight text-sm">{member.member_name}</td>
+                          <td className="px-6 py-4">
+                            <span className="px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200">
+                              {member.member_code}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-600 font-medium">{member.phone || '-'}</td>
+                          <td className="px-6 py-4 text-sm font-black text-slate-900 italic underline decoration-slate-200 underline-offset-4">{(parseFloat(member.discount_percentage) || 0).toFixed(2)}%</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
+                              member.is_active
+                                ? 'bg-slate-900 text-white border-slate-900'
+                                : 'bg-white text-slate-400 border-slate-200 line-through'
+                            }`}>
+                              {member.is_active ? t('memberMaster.active') : t('memberMaster.inactive')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleEdit(member)}
+                                className="p-2 text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-lg transition-all"
+                                title={t('memberMaster.edit')}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              {member.is_active ? (
+                                <button
+                                  onClick={() => handleDeactivate(member.id)}
+                                  className="p-2 text-zinc-400 hover:text-black hover:bg-zinc-100 hover:border-zinc-200 border border-transparent rounded-lg transition-all"
+                                  title={t('memberMaster.deactivate')}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleActivate(member.id)}
+                                  className="p-2 text-zinc-900 hover:bg-zinc-900 hover:text-white border border-transparent rounded-lg transition-all"
+                                  title={t('memberMaster.activate')}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-          <div className="text-blue-600">💡</div>
-          <div>
-            <p className="text-sm font-semibold text-blue-900">{t('memberMaster.tip')}</p>
-            <p className="text-sm text-blue-700">
-              Members are customers linked to accounts. They earn loyalty points with each purchase and receive their assigned discount.
-            </p>
+        {/* Tip Section - Monochrome Style */}
+        <div className="bg-white p-6 rounded-xl border-l-4 border-slate-900 shadow-md">
+          <div className="flex gap-4 items-start">
+            <div className="bg-slate-900 text-white p-2 rounded-lg">💡</div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-1">{t('memberMaster.tip')}</p>
+              <p className="text-sm text-slate-600 font-medium">
+                Members are customers linked to accounts. They receive their assigned discount during billing transactions.
+              </p>
+            </div>
           </div>
         </div>
       </div>

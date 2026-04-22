@@ -175,105 +175,100 @@ function UserMaster() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-            {t('userMaster.userMaster')}
-          </h1>
-          <p className="text-slate-600 mt-2">{t('userMaster.manageSystemUsers')}</p>
-        </div>
-
-        {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'error' 
-              ? 'bg-red-50 border border-red-200' 
-              : 'bg-green-50 border border-green-200'
-          }`}>
-            {message.type === 'error' ? (
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            ) : (
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            )}
-            <p className={message.type === 'error' ? 'text-red-800' : 'text-green-800'}>
-              {message.text}
-            </p>
+    <div className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header - Monochrome Style */}
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">{t('userMaster.userMaster')}</h1>
+            <p className="text-slate-500 font-medium">{t('userMaster.manageSystemUsers')}</p>
           </div>
-        )}
-
-        {/* Company Info Card */}
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-blue-700 font-semibold">{t('userMaster.company')}</p>
-              <p className="text-lg font-bold text-blue-900">{company.company_name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-blue-700 font-semibold">{t('userMaster.totalUsers')}</p>
-              <p className="text-lg font-bold text-blue-900">{users.length}</p>
-            </div>
-            <div>
-              <p className="text-sm text-blue-700 font-semibold">{t('userMaster.activeUsers')}</p>
-              <p className="text-lg font-bold text-green-600">{users.filter(u => u.is_active).length}</p>
-            </div>
-            <div>
-              <p className="text-sm text-blue-700 font-semibold">{t('userMaster.inactiveUsers')}</p>
-              <p className="text-lg font-bold text-orange-600">{users.filter(u => !u.is_active).length}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                filter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {t('userMaster.allUsers')}
-            </button>
-            <button
-              onClick={() => setFilter('active')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                filter === 'active'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {t('userMaster.activeOnly')}
-            </button>
-            <button
-              onClick={() => setFilter('inactive')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                filter === 'inactive'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {t('userMaster.inactiveOnly')}
-            </button>
-          </div>
-
           <button
             onClick={handleCreateUser}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-bold shadow-lg transition-all active:scale-95 disabled:bg-slate-400"
           >
             <Plus className="w-5 h-5" />
             {t('userMaster.addNewUser')}
           </button>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+        {message && (
+          <div className={`p-4 rounded-xl flex items-center gap-3 shadow-sm border-l-4 ${
+            message.type === 'error' 
+              ? 'bg-white border-red-600 text-red-900' 
+              : 'bg-white border-slate-900 text-slate-900'
+          }`}>
+            {message.type === 'error' ? (
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            ) : (
+              <CheckCircle className="w-5 h-5 text-slate-900" />
+            )}
+            <p className="font-bold uppercase text-xs tracking-widest leading-none">
+              {message.text}
+            </p>
+          </div>
+        )}
+
+        {/* Stats Cards - Sleek Grayscale */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-900">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('userMaster.company')}</p>
+            <p className="text-xl font-black text-slate-900 truncate">{company.company_name}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-500">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('userMaster.totalUsers')}</p>
+            <p className="text-3xl font-black text-slate-900">{users.length}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-400">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('userMaster.activeUsers')}</p>
+            <p className="text-3xl font-black text-slate-900">{users.filter(u => u.is_active).length}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-300">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('userMaster.inactiveUsers')}</p>
+            <p className="text-3xl font-black text-slate-700">{users.filter(u => !u.is_active).length}</p>
+          </div>
+        </div>
+
+        {/* Toolbar - Monochrome Tabs */}
+        <div className="bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-start gap-3">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
+              filter === 'all'
+                ? 'bg-slate-900 text-white shadow-lg'
+                : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            {t('userMaster.allUsers')}
+          </button>
+          <button
+            onClick={() => setFilter('active')}
+            className={`px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
+              filter === 'active'
+                ? 'bg-slate-900 text-white shadow-lg'
+                : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            {t('userMaster.activeOnly')}
+          </button>
+          <button
+            onClick={() => setFilter('inactive')}
+            className={`px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
+              filter === 'inactive'
+                ? 'bg-slate-900 text-white shadow-lg'
+                : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            {t('userMaster.inactiveOnly')}
+          </button>
+        </div>
+
+        {/* Users Table - High Contrast Monochrome */}
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <Loader className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-4" />
+              <Loader className="w-8 h-8 animate-spin mx-auto text-slate-900 mb-4" />
               <p className="text-slate-600">{t('userMaster.loadingUsers')}</p>
             </div>
           ) : filteredUsers.length === 0 ? (
@@ -284,59 +279,59 @@ function UserMaster() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-slate-900 text-white text-left">
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('userMaster.username')}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('userMaster.email')}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('userMaster.role')}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('userMaster.status')}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('userMaster.createdDate')}</th>
-                    <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">{t('userMaster.actions')}</th>
+                    <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('userMaster.username')}</th>
+                    <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('userMaster.email')}</th>
+                    <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('userMaster.role')}</th>
+                    <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('userMaster.status')}</th>
+                    <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('userMaster.createdDate')}</th>
+                    <th className="px-6 py-4 font-black uppercase tracking-wider text-xs text-right">{t('userMaster.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-100">
                   {filteredUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-slate-900">{user.username}</p>
+                        <p className="font-black text-slate-900 tracking-tight">{user.username}</p>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{user.email}</td>
+                      <td className="px-6 py-4 text-slate-600 font-medium">{user.email}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${
-                          user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                          user.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                          'bg-slate-100 text-slate-800'
+                        <span className={`inline-flex px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
+                          user.role === 'admin' ? 'bg-slate-900 text-white border-slate-900' :
+                          user.role === 'manager' ? 'bg-white text-slate-900 border-slate-300' :
+                          'bg-slate-100 text-slate-600 border-slate-200'
                         }`}>
                           {user.role}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${
+                        <span className={`inline-flex px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
                           user.is_active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-orange-100 text-orange-800'
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                            : 'bg-white text-slate-400 border-slate-200 line-through'
                         }`}>
                           {user.is_active ? t('userMaster.active') : t('userMaster.inactive')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="px-6 py-4 text-slate-500 text-sm font-bold italic">
                         {new Date(user.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => handleEditUser(user.id)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-lg transition-all"
                             title={t('userMaster.editUser')}
                           >
                             <Edit2 className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleDeactivateUser(user.id, user.is_active)}
-                            className={`p-2 rounded-lg transition-colors ${
+                            className={`p-2 rounded-lg transition-all border border-transparent ${
                               user.is_active
-                                ? 'text-orange-600 hover:bg-orange-50'
-                                : 'text-green-600 hover:bg-green-50'
+                                ? 'text-zinc-400 hover:text-black hover:bg-zinc-100 hover:border-zinc-200'
+                                : 'text-zinc-900 hover:bg-zinc-900 hover:text-white'
                             }`}
                             title={user.is_active ? t('userMaster.deactivateUser') : t('userMaster.activateUser')}
                           >

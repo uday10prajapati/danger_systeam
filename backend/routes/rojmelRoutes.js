@@ -59,8 +59,57 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // 4. Populate current day's transactions
+    // Helper function to extract GST type from description
+    const extractGSTType = (description) => {
+      if (description.includes('CGST')) return 'CGST';
+      if (description.includes('SGST')) return 'SGST';
+      if (description.includes('IGST')) return 'IGST';
+      return null;
+    };
+
+    // Group GST entries before populating lists
+    const gstGrouped = {
+      jama: { CGST: 0, SGST: 0, IGST: 0 },
+      udhar: { CGST: 0, SGST: 0, IGST: 0 }
+    };
+    const gstSubledger = {
+      jama: { CGST: [], SGST: [], IGST: [] },
+      udhar: { CGST: [], SGST: [], IGST: [] }
+    };
+    const nonGSTTransactions = [];
+
     transactions.forEach(tx => {
+      const gstType = extractGSTType(tx.description);
+      const cIn = parseFloat(tx.cash_in || 0);
+      const cOut = parseFloat(tx.cash_out || 0);
+
+      if (gstType) {
+        // This is a GST entry - add to grouped totals and subledger
+        if (cIn > 0) {
+          gstGrouped.jama[gstType] += cIn;
+          gstSubledger.jama[gstType].push({
+            id: tx.id,
+            description: tx.description,
+            amount: cIn
+          });
+        }
+        if (cOut > 0) {
+          gstGrouped.udhar[gstType] += cOut;
+          gstSubledger.udhar[gstType].push({
+            id: tx.id,
+            description: tx.description,
+            amount: cOut
+          });
+        }
+      } else {
+        // Non-GST entry - keep separate
+        nonGSTTransactions.push(tx);
+      }
+    });
+
+    // 4. Populate current day's transactions
+    // First add non-GST transactions
+    nonGSTTransactions.forEach(tx => {
       const cIn = parseFloat(tx.cash_in || 0);
       const cOut = parseFloat(tx.cash_out || 0);
 
@@ -81,6 +130,30 @@ router.get('/', async (req, res) => {
           notes: tx.notes,
           sub_amount: cOut,
           amount: cOut
+        });
+      }
+    });
+
+    // Then add grouped GST entries
+    ['CGST', 'SGST', 'IGST'].forEach(gstType => {
+      if (gstGrouped.jama[gstType] > 0) {
+        jamaList.push({
+          details: `${gstType} IN/OUT`,
+          sub_amount: gstGrouped.jama[gstType],
+          amount: gstGrouped.jama[gstType],
+          isGST: true,
+          gstType: gstType,
+          subledger: gstSubledger.jama[gstType]
+        });
+      }
+      if (gstGrouped.udhar[gstType] > 0) {
+        udharList.push({
+          details: `${gstType} IN/OUT`,
+          sub_amount: gstGrouped.udhar[gstType],
+          amount: gstGrouped.udhar[gstType],
+          isGST: true,
+          gstType: gstType,
+          subledger: gstSubledger.udhar[gstType]
         });
       }
     });

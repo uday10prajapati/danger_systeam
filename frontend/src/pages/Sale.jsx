@@ -375,44 +375,44 @@ export default function Sale() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900">
+      {/* Header - Monochrome Style */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">{t('sale.sale', 'Sale')}</h1>
-          <p className="text-gray-600">{company.company_name}</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">{t('sale.sale', 'Sale')}</h1>
+          <p className="text-slate-500 font-medium">{company.company_name}</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+          className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-bold shadow-lg transition-all active:scale-95"
         >
           <Plus size={20} />
           {t('sale.createSale', 'Create Sale')}
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
-          <p className="text-gray-600 text-sm">{t('sale.totalSales', 'Total Sales')}</p>
-          <p className="text-3xl font-bold text-blue-600">{stats.totalSales}</p>
+      {/* Stats Cards - Sleek Grayscale */}
+      <div className="grid grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-900">
+          <p className="text-slate-500 text-sm font-semibold">{t('sale.totalSales', 'Total Sales')}</p>
+          <p className="text-3xl font-black text-slate-900">{stats.totalSales}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-600">
-          <p className="text-gray-600 text-sm">{t('sale.totalAmount', 'Total Amount')}</p>
-          <p className="text-2xl font-bold text-green-600">₹{stats.totalAmount.toFixed(2)}</p>
+        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-500">
+          <p className="text-slate-500 text-sm font-semibold">{t('sale.totalAmount', 'Total Amount')}</p>
+          <p className="text-2xl font-black text-slate-900">₹{stats.totalAmount.toFixed(2)}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-600">
-          <p className="text-gray-600 text-sm">{t('sale.totalItems', 'Total Items')}</p>
-          <p className="text-3xl font-bold text-orange-600">{stats.totalItems}</p>
+        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-400">
+          <p className="text-slate-500 text-sm font-semibold">{t('sale.totalItems', 'Total Items')}</p>
+          <p className="text-3xl font-black text-slate-900">{stats.totalItems}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-600">
-          <p className="text-gray-600 text-sm">{t('sale.uniqueCustomers', 'Unique Customers')}</p>
-          <p className="text-3xl font-bold text-purple-600">{stats.uniqueCustomers}</p>
+        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-300">
+          <p className="text-slate-500 text-sm font-semibold">{t('sale.uniqueCustomers', 'Unique Customers')}</p>
+          <p className="text-3xl font-black text-slate-900">{stats.uniqueCustomers}</p>
         </div>
       </div>
 
-      {/* Search & Filter */}
-      <div className="bg-white p-4 rounded-lg shadow-md flex gap-4">
+      {/* Search & Filter - Clean Monochrome */}
+      <div className="bg-white p-4 rounded-xl shadow-md flex gap-4 border border-slate-100">
         <div className="flex-1">
           <input
             type="text"
@@ -422,7 +422,7 @@ export default function Sale() {
               setSearchTerm(e.target.value);
               applyFilters();
             }}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-600"
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 transition-all shadow-sm"
           />
         </div>
         <div className="flex gap-2">
@@ -430,69 +430,69 @@ export default function Sale() {
             type="date"
             value={dateRange.startDate}
             onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border border-slate-200 rounded-lg focus:border-slate-900 transition-all font-semibold"
           />
           <input
             type="date"
             value={dateRange.endDate}
             onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border border-slate-200 rounded-lg focus:border-slate-900 transition-all font-semibold"
           />
           <button
             onClick={fetchSales}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+            className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-black font-bold transition-all shadow-sm"
           >
             {t('sale.filter', 'Filter')}
           </button>
         </div>
       </div>
 
-      {/* Sales Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Sales Table - High Contrast Monochrome */}
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
         <table className="w-full">
-          <thead className="bg-gray-100 border-b-2 border-gray-300">
+          <thead className="bg-slate-900 text-white">
             <tr>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">#</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">{t('sale.customer', 'Customer')}</th>
-              <th className="px-6 py-3 text-center font-semibold text-gray-700">{t('sale.items', 'Items')}</th>
-              <th className="px-6 py-3 text-right font-semibold text-gray-700">{t('sale.amount', 'Amount')}</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">{t('sale.payment', 'Payment')}</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">{t('sale.date', 'Date')}</th>
-              <th className="px-6 py-3 text-center font-semibold text-gray-700">{t('sale.action', 'Action')}</th>
+              <th className="px-6 py-4 text-left font-bold uppercase tracking-wider text-xs">#</th>
+              <th className="px-6 py-4 text-left font-bold uppercase tracking-wider text-xs">{t('sale.customer', 'Customer')}</th>
+              <th className="px-6 py-4 text-center font-bold uppercase tracking-wider text-xs">{t('sale.items', 'Items')}</th>
+              <th className="px-6 py-4 text-right font-bold uppercase tracking-wider text-xs">{t('sale.amount', 'Amount')}</th>
+              <th className="px-6 py-4 text-left font-bold uppercase tracking-wider text-xs">{t('sale.payment', 'Payment')}</th>
+              <th className="px-6 py-4 text-left font-bold uppercase tracking-wider text-xs">{t('sale.date', 'Date')}</th>
+              <th className="px-6 py-4 text-center font-bold uppercase tracking-wider text-xs">{t('sale.action', 'Action')}</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                <td colSpan="7" className="px-6 py-12 text-center text-slate-400 font-medium italic">
                   {t('sale.noData', 'No sales found')}
                 </td>
               </tr>
             ) : (
               filteredSales.map((sale) => (
-                <tr key={sale.id} className="border-b hover:bg-gray-50">
-                  <td className="px-6 py-4 font-semibold text-blue-600">{sale.invoice_no}</td>
-                  <td className="px-6 py-4">{sale.customer_name}</td>
+                <tr key={sale.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4 font-black text-slate-900">{sale.invoice_no}</td>
+                  <td className="px-6 py-4 text-slate-700">{sale.customer_name}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    <span className="bg-slate-100 text-slate-900 px-3 py-1 rounded-full text-xs font-black border border-slate-200">
                       {sale.item_count}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-green-600">₹{parseFloat(sale.net_amount || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-right font-black text-slate-900">₹{parseFloat(sale.net_amount || 0).toFixed(2)}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded text-sm font-semibold ${
+                    <span className={`px-3 py-1 rounded text-xs font-bold border ${
                       sale.payment_type === 'credit'
-                        ? 'bg-orange-100 text-orange-800'
-                        : 'bg-green-100 text-green-800'
+                        ? 'bg-slate-200 text-slate-900 border-slate-300'
+                        : 'bg-slate-900 text-white border-slate-900'
                     }`}>
                       {sale.payment_type.charAt(0).toUpperCase() + sale.payment_type.slice(1)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{sale.invoice_date}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500 font-medium">{sale.invoice_date}</td>
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => viewSaleDetails(sale.id)}
-                      className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                      className="p-2 text-slate-900 hover:bg-slate-200 rounded-lg transition-colors border border-transparent hover:border-slate-300"
                       title={t('sale.view', 'View')}
                     >
                       <Eye size={18} />
@@ -505,24 +505,27 @@ export default function Sale() {
         </table>
       </div>
 
-      {/* Sale Details Modal */}
+      {/* Sale Details Modal - Elegant Monochrome */}
       {showDetails && selectedSale && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
             {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b bg-linear-to-r from-blue-600 to-blue-700 text-white">
-              <h3 className="text-xl font-bold">{selectedSale.invoice_no}</h3>
-              <div className="flex gap-2">
+            <div className="flex justify-between items-center p-6 border-b bg-slate-900 text-white">
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-black tracking-tight">{selectedSale.invoice_no}</h3>
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">{selectedSale.payment_type} Order</span>
+              </div>
+              <div className="flex gap-3">
                 <button
                   onClick={handlePrintBill}
-                  className="p-2 hover:bg-blue-800 rounded transition-colors"
+                  className="p-2.5 hover:bg-slate-800 border border-slate-700 rounded-xl transition-all active:scale-90"
                   title="Print Bill"
                 >
                   <Printer size={20} />
                 </button>
                 <button
                   onClick={() => setShowDetails(false)}
-                  className="p-2 hover:bg-blue-800 rounded transition-colors"
+                  className="p-2.5 hover:bg-slate-800 border border-slate-700 rounded-xl transition-all active:scale-90 text-red-400"
                   title="Close"
                 >
                   <X size={20} />
@@ -531,66 +534,68 @@ export default function Sale() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-8 space-y-6 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-8 py-4 px-2 bg-slate-50 rounded-xl border border-slate-100">
                 <div>
-                  <p className="text-gray-600 text-sm">{t('sale.invoiceDate', 'Invoice Date')}</p>
-                  <p className="font-semibold">{selectedSale.invoice_date}</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('sale.invoiceDate', 'Invoice Date')}</p>
+                  <p className="font-black text-slate-900">{selectedSale.invoice_date}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">{t('sale.customer', 'Customer')}</p>
-                  <p className="font-semibold">{selectedSale.customer_name}</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('sale.customer', 'Customer')}</p>
+                  <p className="font-black text-slate-900">{selectedSale.customer_name}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">{t('sale.paymentType', 'Payment Type')}</p>
-                  <p className="font-semibold capitalize">{selectedSale.payment_type}</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('sale.paymentType', 'Payment Type')}</p>
+                  <p className="font-black text-slate-900 capitalize italic">{selectedSale.payment_type}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">{t('sale.createdBy', 'Created By')}</p>
-                  <p className="font-semibold">{selectedSale.created_by_user}</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{t('sale.createdBy', 'Created By')}</p>
+                  <p className="font-black text-slate-900">{selectedSale.created_by_user}</p>
                 </div>
               </div>
 
               {/* Items Table */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-3">{t('sale.items', 'Items')}</h4>
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Item</th>
-                      <th className="px-3 py-2 text-center">Qty</th>
-                      <th className="px-3 py-2 text-right">Rate</th>
-                      <th className="px-3 py-2 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(selectedSale.items || []).map((item) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="px-3 py-2">{item.item_name}</td>
-                        <td className="px-3 py-2 text-center">{item.quantity}</td>
-                        <td className="px-3 py-2 text-right">₹{parseFloat(item.sale_rate || 0).toFixed(2)}</td>
-                        <td className="px-3 py-2 text-right font-semibold">₹{parseFloat(item.amount || 0).toFixed(2)}</td>
+              <div className="pt-4">
+                <h4 className="font-black text-sm uppercase tracking-widest mb-4 inline-block border-b-2 border-slate-900 pb-2">{t('sale.items', 'Items')}</h4>
+                <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-bold text-slate-900">Item</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-900">Qty</th>
+                        <th className="px-4 py-3 text-right font-bold text-slate-900">Rate</th>
+                        <th className="px-4 py-3 text-right font-bold text-slate-900">Amount</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white">
+                      {(selectedSale.items || []).map((item) => (
+                        <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-slate-800">{item.item_name}</td>
+                          <td className="px-4 py-3 text-center font-bold text-slate-900">{item.quantity}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">₹{parseFloat(item.sale_rate || 0).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right font-black text-slate-900 underline decoration-slate-200 underline-offset-4">₹{parseFloat(item.amount || 0).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              {/* Totals */}
-              <div className="border-t pt-4 space-y-2 text-right">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">{t('sale.subtotal', 'Subtotal')}</span>
-                  <span className="font-semibold">₹{parseFloat(selectedSale.total_amount || 0).toFixed(2)}</span>
+              {/* Totals Box */}
+              <div className="pt-6 space-y-3 bg-slate-900 p-6 rounded-2xl text-white shadow-2xl">
+                <div className="flex justify-between items-center opacity-70 text-sm">
+                  <span className="font-bold uppercase tracking-widest">{t('sale.subtotal', 'Subtotal')}</span>
+                  <span className="font-bold">₹{parseFloat(selectedSale.total_amount || 0).toFixed(2)}</span>
                 </div>
                 {parseFloat(selectedSale.discount_amount || 0) > 0 && (
-                  <div className="flex justify-between text-orange-600">
-                    <span>{t('sale.discount', 'Discount')}</span>
-                    <span className="font-semibold">-₹{parseFloat(selectedSale.discount_amount || 0).toFixed(2)}</span>
+                  <div className="flex justify-between items-center text-slate-400 text-sm italic">
+                    <span className="font-bold uppercase tracking-widest">{t('sale.discount', 'Discount')}</span>
+                    <span className="font-bold">-₹{parseFloat(selectedSale.discount_amount || 0).toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-bold text-green-600 border-t pt-2">
-                  <span>{t('sale.netAmount', 'Net Amount')}</span>
-                  <span>₹{parseFloat(selectedSale.net_amount || 0).toFixed(2)}</span>
+                <div className="flex justify-between items-center text-2xl font-black border-t border-slate-800 pt-4 mt-2">
+                  <span className="uppercase tracking-tighter">{t('sale.netAmount', 'Net Amount')}</span>
+                  <span className="text-white">₹{parseFloat(selectedSale.net_amount || 0).toFixed(2)}</span>
                 </div>
               </div>
 

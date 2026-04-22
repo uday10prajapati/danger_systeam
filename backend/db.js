@@ -18,10 +18,20 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelayMs: 0
+  connectTimeout: 20000, // Increase timeout for remote connection
+  maxIdle: 10,
+  idleTimeout: 60000,
 });
 
-console.log('✅ Connected to MySQL Database (XAMPP)');
+// Pool error handling
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+    console.log('Database connection lost/reset. The pool will attempt to reconnect on the next request.');
+  }
+});
+
+console.log('✅ MySQL Connection Pool Initialized');
 
 // Create a connection wrapper for consistency with existing code
 const createConnection = async () => {
@@ -444,11 +454,16 @@ export async function initializeDatabase() {
           id INT PRIMARY KEY AUTO_INCREMENT,
           company_id INT NOT NULL,
           account_id INT NOT NULL,
+          transaction_date DATE,
+          transaction_type VARCHAR(50),
+          reference_type VARCHAR(50),
+          reference_id INT,
+          reference_no VARCHAR(100),
           debit_amount DECIMAL(10, 2) DEFAULT 0,
           credit_amount DECIMAL(10, 2) DEFAULT 0,
-          transaction_type VARCHAR(50),
-          reference_no VARCHAR(100),
-          transaction_date DATE,
+          debit DECIMAL(10, 2) DEFAULT 0,
+          credit DECIMAL(10, 2) DEFAULT 0,
+          description TEXT,
           created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
@@ -542,6 +557,22 @@ export async function initializeDatabase() {
           console.log('ℹ️ Index already exists, skipping.');
         } else { throw idxErr; }
       }
+
+      // Add performance indexes
+      try {
+        await connection.query("CREATE INDEX idx_sales_invoice_date ON sales(invoice_date)");
+        console.log('✅ Index idx_sales_invoice_date created');
+      } catch (e) {}
+
+      try {
+        await connection.query("CREATE INDEX idx_stock_ledger_item ON purchase_stock_ledger(company_id, item_id)");
+        console.log('✅ Index idx_stock_ledger_item created');
+      } catch (e) {}
+
+      try {
+        await connection.query("CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id)");
+        console.log('✅ Index idx_sale_items_sale_id created');
+      } catch (e) {}
       // Schema upgrades (safe ALTER TABLE without assuming MySQL version)
       try {
         await connection.query("ALTER TABLE member_master ADD COLUMN member_address TEXT");
@@ -593,6 +624,16 @@ export async function initializeDatabase() {
       try { await connection.query("ALTER TABLE purchase_items ADD COLUMN gst_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
       try { await connection.query("ALTER TABLE purchase_items ADD COLUMN total_tax DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
 
+      // Add missing columns to account_ledger (Standardization)
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN reference_type VARCHAR(50)"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN reference_id INT"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN description TEXT"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN debit DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN credit DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN transaction_type VARCHAR(50)"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN debit_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN credit_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
+
 
       await connection.commit();
       console.log('✅ MySQL Database tables created/verified/upgraded');
@@ -611,12 +652,20 @@ export async function initializeDatabase() {
 // Query functions that export the seamless api
 export async function query(sql, params = []) {
   try {
-    const connection = await createConnection();
-    const [results] = await connection.query(sql, params);
-    connection.release();
+    const [results] = await pool.query(sql, params);
     return results;
   } catch (error) {
-    console.error('Query error:', error.message);
+    if (error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.error('Database connection lost during query, retrying once...');
+      try {
+        const [results] = await pool.query(sql, params);
+        return results;
+      } catch (retryError) {
+        console.error('Retry failed:', retryError.message);
+        throw retryError;
+      }
+    }
+    console.error('Query error:', error.message, '\nSQL:', sql);
     throw error;
   }
 }
@@ -628,12 +677,20 @@ export async function queryOne(sql, params = []) {
 
 export async function execute(sql, params = []) {
   try {
-    const connection = await createConnection();
-    const [result] = await connection.execute(sql, params);
-    connection.release();
+    const [result] = await pool.execute(sql, params);
     return { lastID: result.insertId, changes: result.affectedRows };
   } catch (error) {
-    console.error('Execute error:', error.message);
+    if (error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.error('Database connection lost during execute, retrying once...');
+      try {
+        const [result] = await pool.execute(sql, params);
+        return { lastID: result.insertId, changes: result.affectedRows };
+      } catch (retryError) {
+        console.error('Retry failed:', retryError.message);
+        throw retryError;
+      }
+    }
+    console.error('Execute error:', error.message, '\nSQL:', sql);
     throw error;
   }
 }
@@ -703,7 +760,7 @@ export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDa
       [companyId, supplierId]
     );
 
-    const previousBalance = supplierBalance[0][0]?.balance || 0;
+    const previousBalance = parseFloat(supplierBalance[0][0]?.balance || 0);
     const newBalance = previousBalance + grandTotal;
 
     await connection.query(
@@ -875,7 +932,7 @@ export async function createPurchaseReturn(companyId, purchaseId, supplierId, re
       [companyId, supplierId]
     );
 
-    const previousBalance = supplierBalance[0][0]?.balance || 0;
+    const previousBalance = parseFloat(supplierBalance[0][0]?.balance || 0);
     const newBalance = previousBalance - totalReturnAmount; // Reduce what we owe
 
     await connection.query(
@@ -1123,7 +1180,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
         [companyId, customerId]
       );
 
-      const previousBalance = customerBalance[0][0]?.balance || 0;
+      const previousBalance = parseFloat(customerBalance[0][0]?.balance || 0);
       const newBalance = previousBalance + netAmount; // Customer owes us
 
       await connection.query(
@@ -1649,10 +1706,11 @@ export async function getAccountLedger(accountId, startDate, endDate) {
     SELECT 
       al.id,
       al.transaction_date,
-      al.transaction_type,
+      COALESCE(al.transaction_type, al.reference_type, 'JV') as transaction_type,
       al.reference_no,
-      al.debit_amount as debit,
-      al.credit_amount as credit
+      (COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) as debit,
+      (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0)) as credit,
+      al.description
     FROM account_ledger al
     WHERE al.account_id = ? AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date ASC, al.created_at ASC
@@ -1667,9 +1725,9 @@ export async function getAccountBalance(accountId, upToDate = null) {
 
   const sql = `
     SELECT 
-      COALESCE(SUM(debit_amount), 0) as total_debit,
-      COALESCE(SUM(credit_amount), 0) as total_credit,
-      COALESCE(SUM(debit_amount - credit_amount), 0) as running_balance
+      COALESCE(SUM(COALESCE(debit_amount, 0) + COALESCE(debit, 0)), 0) as total_debit,
+      COALESCE(SUM(COALESCE(credit_amount, 0) + COALESCE(credit, 0)), 0) as total_credit,
+      COALESCE(SUM((COALESCE(debit_amount, 0) + COALESCE(debit, 0)) - (COALESCE(credit_amount, 0) + COALESCE(credit, 0))), 0) as running_balance
     FROM account_ledger al
     WHERE al.account_id = ? ${dateCondition}
   `;
@@ -1708,9 +1766,9 @@ export async function getTrialBalance(companyId, asOfDate = null) {
       a.id,
       a.account_name,
       a.account_type,
-      COALESCE(SUM(al.debit_amount), 0) as total_debit,
-      COALESCE(SUM(al.credit_amount), 0) as total_credit,
-      COALESCE(SUM(al.debit_amount - al.credit_amount), 0) as balance
+      COALESCE(SUM(COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)), 0) as total_debit,
+      COALESCE(SUM(COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0)), 0) as total_credit,
+      COALESCE(SUM((COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) - (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0))), 0) as balance
     FROM accounts a
     LEFT JOIN account_ledger al ON a.id = al.account_id ${dateCondition}
     WHERE a.company_id = ?
@@ -1728,12 +1786,12 @@ export async function getLedgerByDateRange(companyId, startDate, endDate) {
       al.id,
       a.account_name,
       al.transaction_date,
-      al.reference_type,
+      COALESCE(al.reference_type, al.transaction_type) as reference_type,
       al.reference_no,
-      al.description,
-      al.debit,
-      al.credit,
-      (al.debit - al.credit) as net_amount
+      COALESCE(al.description, '') as description,
+      (COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) as debit,
+      (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0)) as credit,
+      ((COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) - (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0))) as net_amount
     FROM account_ledger al
     JOIN accounts a ON al.account_id = a.id
     WHERE al.company_id = ? AND al.transaction_date BETWEEN ? AND ?
@@ -1973,31 +2031,51 @@ export async function getMonthlyProfitLoss(companyId, year) {
   try {
     const sql = `
       SELECT 
-        MONTH(s.invoice_date) as month,
-        YEAR(s.invoice_date) as year,
-        COALESCE(SUM(s.net_amount), 0) as sales_revenue,
-        COALESCE((
-          SELECT SUM(sr.total_return_amount)
-          FROM sale_returns sr
-          WHERE sr.company_id = ? AND YEAR(sr.return_date) = ? AND MONTH(sr.return_date) = MONTH(s.invoice_date)
-        ), 0) as sales_returns,
-        COALESCE((
-          SELECT SUM(p.total_amount)
-          FROM purchases p
-          WHERE p.company_id = ? AND YEAR(p.invoice_date) = ? AND MONTH(p.invoice_date) = MONTH(s.invoice_date)
-        ), 0) as purchase_cost,
-        COALESCE((
-          SELECT SUM(pr.total_return_amount)
-          FROM purchase_returns pr
-          WHERE pr.company_id = ? AND YEAR(pr.return_date) = ? AND MONTH(pr.return_date) = MONTH(s.invoice_date)
-        ), 0) as purchase_returns
-      FROM sales s
-      WHERE s.company_id = ? AND YEAR(s.invoice_date) = ?
-      GROUP BY MONTH(s.invoice_date)
-      ORDER BY MONTH(s.invoice_date)
+        m.month_num as month,
+        ? as year,
+        COALESCE(s.amount, 0) as sales_revenue,
+        COALESCE(sr.amount, 0) as sales_returns,
+        COALESCE(p.amount, 0) as purchase_cost,
+        COALESCE(pr.amount, 0) as purchase_returns
+      FROM (
+        SELECT 1 as month_num UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION 
+        SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION 
+        SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+      ) m
+      LEFT JOIN (
+        SELECT MONTH(invoice_date) as month, SUM(net_amount) as amount
+        FROM sales
+        WHERE company_id = ? AND YEAR(invoice_date) = ?
+        GROUP BY MONTH(invoice_date)
+      ) s ON m.month_num = s.month
+      LEFT JOIN (
+        SELECT MONTH(return_date) as month, SUM(total_return_amount) as amount
+        FROM sale_returns
+        WHERE company_id = ? AND YEAR(return_date) = ?
+        GROUP BY MONTH(return_date)
+      ) sr ON m.month_num = sr.month
+      LEFT JOIN (
+        SELECT MONTH(invoice_date) as month, SUM(total_amount) as amount
+        FROM purchases
+        WHERE company_id = ? AND YEAR(invoice_date) = ?
+        GROUP BY MONTH(invoice_date)
+      ) p ON m.month_num = p.month
+      LEFT JOIN (
+        SELECT MONTH(return_date) as month, SUM(return_amount) as amount
+        FROM purchase_returns
+        WHERE company_id = ? AND YEAR(return_date) = ?
+        GROUP BY MONTH(return_date)
+      ) pr ON m.month_num = pr.month
+      ORDER BY m.month_num
     `;
 
-    const results = await query(sql, [companyId, year, companyId, year, companyId, year, companyId, year]);
+    const results = await query(sql, [
+      year, 
+      companyId, year, 
+      companyId, year, 
+      companyId, year, 
+      companyId, year
+    ]);
 
     return results.map(row => ({
       month: row.month,

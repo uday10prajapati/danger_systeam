@@ -243,7 +243,7 @@ router.post('/with-gst', async (req, res) => {
           [companyId, queryTargetId]
         );
 
-        const previousBalance = balanceRow[0]?.balance || 0;
+        const previousBalance = parseFloat(balanceRow[0]?.balance || 0);
         const newBalance = previousBalance + finalNetAmount;
 
         await connection.query(

@@ -12,11 +12,8 @@ export default function MemberForm({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [loadingAccounts, setLoadingAccounts] = useState(true);
   
   const [formData, setFormData] = useState({
-    account_id: '',
     member_name: '',
     member_address: '',
     member_gst_no: '',
@@ -26,16 +23,10 @@ export default function MemberForm({
     member_code: null
   });
 
-  // Load customer accounts when component mounts
-  useEffect(() => {
-    loadCustomerAccounts();
-  }, [companyId]);
-
   // Populate form when editing
   useEffect(() => {
     if (editingMember) {
       setFormData({
-        account_id: editingMember.account_id,
         member_name: editingMember.member_name,
         member_address: editingMember.member_address || '',
         member_gst_no: editingMember.member_gst_no || '',
@@ -47,19 +38,7 @@ export default function MemberForm({
     }
   }, [editingMember]);
 
-  const loadCustomerAccounts = async () => {
-    try {
-      setLoadingAccounts(true);
-      const response = await axios.get(`/api/accounts/company/${companyId}?type=customer`);
-      if (response.data.success) {
-        setAccounts(response.data.data || []);
-      }
-    } catch (err) {
-      setError('Failed to load customer accounts');
-    } finally {
-      setLoadingAccounts(false);
-    }
-  };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,10 +50,6 @@ export default function MemberForm({
   };
 
   const validateForm = () => {
-    if (!formData.account_id) {
-      setError(t('memberMaster.selectAccount'));
-      return false;
-    }
     if (!formData.member_name.trim()) {
       setError(t('memberMaster.memberNameRequired'));
       return false;
@@ -113,7 +88,6 @@ export default function MemberForm({
 
       // For new members, use POST; for editing, use PUT
       const payload = {
-        account_id: formData.account_id,
         member_name: formData.member_name,
         member_address: formData.member_address,
         member_gst_no: formData.member_gst_no,
@@ -134,7 +108,6 @@ export default function MemberForm({
         onSuccess();
         if (!editingMember) {
           setFormData({
-            account_id: '',
             member_name: '',
             member_address: '',
             member_gst_no: '',
@@ -153,93 +126,65 @@ export default function MemberForm({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">
+    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-8">
+      <div className="flex justify-between items-center mb-8 border-b-4 border-black pb-2">
+        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">
           {editingMember ? t('memberMaster.editMember') : t('memberMaster.newMember')}
         </h2>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-slate-700"
+            className="text-slate-400 hover:text-black transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-8 h-8" />
           </button>
         )}
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+        <div className="mb-6 p-4 rounded-xl flex items-center gap-3 shadow-sm border-l-4 bg-white border-red-600 text-red-900">
+          <div className="font-bold uppercase text-xs tracking-widest leading-none">
+            {error}
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Member Code (Read-only for new, display for editing) */}
-        {editingMember && (
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Member Code
-            </label>
-            <input
-              type="text"
-              value={formData.member_code || ''}
-              disabled
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-600 font-semibold cursor-not-allowed"
-            />
-            <p className="text-xs text-slate-500 mt-1">Auto-generated, not editable</p>
-          </div>
-        )}
-
-        {/* Account Selection */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Member Code */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('memberMaster.account')} <span className="text-red-500">*</span>
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+            Member Code
           </label>
-          {loadingAccounts ? (
-            <div className="text-slate-500">Loading accounts...</div>
-          ) : (
-            <select
-              name="account_id"
-              value={formData.account_id}
-              onChange={handleChange}
-              disabled={editingMember} // Prevent account change on edit
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100"
-            >
-              <option value="">Select a customer account</option>
-              {accounts.map(account => (
-                <option key={account.id} value={account.id}>
-                  {account.account_name} ({account.id})
-                </option>
-              ))}
-            </select>
-          )}
-          {accounts.length === 0 && !loadingAccounts && (
-            <p className="text-sm text-amber-600 mt-1">
-              {t('memberMaster.noCustomerAccounts')}
-            </p>
-          )}
+          <input
+            type="text"
+            value={formData.member_code || ''}
+            disabled
+            className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg bg-slate-50 text-slate-400 font-bold cursor-not-allowed uppercase tracking-widest text-xs"
+          />
+          <p className="mt-2 text-[10px] font-bold text-slate-400 italic uppercase">
+            {editingMember ? 'Locked ID' : 'Auto-Assignment Pending'}
+          </p>
         </div>
 
         {/* Member Name */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('memberMaster.memberName')} <span className="text-red-500">*</span>
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+            {t('memberMaster.memberName')} *
           </label>
           <input
             type="text"
             name="member_name"
             value={formData.member_name}
             onChange={handleChange}
-            placeholder="Enter member name"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter full name"
+            className="w-full px-4 py-3 border-2 border-slate-100 bg-slate-50 rounded-lg focus:outline-none focus:border-black focus:bg-white transition-all font-bold"
           />
         </div>
 
         {/* Member Address */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Member Address
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+            Address
           </label>
           <textarea
             name="member_address"
@@ -247,84 +192,94 @@ export default function MemberForm({
             onChange={handleChange}
             placeholder="Enter complete address"
             rows="3"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border-2 border-slate-100 bg-slate-50 rounded-lg focus:outline-none focus:border-black focus:bg-white transition-all font-bold"
           />
         </div>
 
         {/* Member GST Number */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            GST Number
-          </label>
-          <input
-            type="text"
-            name="member_gst_no"
-            value={formData.member_gst_no}
-            onChange={handleChange}
-            placeholder="Enter GST number (e.g., 27AABCT1234F1Z5)"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <p className="text-xs text-slate-500 mt-1">Format: 2 digits state + 10 alphanumeric</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              GST Number
+            </label>
+            <input
+              type="text"
+              name="member_gst_no"
+              value={formData.member_gst_no}
+              onChange={handleChange}
+              placeholder="e.g., 27AABCT1234F1Z5"
+              className="w-full px-4 py-3 border-2 border-slate-100 bg-slate-50 rounded-lg focus:outline-none focus:border-black focus:bg-white transition-all font-bold uppercase"
+            />
+          </div>
         </div>
 
-        {/* Phone */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('memberMaster.phone')}
-          </label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="Enter phone number"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('memberMaster.email')}
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter email"
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+        {/* Contact Info */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              {t('memberMaster.phone')}
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="Primary Phone"
+              className="w-full px-4 py-3 border-2 border-slate-100 bg-slate-50 rounded-lg focus:outline-none focus:border-black focus:bg-white transition-all font-bold"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+              {t('memberMaster.email')}
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Contact Email"
+              className="w-full px-4 py-3 border-2 border-slate-100 bg-slate-50 rounded-lg focus:outline-none focus:border-black focus:bg-white transition-all font-bold"
+            />
+          </div>
         </div>
 
         {/* Discount Percentage */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-900 mb-3">
             {t('memberMaster.discountPercentage')}
           </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              name="discount_percentage"
-              value={formData.discount_percentage}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              step="0.01"
-              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <span className="text-slate-500 text-sm">%</span>
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <input
+                type="number"
+                name="discount_percentage"
+                value={formData.discount_percentage}
+                onChange={handleChange}
+                min="0"
+                max="100"
+                step="0.01"
+                className="w-full pl-6 pr-12 py-4 border-2 border-white rounded-xl focus:outline-none focus:border-black transition-all font-black text-2xl text-slate-900 shadow-inner"
+              />
+              <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-2xl text-slate-300 pointer-events-none">%</span>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Applied during sales transactions</p>
+          <p className="mt-3 text-[10px] font-bold text-slate-400 uppercase italic">Applied during sales transactions</p>
         </div>
 
         {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2 rounded-lg transition-colors"
+          className="w-full bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-black uppercase tracking-widest py-4 rounded-xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3"
         >
-          {loading ? 'Saving...' : editingMember ? t('memberMaster.updateMember') : t('memberMaster.createMember')}
+          {loading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Processing...
+            </>
+          ) : (
+            editingMember ? t('memberMaster.updateMember') : t('memberMaster.createMember')
+          )}
         </button>
       </form>
     </div>

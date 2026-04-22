@@ -214,17 +214,24 @@ export default function AccountMaster() {
   const totalBalance = accountsArray.reduce((sum, a) => sum + (parseFloat(a.opening_balance) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">👤</span>
-            </div>
-            <h1 className="text-4xl font-bold text-slate-900">{t('accountMaster.accountMaster')}</h1>
+    <div className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header - Monochrome Style */}
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">{t('accountMaster.accountMaster')}</h1>
+            <p className="text-slate-500 font-medium">{t('accountMaster.manageAccounts')}</p>
           </div>
-          <p className="text-slate-600">{t('accountMaster.manageAccounts')}</p>
+          <button
+            onClick={() => {
+              setEditingAccount(null);
+              setShowForm(!showForm);
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-bold shadow-lg transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            {t('accountMaster.addNewAccount')}
+          </button>
         </div>
 
         {/* Message */}
@@ -239,29 +246,27 @@ export default function AccountMaster() {
           </div>
         )}
 
-        {/* Company Info Card */}
-        <div className="bg-linear-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-6 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div>
-              <p className="text-sm text-slate-600">{t('accountMaster.company')}</p>
-              <p className="text-xl font-bold text-blue-600">{company.company_name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">{t('accountMaster.totalAccounts')}</p>
-              <p className="text-xl font-bold text-blue-600">{totalAccounts}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">{t('accountMaster.active')}</p>
-              <p className="text-xl font-bold text-green-600">{activeAccounts}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">{t('accountMaster.inactive')}</p>
-              <p className="text-xl font-bold text-red-600">{inactiveAccounts}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">{t('accountMaster.totalBalance')}</p>
-              <p className="text-xl font-bold text-indigo-600">₹{totalBalance.toFixed(2)}</p>
-            </div>
+        {/* Statistics Cards - Sleek Grayscale */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-900">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.company')}</p>
+            <p className="text-lg font-black text-slate-900 truncate">{company.company_name}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-600">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.totalAccounts')}</p>
+            <p className="text-2xl font-black text-slate-900">{totalAccounts}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-500">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.active')}</p>
+            <p className="text-2xl font-black text-slate-900">{activeAccounts}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-400">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.inactive')}</p>
+            <p className="text-2xl font-black text-slate-700">{inactiveAccounts}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-300">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.totalBalance')}</p>
+            <p className="text-2xl font-black text-slate-900 italic">₹{totalBalance.toFixed(0)}</p>
           </div>
         </div>
 
@@ -284,137 +289,131 @@ export default function AccountMaster() {
 
           {/* Accounts List Section */}
           <div className={showForm ? 'lg:col-span-2' : 'lg:col-span-3'}>
-            {/* Filter and Actions */}
-            <div className="mb-6 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                {/* Account Type Filter */}
-                <select
-                  value={selectedType}
-                  onChange={(e) => handleTypeChange(e.target.value)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-                >
-                  {accountTypes.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Toolbar - Monochrome Tabs */}
+            <div className="bg-white p-4 rounded-xl shadow-md border border-slate-100 space-y-4 mb-6">
+              <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
+                <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                  {/* Account Type Filter */}
+                  <select
+                    value={selectedType}
+                    onChange={(e) => handleTypeChange(e.target.value)}
+                    className="px-4 py-2 border-2 border-slate-50 bg-slate-50 rounded-lg text-slate-700 font-black text-xs uppercase tracking-widest focus:outline-none focus:border-black transition-all shadow-sm"
+                  >
+                    {accountTypes.map(type => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
 
-                {/* Balance Type Filter */}
-                <select
-                  value={balanceTypeFilter}
-                  onChange={(e) => setBalanceTypeFilter(e.target.value)}
-                  className="px-4 py-2 border border-blue-300 rounded-lg text-blue-800 font-medium bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-                >
-                  <option value="all">All Balances (બધા)</option>
-                  <option value="credit">Credit Balance / Jama (જમા)</option>
-                  <option value="debit">Debit Balance / Udhar (ઉધાર)</option>
-                  <option value="zero">Zero Balance (શૂન્ય)</option>
-                </select>
-                
-                <button
-                  onClick={handleDownloadCSV}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
-                  title="Download CSV"
-                >
-                  <Download className="w-4 h-4" />
-                  Download CSV
-                </button>
+                  {/* Balance Type Filter */}
+                  <select
+                    value={balanceTypeFilter}
+                    onChange={(e) => setBalanceTypeFilter(e.target.value)}
+                    className="px-4 py-2 border-2 border-slate-900 bg-black rounded-lg text-white font-black text-xs uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-lg"
+                  >
+                    <option value="all">All Balances (બધા)</option>
+                    <option value="credit">Credit Balance / Jama (જમા)</option>
+                    <option value="debit">Debit Balance / Udhar (ઉધાર)</option>
+                    <option value="zero">Zero Balance (શૂન્ય)</option>
+                  </select>
+                  
+                  <button
+                    onClick={handleDownloadCSV}
+                    className="px-4 py-2 bg-white border-2 border-slate-200 hover:border-slate-400 text-slate-900 font-black text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all"
+                    title="Download CSV"
+                  >
+                    <Download className="w-4 h-4" />
+                    CSV
+                  </button>
+                </div>
               </div>
-              
-              <button
-                onClick={() => {
-                  setEditingAccount(null);
-                  setShowForm(!showForm);
-                }}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full xl:w-auto"
-              >
-                <Plus className="w-5 h-5" />
-                {t('accountMaster.addNewAccount')}
-              </button>
             </div>
 
-            {/* Accounts Table */}
-            <div className="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
-              {accounts.length === 0 ? (
-                <div className="p-8 text-center">
-                  <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                  <p className="text-slate-600">{t('accountMaster.noAccountsFound')}</p>
+            {/* Accounts Table - High Contrast Monochrome */}
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+              {loading ? (
+                <div className="p-24 text-center">
+                  <div className="w-12 h-12 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+                  <p className="text-slate-600 font-black uppercase tracking-widest text-xs uppercase">{t('common.loading')}</p>
+                </div>
+              ) : filteredAccounts.length === 0 ? (
+                <div className="p-24 text-center">
+                  <AlertCircle className="w-16 h-16 mx-auto text-slate-300 mb-6" />
+                  <p className="text-slate-500 font-black uppercase tracking-widest text-xs">{t('accountMaster.noAccountsFound')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-slate-900 text-white text-left">
                       <tr>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.accountName')}</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.type')}</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.closingBalance') || 'Closing Balance'}</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('accountMaster.status')}</th>
-                        <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">{t('accountMaster.actions')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.accountName')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.type')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.closingBalance') || 'Closing Balance'}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.status')}</th>
+                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs text-right">{t('accountMaster.actions')}</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 text-slate-900">
                       {filteredAccounts.map(account => (
-                        <tr key={account.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-slate-900">{account.account_name}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600">
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                        <tr key={account.id} className="hover:bg-slate-50 transition-colors group">
+                          <td className="px-6 py-4 font-black tracking-tight text-sm uppercase">{account.account_name}</td>
+                          <td className="px-6 py-4">
+                            <span className="px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200">
                               {t(`accountMaster.${account.account_type}`)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm font-semibold text-slate-900">
+                          <td className="px-6 py-4">
                             <div className="flex flex-col">
-                              <span>₹{(parseFloat(account.closing_balance) || 0).toFixed(2)}</span>
-                              <span className={`text-[10px] ${account.balance_type === 'credit' ? 'text-green-600' : account.balance_type === 'debit' ? 'text-red-600' : 'text-slate-500'}`}>
+                              <span className="font-black text-sm italic">₹{(parseFloat(account.closing_balance) || 0).toFixed(2)}</span>
+                              <span className={`text-[9px] font-black uppercase tracking-widest leading-none mt-1 ${account.balance_type === 'credit' ? 'text-slate-900' : account.balance_type === 'debit' ? 'text-slate-500 line-through decoration-slate-300' : 'text-slate-300'}`}>
                                 {account.balance_type === 'credit' ? `${t('accountMaster.jama')} (Cr)` : account.balance_type === 'debit' ? `${t('accountMaster.udhar')} (Dr)` : 'Zero'}
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm">
-                            {account.is_active ? (
-                              <div className="flex items-center gap-1 text-green-600">
-                                <CheckCircle className="w-4 h-4" />
-                                <span>{t('accountMaster.active')}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 text-red-600">
-                                <XCircle className="w-4 h-4" />
-                                <span>{t('accountMaster.inactive')}</span>
-                              </div>
-                            )}
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
+                              account.is_active
+                                ? 'bg-slate-900 text-white border-slate-900'
+                                : 'bg-white text-slate-400 border-slate-200 line-through'
+                            }`}>
+                              {account.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
+                            </span>
                           </td>
-                          <td className="px-6 py-4 text-right flex gap-2 justify-end">
-                            <button
-                              onClick={() => handleShowBalance(account)}
-                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title={t('accountMaster.balanceDetails')}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleEdit(account)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title={t('accountMaster.edit')}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            {account.is_active ? (
+                          <td className="px-6 py-4">
+                            <div className="flex justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
                               <button
-                                onClick={() => handleDeactivate(account.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title={t('accountMaster.deactivate')}
+                                onClick={() => handleShowBalance(account)}
+                                className="p-2 text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-lg transition-all"
+                                title={t('accountMaster.balanceDetails')}
                               >
-                                <XCircle className="w-4 h-4" />
+                                <Eye className="w-4 h-4" />
                               </button>
-                            ) : (
                               <button
-                                onClick={() => handleActivate(account.id)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                title={t('accountMaster.activate')}
+                                onClick={() => handleEdit(account)}
+                                className="p-2 text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-lg transition-all"
+                                title={t('accountMaster.edit')}
                               >
-                                <CheckCircle className="w-4 h-4" />
+                                <Edit2 className="w-4 h-4" />
                               </button>
-                            )}
+                              {account.is_active ? (
+                                <button
+                                  onClick={() => handleDeactivate(account.id)}
+                                  className="p-2 text-zinc-400 hover:text-black hover:bg-zinc-100 hover:border-zinc-200 border border-transparent rounded-lg transition-all"
+                                  title={t('accountMaster.deactivate')}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleActivate(account.id)}
+                                  className="p-2 text-zinc-900 hover:bg-zinc-900 hover:text-white border border-transparent rounded-lg transition-all"
+                                  title={t('accountMaster.activate')}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -426,36 +425,41 @@ export default function AccountMaster() {
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <p className="text-sm text-blue-900">
-            <strong>💡 {t('accountMaster.tip')}:</strong> {t('accountMaster.accountTip')}
-          </p>
+        {/* Tip Section - Monochrome Style */}
+        <div className="bg-white p-6 rounded-xl border-l-4 border-slate-900 shadow-md">
+          <div className="flex gap-4 items-start">
+            <div className="bg-slate-900 text-white p-2 rounded-lg">💡</div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-1">{t('accountMaster.tip')}</p>
+              <p className="text-sm text-slate-600 font-medium">
+                {t('accountMaster.accountTip')}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-      {/* Balance Details Modal */}
+      {/* Balance Details Modal - Industrial Design */}
       {balanceModal.isOpen && balanceModal.account && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Eye className="w-5 h-5 text-indigo-600" />
+            <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-white">
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter italic flex items-center gap-2">
+                <Eye className="w-5 h-5" />
                 {t('accountMaster.balanceDetails')}
               </h3>
               <button 
                 onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false, error: null })}
-                className="text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-1.5 rounded-lg transition-colors"
+                className="text-slate-400 hover:text-black transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-8 h-8" />
               </button>
             </div>
             
-            {/* Modal Body */}
-            <div className="p-6">
+            <div className="p-8">
               <div className="mb-6 pb-4 border-b border-slate-100">
-                <p className="text-sm font-medium text-slate-500">{t('accountMaster.accountName')}</p>
-                <p className="text-xl font-bold text-slate-900">{balanceModal.account.account_name}</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t('accountMaster.accountName')}</p>
+                <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{balanceModal.account.account_name}</p>
               </div>
 
               {balanceModal.loading ? (
@@ -472,52 +476,52 @@ export default function AccountMaster() {
                   
                   {/* Opening Balance */}
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-slate-600 w-36">{t('accountMaster.openingBalance')} :</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.openingBalance')} :</span>
                     <div className="flex-1">
                        <input
                          type="text"
                          readOnly
                          value={balanceModal.data.openingBalance.toFixed(2)}
-                         className="w-full px-3 py-2 outline-none text-right bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold shadow-inner"
+                         className="w-full px-4 py-3 outline-none text-right bg-slate-50 border-2 border-slate-100 rounded-lg text-slate-900 font-black italic shadow-inner"
                        />
                     </div>
                   </div>
 
                   {/* Total Debit */}
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-slate-600 w-36">{t('accountMaster.totalDebit')} :</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.totalDebit')} :</span>
                     <div className="flex-1">
                        <input
                          type="text"
                          readOnly
                          value={balanceModal.data.totalDebit.toFixed(2)}
-                         className="w-full px-3 py-2 outline-none text-right bg-[#e4efff] border border-blue-200 rounded-lg text-blue-900 font-medium shadow-inner"
+                         className="w-full px-4 py-3 outline-none text-right bg-slate-50 border-2 border-slate-100 rounded-lg text-slate-600 font-black shadow-inner"
                        />
                     </div>
                   </div>
 
                   {/* Total Credit */}
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-slate-600 w-36">{t('accountMaster.totalCredit')} :</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.totalCredit')} :</span>
                     <div className="flex-1">
                        <input
                          type="text"
                          readOnly
                          value={balanceModal.data.totalCredit.toFixed(2)}
-                         className="w-full px-3 py-2 outline-none text-right bg-[#e4efff] border border-blue-200 rounded-lg text-blue-900 font-medium shadow-inner"
+                         className="w-full px-4 py-3 outline-none text-right bg-slate-50 border-2 border-slate-100 rounded-lg text-slate-600 font-black shadow-inner"
                        />
                     </div>
                   </div>
 
                   {/* Closing Balance */}
-                  <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
-                    <span className="text-sm font-bold text-slate-800 w-36">{t('accountMaster.closingBalance')} :</span>
+                  <div className="flex items-center justify-between gap-4 pt-6 border-t border-slate-100">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-widest w-36">{t('accountMaster.closingBalance')} :</span>
                     <div className="flex-1">
                        <input
                          type="text"
                          readOnly
                          value={(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toFixed(2)}
-                         className="w-full px-3 py-2 outline-none text-right bg-[#c2d7f8] border border-blue-300 rounded-lg text-blue-900 font-bold shadow-inner"
+                         className="w-full px-4 py-3 outline-none text-right bg-black border-2 border-black rounded-lg text-white font-black text-lg italic shadow-xl"
                        />
                     </div>
                   </div>
@@ -530,7 +534,7 @@ export default function AccountMaster() {
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false, error: null })}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-lg transition-colors"
+                className="px-8 py-3 bg-black hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-lg transition-all active:scale-95 shadow-md"
                >
                 Close
               </button>

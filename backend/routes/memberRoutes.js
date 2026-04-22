@@ -6,9 +6,6 @@ const router = express.Router();
 
 // Validation middleware
 const validateCreateMember = [
-  body('account_id')
-    .notEmpty().withMessage('Account is required')
-    .isInt().withMessage('Account ID must be a number'),
   body('member_name')
     .notEmpty().withMessage('Member name is required')
     .trim()
@@ -42,39 +39,32 @@ const handleValidationErrors = (req, res, next) => {
  */
 router.post('/', validateCreateMember, handleValidationErrors, async (req, res) => {
   try {
-    const { account_id, member_name, phone, email, discount_percentage } = req.body;
+    const { member_name, member_address, member_gst_no, phone, email, discount_percentage } = req.body;
     const company_id = req.headers['x-company-id'];
     
     if (!company_id) {
       return res.status(400).json({ success: false, error: 'Company ID is required' });
     }
 
-    // Check if account exists and is type 'customer'
-    const accounts = await query(
-      'SELECT id, account_type FROM accounts WHERE id = ? AND account_type = ? AND company_id = ?',
-      [account_id, 'customer', company_id]
+    // Get the next sequential member code for this company
+    const result = await query(
+      'SELECT MAX(CAST(member_code AS UNSIGNED)) as max_code FROM member_master WHERE company_id = ? AND member_code REGEXP "^[0-9]+$"',
+      [company_id]
     );
 
-    if (!accounts || accounts.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid account. Only customer-type accounts can be members.' 
-      });
-    }
-
-    // Generate member code
-    const memberCode = `MEM-${company_id}-${Date.now()}`;
+    const nextCode = (result[0]?.max_code || 0) + 1;
+    const memberCode = String(nextCode);
 
     // Insert member
     await execute(
-      'INSERT INTO member_master (company_id, account_id, member_code, member_name, phone, email, discount_percentage) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [company_id, account_id, memberCode, member_name, phone || null, email || null, discount_percentage || 0]
+      'INSERT INTO member_master (company_id, member_code, member_name, member_address, member_gst_no, phone, email, discount_percentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [company_id, memberCode, member_name, member_address || null, member_gst_no || null, phone || null, email || null, discount_percentage || 0]
     );
 
     // Get the inserted member
     const members = await query(
-      'SELECT * FROM member_master WHERE member_code = ?',
-      [memberCode]
+      'SELECT * FROM member_master WHERE member_code = ? AND company_id = ?',
+      [memberCode, company_id]
     );
 
     res.status(201).json({
@@ -105,10 +95,10 @@ router.get('/company/:companyId', async (req, res) => {
     let sql = `
       SELECT 
         m.id, m.company_id, m.account_id, m.member_code, m.member_name,
-        m.phone, m.email, m.discount_percentage, m.loyalty_points,
-        m.is_active, m.created_at, a.account_name, a.account_type
+        m.member_address, m.member_gst_no, m.phone, m.email, m.discount_percentage, 
+        m.loyalty_points, m.is_active, m.created_at, a.account_name, a.account_type
       FROM member_master m
-      INNER JOIN accounts a ON m.account_id = a.id
+      LEFT JOIN accounts a ON m.account_id = a.id
       WHERE m.company_id = ?
     `;
 
@@ -141,7 +131,7 @@ router.get('/:id', async (req, res) => {
     const results = await query(
       `SELECT m.*, a.account_name, a.account_type
        FROM member_master m
-       INNER JOIN accounts a ON m.account_id = a.id
+       LEFT JOIN accounts a ON m.account_id = a.id
        WHERE m.id = ?`,
       [id]
     );

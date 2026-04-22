@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, AlertCircle, Search } from 'lucide-react';
+import { X, Plus, Trash2, AlertCircle, Search, Package, Hash, User, Calendar, CheckCircle2, ChevronRight, Activity, DollarSign } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import GSTSelector from './GSTSelector';
@@ -24,7 +24,7 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
   useEffect(() => {
     const fetchPurchases = async () => {
       try {
-        const startDate = new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0];
+        const startDate = new Date(new Date().setDate(new Date().getDate() - 120)).toISOString().split('T')[0];
         const endDate = new Date().toISOString().split('T')[0];
         
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases`, {
@@ -46,7 +46,7 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
 
   const handleSelectPurchase = async (purchase) => {
     try {
-      // Fetch full purchase details with items
+      setLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchase-returns/purchase/${purchase.id}`, {
         headers: { 'x-company-id': company.id }
       });
@@ -69,30 +69,26 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
         }));
         setShowPurchaseSearch(false);
         setSearchPurchase('');
+        setErrors({});
       }
     } catch (err) {
-      console.error('Fetch purchase details error:', err);
-      setErrors({ submit: 'Failed to load purchase details' });
+      setErrors({ submit: 'Manifest Integrity Breach: Failed to load purchase pipeline' });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
-    newItems[index][field] = value;
+    let finalValue = value;
+    if (field === 'quantity') {
+      finalValue = Math.min(Math.max(0, parseFloat(value) || 0), newItems[index].max_return_qty);
+    }
+    newItems[index][field] = finalValue;
     setFormData(prev => ({
       ...prev,
       items: newItems
     }));
-
-    // Clear item errors
-    if (errors.items && errors.items[index]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        const itemErrors = [...(newErrors.items || [])];
-        delete itemErrors[index];
-        return { ...newErrors, items: itemErrors };
-      });
-    }
   };
 
   const calculateAmount = (index) => {
@@ -114,294 +110,320 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
     setErrors({});
 
     try {
+      const itemsToReturn = formData.items.filter(item => parseFloat(item.quantity) > 0);
+      
+      if (itemsToReturn.length === 0) {
+        setErrors({ submit: 'VALIDATION_FAILURE: No objects isolated for return' });
+        setLoading(false);
+        return;
+      }
+
       const returnData = {
         purchase_id: parseInt(formData.purchase_id),
         return_date: formData.return_date,
-        items: formData.items
-          .filter(item => item.quantity)
-          .map(item => ({
-            item_id: parseInt(item.item_id),
-            quantity: parseFloat(item.quantity),
-            purchase_rate: parseFloat(item.purchase_rate),
-            max_return_qty: parseFloat(item.max_return_qty)
-          })),
+        items: itemsToReturn.map(item => ({
+          item_id: parseInt(item.item_id),
+          quantity: parseFloat(item.quantity),
+          purchase_rate: parseFloat(item.purchase_rate),
+          max_return_qty: parseFloat(item.max_return_qty)
+        })),
         notes: formData.notes
       };
 
       await onSubmit(returnData);
     } catch (err) {
-      if (err.response?.data?.errors) {
-        setErrors(err.response.data.errors);
-      } else {
-        setErrors({ submit: err.message });
-      }
+      setErrors({ submit: err.response?.data?.message || 'CRITICAL_AUTH: Submission protocol rejected' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6 sticky top-0 bg-white pb-4 border-b">
-        <h2 className="text-2xl font-bold text-slate-900">{t('purchaseReturn.createNewReturn')}</h2>
-        <button
-          onClick={onClose}
-          className="text-slate-500 hover:text-slate-700 text-2xl"
-        >
-          ×
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* General Errors */}
-        {errors.submit && (
-          <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <span className="text-sm text-red-700">{errors.submit}</span>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4 select-none">
+      <div className="bg-[#f8fafc] border-2 border-slate-900 w-full max-w-4xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col font-sans relative rounded-3xl overflow-hidden max-h-[95vh]">
+        
+        {/* Ribbon Header */}
+        <div className="bg-slate-900 text-white px-8 py-5 flex justify-between items-center border-b-2 border-white/5">
+          <div className="flex items-center gap-4">
+             <div className="w-10 h-10 bg-white border-2 border-white/10 rounded-xl flex items-center justify-center text-slate-900 shadow-xl">
+                <Package size={20} strokeWidth={3} />
+             </div>
+             <div>
+                <h2 className="text-xl font-black uppercase tracking-tighter italic leading-none">{t('purchaseReturn.createNewReturn', 'Inward Manifest Reversal')}</h2>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Industrial Supply Chain Correction</p>
+             </div>
           </div>
-        )}
-
-        {/* Purchase Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('purchaseReturn.selectPurchase')}
-          </label>
-          <div className="relative">
-            {selectedPurchase ? (
-              <div className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-slate-900">{selectedPurchase.invoice_no}</p>
-                  <p className="text-xs text-slate-600">{selectedPurchase.supplier_name}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPurchase(null);
-                    setFormData(prev => ({
-                      ...prev,
-                      purchase_id: '',
-                      items: []
-                    }));
-                  }}
-                  className="text-red-600 hover:text-red-700 text-sm font-medium"
-                >
-                  Change
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowPurchaseSearch(!showPurchaseSearch)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-left text-slate-600 hover:bg-slate-50"
-                >
-                  {t('purchaseReturn.selectPurchase')}
-                </button>
-
-                {showPurchaseSearch && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
-                    <div className="p-3 border-b sticky top-0 bg-white">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-2.5 w-4 h-4 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder={t('purchaseReturn.searchPurchase')}
-                          value={searchPurchase}
-                          onChange={(e) => setSearchPurchase(e.target.value)}
-                          className="w-full pl-8 pr-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                    {filteredPurchases.length === 0 ? (
-                      <div className="p-3 text-center text-sm text-slate-600">
-                        {t('purchaseReturn.noPurchasesFound')}
-                      </div>
-                    ) : (
-                      filteredPurchases.map(purchase => (
-                        <button
-                          key={purchase.id}
-                          type="button"
-                          onClick={() => handleSelectPurchase(purchase)}
-                          className="w-full px-3 py-2 text-left hover:bg-slate-100 border-b text-sm"
-                        >
-                          <p className="font-medium text-slate-900">{purchase.invoice_no}</p>
-                          <p className="text-xs text-slate-600">{purchase.supplier_name}</p>
-                          <p className="text-xs text-slate-500">₹{parseFloat(purchase.total_amount).toFixed(2)}</p>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          {errors.purchase_id && (
-            <p className="text-xs text-red-600 mt-1">{errors.purchase_id}</p>
-          )}
+          <button onClick={onClose} className="p-2.5 bg-white/5 hover:bg-red-600 text-white rounded-xl transition-all active:scale-90 border border-white/10">
+            <X size={20} strokeWidth={3} />
+          </button>
         </div>
 
-        {selectedPurchase && (
-          <>
-            {/* Return Date */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                {t('purchaseReturn.returnDateRequired')}
-              </label>
-              <input
-                type="date"
-                value={formData.return_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, return_date: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  errors.return_date ? 'border-red-500' : 'border-slate-300'
-                }`}
-              />
-              {errors.return_date && (
-                <p className="text-xs text-red-600 mt-1">{errors.return_date}</p>
-              )}
-            </div>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scroller-industrial">
+          <div className="p-10 space-y-10 bg-white">
+            
+            {/* ALERT CENTER */}
+            {errors.submit && (
+              <div className="flex gap-4 p-5 bg-red-50 border-2 border-red-200 rounded-2xl animate-pulse">
+                <AlertCircle className="w-6 h-6 text-red-600 shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-red-700 leading-relaxed italic">{errors.submit}</span>
+              </div>
+            )}
 
-            {/* Items Section */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('purchaseReturn.returnItems')}</h3>
-
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {formData.items.map((item, index) => (
-                  <div key={index} className="p-4 border border-slate-200 rounded-lg bg-slate-50">
-                    <div className="grid grid-cols-5 gap-3">
-                      {/* Item Name (read-only) */}
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          {t('purchaseReturn.item')}
-                        </label>
-                        <div className="px-2 py-2 text-sm font-medium text-slate-900 bg-white rounded border border-slate-300">
-                          {item.item_name}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+               {/* Left Controls */}
+               <div className="lg:col-span-12 space-y-8">
+                  
+                  {/* Purchase Selector */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 italic">Phase_01: Source Isolation</label>
+                    <div className="relative">
+                      {selectedPurchase ? (
+                        <div className="w-full p-6 bg-slate-900 border-2 border-black rounded-2xl shadow-xl flex justify-between items-center group overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-full bg-white/5 skew-x-12 translate-x-16"></div>
+                           <div className="relative z-10">
+                              <div className="flex items-center gap-3">
+                                 <Hash size={14} className="text-slate-500" />
+                                 <p className="text-lg font-black text-white italic tracking-tighter uppercase">{selectedPurchase.invoice_no}</p>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1">
+                                 <User size={12} className="text-slate-500" />
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedPurchase.supplier_name}</p>
+                              </div>
+                           </div>
+                           <button
+                             type="button"
+                             onClick={() => setSelectedPurchase(null)}
+                             className="relative z-10 px-6 py-2.5 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-black/20 italic"
+                           >
+                             Reset Pipeline
+                           </button>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setShowPurchaseSearch(!showPurchaseSearch)}
+                            className="w-full p-6 bg-slate-50 border-2 border-slate-100 hover:border-black rounded-2xl text-left transition-all group flex items-center justify-between"
+                          >
+                             <div className="flex items-center gap-4">
+                                <Search className="w-6 h-6 text-slate-300 group-hover:text-black transition-colors" strokeWidth={3} />
+                                <span className="font-black text-slate-300 group-hover:text-black uppercase tracking-widest text-[11px] italic">Access Inward Manifest Stream...</span>
+                             </div>
+                             <ChevronRight className="text-slate-200 group-hover:translate-x-1 transition-all" />
+                          </button>
 
-                      {/* Purchased Quantity (read-only) */}
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          {t('purchaseReturn.purchasedQty')}
-                        </label>
-                        <div className="px-2 py-2 text-sm font-medium text-slate-900 bg-white rounded border border-slate-300">
-                          {item.purchased_quantity}
+                          {showPurchaseSearch && (
+                            <div className="absolute top-full left-0 right-0 mt-4 bg-white border-2 border-black rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.15)] z-[120] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                              <div className="p-4 bg-slate-50 border-b border-slate-100 sticky top-0 bg-white">
+                                <div className="relative">
+                                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={3} />
+                                  <input
+                                    type="text"
+                                    placeholder="ISOLATE BY INVOICE_ID OR ENTITY_NAME..."
+                                    value={searchPurchase}
+                                    onChange={(e) => setSearchPurchase(e.target.value)}
+                                    className="w-full pl-12 pr-6 py-3 border-2 border-slate-200 rounded-xl text-[10px] uppercase font-black tracking-widest outline-none focus:border-black transition-all bg-white shadow-inner"
+                                    autoFocus
+                                  />
+                                </div>
+                              </div>
+                              <div className="max-h-64 overflow-y-auto scroller-industrial">
+                                {filteredPurchases.length === 0 ? (
+                                  <div className="p-12 text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">
+                                    Zero Manifest Matches Detected
+                                  </div>
+                                ) : (
+                                  filteredPurchases.map(purchase => (
+                                    <button
+                                      key={purchase.id}
+                                      type="button"
+                                      onClick={() => handleSelectPurchase(purchase)}
+                                      className="w-full px-8 py-5 text-left hover:bg-slate-50 border-b border-slate-50 transition-colors flex justify-between items-center group"
+                                    >
+                                      <div>
+                                        <p className="font-black text-slate-900 italic uppercase tracking-tight">{purchase.invoice_no}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{purchase.supplier_name}</p>
+                                      </div>
+                                      <div className="text-right">
+                                         <p className="text-xs font-black text-slate-900 italic">₹{parseFloat(purchase.total_amount).toLocaleString('en-IN')}</p>
+                                         <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">Audit_Ref: {purchase.id}</p>
+                                      </div>
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-
-                      {/* Return Quantity */}
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          {t('purchaseReturn.returnQtyRequired')}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          placeholder="0.00"
-                          max={item.purchased_quantity}
-                          className={`w-full px-2 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                            errors.items?.[index]?.quantity ? 'border-red-500' : 'border-slate-300'
-                          }`}
-                        />
-                        {errors.items?.[index]?.quantity && (
-                          <p className="text-xs text-red-600 mt-1">{errors.items[index].quantity}</p>
-                        )}
-                      </div>
-
-                      {/* Rate (read-only) */}
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          {t('purchaseReturn.rate')}
-                        </label>
-                        <div className="px-2 py-2 text-sm font-medium text-slate-900 bg-white rounded border border-slate-300">
-                          ₹{parseFloat(item.purchase_rate).toFixed(2)}
-                        </div>
-                      </div>
-
-                      {/* Amount */}
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          {t('purchaseReturn.amount')}
-                        </label>
-                        <div className="px-2 py-2 text-sm font-bold text-indigo-600 bg-white rounded border border-slate-300">
-                          ₹{calculateAmount(index).toFixed(2)}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
+               </div>
+
+               {selectedPurchase && (
+                 <div className="lg:col-span-12 space-y-10 animate-in fade-in duration-500">
+                    
+                    {/* Return Setup Group */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end border-b-2 border-slate-100 pb-10">
+                       <div className="md:col-span-4 space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1 flex items-center gap-2">
+                             <Calendar size={12} strokeWidth={3} /> Reversal Date :
+                          </label>
+                          <input
+                            type="date"
+                            value={formData.return_date}
+                            onChange={(e) => setFormData(prev => ({ ...prev, return_date: e.target.value }))}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest outline-none focus:bg-white shadow-lg transition-transform focus:scale-[1.02]"
+                          />
+                       </div>
+                       <div className="md:col-span-8 space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Protocol Notes / Cause :</label>
+                          <input
+                            type="text"
+                            value={formData.notes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                            placeholder="DOCUMENT REASON FOR LOGISTIC REVERSAL..."
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none focus:border-black focus:bg-white transition-all italic"
+                          />
+                       </div>
+                    </div>
+
+                    {/* Object Detail Table */}
+                    <div className="space-y-6">
+                       <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-6 bg-black"></div>
+                          <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-900">Isolated Reversal Array</h3>
+                       </div>
+
+                       <div className="border-4 border-black rounded-[2rem] overflow-hidden shadow-2xl bg-[#fefefe]">
+                          <table className="w-full">
+                            <thead>
+                               <tr className="bg-slate-900 text-white font-black uppercase tracking-widest text-[9px] italic border-b-4 border-black">
+                                  <th className="px-8 py-6 text-left border-r border-white/5">Nomenclature</th>
+                                  <th className="px-8 py-6 text-center border-r border-white/5">Inbound</th>
+                                  <th className="px-8 py-6 text-center border-r border-white/5">Reversal_Qty</th>
+                                  <th className="px-8 py-6 text-right border-r border-white/5">Rate</th>
+                                  <th className="px-8 py-6 text-right">Value</th>
+                               </tr>
+                            </thead>
+                            <tbody className="divide-y-2 divide-slate-50">
+                               {formData.items.map((item, index) => (
+                                 <tr key={index} className={`transition-all ${parseFloat(item.quantity) > 0 ? 'bg-slate-100 italic' : 'bg-white'}`}>
+                                    <td className="px-8 py-5 border-r border-slate-50">
+                                       <p className="font-black text-slate-900 text-sm tracking-tighter uppercase">{item.item_name}</p>
+                                       <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">{item.item_code}</p>
+                                    </td>
+                                    <td className="px-8 py-5 text-center font-mono font-black text-slate-400 border-r border-slate-50">{item.purchased_quantity}</td>
+                                    <td className="px-8 py-5 text-center border-r border-slate-50">
+                                       <div className="relative group mx-auto w-24">
+                                          <input
+                                            type="number"
+                                            step="1"
+                                            value={item.quantity}
+                                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                            placeholder="0"
+                                            className={`w-full px-4 py-2 font-black font-mono text-center text-sm rounded-xl outline-none transition-all ${
+                                              parseFloat(item.quantity) > 0 
+                                              ? 'bg-black text-white border-2 border-black' 
+                                              : 'bg-slate-50 text-slate-300 border-2 border-slate-100 focus:border-black focus:text-black'
+                                            }`}
+                                          />
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-5 text-right font-mono font-black text-slate-400 border-r border-slate-50 italic">₹{parseFloat(item.purchase_rate).toFixed(2)}</td>
+                                    <td className="px-8 py-5 text-right">
+                                       <span className={`font-mono text-base font-black tracking-tighter italic ${parseFloat(item.quantity) > 0 ? 'text-black' : 'text-slate-200'}`}>
+                                          ₹{calculateAmount(index).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                       </span>
+                                    </td>
+                                 </tr>
+                               ))}
+                            </tbody>
+                          </table>
+                          {formData.items.length === 0 && (
+                             <div className="p-16 text-center border-t-2 border-slate-50 text-slate-200 font-black uppercase tracking-[0.5em] italic text-[10px]">Zero Object Density In Pipeline</div>
+                          )}
+                       </div>
+                    </div>
+
+                    {/* HIGH IMPACT SUMMARY FOOTER */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                       
+                       <div className="md:col-span-7 bg-slate-900 p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-all duration-1000"></div>
+                          <div className="relative z-10 space-y-8">
+                             <div className="flex items-center gap-4 border-b border-white/10 pb-6 opacity-60">
+                                <div className="p-3 bg-white/10 rounded-2xl"><Activity size={24} strokeWidth={3}/></div>
+                                <div>
+                                   <p className="text-[9px] font-black uppercase tracking-[0.4em] leading-none">Inward Protocol Audit</p>
+                                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-2 italic">Automated Yield Calculation Engine</p>
+                                </div>
+                             </div>
+                             
+                             <div className="grid grid-cols-3 gap-6">
+                                <div>
+                                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Isolated Nodes</p>
+                                   <p className="text-2xl font-black italic tracking-tighter">{formData.items.filter(i => parseFloat(i.quantity) > 0).length}</p>
+                                </div>
+                                <div>
+                                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Total Density</p>
+                                   <p className="text-2xl font-black italic tracking-tighter">{formData.items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0).toFixed(1)} <span className="text-[10px]">UNTs</span></p>
+                                </div>
+                                <div className="text-right">
+                                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Gross Reversal</p>
+                                   <p className="text-3xl font-black italic tracking-tighter text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">₹{calculateTotal().toLocaleString('en-IN', { minimumFractionDigits: 0 })}</p>
+                                </div>
+                             </div>
+                             
+                             <div className="flex items-center gap-3 pt-6 border-t border-white/10 text-[9px] font-black italic text-slate-500 uppercase tracking-widest">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
+                                System synchronization ready for execution phase
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="md:col-span-5 bg-white border-2 border-slate-100 p-8 rounded-[2.5rem] shadow-xl">
+                          <GSTSelector
+                            amount={calculateTotal()}
+                            isIntraState={true}
+                            showBreakdown={true}
+                            onGSTChange={(data) => setGstData(data)}
+                          />
+                       </div>
+                    </div>
+                 </div>
+               )}
             </div>
+          </div>
+        </form>
 
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                {t('purchaseReturn.notes')}
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder={t('purchaseReturn.optionalNotes')}
-                rows="3"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            {/* Total Summary with GST */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">{t('purchaseReturn.itemsToReturn')}</p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {formData.items.filter(i => i.quantity).length}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">{t('purchaseReturn.totalQtyReturn')}</p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {formData.items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">{t('purchaseReturn.totalReturnAmount')}</p>
-                    <p className="text-lg font-bold text-green-600">₹{calculateTotal().toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* GST Calculator */}
-              <GSTSelector
-                amount={calculateTotal()}
-                isIntraState={true}
-                showBreakdown={true}
-                onGSTChange={(data) => setGstData(data)}
-              />
-            </div>
-          </>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-3 pt-6 border-t sticky bottom-0 bg-white">
+        {/* SHIPMENT CONTROLS */}
+        <div className="bg-slate-100 border-t-2 border-slate-900 px-10 py-8 flex justify-end gap-6 shadow-2xl relative z-20">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+            className="px-10 py-4 text-slate-400 font-black uppercase tracking-widest text-[11px] hover:text-black transition-colors italic hover:bg-white rounded-2xl active:scale-95"
           >
-            {t('common.cancel')}
+            Abort Protocol
           </button>
           <button
-            type="submit"
-            disabled={loading || !selectedPurchase}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSubmit}
+            disabled={loading || !selectedPurchase || formData.items.every(i => !parseFloat(i.quantity))}
+            className="px-16 py-4 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-black transition-all active:scale-90 shadow-2xl flex items-center gap-4 italic disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed border-2 border-black"
           >
-            {loading ? t('purchaseReturn.saving') : t('purchaseReturn.createReturn')}
+            {loading ? <div className="w-5 h-5 border-4 border-white/30 border-t-white rounded-full animate-spin"></div> : <CheckCircle2 size={18} strokeWidth={3} />}
+            COMMIT INWARD REVERSAL
           </button>
         </div>
-      </form>
+
+        {/* Industrial Decor */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .scroller-industrial::-webkit-scrollbar { width: 8px; }
+          .scroller-industrial::-webkit-scrollbar-track { background: #f8fafc; }
+          .scroller-industrial::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
+          .scroller-industrial::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        `}} />
+      </div>
     </div>
   );
 }

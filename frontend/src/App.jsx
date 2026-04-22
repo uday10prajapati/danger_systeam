@@ -73,15 +73,10 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50">
-      {isAuth && location.pathname !== '/' && location.pathname !== '/login' && (
-        <div className="flex-none z-50 relative shadow-sm">
-          <Navbar backendStatus={backendStatus} />
-        </div>
-      )}
       <div className="flex flex-1 overflow-hidden relative">
         {isAuth && location.pathname !== '/' && location.pathname !== '/login' && <Sidebar />}
         <div 
-          className="flex-1 overflow-y-auto w-full h-full pb-10"
+          className="flex-1 overflow-y-auto w-full h-full pb-10 flex flex-col"
           style={{
             marginLeft: isAuth && location.pathname !== '/' && location.pathname !== '/login' && isDesktop
               ? `${sidebarOpen ? 256 : 80}px` 
@@ -89,35 +84,40 @@ function AppContent() {
             transition: 'margin-left 300ms ease-in-out',
           }}
         >
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            
-            {/* Setup & Configuration */}
-            <Route path="/company" element={<Company />} />
-            <Route path="/users" element={<UserMaster />} />
-            <Route path="/accounts" element={<AccountMaster />} />
-            <Route path="/members" element={<MemberMaster />} />
-            <Route path="/items" element={<ItemMaster />} />
-            <Route path="/rates" element={<ItemRate />} />
-            
-            {/* Transactions */}
-            <Route path="/sales" element={<Sale />} />
-            <Route path="/sales-return" element={<SaleReturn />} />
-            <Route path="/purchase" element={<Purchase />} />
-            <Route path="/purchase-return" element={<PurchaseReturn />} />
-            
-            {/* Tools & Reports */}
-            <Route path="/barcode" element={<BarcodeScannerPage />} />
-            <Route path="/cashbook" element={<Rojmel />} />
-            <Route path="/ledger" element={<AccountLedger />} />
-            <Route path="/ledger-report" element={<LedgerReport />} />
-            <Route path="/rojmel" element={<Rojmel />} />
-            <Route path="/sabhasad-ledger" element={<SabhasadLedgerSummary />} />
-            <Route path="/profit-loss" element={<ProfitLoss />} />
-            <Route path="/stock" element={<StockReport />} />
-          </Routes>
+          {isAuth && location.pathname !== '/' && location.pathname !== '/login' && (
+            <div className="flex-none sticky top-0 z-30 shadow-sm bg-white">
+              <Navbar backendStatus={backendStatus} />
+            </div>
+          )}
+          <div className="flex-1 overflow-auto">
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/company" element={<Company />} />
+              <Route path="/users" element={<UserMaster />} />
+              <Route path="/accounts" element={<AccountMaster />} />
+              <Route path="/members" element={<MemberMaster />} />
+              <Route path="/items" element={<ItemMaster />} />
+              <Route path="/rates" element={<ItemRate />} />
+              
+              {/* Transactions */}
+              <Route path="/sales" element={<Sale />} />
+              <Route path="/sales-return" element={<SaleReturn />} />
+              <Route path="/purchase" element={<Purchase />} />
+              <Route path="/purchase-return" element={<PurchaseReturn />} />
+              
+              {/* Tools & Reports */}
+              <Route path="/barcode" element={<BarcodeScannerPage />} />
+              <Route path="/cashbook" element={<Rojmel />} />
+              <Route path="/ledger" element={<AccountLedger />} />
+              <Route path="/ledger-report" element={<LedgerReport />} />
+              <Route path="/rojmel" element={<Rojmel />} />
+              <Route path="/sabhasad-ledger" element={<SabhasadLedgerSummary />} />
+              <Route path="/profit-loss" element={<ProfitLoss />} />
+              <Route path="/stock" element={<StockReport />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </div>

@@ -14,7 +14,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   const [paymentType, setPaymentType] = useState('credit'); // credit, cash
   const [taxType, setTaxType] = useState('CGST/SGST'); // CGST/SGST, IGST
   const [supplierId, setSupplierId] = useState('');
-  
+
   // Supplier (Party) Search State
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
   const [supplierSearchText, setSupplierSearchText] = useState('');
@@ -40,22 +40,22 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   const itemInputRef = useRef(null);
 
   const calculateDropdownPos = () => {
-     if (itemInputRef.current) {
-        const rect = itemInputRef.current.getBoundingClientRect();
-        setDropdownPos({
-           top: rect.bottom, 
-           left: rect.left,
-           width: Math.max(rect.width, 400)
-        });
-     }
+    if (itemInputRef.current) {
+      const rect = itemInputRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom,
+        left: rect.left,
+        width: Math.max(rect.width, 400)
+      });
+    }
   };
 
   useEffect(() => {
-     if (showItemDropdown) {
-        calculateDropdownPos();
-        window.addEventListener('resize', calculateDropdownPos);
-        return () => window.removeEventListener('resize', calculateDropdownPos);
-     }
+    if (showItemDropdown) {
+      calculateDropdownPos();
+      window.addEventListener('resize', calculateDropdownPos);
+      return () => window.removeEventListener('resize', calculateDropdownPos);
+    }
   }, [showItemDropdown]);
 
   useEffect(() => {
@@ -94,21 +94,21 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
     let igstPercent = 0, igstAmt = 0;
 
     if (item) {
-       if (taxType === 'CGST/SGST') {
-          cgstPercent = parseFloat(item.cgst_percent) || 0;
-          sgstPercent = parseFloat(item.sgst_percent) || 0;
-          
-          if (cgstPercent === 0 && sgstPercent === 0 && item.tax_percentage) {
-             cgstPercent = parseFloat(item.tax_percentage) / 2;
-             sgstPercent = parseFloat(item.tax_percentage) / 2;
-          }
+      if (taxType === 'CGST/SGST') {
+        cgstPercent = parseFloat(item.cgst_percent) || 0;
+        sgstPercent = parseFloat(item.sgst_percent) || 0;
 
-          cgstAmt = amount * (cgstPercent / 100);
-          sgstAmt = amount * (sgstPercent / 100);
-       } else {
-          igstPercent = parseFloat(item.igst_percent) || parseFloat(item.tax_percentage) || 0;
-          igstAmt = amount * (igstPercent / 100);
-       }
+        if (cgstPercent === 0 && sgstPercent === 0 && item.tax_percentage) {
+          cgstPercent = parseFloat(item.tax_percentage) / 2;
+          sgstPercent = parseFloat(item.tax_percentage) / 2;
+        }
+
+        cgstAmt = amount * (cgstPercent / 100);
+        sgstAmt = amount * (sgstPercent / 100);
+      } else {
+        igstPercent = parseFloat(item.igst_percent) || parseFloat(item.tax_percentage) || 0;
+        igstAmt = amount * (igstPercent / 100);
+      }
     }
 
     const totalAmount = amount + cgstAmt + sgstAmt + igstAmt;
@@ -132,7 +132,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
     };
 
     setPurchaseItems([...purchaseItems, newItem]);
-    
+
     // Reset inputs
     setCurrentItem(null);
     setItemSearchText('');
@@ -200,7 +200,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
         invoice_no: billNo,
         invoice_date: invoiceDate,
         is_intra_state: taxType === 'CGST/SGST',
-        payment_type: paymentType, 
+        payment_type: paymentType,
         notes: '',
         items: purchaseItems.map(row => ({
           item_id: row.id,
@@ -221,7 +221,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
         }, 1500);
       }
     } catch (err) {
-       setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save purchase');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save purchase');
     } finally {
       setLoading(false);
     }
@@ -229,301 +229,281 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm">
-      <div className="bg-gradient-to-br from-[#E8F0FF] to-[#F1F5F9] w-full max-w-[1400px] h-[95vh] rounded-none sm:rounded shadow-2xl flex flex-col border border-slate-300 overflow-hidden" 
-           style={{ fontFamily: "Tahoma, sans-serif" }}>
-        
-        {/* Visual Basic Style Form Header */}
-        <div className="flex justify-between items-center bg-[#4d79ff] text-white px-2 py-0.5 border-b-2 border-[#1E3A8A]">
-          <div className="flex items-center gap-2 font-bold text-sm tracking-wide">
-            Purchase
+      <div className="bg-slate-200 w-full max-w-6xl max-h-[90vh] rounded-lg shadow-2xl flex flex-col border-2 border-slate-900 overflow-hidden font-sans">
+
+        {/* Title Bar - Industrial Black */}
+        <div className="flex justify-between items-center bg-black text-white px-5 py-2">
+          <div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest">
+            <div className="w-3 h-3 bg-white rounded-full"></div>
+            Purchase Entry
           </div>
-          <button onClick={onCancel} className="bg-[#D32F2F] hover:bg-red-700 text-white px-3 border border-red-900 shadow-inner font-bold rounded-sm">X</button>
+          <button onClick={onCancel} className="hover:bg-red-600 text-white rounded-lg p-1 transition-all active:scale-90">
+            <X size={18} strokeWidth={3} />
+          </button>
         </div>
 
         {/* Dynamic Alerts */}
-        {error && <div className="bg-red-500 text-white text-xs font-bold px-4 py-1 animate-pulse border-b border-red-700">{error}</div>}
-        {success && <div className="bg-green-600 text-white text-xs font-bold px-4 py-1 border-b border-green-800">{success}</div>}
+        {error && <div className="bg-red-500 text-white text-[10px] font-black px-6 py-1.5 animate-pulse uppercase tracking-widest">{error}</div>}
+        {success && <div className="bg-slate-900 text-white text-[10px] font-black px-6 py-1.5 uppercase tracking-widest border-l-4 border-l-white">{success}</div>}
 
-        <div className="flex-1 overflow-auto bg-[#F0F5FA]">
-          {/* Top Form Section mimicking screenshot */}
-          <div className="bg-[#D3E1F1] p-2 border-b-2 border-white shadow-sm font-semibold text-[13px] text-[#1E3A8A]">
-            
+        <div className="flex-1 overflow-auto bg-white flex flex-col">
+          {/* Top Form Section */}
+          <div className="bg-slate-50 p-3 border-b border-slate-200 shadow-sm font-semibold text-[12px] text-slate-800">
+
             {/* Row 1: Party */}
-            <div className="flex flex-wrap gap-x-6 gap-y-3 px-2">
-              <div className="flex items-center gap-2 relative z-20">
-                 <span className="font-bold w-12 text-right">Party :</span>
-                 <input 
-                   type="text" 
-                   value={supplierSearchText} 
-                   onChange={(e) => {
-                     setSupplierSearchText(e.target.value);
-                     setShowSupplierDropdown(true);
-                   }}
-                   onFocus={() => setShowSupplierDropdown(true)}
-                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-[#FFFFE0] w-[350px] outline-none shadow-inner uppercase font-bold text-blue-900"
-                   placeholder="SEARCH SUPPLIER / PARTY..."
-                 />
-                 
-                 {showSupplierDropdown && (
-                    <div className="absolute top-full left-14 bg-white border border-[#7A93BE] shadow-xl w-[350px] max-h-48 overflow-y-auto z-40">
-                       <div className="p-1 border-b bg-[#F0F5FA] flex justify-end"><X size={14} className="cursor-pointer hover:text-red-600" onClick={() => setShowSupplierDropdown(false)}/></div>
-                       {availableSuppliers.filter(m => String(m.account_name).toLowerCase().includes(supplierSearchText.toLowerCase())).map((m) => (
-                         <div key={m.id} onClick={() => handleSupplierSelect(m)} className="px-2 py-1 hover:bg-[#1E3A8A] hover:text-white cursor-pointer text-[13px] font-semibold">
-                            {m.account_name}
-                         </div>
-                       ))}
+            <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 items-center">
+              <div className="flex items-center gap-3 relative z-20">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Party :</span>
+                <input
+                  type="text"
+                  value={supplierSearchText}
+                  onChange={(e) => {
+                    setSupplierSearchText(e.target.value);
+                    setShowSupplierDropdown(true);
+                  }}
+                  onFocus={() => setShowSupplierDropdown(true)}
+                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-50 w-[400px] outline-none rounded-lg focus:border-black focus:bg-white transition-all uppercase font-black text-slate-900 shadow-sm"
+                  placeholder="SEARCH SUPPLIER / PARTY..."
+                />
+
+                {showSupplierDropdown && (
+                  <div className="absolute top-full left-14 bg-white border-2 border-black shadow-2xl w-[400px] max-h-64 overflow-y-auto z-40 rounded-lg mt-2 overflow-hidden">
+                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center">
+                      <span className="text-white text-[10px] font-black uppercase tracking-widest px-2">Suppliers</span>
+                      <X size={16} className="text-white cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowSupplierDropdown(false)} />
                     </div>
-                 )}
+                    {availableSuppliers.filter(m => String(m.account_name).toLowerCase().includes(supplierSearchText.toLowerCase())).map((m) => (
+                      <div key={m.id} onClick={() => handleSupplierSelect(m)} className="px-4 py-2 hover:bg-black hover:text-white cursor-pointer text-[13px] font-black border-b border-slate-100 last:border-0 transition-colors">
+                        {m.account_name}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-               <div className="flex items-center gap-2 ml-auto text-[13px] bg-slate-200 px-3 py-1 border border-slate-300 shadow-inner">
-                 <label className="flex items-center gap-1 cursor-pointer font-bold text-green-700">
-                    <input type="radio" checked={paymentType === 'cash'} onChange={() => setPaymentType('cash')} /> Cash
-                 </label>
-                 <label className="flex items-center gap-1 cursor-pointer font-bold text-red-700 ml-4">
-                    <input type="radio" checked={paymentType === 'credit'} onChange={() => setPaymentType('credit')} /> Credit
-                 </label>
-               </div>
+              <div className="flex items-center gap-2 ml-auto text-[11px] bg-slate-900 text-white p-1 rounded-lg border-2 border-slate-900 shadow-lg font-black uppercase tracking-widest">
+                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded-md transition-all ${paymentType === 'cash' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Cash</button>
+                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded-md transition-all ${paymentType === 'credit' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Credit</button>
+              </div>
             </div>
 
             {/* Row 2: Bill No & Date */}
-            <div className="flex flex-wrap gap-x-6 gap-y-3 px-2 mt-2">
-              <div className="flex items-center gap-2">
-                 <span className="font-bold w-12 text-right">Bill No :</span>
-                 <input 
-                   type="text" 
-                   value={billNo}
-                   onChange={(e) => setBillNo(e.target.value)}
-                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-white w-32 outline-none shadow-inner uppercase font-mono font-bold"
-                 />
+            <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 mt-4">
+              <div className="flex items-center gap-3">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Bill No :</span>
+                <input
+                  type="text"
+                  value={billNo}
+                  onChange={(e) => setBillNo(e.target.value)}
+                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-900 text-white w-40 outline-none rounded-lg font-mono font-black text-center shadow-lg focus:ring-2 focus:ring-slate-400"
+                />
               </div>
 
-              <div className="flex items-center gap-2 ml-4">
-                 <span className="font-bold">Date :</span>
-                 <input 
-                   type="date" 
-                   value={invoiceDate} 
-                   onChange={(e) => setInvoiceDate(e.target.value)}
-                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-white w-36 outline-none shadow-inner"
-                 />
+              <div className="flex items-center gap-3 ml-4">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Date :</span>
+                <input
+                  type="date"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
+                  className="border border-slate-300 px-4 py-2 text-[13px] bg-white w-44 outline-none rounded-lg font-bold shadow-sm focus:border-black transition-all"
+                />
               </div>
             </div>
 
             {/* Row 3: Tax Type */}
-            <div className="flex flex-wrap gap-x-6 gap-y-3 px-2 mt-2 items-center">
-              <div className="flex items-center gap-2">
-                <span className="font-bold w-12 text-right text-[13px]">Tax Type :</span>
-                <select value={taxType} onChange={(e) => setTaxType(e.target.value)} className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-[#E8F0F8] w-48 outline-none shadow-inner font-bold text-[#1E3A8A]">
-                  <option value="CGST/SGST">CGST/SGST</option>
-                  <option value="IGST">IGST</option>
+            <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 mt-4 items-center">
+              <div className="flex items-center gap-3">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Tax :</span>
+                <select value={taxType} onChange={(e) => setTaxType(e.target.value)} className="border border-slate-300 px-4 py-2 text-[13px] bg-white w-52 outline-none rounded-lg font-black text-slate-900 shadow-sm focus:border-black transition-all">
+                  <option value="CGST/SGST">LOCAL (CGST/SGST)</option>
+                  <option value="IGST">INTERSTATE (IGST)</option>
                 </select>
               </div>
-              
-              <div className="flex items-center gap-2 ml-4">
-                 <span className="font-bold">State :</span>
-                 <input 
-                   type="text" 
-                   disabled
-                   value="GUJARAT"
-                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-gray-200 w-36 outline-none shadow-inner cursor-not-allowed text-stone-600"
-                 />
-              </div>
-              
-              <div className="flex items-center gap-2 ml-4">
-                 <span className="font-bold">GST No. :</span>
-                 <input 
-                   type="text" 
-                   className="border border-[#7A93BE] px-2 py-1 text-[13px] bg-white w-48 outline-none shadow-inner"
-                 />
+
+              <div className="flex items-center gap-3 ml-4">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">State :</span>
+                <input
+                  type="text"
+                  disabled
+                  value="GUJARAT (24)"
+                  className="border border-slate-200 px-4 py-2 text-[13px] bg-slate-100 w-48 outline-none rounded-lg font-bold text-slate-400 cursor-not-allowed"
+                />
               </div>
             </div>
           </div>
 
           {/* DATA GRID TABLE */}
-          <div className="mt-2 border border-[#7A93BE] bg-white overflow-y-auto flex flex-col shadow-inner mx-1" style={{ height: '35vh'}}>
+          <div className="flex-1 bg-white overflow-y-auto flex flex-col font-sans border-b border-slate-200 h-[40vh]">
             <table className="w-full text-[12px] border-collapse" style={{ tableLayout: 'fixed' }}>
-              <thead className="bg-[#467FCF] text-white font-extrabold text-[11px] border-b-2 border-[#1E3A8A] sticky top-0 z-10 shadow-sm uppercase">
+              <thead className="bg-slate-900 text-white font-black text-[10px] border-b border-slate-800 sticky top-0 z-10 shadow-md uppercase tracking-widest">
                 <tr>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-8 text-center bg-[#467FCF]">No</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-64 text-left px-2 bg-[#467FCF]">Item</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-16 text-right px-2 bg-[#467FCF]">Qty</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-20 text-right px-2 bg-[#467FCF]">Rate</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-24 text-right px-2 bg-[#467FCF]">Amount</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-16 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? 'IGST %' : 'CGST %'}</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-20 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? 'IGST Amt' : 'CGST Amt'}</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-16 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? '' : 'SGST %'}</th>
-                  <th className="border-r border-[#1c3c72] p-1.5 w-20 text-right px-1 bg-[#467FCF]">{taxType === 'IGST' ? '' : 'SGST Amt'}</th>
-
-                  <th className="p-1.5 w-24 text-right px-2 bg-[#467FCF]">Total Amt.</th>
-                  <th className="border-l border-[#1c3c72] p-1.5 w-8 text-center bg-[#467FCF]">X</th>
+                  <th className="p-3 w-10 text-center">No</th>
+                  <th className="p-3 w-64 text-left px-4">Item Description</th>
+                  <th className="p-3 w-20 text-right px-4">Qty</th>
+                  <th className="p-3 w-24 text-right px-4">Rate</th>
+                  <th className="p-3 w-28 text-right px-4">Total</th>
+                  <th className="p-3 w-16 text-right px-2">{taxType === 'IGST' ? 'IGST%' : 'CGST%'}</th>
+                  <th className="p-3 w-20 text-right px-2">{taxType === 'IGST' ? 'IGST ₹' : 'CGST ₹'}</th>
+                  <th className="p-3 w-16 text-right px-2">{taxType === 'IGST' ? '' : 'SGST%'}</th>
+                  <th className="p-3 w-20 text-right px-2">{taxType === 'IGST' ? '' : 'SGST ₹'}</th>
+                  <th className="p-3 w-32 text-right px-4">Gr. Amount</th>
+                  <th className="p-3 w-12 text-center">X</th>
                 </tr>
               </thead>
-              <tbody className="bg-[#fbfcff]">
+              <tbody className="bg-white">
                 {purchaseItems.map((row, idx) => (
-                  <tr key={idx} className="border-b border-[#E0E8F5] hover:bg-[#FFFFE0] cursor-pointer">
-                    <td className="border-r border-[#E0E8F5] p-1.5 text-center font-bold text-gray-600">{idx + 1}</td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 whitespace-nowrap overflow-hidden text-ellipsis font-bold text-blue-900">
-                       {row.item_code} {row.item_name}
+                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
+                    <td className="p-3 text-center font-bold text-slate-400">{idx + 1}</td>
+                    <td className="p-3 px-4 whitespace-nowrap overflow-hidden text-ellipsis font-black text-slate-900">
+                      {row.item_code} {row.item_name}
                     </td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-black">{row.quantity.toFixed(3)}</td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-black">{row.rate.toFixed(2)}</td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono font-bold text-black">{row.amount.toFixed(2)}</td>
-                    
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-gray-600">{taxType === 'IGST' ? row.igstPercent.toFixed(2) : row.cgstPercent.toFixed(2)}</td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-black">{taxType === 'IGST' ? row.igstAmt.toFixed(2) : row.cgstAmt.toFixed(2)}</td>
-                    
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-gray-600">{taxType === 'IGST' ? '' : row.sgstPercent.toFixed(2)}</td>
-                    <td className="border-r border-[#E0E8F5] p-1.5 px-2 text-right font-mono text-black">{taxType === 'IGST' ? '' : row.sgstAmt.toFixed(2)}</td>
-                    
+                    <td className="p-3 px-4 text-right font-mono font-black">{row.quantity.toFixed(3)}</td>
+                    <td className="p-3 px-4 text-right font-mono font-black italic text-slate-500">{row.rate.toFixed(2)}</td>
+                    <td className="p-3 px-4 text-right font-mono font-black text-slate-900">{row.amount.toFixed(2)}</td>
 
-                    
-                    <td className="p-1 px-2 text-right font-mono font-extrabold text-[#1E3A8A]">{row.totalAmount.toFixed(2)}</td>
-                    <td className="border-l border-[#E0E8F5] p-1 px-2 text-center text-red-500 font-bold hover:bg-red-200 cursor-pointer" onClick={() => handleRemoveItem(idx)}>X</td>
+                    <td className="p-3 px-2 text-right font-mono text-slate-400 text-[10px]">{taxType === 'IGST' ? row.igstPercent.toFixed(2) : row.cgstPercent.toFixed(2)}</td>
+                    <td className="p-3 px-2 text-right font-mono text-slate-700">{taxType === 'IGST' ? row.igstAmt.toFixed(1) : row.cgstAmt.toFixed(1)}</td>
+
+                    <td className="p-3 px-2 text-right font-mono text-slate-400 text-[10px]">{taxType === 'IGST' ? '' : row.sgstPercent.toFixed(2)}</td>
+                    <td className="p-3 px-2 text-right font-mono text-slate-700">{taxType === 'IGST' ? '' : row.sgstAmt.toFixed(1)}</td>
+
+                    <td className="p-3 px-4 text-right font-mono font-black text-black bg-slate-50">{row.totalAmount.toFixed(2)}</td>
+                    <td className="p-3 text-center text-slate-300 hover:text-red-500 cursor-pointer font-bold transition-colors" onClick={() => handleRemoveItem(idx)}>
+                      <X size={14} />
+                    </td>
                   </tr>
                 ))}
-                
+
                 {/* Live Input Row */}
-                <tr className="bg-[#FFFFE0] border-b-2 border-slate-300">
-                  <td className="border-r border-[#E0E8F5] p-1 text-center font-bold">*</td>
-                  <td className="border-r border-[#E0E8F5] p-0.5 px-1 relative">
-                    <input 
-                      type="text" 
+                <tr className="bg-slate-100 border-t-2 border-slate-900 sticky bottom-0 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+                  <td className="p-2 text-center text-[10px] font-black uppercase text-slate-500">New</td>
+                  <td className="p-0 relative">
+                    <input
+                      type="text"
                       ref={itemInputRef}
-                      value={itemSearchText} 
+                      value={itemSearchText}
                       onChange={(e) => {
                         setItemSearchText(e.target.value);
                         setShowItemDropdown(true);
                       }}
                       onFocus={() => setShowItemDropdown(true)}
-                      className="w-full border border-blue-400 px-1 py-0.5 outline-none font-bold text-[12px] focus:bg-white focus:border-red-500 uppercase"
-                      placeholder="SELECT ITEM..."
+                      className="w-full h-10 px-4 outline-none border-none text-[12px] bg-white font-black uppercase text-black placeholder:text-slate-400 shadow-inner"
+                      placeholder="SEARCH ITEM BY NAME OR CODE..."
                     />
                   </td>
-                  <td className="border-r border-[#E0E8F5] p-0.5 px-1">
-                    <input 
-                      type="number" 
-                      value={currentQty} 
+                  <td className="p-0 bg-yellow-50">
+                    <input
+                      type="number"
+                      value={currentQty}
                       onChange={(e) => setCurrentQty(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddItem(e)}
-                      className="w-full border border-blue-400 px-1 py-0.5 outline-none text-right font-mono font-bold text-[12px] focus:bg-white focus:border-red-500"
+                      className="w-full h-10 px-4 text-right outline-none bg-transparent font-black font-mono text-sm focus:bg-white transition-colors"
+                      placeholder="0.000"
                     />
                   </td>
-                  <td className="border-r border-[#E0E8F5] p-0.5 px-1">
-                    <input 
-                      type="number" 
-                      value={currentRate} 
+                  <td className="p-0 bg-yellow-50 border-r border-slate-200">
+                    <input
+                      type="number"
+                      value={currentRate}
                       onChange={(e) => setCurrentRate(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddItem(e)}
-                      className="w-full border border-blue-400 px-1 py-0.5 outline-none text-right font-mono font-bold text-[12px] focus:bg-white focus:border-red-500"
+                      className="w-full h-10 px-4 text-right outline-none bg-transparent font-black font-mono text-sm focus:bg-white transition-colors"
+                      placeholder="0.00"
                     />
                   </td>
                   {/* Live Computation display */}
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono font-bold text-gray-500">{livePreview ? livePreview.amount.toFixed(2) : ''}</td>
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-400">{livePreview ? (taxType==='IGST'?livePreview.igstPercent:livePreview.cgstPercent).toFixed(2) : ''}</td>
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-500">{livePreview ? (taxType==='IGST'?livePreview.igstAmt:livePreview.cgstAmt).toFixed(2) : ''}</td>
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-400">{livePreview ? (taxType==='IGST'?'':livePreview.sgstPercent).toFixed(2) : ''}</td>
-                  <td className="border-r border-[#E0E8F5] p-1 px-2 text-right font-mono text-gray-500">{livePreview ? (taxType==='IGST'?'':livePreview.sgstAmt).toFixed(2) : ''}</td>
-
-                  <td className="p-1 px-2 text-right font-mono font-bold text-gray-400">{livePreview ? livePreview.totalAmount.toFixed(2) : ''}</td>
-                  <td className="p-1 px-2 text-center text-blue-500 font-bold hover:bg-blue-100 cursor-pointer" onClick={handleAddItem}>+</td>
+                  {livePreview ? (
+                    <>
+                      <td className="p-2 px-4 text-right font-black font-mono bg-slate-900 text-white shadow-inner">{livePreview.amount.toFixed(2)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-400 bg-slate-100 text-[10px]">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(2) : livePreview.cgstPercent.toFixed(2)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-900 bg-slate-100">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(1) : livePreview.cgstAmt.toFixed(1)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-400 bg-slate-100 text-[10px]">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(2)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-900 bg-slate-100">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(1)}</td>
+                      <td className="p-2 px-4 text-right font-black font-mono text-black bg-white border-r border-slate-300 shadow-xl">{livePreview.totalAmount.toFixed(2)}</td>
+                    </>
+                  ) : (
+                    <td colSpan={taxType === 'IGST' ? 4 : 6} className="bg-slate-100 p-2 text-[10px] text-slate-400 font-black text-center border-r border-slate-200 uppercase tracking-widest italic">
+                      [ Enter Qty & Rate ]
+                    </td>
+                  )}
+                  <td className="bg-black">
+                    <button onClick={handleAddItem} className="w-full h-10 bg-black hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-tighter">Add</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Absolute Item Dropdown for Grid */}
+          {/* Absolute Item Dropdown - High Contrast Monochrome */}
           {showItemDropdown && (
-            <div 
-              style={{ position: 'fixed', top: (dropdownPos.top || 0) - 100, left: dropdownPos.left || 0, width: dropdownPos.width || 400 }}
-              className="bg-white border-2 border-blue-500 shadow-2xl max-h-64 overflow-y-auto z-50 text-[12px]"
+            <div
+              style={{ position: 'fixed', top: `${dropdownPos.top + 5}px`, left: dropdownPos.left || 0, width: dropdownPos.width || 400 }}
+              className="bg-white border-2 border-black shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] max-h-80 overflow-y-auto z-[9999] rounded-lg animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="p-1 border-b bg-blue-100 flex justify-between font-bold text-blue-900 sticky top-0">
-                 <span>Items (Esc to close)</span>
-                 <X size={14} className="cursor-pointer hover:text-red-600" onClick={() => setShowItemDropdown(false)}/>
-              </div>
-              <div className="flex border-b bg-gray-50 font-bold text-gray-600 sticky top-7 uppercase">
-                 <div className="w-16 p-1 border-r">Code</div>
-                 <div className="flex-1 p-1 border-r">Item Name</div>
-                 <div className="w-16 p-1 text-right">PRate</div>
+              <div className="p-2 border-b bg-slate-900 flex justify-between font-black text-white text-[10px] uppercase tracking-widest sticky top-0 items-center">
+                <span>Select Product From Inventory</span>
+                <X size={16} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)} />
               </div>
               {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((item) => (
-                <div key={item.id} onClick={() => handleItemSelect(item)} className="flex border-b cursor-pointer hover:bg-blue-600 hover:text-white group">
-                   <div className="w-16 p-1 border-r group-hover:border-blue-500 text-gray-500 group-hover:text-gray-200">{item.item_code}</div>
-                   <div className="flex-1 p-1 border-r group-hover:border-blue-500 font-semibold">{item.item_name}</div>
-                   <div className="w-16 p-1 text-right font-mono font-bold">{parseFloat(item.purchase_price || 0).toFixed(2)}</div>
+                <div key={item.id} onClick={() => handleItemSelect(item)} className="px-4 py-3 border-b border-slate-100 hover:bg-slate-900 group cursor-pointer transition-colors flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black uppercase text-slate-800 group-hover:text-white">{item.item_name}</span>
+                    <span className="text-[10px] text-slate-400 group-hover:text-slate-300 font-bold uppercase tracking-widest">Code: {item.item_code} | PR: ₹{item.purchase_price}</span>
+                  </div>
+                  <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200 text-black font-black text-[10px] group-hover:bg-slate-800 group-hover:text-white group-hover:border-slate-700">Stock: {item.current_stock || 0}</div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Bottom Summary Exactly matching screenshot */}
-          <div className="mt-2 bg-[#D3E1F1] border-t-2 border-[#9AAFD2] shadow-sm flex flex-col sm:flex-row pb-20 sm:pb-0 h-[220px]">
-            {/* Left section empty to match picture */}
-            <div className="flex-1 p-2">
-               <div className="flex items-center gap-2 mt-auto">
-                 <span className="font-bold text-[#1E3A8A] text-[13px]">E-way Bill No. :</span>
-                 <input type="text" className="border border-[#7A93BE] px-2 py-1 bg-white w-64 outline-none shadow-inner" />
-               </div>
+          {/* Bottom Summary - Impactful Monochrome */}
+          <div className="bg-slate-900 p-2.5 flex flex-col sm:flex-row justify-between items-start">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">E-way Bill :</span>
+                <input type="text" className="bg-slate-800 border border-slate-700 px-3 py-1 rounded text-white w-56 outline-none focus:border-white transition-all font-mono text-[9px] h-6" placeholder="BILL NO." />
+              </div>
+              <div className="text-slate-500 text-[8px] font-mono leading-tight tracking-widest uppercase italic opacity-40">
+                * GST based on tax selection.
+              </div>
             </div>
 
-            {/* Middle and Right specific computed sections */}
-            <div className="flex divide-x divide-[#9AAFD2] border-l border-[#9AAFD2]">
-                
-                 {/* Computation Left Col */}
-                 <div className="flex flex-col text-[13px] w-64">
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">Total Amount :</span>
-                       <span className="font-mono font-bold text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>{totalBaseAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">SGST Amt :</span>
-                       <span className="font-mono font-bold text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>{totalSgst.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">CGST Amt :</span>
-                       <span className="font-mono font-bold text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>{totalCgst.toFixed(2)}</span>
-                    </div>
+            <div className="flex gap-4">
+              {/* Calculation Breakdown */}
+              <div className="flex flex-col gap-0.5 pr-6 border-r border-slate-800">
+                <div className="flex justify-between items-center w-36 py-0.5">
+                  <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">Base :</span>
+                  <span className="font-mono font-black text-white text-[9px]">{totalBaseAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center w-36 py-0.5">
+                  <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">GST :</span>
+                  <span className="font-mono font-black text-white text-[9px]">{(totalCgst + totalSgst + totalIgst).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center w-36 py-0.5 border-t border-slate-800 mt-0.5 pt-0.5">
+                  <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">Round :</span>
+                  <span className={`font-mono font-black text-[9px] ${rounding >= 0 ? 'text-green-400' : 'text-red-400'}`}>{rounding.toFixed(2)}</span>
+                </div>
+              </div>
 
-                 </div>
-
-                 {/* Computation Right Col */}
-                 <div className="flex flex-col text-[13px] w-64">
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">Labour Charge :</span>
-                       <input type="number" defaultValue="0.00" className="w-24 border border-[#7A93BE] shadow-inner outline-none px-1 text-right font-mono bg-white" />
-                    </div>
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">TCS Amount :</span>
-                       <input type="number" defaultValue="0.00" className="w-24 border border-[#7A93BE] shadow-inner outline-none px-1 text-right font-mono bg-white" />
-                    </div>
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">Rounding :</span>
-                       <span className="font-mono font-bold text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>{rounding > 0 ? '+' : ''}{rounding.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-[#E5EEF9] border-b border-[#9AAFD2] px-3 py-1.5 h-8">
-                       <span className="font-bold text-[#1E3A8A]">Net Amount :</span>
-                       <span className="font-mono font-extrabold text-[#1c3c72] text-[15px] text-right" style={{backgroundColor: '#A6C8FF', padding: '0 8px'}}>{netAmount.toFixed(2)}</span>
-                    </div>
-                 </div>
-
+              {/* FINAL BIG TOTAL */}
+              <div className="flex flex-col items-end gap-0 pl-4 justify-center">
+                <span className="font-black text-white text-[7px] uppercase tracking-[0.2em] opacity-30">Net Payable</span>
+                <div className="bg-white text-black px-4 py-1 rounded shadow-xl border border-slate-100 flex items-center h-8">
+                  <span className="text-[18px] font-black font-mono tracking-tighter">₹{netAmount.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </div>
-          
         </div>
 
         {/* Action Bar */}
-        <div className="bg-[#E5EEF9] p-2 border-t border-[#7A93BE] flex items-center justify-between text-[11px] font-bold text-slate-500 shadow-inner shrink-0">
-          <div className="flex gap-4">
-            
-          </div>
-          <div className="flex gap-2">
-            <button onClick={handleSave} disabled={loading} className="px-6 py-1 bg-[#D3E1F1] border border-[#7A93BE] hover:bg-[#A6C8FF] text-slate-800 font-bold shadow-sm rounded-sm">
-               Ok
-            </button>
-            <button onClick={onCancel} className="px-6 py-1 bg-[#D3E1F1] border border-[#7A93BE] hover:bg-slate-300 text-slate-800 font-bold shadow-sm rounded-sm">
-               Cancel
-            </button>
-          </div>
+        <div className="bg-slate-200 p-2 border-t border-slate-300 flex items-center justify-end gap-3 shadow-inner">
+          <button onClick={onCancel} className="px-5 py-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-600 font-black shadow rounded transition-all active:scale-95 text-[9px] uppercase tracking-widest h-7">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={loading} className="px-8 py-1 bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-black shadow-lg rounded transition-all active:scale-95 text-[10px] uppercase tracking-widest h-7">
+            {loading ? 'Processing...' : 'Confirm & Save'}
+          </button>
         </div>
 
       </div>

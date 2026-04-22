@@ -115,17 +115,24 @@ router.post('/', async (req, res) => {
 
     const {
       account_id, transaction_date, transaction_type, reference_type, 
-      reference_id, reference_no, debit_amount, credit_amount, description, created_by
+      reference_id, reference_no, debit_amount, credit_amount, debit, credit, description, created_by
     } = req.body;
+
+    // Use whichever field is provided (standardization)
+    const final_debit = parseFloat(debit || debit_amount || 0);
+    const final_credit = parseFloat(credit || credit_amount || 0);
 
     const result = await query(
       `INSERT INTO account_ledger 
-      (company_id, account_id, transaction_date, reference_type, 
-       reference_id, reference_no, debit, credit, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [companyId, account_id, transaction_date, reference_type || null, 
-       reference_id || null, reference_no || null, debit_amount || 0, credit_amount || 0, 
-       description || null]
+      (company_id, account_id, transaction_date, transaction_type, reference_type, 
+       reference_id, reference_no, debit, credit, debit_amount, credit_amount, description, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        companyId, account_id, transaction_date, transaction_type || reference_type || null, 
+        reference_type || null, reference_id || null, reference_no || null, 
+        final_debit, final_credit, final_debit, final_credit, 
+        description || null, created_by || null
+      ]
     );
 
     res.json({ success: true, entryId: result.insertId });

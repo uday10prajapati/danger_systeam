@@ -35,8 +35,8 @@ export async function getCustomerBalance(pool, companyId, customerId) {
   
   const [results] = await pool.query(sql, [companyId, customerId]);
   
-  const total_debits = results[0]?.total_debits || 0;
-  const total_credits = results[0]?.total_credits || 0;
+  const total_debits = parseFloat(results[0]?.total_debits || 0);
+  const total_credits = parseFloat(results[0]?.total_credits || 0);
   const net_balance = total_debits - total_credits;
   
   return {

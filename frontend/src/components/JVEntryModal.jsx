@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Search } from 'lucide-react';
+import { X, Search, AlertCircle } from 'lucide-react';
 
 export default function JVEntryModal({ company, onClose, onSubmit }) {
   const [voucherDate, setVoucherDate] = useState(new Date().toISOString().split('T')[0]);
@@ -59,107 +59,109 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
   while (displayDebits.length < 5) displayDebits.push(null);
 
   return (
-    <div className="fixed inset-0 bg-[#00000060] flex items-center justify-center z-[100] p-4 select-none">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 select-none">
       
-      {/* Main JV Wrap */}
-      <div className="bg-[#aecbf1] border-2 border-[#1E3A8A] w-full max-w-4xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-col font-sans relative">
+      {/* Main JV Wrap - Industrial Monochrome */}
+      <div className="bg-slate-200 border-2 border-slate-900 w-full max-w-4xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col font-sans relative rounded-lg overflow-hidden">
         
         {/* Title Bar */}
-        <div className="bg-gradient-to-r from-[#2c5b9f] to-[#1E3A8A] text-white px-3 py-1.5 flex justify-between items-center cursor-move">
-          <div className="font-bold text-[14px]">Contra Entry</div>
-          <button onClick={onClose} className="hover:text-red-300">
-            <X size={16} />
+        <div className="bg-black text-white px-4 py-1.5 flex justify-between items-center cursor-move">
+          <div className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+            <div className="w-3.5 h-3.5 bg-white rounded-sm rotate-45"></div>
+            Contra / J.V. Entry
+          </div>
+          <button onClick={onClose} className="hover:bg-red-600 p-0.5 rounded transition-all active:scale-90">
+            <X size={16} strokeWidth={3} />
           </button>
         </div>
 
         {/* Top Controls */}
-        <div className="p-2 flex gap-4 bg-[#c5daf4] border-b border-[#1E3A8A]">
+        <div className="p-2.5 flex gap-4 bg-white border-b border-slate-300 items-center">
            <div className="flex items-center gap-2">
-             <span className="text-[13px] font-bold text-[#1E3A8A]">Date :</span>
+             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date :</span>
              <input 
                type="date"
                value={voucherDate}
                onChange={e => setVoucherDate(e.target.value)}
-               className="border border-slate-400 px-2 py-0.5 text-[13px] outline-none"
+               className="border border-slate-300 px-3 py-1 text-xs outline-none rounded font-bold shadow-sm focus:border-black"
              />
            </div>
         </div>
 
         {/* Two Tables Wrap */}
-        <div className="flex h-[350px]">
+        <div className="flex h-[350px] bg-white">
            {/* Credit Side */}
-           <div className="flex-1 flex flex-col border-r border-[#1E3A8A] bg-[#f9fbff]">
-              <div className="text-[12px] font-bold text-[#1E3A8A] uppercase relative top-2 left-2 pb-1">Credit</div>
-              <div className="h-px bg-[#1E3A8A] w-full mt-2"></div>
+           <div className="flex-1 flex flex-col border-r border-slate-900">
+              <div className="bg-slate-50 p-1.5 border-b border-slate-200 flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-2">Credit (Jama)</span>
+                <button onClick={() => setActiveSubModal('credit')} className="text-[9px] bg-black text-white px-3 py-0.5 rounded font-black hover:bg-slate-800 transition-all uppercase tracking-widest tracking-tighter">+ Add Credit</button>
+              </div>
               
-              <div className="grid grid-cols-12 bg-[#6b96d3] text-white text-[12px] font-bold border-b border-[#1E3A8A]">
-                 <div className="col-span-6 p-1 border-r border-[#1E3A8A] text-center">Particular</div>
-                 <div className="col-span-3 p-1 border-r border-[#1E3A8A] text-center">Amount</div>
-                 <div className="col-span-3 p-1 text-center">Amount</div>
+              <div className="grid grid-cols-12 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest border-b border-slate-900">
+                 <div className="col-span-8 p-1.5 border-r border-slate-800 text-left px-3">Particular Account</div>
+                 <div className="col-span-4 p-1.5 text-right px-3">Amount (₹)</div>
               </div>
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-white">
                  {displayCredits.map((item, i) => (
-                    <div key={i} className="grid grid-cols-12 text-[12px] text-[#1E3A8A] border-b border-blue-200">
-                       <div className="col-span-6 p-1 border-r border-blue-200 font-bold px-2">{item?.particulars || item?.account_name || ''}</div>
-                       <div className="col-span-3 p-1 border-r border-blue-200 text-right pr-2"></div>
-                       <div className="col-span-3 p-1 text-right font-bold pr-2">{item ? parseFloat(item.amount).toFixed(2) : ''}</div>
+                    <div key={i} className="grid grid-cols-12 text-[11px] text-slate-800 border-b border-slate-100 hover:bg-slate-50 transition-colors h-8 items-center">
+                       <div className="col-span-8 p-1 border-r border-slate-50 font-bold px-3 truncate">{item?.particulars || item?.account_name || ''}</div>
+                       <div className="col-span-4 p-1 text-right font-black px-3 font-mono">{item ? parseFloat(item.amount).toFixed(2) : ''}</div>
                     </div>
                  ))}
               </div>
 
               {/* Credit Footer */}
-              <div className="flex bg-[#e4efff] border-t border-[#1E3A8A] text-[12px] h-[25px]">
-                 <div className="flex-1 text-right font-bold text-[#1E3A8A] py-1 px-2 border-r border-[#1E3A8A]">Total</div>
-                 <div className="w-[124px] text-right font-bold text-red-700 bg-white border border-[#1E3A8A] m-[2px] px-2 flex items-center justify-end">{totalCredit.toFixed(2)}</div>
+              <div className="flex bg-slate-100 border-t border-slate-900 h-10 items-center">
+                 <div className="flex-1 text-right font-black text-slate-500 uppercase tracking-widest px-3 text-[10px]">Total Credit</div>
+                 <div className="w-[120px] text-right font-black text-slate-900 bg-white border-l border-slate-900 h-full flex items-center justify-end px-3 font-mono text-sm">{totalCredit.toFixed(2)}</div>
               </div>
            </div>
 
            {/* Debit Side */}
-           <div className="flex-1 flex flex-col bg-[#f9fbff]">
-              <div className="text-[12px] font-bold text-[#1E3A8A] uppercase relative top-2 left-2 pb-1">Debit</div>
-              <div className="h-px bg-[#1E3A8A] w-full mt-2"></div>
+           <div className="flex-1 flex flex-col">
+              <div className="bg-slate-50 p-1.5 border-b border-slate-200 flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-2">Debit (Udhar)</span>
+                <button onClick={() => setActiveSubModal('debit')} className="text-[9px] bg-black text-white px-3 py-0.5 rounded font-black hover:bg-slate-800 transition-all uppercase tracking-widest tracking-tighter">+ Add Debit</button>
+              </div>
               
-              <div className="grid grid-cols-12 bg-[#6b96d3] text-white text-[12px] font-bold border-b border-[#1E3A8A]">
-                 <div className="col-span-6 p-1 border-r border-[#1E3A8A] text-center">Particular</div>
-                 <div className="col-span-3 p-1 border-r border-[#1E3A8A] text-center">Amount</div>
-                 <div className="col-span-3 p-1 text-center">Amount</div>
+              <div className="grid grid-cols-12 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest border-b border-slate-900">
+                 <div className="col-span-8 p-1.5 border-r border-slate-800 text-left px-3">Particular Account</div>
+                 <div className="col-span-4 p-1.5 text-right px-3">Amount (₹)</div>
               </div>
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-white">
                  {displayDebits.map((item, i) => (
-                    <div key={i} className="grid grid-cols-12 text-[12px] text-[#1E3A8A] border-b border-blue-200">
-                       <div className="col-span-6 p-1 border-r border-blue-200 font-bold px-2">{item?.particulars || item?.account_name || ''}</div>
-                       <div className="col-span-3 p-1 border-r border-blue-200 text-right pr-2"></div>
-                       <div className="col-span-3 p-1 text-right font-bold pr-2">{item ? parseFloat(item.amount).toFixed(2) : ''}</div>
+                    <div key={i} className="grid grid-cols-12 text-[11px] text-slate-800 border-b border-slate-100 hover:bg-slate-50 transition-colors h-8 items-center">
+                       <div className="col-span-8 p-1 border-r border-slate-50 font-bold px-3 truncate">{item?.particulars || item?.account_name || ''}</div>
+                       <div className="col-span-4 p-1 text-right font-black px-3 font-mono">{item ? parseFloat(item.amount).toFixed(2) : ''}</div>
                     </div>
                  ))}
               </div>
 
               {/* Debit Footer */}
-              <div className="flex bg-[#e4efff] border-t border-[#1E3A8A] text-[12px] h-[25px]">
-                 <div className="flex-1 text-right font-bold text-[#1E3A8A] py-1 px-2 border-r border-[#1E3A8A]">Total</div>
-                 <div className="w-[124px] text-right font-bold text-red-700 bg-white border border-[#1E3A8A] m-[2px] px-2 flex items-center justify-end">{totalDebit.toFixed(2)}</div>
+              <div className="flex bg-slate-100 border-t border-slate-900 h-10 items-center">
+                 <div className="flex-1 text-right font-black text-slate-500 uppercase tracking-widest px-3 text-[10px]">Total Debit</div>
+                 <div className="w-[120px] text-right font-black text-slate-900 bg-white border-l border-slate-900 h-full flex items-center justify-end px-3 font-mono text-sm">{totalDebit.toFixed(2)}</div>
               </div>
            </div>
         </div>
 
-        {/* Actions row under grids */}
-        <div className="bg-[#a8c4ea] flex justify-between p-1.5 border-t border-[#1E3A8A]">
+        {/* Global Ok / Cancel - Monochrome Style */}
+        <div className="bg-slate-200 border-t border-slate-300 p-2.5 flex justify-end gap-3 shadow-inner">
+           {totalCredit !== totalDebit && (
+             <div className="mr-auto flex items-center text-red-600 font-black text-[10px] uppercase tracking-tighter self-center animate-pulse">
+               <AlertCircle size={14} className="mr-1" /> Difference: {(totalCredit - totalDebit).toFixed(2)}
+             </div>
+           )}
+           <button onClick={onClose} className="bg-white border border-slate-300 px-6 py-1.5 text-[11px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 shadow-sm rounded transition-all">Cancel</button>
            <button 
-             onClick={() => setActiveSubModal('credit')} 
-             className="bg-[#c2d7f4] border border-[#1E3A8A] px-6 py-0.5 text-[12px] font-bold text-[#1E3A8A] hover:bg-[#a5c3ed] shadow"
-           >Credit</button>
-           <button 
-             onClick={() => setActiveSubModal('debit')} 
-             className="bg-[#c2d7f4] border border-[#1E3A8A] px-6 py-0.5 text-[12px] font-bold text-[#1E3A8A] hover:bg-[#a5c3ed] shadow"
-           >Debit</button>
-        </div>
-
-        {/* Global Ok / Cancel */}
-        <div className="bg-[#a8c4ea] flex justify-end gap-2 p-1.5 border-t border-[#1E3A8A] pb-3 pr-4">
-           <button onClick={handleSave} className="bg-[#e4efff] border border-[#1E3A8A] px-6 py-1 text-[13px] font-bold text-[#1E3A8A] hover:bg-[#c2d7f4] shadow">Ok</button>
-           <button onClick={onClose} className="bg-[#e4efff] border border-[#1E3A8A] px-6 py-1 text-[13px] font-bold text-[#1E3A8A] hover:bg-[#c2d7f4] shadow">Cancel</button>
+             onClick={handleSave} 
+             disabled={totalCredit === 0 || totalCredit !== totalDebit}
+             className="bg-black border border-black px-8 py-1.5 text-[11px] font-black text-white uppercase tracking-widest hover:bg-slate-800 shadow-lg rounded transition-all disabled:bg-slate-400 disabled:border-slate-400 active:scale-95"
+           >
+             Save Voucher
+           </button>
         </div>
 
         {/* Sub Modals Overlays */}
@@ -185,7 +187,7 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
 // Inner sub modal component
 function SubEntryModal({ type, date, accounts, onClose, onAdd }) {
   const isCredit = type === 'credit';
-  const title = isCredit ? 'Credit Entry' : 'Debit Entry';
+  const title = isCredit ? 'Credit (Jama) Entry' : 'Debit (Udhar) Entry';
 
   const [accountId, setAccountId] = useState('');
   const [amount, setAmount] = useState('');
@@ -193,10 +195,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd }) {
   const [particulars, setParticulars] = useState('');
 
   const handleSubmit = () => {
-    if (!accountId || !amount) {
-      alert("Please select Account and enter Amount.");
-      return;
-    }
+    if (!accountId || !amount) return;
     const acc = accounts.find(a => a.id === parseInt(accountId));
     onAdd({
       account_id: parseInt(accountId),
@@ -208,63 +207,68 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd }) {
   };
 
   return (
-    <div className="absolute inset-0 bg-[#00000020] z-[120] flex items-center justify-center">
-      <div className="bg-[#aecbf1] border-2 border-[#1E3A8A] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[500px]">
-         <div className="bg-[#2c5b9f] text-white px-2 py-1 flex justify-between">
-            <span className="text-[14px] font-bold">{title}</span>
-            <button onClick={onClose}><X size={16} /></button>
+    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+      <div className="bg-slate-200 border-2 border-slate-900 shadow-2xl w-full max-w-lg rounded-lg overflow-hidden font-sans">
+         <div className="bg-black text-white px-5 py-2 flex justify-between items-center">
+            <span className="text-[11px] font-black uppercase tracking-[0.2em]">{title}</span>
+            <button onClick={onClose} className="hover:bg-red-600 rounded p-1 transition-all"><X size={16} strokeWidth={3} /></button>
          </div>
 
-         <div className="p-4 space-y-3 bg-[#e4efff]">
-            <div className="flex items-center gap-2 text-[13px]">
-               <span className="w-20 font-bold text-[#1E3A8A]">Date :</span>
-               <input disabled value={date} className="border border-slate-400 px-2 py-0.5 outline-none bg-slate-200" />
+         <div className="p-4 space-y-4 bg-white">
+            <div className="flex items-center justify-between bg-slate-50 p-2 border border-slate-200 rounded">
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Entry Date:</span>
+               <span className="font-mono font-black text-slate-900 text-xs px-2">{date}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-[13px]">
-               <span className="w-20 font-bold text-[#1E3A8A]">Account :</span>
+            <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select Account / Party :</span>
                <select 
                  value={accountId}
                  onChange={e => setAccountId(e.target.value)}
-                 className="flex-1 border border-slate-400 px-2 py-1 outline-none font-bold uppercase text-[#1E3A8A]"
+                 className="w-full border border-slate-300 h-9 px-3 rounded outline-none font-black uppercase text-slate-900 bg-white focus:border-black shadow-sm transition-all text-[11px]"
                >
-                 <option value="">-- SELECT ACCOUNT --</option>
+                 <option value="">-- CHOOSE ACCOUNT --</option>
                  {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name}</option>)}
                </select>
             </div>
 
-            <div className="flex items-center gap-2 text-[13px]">
-               <span className="w-20 font-bold text-[#1E3A8A]">Amount :</span>
-               <input 
-                 type="number" 
-                 value={amount}
-                 onChange={e => setAmount(e.target.value)}
-                 className="w-32 border border-slate-400 px-2 py-1 outline-none font-bold text-right"
-                 placeholder="0.00"
-               />
-               <span className="font-bold text-[#1E3A8A] ml-2">{isCredit ? 'Receipt No:' : 'Voucher No:'}</span>
-               <input 
-                 type="text"
-                 value={refNo}
-                 onChange={e => setRefNo(e.target.value)}
-                 className="flex-1 border border-slate-400 px-2 py-1 outline-none"
-               />
+            <div className="grid grid-cols-2 gap-4">
+               <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Amount (₹):</span>
+                  <input 
+                    type="number" 
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    className="w-full border border-slate-300 h-10 px-4 rounded outline-none font-black text-right shadow-sm focus:border-black text-base italic text-slate-900 bg-yellow-50/30"
+                    placeholder="0.00"
+                  />
+               </div>
+               <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{isCredit ? 'Receipt #' : 'Voucher #'}</span>
+                  <input 
+                    type="text"
+                    value={refNo}
+                    onChange={e => setRefNo(e.target.value)}
+                    className="w-full border border-slate-300 h-10 px-4 rounded outline-none font-black shadow-sm focus:border-black text-[11px] uppercase"
+                    placeholder="REFERENCE"
+                  />
+               </div>
             </div>
 
-            <div className="flex items-start gap-2 text-[13px]">
-               <span className="w-20 font-bold text-[#1E3A8A] mt-1">Particulars:</span>
+            <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Particulars / Remarks:</span>
                <textarea 
                  value={particulars}
                  onChange={e => setParticulars(e.target.value)}
-                 className="flex-1 border border-slate-400 px-2 py-1 outline-none uppercase text-[#1E3A8A] h-16 resize-none"
+                 className="w-full border border-slate-300 px-4 py-2 rounded outline-none uppercase font-bold text-slate-900 h-20 resize-none focus:border-black shadow-sm italic text-[11px] bg-slate-50/50"
+                 placeholder="Auto-filled from account name if empty"
                />
             </div>
-
          </div>
 
-         <div className="bg-[#a8c4ea] p-2 flex justify-center gap-2 border-t border-[#1E3A8A]">
-            <button onClick={handleSubmit} className="bg-[#e4efff] border border-[#1E3A8A] px-6 py-1 text-[13px] font-bold text-[#1E3A8A] hover:bg-[#c2d7f4] shadow">Ok</button>
-            <button onClick={onClose} className="bg-[#e4efff] border border-[#1E3A8A] px-6 py-1 text-[13px] font-bold text-[#1E3A8A] hover:bg-[#c2d7f4] shadow">Cancel</button>
+         <div className="bg-slate-200 p-3 flex justify-end gap-3 border-t border-slate-300 shadow-inner">
+            <button onClick={onClose} className="px-6 py-2 text-[10px] font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest transition-colors">Cancel</button>
+            <button onClick={handleSubmit} className="bg-black text-white px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded shadow-xl hover:bg-slate-800 transition-all active:scale-95 border border-black">Add To Voucher</button>
          </div>
       </div>
     </div>

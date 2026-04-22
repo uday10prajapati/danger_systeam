@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { AlertTriangle, TrendingDown, Package, Plus } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Package, Plus, Search, Filter, RefreshCcw, X, History, ChevronRight } from 'lucide-react';
 
 // Format numbers with thousand separators
 const formatNumber = (num) => {
@@ -66,7 +66,6 @@ export default function StockReport() {
       }
     } catch (error) {
       console.error('Error fetching stock report:', error);
-      alert('Failed to load stock report');
     } finally {
       setLoading(false);
     }
@@ -84,7 +83,6 @@ export default function StockReport() {
       }
     } catch (error) {
       console.error('Error fetching item history:', error);
-      alert('Failed to load item history');
     }
   };
 
@@ -110,222 +108,222 @@ export default function StockReport() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center h-screen bg-slate-50">
+        <div className="text-center font-black uppercase tracking-widest text-slate-400">
+          <Package className="w-12 h-12 text-slate-200 mx-auto mb-4 animate-bounce" strokeWidth={1} />
+          <p className="text-lg italic">Auditing Physical Assets...</p>
+          <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden rounded-full mt-4">
+             <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!company || !company.id) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen bg-slate-50">
         <div className="text-center">
-          <p className="text-gray-600 text-lg mb-4">Company information not found</p>
-          <p className="text-gray-500">Please log in again or set up a company.</p>
+          <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <p className="text-slate-900 font-black uppercase tracking-widest text-lg">Identity Verification Required</p>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-2">Company association not detected in local context</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-liar-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Stock Report</h1>
-          <p className="text-gray-600">Real-time inventory overview</p>
+    <div className="min-h-screen bg-slate-50 p-6 space-y-6 font-sans text-slate-900">
+      <div className="max-w-[1600px] mx-auto space-y-6">
+        
+        {/* Header - Industrial Monochrome */}
+        <div className="flex justify-between items-end border-b-4 border-black pb-4 print:hidden">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('stockReport.title', 'Stock Report')}</h1>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-1">{company.company_name} / REAL-TIME REPOSITORY AUDIT</p>
+          </div>
+          <button
+            onClick={fetchStockReport}
+            className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
+          >
+            <RefreshCcw size={18} strokeWidth={3} className={loading ? 'animate-spin' : ''} />
+            {t('common.refresh', 'Sync Inventory')}
+          </button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
+        {/* Stats Cards - Sharp Grayscale */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-900 group hover:bg-slate-900 transition-all duration-300">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-600 text-sm font-semibold">CURRENT STOCK</p>
-                <p className="text-3xl font-bold text-blue-600 mt-2">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Live Inventory Qty</p>
+                <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white underline decoration-slate-100 decoration-4 underline-offset-8">
                   {formatNumber(totalValue.current)}
                 </p>
               </div>
-              <Package className="text-blue-500" size={32} />
+              <Package size={24} className="text-slate-200 group-hover:text-white transition-colors" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-500 group hover:bg-slate-800 transition-all duration-300">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-600 text-sm font-semibold">TOTAL PURCHASED</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">
-                  {formatNumber(totalValue.purchased)}
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Gross Procurement</p>
+                <p className="text-3xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">
+                   <span className="text-slate-400 mr-2 opacity-50">+</span>{formatNumber(totalValue.purchased)}
                 </p>
               </div>
-              <Plus className="text-green-500" size={32} />
+              <Plus size={24} className="text-slate-200 group-hover:text-white transition-colors" strokeWidth={3} />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-400 group hover:bg-slate-700 transition-all duration-300">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-600 text-sm font-semibold">TOTAL SOLD</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">
-                  {formatNumber(totalValue.sold)}
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Fulfilled Sales</p>
+                <p className="text-3xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">
+                   <span className="text-slate-300 mr-2 opacity-50">-</span>{formatNumber(totalValue.sold)}
                 </p>
               </div>
-              <TrendingDown className="text-red-500" size={32} />
+              <TrendingDown size={24} className="text-slate-200 group-hover:text-white transition-colors" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-semibold">LOW STOCK ITEMS</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-red-600 group hover:bg-red-900 transition-all duration-300">
+            <div className="flex justify-between items-start relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-full -mr-8 -mt-8 group-hover:scale-[3] transition-transform duration-700"></div>
+              <div className="relative z-10">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-red-300">Critical Reorder Levels</p>
+                <p className="text-4xl font-black text-red-600 mt-1 tracking-tighter group-hover:text-white italic">
                   {lowStockData.length}
                 </p>
               </div>
-              <AlertTriangle className="text-orange-500" size={32} />
+              <AlertTriangle size={24} className="text-red-200 group-hover:text-white transition-colors relative z-10" />
             </div>
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Search by item code or name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            
+        {/* Global Toolbar - Unified Grayscale */}
+        <div className="bg-white p-4 rounded-xl shadow-md border border-slate-200 flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[300px]">
+             <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Global Nomenclature Search</span>
+            <div className="relative group">
+              <Search className="absolute left-4 top-3 text-slate-300 group-focus-within:text-black transition-colors" size={18} strokeWidth={3} />
+              <input
+                type="text"
+                placeholder="SEARCH BY ITEM CODE OR NOMENCLATURE..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs h-11"
+              />
+            </div>
+          </div>
+          
+          <div className="min-w-[200px]">
+             <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Supply Status</span>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-white font-black uppercase text-xs h-11 cursor-pointer"
             >
-              <option value="ALL">All Items</option>
-              <option value="LOW">Low Stock Only</option>
-              <option value="OK">In Stock</option>
+              <option value="ALL">ALL REPOSITORY ITEMS</option>
+              <option value="LOW">LOW STOCK ONLY</option>
+              <option value="OK">HEALTHY STOCK LEVELS</option>
             </select>
-
-            <button
-              onClick={fetchStockReport}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Refresh Report
-            </button>
           </div>
+
+          <button
+            onClick={fetchStockReport}
+            className="px-8 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-black font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg h-11"
+          >
+            {t('common.execute', 'Analyze Report')}
+          </button>
         </div>
 
-        {/* Low Stock Alert */}
+        {/* Low Stock Alert Banner - Industrial Warning */}
         {lowStockData.length > 0 && (
-          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-8 rounded">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="text-orange-500" size={24} />
-              <div>
-                <p className="font-semibold text-orange-800">
-                  {lowStockData.length} item(s) need reordering
+          <div className="bg-slate-900 border-l-8 border-red-600 p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full translate-x-12 -translate-y-12 blur-2xl"></div>
+            <div className="flex items-center gap-6 relative z-10">
+              <div className="p-3 bg-red-600 rounded-xl text-white shadow-lg animate-pulse">
+                 <AlertTriangle size={24} strokeWidth={3} />
+              </div>
+              <div className="flex-1">
+                <p className="font-black text-white uppercase tracking-widest text-sm italic">
+                  Critical Procurement Alert: {lowStockData.length} items breached reorder threshold
                 </p>
-                <p className="text-sm text-orange-700">
-                  Total reorder quantity: {formatNumber(lowStockData.reduce((sum, item) => sum + item.reorder_quantity, 0))} units
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">
+                  Required replenishment volume: <span className="text-red-500 underline decoration-red-900 underline-offset-4">{formatNumber(lowStockData.reduce((sum, item) => sum + item.reorder_quantity, 0))} units</span> detected across repository
                 </p>
               </div>
+              <button 
+                 onClick={() => setFilterStatus('LOW')}
+                 className="bg-white text-black px-6 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-all border border-black shadow-xl"
+              >
+                 Isolate Threats
+              </button>
             </div>
           </div>
         )}
 
-        {/* Stock Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Stock Detail Grid - High Contrast Industrial */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <thead className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest italic">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Item Code
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Item Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Purchased
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Sold
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Returned
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Current Stock
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Reorder Level
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-5 text-left border-r border-slate-800">Doc. Code</th>
+                  <th className="px-6 py-5 text-left border-r border-slate-800">Nomenclature</th>
+                  <th className="px-6 py-5 text-left border-r border-slate-800">Class</th>
+                  <th className="px-6 py-5 text-center border-r border-slate-800">Procured (+)</th>
+                  <th className="px-6 py-5 text-center border-r border-slate-800">Dispatched (-)</th>
+                  <th className="px-6 py-5 text-center border-r border-slate-800">Returns</th>
+                  <th className="px-6 py-5 text-center border-r border-slate-800 bg-black">Live Stock</th>
+                  <th className="px-6 py-5 text-center border-r border-slate-800">Threshold</th>
+                  <th className="px-6 py-5 text-center border-r border-slate-800">Status Vector</th>
+                  <th className="px-6 py-5 text-center">Audit</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="px-6 py-8 text-center text-gray-500">
-                      No items found
+                    <td colSpan="10" className="px-6 py-24 text-center text-slate-300 font-black uppercase tracking-[0.4em] italic">
+                      NO REPOSITORY DATA DETECTED
                     </td>
                   </tr>
                 ) : (
                   filteredData.map((item) => (
-                    <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50 transition">
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                        {item.item_code}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">
-                        {item.item_name}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {item.category || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center text-green-600 font-semibold">
-                        +{formatNumber(item.total_purchased)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center text-red-600 font-semibold">
-                        -{formatNumber(item.total_sold)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center text-blue-600 font-semibold">
-                        +{formatNumber(item.total_sale_returned)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center font-bold text-gray-800">
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-6 py-4 font-black text-slate-400 tracking-tighter uppercase">{item.item_code}</td>
+                      <td className="px-6 py-4 font-black text-slate-900 uppercase tracking-tight">{item.item_name}</td>
+                      <td className="px-6 py-4 text-[10px] text-slate-400 font-black uppercase tracking-widest">{item.category || 'N/A'}</td>
+                      <td className="px-6 py-4 text-center font-mono font-bold text-slate-800">+{formatNumber(item.total_purchased)}</td>
+                      <td className="px-6 py-4 text-center font-mono font-bold text-slate-400 italic">-{formatNumber(item.total_sold)}</td>
+                      <td className="px-6 py-4 text-center font-mono font-bold text-slate-300">{formatNumber(item.total_sale_returned)}</td>
+                      <td className={`px-6 py-4 text-center font-black text-[13px] bg-slate-50 group-hover:bg-slate-100 transition-colors ${item.stock_status === 'LOW' ? 'text-red-700 underline decoration-red-200 underline-offset-4' : 'text-black'}`}>
                         {formatNumber(item.current_stock)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-600">
-                        {formatNumber(item.reorder_level)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
+                      <td className="px-6 py-4 text-center font-mono text-slate-400 font-bold opacity-50">{formatNumber(item.reorder_level)}</td>
+                      <td className="px-6 py-4 text-center">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border-2 ${
                             item.stock_status === 'LOW'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-green-100 text-green-800'
+                              ? 'bg-red-50 text-red-800 border-red-800 shadow-sm animate-pulse'
+                              : 'bg-white text-slate-900 border-slate-900'
                           }`}
                         >
-                          {item.stock_status}
+                          {item.stock_status === 'LOW' ? 'INSUFFICIENT' : 'SUFFICIENT'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-center">
+                      <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => {
                             setSelectedItem(item);
                             fetchItemHistory(item.id);
                           }}
-                          className="text-blue-500 hover:text-blue-700 font-semibold transition"
+                          className="flex items-center gap-1.5 mx-auto p-2 bg-slate-100 hover:bg-black hover:text-white rounded-lg transition-all active:scale-90 border border-slate-200"
                         >
-                          View History
+                           <History size={16} strokeWidth={2.5} />
                         </button>
                       </td>
                     </tr>
@@ -336,74 +334,86 @@ export default function StockReport() {
           </div>
         </div>
 
-        {/* Results Summary */}
-        <div className="mt-6 text-gray-600 text-sm">
-          <p>Showing {filteredData.length} of {stockData.length} items</p>
+        {/* Global Registry Summary Footer */}
+        <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[9px] border-t-2 border-slate-100 pt-6">
+          <p className="italic underline decoration-slate-200 underline-offset-8">REPOSITORY SCAN COMPLETE: {filteredData.length} OF {stockData.length} NOMENCLATURES ISOLATED</p>
+          <div className="flex gap-4">
+             <span>SYS_AUTH_ID: {company.id}</span>
+             <span className="text-slate-200">•</span>
+             <span>TIMESTAMP: {new Date().toISOString()}</span>
+          </div>
         </div>
       </div>
 
-      {/* History Modal */}
+      {/* Audit History Modal - High Contrast Industrial Control */}
       {showHistory && selectedItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-96 overflow-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Stock History</h2>
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ×
-                </button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-black tracking-tighter uppercase italic">Inventory Audit Logs</h2>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Nomenclature Tracking: {selectedItem.item_code}</p>
               </div>
-              <p className="text-gray-600 mt-2">
-                {selectedItem.item_code} - {selectedItem.item_name}
-              </p>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-xl transition-all active:scale-90"
+              >
+                <X size={20} strokeWidth={3} />
+              </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-8 bg-slate-50 border-b border-slate-100 flex items-center gap-4 group">
+               <div className="p-4 bg-white rounded-2xl shadow-inner border border-slate-200 scale-100 group-hover:scale-105 transition-transform duration-500">
+                  <Package className="text-slate-900" size={32} strokeWidth={1} />
+               </div>
+               <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">{selectedItem.item_name}</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">CURRENT POS: <span className="text-black ml-1">{formatNumber(selectedItem.current_stock)} UNITS</span></p>
+               </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 pt-4">
               {itemHistory.length === 0 ? (
-                <p className="text-gray-500">No transaction history found</p>
+                <div className="text-center py-20 text-slate-300 font-black uppercase tracking-widest text-sm italic">NO TRANSACTION DATA LOGGED</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                <div className="rounded-xl border-2 border-slate-100 overflow-hidden shadow-sm">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-100 uppercase tracking-widest font-black text-slate-400 text-[9px]">
                       <tr>
-                        <th className="px-4 py-2 text-left font-semibold text-gray-700">Date</th>
-                        <th className="px-4 py-2 text-left font-semibold text-gray-700">Type</th>
-                        <th className="px-4 py-2 text-center font-semibold text-gray-700">Qty In</th>
-                        <th className="px-4 py-2 text-center font-semibold text-gray-700">Qty Out</th>
-                        <th className="px-4 py-2 text-right font-semibold text-gray-700">Reference</th>
+                        <th className="px-4 py-3 text-left">Timeline</th>
+                        <th className="px-4 py-3 text-left">Vector</th>
+                        <th className="px-4 py-3 text-center">In (+)</th>
+                        <th className="px-4 py-3 text-center">Out (-)</th>
+                        <th className="px-4 py-3 text-right">Manifest ID</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="bg-white divide-y divide-slate-50">
                       {itemHistory.map((record) => (
-                        <tr key={record.id} className="border-b border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-2">
-                            {new Date(record.transaction_date).toLocaleDateString()}
+                        <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 font-mono font-bold text-slate-500">
+                            {new Date(record.transaction_date).toLocaleDateString('en-GB')}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-3">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                              className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.1em] border ${
                                 record.transaction_type === 'PURCHASE_IN'
-                                  ? 'bg-green-100 text-green-800'
+                                  ? 'bg-white text-slate-900 border-slate-900'
                                   : record.transaction_type === 'SALE_OUT'
-                                  ? 'bg-red-100 text-red-800'
-                                  : record.transaction_type === 'SALE_RETURN'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-orange-100 text-orange-800'
+                                  ? 'bg-slate-900 text-white border-slate-900'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200'
                               }`}
                             >
                               {record.transaction_type}
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-center text-green-600 font-semibold">
+                          <td className="px-4 py-3 text-center text-slate-900 font-black italic">
                             {record.quantity_in ? formatNumber(record.quantity_in) : '-'}
                           </td>
-                          <td className="px-4 py-2 text-center text-red-600 font-semibold">
+                          <td className="px-4 py-3 text-center text-slate-400 font-bold">
                             {record.quantity_out ? formatNumber(record.quantity_out) : '-'}
                           </td>
-                          <td className="px-4 py-2 text-right text-gray-600">
+                          <td className="px-4 py-3 text-right text-slate-300 font-black uppercase italic text-[10px]">
                             {record.reference_no}
                           </td>
                         </tr>
@@ -414,12 +424,17 @@ export default function StockReport() {
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200">
+            {/* Modal Actions */}
+            <div className="p-6 bg-slate-900 border-t border-black flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-500 font-black uppercase text-[9px] tracking-widest">
+                 <div className="w-2 h-2 bg-slate-700 rounded-full animate-ping"></div>
+                 Real-time audit active
+              </div>
               <button
                 onClick={() => setShowHistory(false)}
-                className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-lg transition"
+                className="px-10 py-3 bg-white text-black rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-50 transition-all active:scale-95 shadow-xl"
               >
-                Close
+                Deactivate Log
               </button>
             </div>
           </div>

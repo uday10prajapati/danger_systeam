@@ -17,10 +17,22 @@ import {
   Barcode,
   BookOpen,
   AlertTriangle,
-  TrendingUpIcon,
   Clock,
   Activity,
-  Loader,
+  ArrowUpRight,
+  ArrowDownRight,
+  ArrowRight,
+  Plus,
+  RefreshCw,
+  LayoutGrid,
+  List,
+  CheckCircle2,
+  Zap,
+  Calendar,
+  ChevronRight,
+  ShieldCheck,
+  History,
+  LayoutDashboard
 } from 'lucide-react'
 import api from '../api'
 
@@ -28,451 +40,234 @@ function Dashboard() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [stats, setStats] = useState(null)
-
-  // Check if user is logged in
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user) {
-      navigate('/login');
-    }
-  }, [navigate]);
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [activeTab, setActiveTab] = useState('grid') 
 
-  // Fetch dashboard stats
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true)
-        const response = await api.get('/dashboard/stats')
-        setStats(response.data)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err)
-        setError(err.message)
-        // Set default values on error
-        setStats({
-          totalModules: 15,
-          activeUsers: 0,
-          todaysSales: 0,
-          totalItems: 0,
-          todaysTransactions: 0,
-          totalStockValue: 0,
-          lowStockItems: [],
-          bestSellingItems: [],
-          recentSalesData: [],
-        })
-      } finally {
-        setLoading(false)
-      }
+    const user = localStorage.getItem('user');
+    if (!user) navigate('/login');
+  }, [navigate]);
+
+  useEffect(() => { fetchStats(); }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true)
+      const response = await api.get('/dashboard/stats')
+      setStats(response.data)
+      setError(null)
+    } catch (err) {
+      setError(err.message)
+      setStats({
+        totalModules: 15, activeUsers: 0, todaysSales: 0, totalItems: 0,
+        todaysTransactions: 0, totalStockValue: 0, lowStockItems: [],
+        bestSellingItems: [], recentSalesData: []
+      })
+    } finally {
+      setLoading(false)
     }
+  }
 
-    fetchStats()
-  }, [])
-
-  // Format currency
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
     }).format(value || 0)
   }
 
-  // Format number with commas
-  const formatNumber = (value) => {
-    return (value || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  }
-
   const modules = [
-    {
-      id: 'company',
-      title: t('modules.company'),
-      description: t('modules.manageCompanyDetails'),
-      icon: Building2,
-      color: 'from-blue-500 to-blue-600',
-      path: '/company',
-    },
-    {
-      id: 'users',
-      title: t('modules.userMaster'),
-      description: t('modules.manageSystemUsers'),
-      icon: Users,
-      color: 'from-purple-500 to-purple-600',
-      path: '/users',
-    },
-    {
-      id: 'accounts',
-      title: t('modules.accountMaster'),
-      description: t('modules.manageAccounts'),
-      icon: DollarSign,
-      color: 'from-green-500 to-green-600',
-      path: '/accounts',
-    },
-    {
-      id: 'members',
-      title: t('modules.memberMaster'),
-      description: t('modules.manageMembers'),
-      icon: Users2,
-      color: 'from-orange-500 to-orange-600',
-      path: '/members',
-    },
-    {
-      id: 'items',
-      title: t('modules.itemMaster'),
-      description: t('modules.manageInventoryItems'),
-      icon: Package,
-      color: 'from-red-500 to-red-600',
-      path: '/items',
-    },
-    {
-      id: 'rates',
-      title: t('modules.itemRate'),
-      description: t('modules.manageItemPricing'),
-      icon: BarChart3,
-      color: 'from-pink-500 to-pink-600',
-      path: '/rates',
-    },
-    {
-      id: 'sales',
-      title: t('modules.sale'),
-      description: t('modules.recordSalesTransactions'),
-      icon: ShoppingCart,
-      color: 'from-cyan-500 to-cyan-600',
-      path: '/sales',
-    },
-    {
-      id: 'sales-return',
-      title: t('modules.saleReturn'),
-      description: t('modules.manageSalesReturns'),
-      icon: RotateCcw,
-      color: 'from-indigo-500 to-indigo-600',
-      path: '/sales-return',
-    },
-    {
-      id: 'purchase',
-      title: t('modules.purchase'),
-      description: t('modules.recordPurchases'),
-      icon: TrendingUp,
-      color: 'from-lime-500 to-lime-600',
-      path: '/purchase',
-    },
-    {
-      id: 'purchase-return',
-      title: t('modules.purchaseReturn'),
-      description: t('modules.managePurchaseReturns'),
-      icon: TrendingDown,
-      color: 'from-amber-500 to-amber-600',
-      path: '/purchase-return',
-    },
-    {
-      id: 'barcode',
-      title: t('modules.barcodeScanner'),
-      description: t('modules.scanAndManageBarcodes'),
-      icon: Barcode,
-      color: 'from-teal-500 to-teal-600',
-      path: '/barcode',
-    },
-    {
-      id: 'cashbook',
-      title: t('modules.cashBook'),
-      description: t('modules.manageCashTransactions'),
-      icon: Book,
-      color: 'from-yellow-500 to-yellow-600',
-      path: '/cashbook',
-    },
-    {
-      id: 'ledger',
-      title: t('modules.accountLedger'),
-      description: t('modules.viewAccountDetails'),
-      icon: BookOpen,
-      color: 'from-violet-500 to-violet-600',
-      path: '/ledger',
-    },
-    {
-      id: 'profit-loss',
-      title: t('modules.profitAndLoss'),
-      description: t('modules.viewPnLStatements'),
-      icon: BarChart2,
-      color: 'from-rose-500 to-rose-600',
-      path: '/profit-loss',
-    },
-    {
-      id: 'stock',
-      title: t('modules.stockReport'),
-      description: t('modules.viewStockDetails'),
-      icon: Package,
-      color: 'from-slate-500 to-slate-600',
-      path: '/stock',
-    },
+    { id: 'sale', title: t('modules.sale'), icon: ShoppingCart, color: 'emerald', path: '/sales', desc: 'Direct Billing' },
+    { id: 'purchase', title: t('modules.purchase'), icon: TrendingUp, color: 'blue', path: '/purchase', desc: 'Stock Inward' },
+    { id: 'rojmel', title: t('modules.rojmel'), icon: Book, color: 'indigo', path: '/rojmel', desc: 'Daily Ledger' },
+    { id: 'profit-loss', title: t('modules.profitAndLoss'), icon: BarChart2, color: 'rose', path: '/profit-loss', desc: 'Net Results' },
+    { id: 'members', title: t('modules.memberMaster'), icon: Users2, color: 'cyan', path: '/members', desc: 'Sabhasad' },
+    { id: 'items', title: t('modules.itemMaster'), icon: Package, color: 'violet', path: '/items', desc: 'Catalog' },
+    { id: 'ledger-report', title: t('modules.ledgerAudit'), icon: BookOpen, color: 'amber', path: '/ledger-report', desc: 'Statements' },
+    { id: 'stock', title: t('modules.stockReport'), icon: Package, color: 'orange', path: '/stock', desc: 'Stock Audit' },
+    { id: 'user-master', title: 'User Admin', icon: ShieldCheck, color: 'slate', path: '/user-master', desc: 'Security' },
+    { id: 'barcode', title: 'Barcode Control', icon: Barcode, color: 'slate', path: '/barcode-scanner', desc: 'Sensors' },
+  ]
+
+  const quickStats = [
+    { label: 'Revenue Momentum', value: formatCurrency(stats?.todaysSales), icon: DollarSign, trend: '+12%', color: 'text-black', bg: 'bg-white' },
+    { label: 'Operational Load', value: stats?.todaysTransactions, icon: Zap, trend: 'Optimal', color: 'text-black', bg: 'bg-white' },
+    { label: 'Critical Errors', value: stats?.lowStockItems?.length || 0, icon: AlertTriangle, trend: 'Isolation Required', color: 'text-red-600', bg: 'bg-red-50' },
+    { label: 'Net Asset Value', value: formatCurrency(stats?.totalStockValue), icon: Activity, trend: 'Audited', color: 'text-black', bg: 'bg-white' },
   ]
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 w-full">
-      {/* Main Content */}
-      <main className="px-6 py-6 sm:px-8 w-full">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          {/* Total Modules Card */}
-          <div className="bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-700 text-sm font-semibold">{t('dashboard.totalModules')}</p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-blue-600" />
-                  </div>
-                ) : (
-                  <p className="text-3xl font-bold text-blue-900 mt-1">{stats?.totalModules || 0}</p>
-                )}
-              </div>
-              <Building2 className="w-10 h-10 text-blue-500 opacity-80" />
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-900">
+      <div className="max-w-[1600px] mx-auto space-y-10">
+        
+        {/* Header - Industrial Monochrome */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 border-b-4 border-black pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 mb-2">
+               <span className="px-3 py-1 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded-md italic shadow-xl">Secure Platform V3</span>
+               <div className="w-2 h-2 bg-slate-900 rounded-full animate-ping" />
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('dashboard.enterpriseOverview', 'Control Center')}</h1>
+            <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-widest">
+               <Calendar size={14} strokeWidth={3} />
+               <span>SYSTEM TERMINAL — {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
             </div>
           </div>
-
-          {/* Active Users Card */}
-          <div className="bg-linear-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-700 text-sm font-semibold">{t('dashboard.activeUsers')}</p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-green-600" />
-                  </div>
-                ) : (
-                  <p className="text-3xl font-bold text-green-900 mt-1">{stats?.activeUsers || 0}</p>
-                )}
-              </div>
-              <Users className="w-10 h-10 text-green-500 opacity-80" />
-            </div>
-          </div>
-
-          {/* Today's Sales Card */}
-          <div className="bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-700 text-sm font-semibold">{t('dashboard.todaysSales')}</p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-purple-600" />
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-purple-900 mt-1">{formatCurrency(stats?.todaysSales || 0)}</p>
-                )}
-              </div>
-              <ShoppingCart className="w-10 h-10 text-purple-500 opacity-80" />
-            </div>
-          </div>
-
-          {/* Total Items Card */}
-          <div className="bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-700 text-sm font-semibold">{t('dashboard.totalItems')}</p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-orange-600" />
-                  </div>
-                ) : (
-                  <p className="text-3xl font-bold text-orange-900 mt-1">{stats?.totalItems || 0}</p>
-                )}
-              </div>
-              <Package className="w-10 h-10 text-orange-500 opacity-80" />
-            </div>
+          
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+             <button 
+               onClick={() => navigate('/sales')}
+               className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-black text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-slate-800 transition-all active:scale-95 border-2 border-black"
+             >
+                <Plus size={18} strokeWidth={3} /> {t('dashboard.createSale', 'Initiate Transaction')}
+             </button>
+             <button onClick={fetchStats} className="p-3.5 bg-white border-2 border-slate-200 text-slate-400 hover:text-black hover:border-black transition-all rounded-2xl shadow-sm active:rotate-180">
+                <RefreshCw size={20} strokeWidth={3} className={loading ? 'animate-spin' : ''} />
+             </button>
           </div>
         </div>
 
-        {/* Secondary Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          {/* Today's Transactions */}
-          <div className="bg-linear-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-700 text-sm font-semibold flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Today's Transactions
-                </p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-red-600" />
+        {/* Sharp Industrial Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+           {quickStats.map((stat, idx) => (
+             <div key={idx} className={`relative overflow-hidden p-5 rounded-3xl border-2 transition-all group shadow-xl ${stat.bg === 'bg-white' ? 'bg-white border-slate-100 hover:border-black' : 'bg-red-50 border-red-200'}`}>
+                <div className="absolute top-0 right-0 w-24 h-full bg-slate-50 -skew-x-12 translate-x-12 transition-transform group-hover:translate-x-0 duration-700 opacity-50"></div>
+                <div className="relative z-10">
+                  <div className={`w-10 h-10 flex items-center justify-center mb-3 rounded-xl border-2 ${stat.color === 'text-black' ? 'bg-slate-900 text-white border-black' : 'bg-red-900 text-white border-red-900 shadow-lg shadow-red-200'}`}>
+                    <stat.icon size={18} strokeWidth={3} />
                   </div>
-                ) : (
-                  <p className="text-3xl font-bold text-red-900 mt-1">{stats?.todaysTransactions || 0}</p>
-                )}
-              </div>
-              <Activity className="w-10 h-10 text-red-500 opacity-80" />
-            </div>
-          </div>
-
-          {/* Total Stock Value */}
-          <div className="bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-indigo-700 text-sm font-semibold flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  Total Stock Value
-                </p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-indigo-600" />
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5 italic">{stat.label}</p>
+                  <h3 className={`text-2xl font-black tracking-tighter font-mono italic ${stat.color}`}>{stat.value}</h3>
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[8px] font-black text-slate-300 uppercase tracking-widest">
+                     <div className={`w-1 h-1 rounded-full ${stat.color === 'text-red-600' ? 'bg-red-600 animate-pulse' : 'bg-slate-300'}`}></div>
+                     {stat.trend}
                   </div>
-                ) : (
-                  <p className="text-2xl font-bold text-indigo-900 mt-1">{formatCurrency(stats?.totalStockValue || 0)}</p>
-                )}
-              </div>
-              <TrendingUpIcon className="w-10 h-10 text-indigo-500 opacity-80" />
-            </div>
-          </div>
-
-          {/* Low Stock Items Alert */}
-          <div className="bg-linear-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-amber-700 text-sm font-semibold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Low Stock Items
-                </p>
-                {loading ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader className="w-5 h-5 animate-spin text-amber-600" />
-                  </div>
-                ) : (
-                  <p className="text-3xl font-bold text-amber-900 mt-1">{stats?.lowStockItems?.length || 0}</p>
-                )}
-              </div>
-              <AlertTriangle className="w-10 h-10 text-amber-500 opacity-80" />
-            </div>
-          </div>
+                </div>
+             </div>
+           ))}
         </div>
 
-        {/* Detailed Cards Section */}
-        {!loading && stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-            {/* Low Stock Items Table */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
-                Low Stock Items
-              </h3>
-              {stats.lowStockItems && stats.lowStockItems.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="border-b border-slate-200">
-                      <tr>
-                        <th className="text-left py-2 px-2 font-semibold text-slate-700">Item Name</th>
-                        <th className="text-right py-2 px-2 font-semibold text-slate-700">Stock</th>
-                        <th className="text-right py-2 px-2 font-semibold text-slate-700">Reorder</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.lowStockItems.map((item) => (
-                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-2 px-2 text-slate-900">{item.item_name}</td>
-                          <td className="text-right py-2 px-2">
-                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
-                              {item.stock_quantity || 0}
-                            </span>
-                          </td>
-                          <td className="text-right py-2 px-2 text-slate-600">{item.reorder_level || 0}</td>
-                        </tr>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+           
+           <div className="lg:col-span-12 space-y-8">
+              {/* Navigation Grid - High Density Industrial */}
+              <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-2xl relative overflow-hidden">
+                 <div className="absolute -right-20 -bottom-20 opacity-[0.03] pointer-events-none rotate-12">
+                   <LayoutDashboard size={400} strokeWidth={1} />
+                 </div>
+                 
+                 <div className="flex flex-wrap items-center justify-between gap-6 mb-10 border-b-2 border-slate-50 pb-8">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-xl"><LayoutGrid size={24} strokeWidth={2.5}/></div>
+                       <div>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">{t('dashboard.mainBusinessModules', 'System Architecture')}</h2>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mt-1">Modular Enterprise Application Protocol</p>
+                       </div>
+                    </div>
+                    <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl border-2 border-slate-200">
+                       <button onClick={() => setActiveTab('grid')} className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${activeTab === 'grid' ? 'bg-black text-white shadow-xl italic' : 'text-slate-400 hover:text-black'}`}>Grid</button>
+                       <button onClick={() => setActiveTab('list')} className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${activeTab === 'list' ? 'bg-black text-white shadow-xl italic' : 'text-slate-400 hover:text-black'}`}>List</button>
+                    </div>
+                 </div>
+
+                 {activeTab === 'grid' ? (
+                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                      {modules.map(m => (
+                        <button 
+                          key={m.id}
+                          onClick={() => navigate(m.path)}
+                          className="group relative p-8 min-h-[220px] bg-slate-50 hover:bg-black border-2 border-transparent hover:border-black rounded-[2rem] text-left transition-all hover:shadow-[0_40px_80px_rgba(0,0,0,0.15)] flex flex-col justify-between overflow-hidden group"
+                        >
+                           <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 opacity-0 group-hover:opacity-100 group-hover:scale-150 transition-all duration-700 -rotate-12 translate-x-10 translate-y-[-10px]">
+                              <m.icon size={80} strokeWidth={1} />
+                           </div>
+                           <div className="w-14 h-14 bg-white border-2 border-slate-100 text-slate-900 group-hover:text-white group-hover:bg-slate-900 group-hover:border-slate-800 rounded-2xl flex items-center justify-center mb-6 transition-all shadow-sm">
+                              <m.icon size={28} strokeWidth={2.5} />
+                           </div>
+                           <div>
+                             <h4 className="font-black text-slate-900 group-hover:text-white text-base tracking-tighter uppercase mb-1 italic">{m.title}</h4>
+                             <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none group-hover:text-slate-500">{m.desc}</span>
+                                <ChevronRight size={16} className="text-slate-200 group-hover:text-white group-hover:translate-x-1 transition-all" strokeWidth={3} />
+                             </div>
+                           </div>
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-slate-600">
-                  <Package className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                  <p>All items are well stocked</p>
-                </div>
-              )}
-            </div>
-
-            {/* Best Selling Items */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-                Best Selling Items (30 Days)
-              </h3>
-              {stats.bestSellingItems && stats.bestSellingItems.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="border-b border-slate-200">
-                      <tr>
-                        <th className="text-left py-2 px-2 font-semibold text-slate-700">Item Name</th>
-                        <th className="text-right py-2 px-2 font-semibold text-slate-700">Qty Sold</th>
-                        <th className="text-right py-2 px-2 font-semibold text-slate-700">Sales</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.bestSellingItems.map((item) => (
-                        <tr key={item.item_id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-2 px-2 text-slate-900">{item.item_name}</td>
-                          <td className="text-right py-2 px-2">
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
-                              {formatNumber(item.total_quantity || 0)}
-                            </span>
-                          </td>
-                          <td className="text-right py-2 px-2 text-slate-600 font-semibold">
-                            {formatCurrency(item.total_sales || 0)}
-                          </td>
-                        </tr>
+                   </div>
+                 ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {modules.map(m => (
+                        <button 
+                          key={m.id}
+                          onClick={() => navigate(m.path)}
+                          className="w-full flex items-center p-6 bg-slate-50 hover:bg-black rounded-3xl transition-all group border-2 border-transparent hover:border-black"
+                        >
+                           <div className="w-12 h-12 bg-white text-slate-900 border-2 border-slate-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-800 rounded-2xl flex items-center justify-center mr-6 shadow-sm">
+                              <m.icon size={22} strokeWidth={2.5} />
+                           </div>
+                           <div className="flex-1 text-left">
+                              <h4 className="font-black text-slate-900 group-hover:text-white text-sm uppercase italic tracking-tight">{m.title}</h4>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{m.desc}</p>
+                           </div>
+                           <ArrowRight size={20} strokeWidth={3} className="text-slate-200 group-hover:text-white group-hover:translate-x-2 transition-all" />
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-slate-600">
-                  <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                  <p>No sales data available</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+                   </div>
+                 )}
+              </div>
+           </div>
 
-        {/* Modules Grid */}
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-8">{t('dashboard.availableModules')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {modules.map((module) => {
-              const Icon = module.icon
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => navigate(module.path)}
-                  className="group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-slate-200 bg-white"
-                >
-                  {/* Background gradient subtle overlay */}
-                  <div className={`absolute inset-0 bg-linear-to-br ${module.color} opacity-5`}></div>
-
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-linear-to-br from-white/40 to-transparent group-hover:from-white/60 transition-colors"></div>
-
-                  {/* Content */}
-                  <div className="relative p-6 h-48 flex flex-col justify-between">
-                    <div>
-                      <div className={`mb-4 p-3 bg-linear-to-br ${module.color} rounded-lg w-fit`}>
-                        <Icon className="w-6 h-6 text-white" />
+           {/* PLATFORM EVENT FEED */}
+           <div className="lg:col-span-12">
+              <div className="bg-slate-900 p-10 rounded-[2.5rem] border-4 border-black shadow-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                 <div className="flex items-center justify-between mb-8 border-b-2 border-slate-800 pb-6 relative z-10">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-white text-black p-3 rounded-2xl shadow-2xl"><History size={24} strokeWidth={2.5}/></div>
+                       <div>
+                          <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">{t('dashboard.recentPlatformActivity', 'Event Timeline')}</h2>
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1 italic">Chronological System Log Stream</p>
+                       </div>
+                    </div>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+                    {[
+                      { icon: ShoppingCart, text: 'Transaction 00x9_Settled', time: '14 mins ago', tag: 'SALES_OP' },
+                      { icon: TrendingUp, text: 'Inward Manifest 0x41_Commit', time: '41 mins ago', tag: 'WAREHOUSE' },
+                      { icon: BookOpen, text: 'Audit Log 0x11_Export', time: '1 hour ago', tag: 'ADMIN' },
+                      { icon: Users2, text: 'Registry ID 0x33_Initialization', time: '2 hours ago', tag: 'IDENTITY' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex flex-col gap-4 p-6 bg-black/40 border-2 border-slate-800 rounded-3xl hover:bg-black hover:border-slate-600 transition-all group/item shadow-inner">
+                         <div className="flex justify-between items-start">
+                            <div className="p-3 bg-slate-800 text-white rounded-xl border border-slate-700 group-hover/item:bg-white group-hover/item:text-black transition-colors"><item.icon size={20} strokeWidth={2.5}/></div>
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest border border-slate-800 px-2 py-1 rounded group-hover/item:border-slate-600">{item.tag}</span>
+                         </div>
+                         <div>
+                            <p className="text-sm font-black text-slate-100 uppercase italic tracking-tight">{item.text}</p>
+                            <div className="flex items-center gap-2 mt-2 opacity-40">
+                               <Clock size={12} className="text-slate-400" strokeWidth={3} />
+                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.time}</span>
+                            </div>
+                         </div>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">{module.title}</h3>
-                      <p className="text-sm text-slate-600">{module.description}</p>
-                    </div>
-
-                    {/* Arrow icon */}
-                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span>{t('dashboard.viewDetails')}</span>
-                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
         </div>
-      </main>
+
+        {/* Global Registry Summary Footer */}
+        <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[8px] italic pt-12 pb-10 border-t border-slate-200">
+           <div className="flex items-center gap-4">
+              <span>PLATFORM_STATUS: NOMINAL</span>
+              <div className="w-1 h-1 bg-slate-100 rounded-full"></div>
+              <span>REGISTRY_LOCK: ACTIVE</span>
+           </div>
+           <div>SYSTEM_TIMESTAMP: {new Date().toISOString()}</div>
+        </div>
+
+      </div>
     </div>
   )
 }

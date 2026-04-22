@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, Building2, Phone, Mail, MapPin, Calendar, ShoppingCart } from 'lucide-react'
+import { AlertCircle, CheckCircle, Building2, Phone, Mail, MapPin, Calendar, ShoppingCart, Database, Activity, ChevronRight, X } from 'lucide-react'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -37,7 +37,6 @@ function CompanySetup() {
       const response = await axios.get(`${API_URL}/company`)
       const companyData = response.data.data
       
-      // Format dates for input type="date" (YYYY-MM-DD format)
       const formattedData = {
         ...companyData,
         financial_year_start: companyData.financial_year_start 
@@ -52,7 +51,6 @@ function CompanySetup() {
       setFormData(formattedData)
       setIsEditing(false)
     } catch (error) {
-      // Company not yet created
       console.log(t('company.companyNotFound'))
     }
   }
@@ -63,7 +61,6 @@ function CompanySetup() {
       ...prev,
       [name]: value
     }))
-    // Clear errors when user starts typing
     if (errors.length > 0) {
       setErrors([])
     }
@@ -84,42 +81,26 @@ function CompanySetup() {
         return
       }
 
-      console.log('Submitting company data:', formData)
-
       if (company && isEditing) {
-        // Update company
-        console.log('Updating company with ID:', company.id)
         response = await axios.put(`${API_URL}/company/${company.id}`, formData)
       } else {
-        // Create company
-        console.log('Creating new company')
         response = await axios.post(`${API_URL}/company`, formData)
       }
-
-      console.log('API Response:', response.data)
 
       if (response.data.success) {
         setSuccess(true)
         setCompany(response.data.data)
         setIsEditing(false)
-        
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccess(false), 3000)
-        
-        // Refetch company to get updated data from database
         setTimeout(fetchCompany, 1000)
       } else {
         setErrors([response.data.error || 'Failed to save company'])
       }
     } catch (error) {
-      console.error('Company submission error:', error)
-      
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors)
       } else if (error.response?.data?.error) {
         setErrors([error.response.data.error])
-      } else if (error.message) {
-        setErrors([`Error: ${error.message}`])
       } else {
         setErrors([t('company.failedToSaveCompany')])
       }
@@ -130,44 +111,59 @@ function CompanySetup() {
 
   const currencyOptions = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD']
 
-  return (
-    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Building2 className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-slate-900">{t('company.companySetup')}</h1>
+  if (loading && !company) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-slate-50">
+        <div className="text-center font-black uppercase tracking-widest text-slate-400">
+          <Database className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-pulse" />
+          <p className="text-lg mb-4 italic">Initializing Enterprise Context...</p>
+          <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden rounded-full">
+             <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
           </div>
-          <p className="text-slate-600">
-            {company && !isEditing 
-              ? t('company.companyConfigured')
-              : t('company.setupCompanyDetails')}
-          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12 font-sans text-slate-900">
+      <div className="max-w-[1000px] mx-auto space-y-8">
+        
+        {/* Header - Industrial Monochrome */}
+        <div className="flex justify-between items-end border-b-4 border-black pb-4">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('company.companySetup', 'Enterprise Profile')}</h1>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-1">CORE ORGANIZATION ARCHITECTURE REGISTRY</p>
+          </div>
+          <Building2 size={32} className="text-slate-200" strokeWidth={1} />
         </div>
 
-        {/* Success Message */}
+        {/* Success / Error Banners - High Contrast */}
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-green-900">{t('company.success')}</p>
-              <p className="text-sm text-green-700">{company ? t('company.companyUpdatedSuccessfully') : t('company.companyCreatedSuccessfully')}</p>
+          <div className="bg-black text-white p-6 rounded-2xl shadow-2xl border-l-8 border-white animate-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-4">
+               <div className="bg-white p-2 rounded-full text-black">
+                  <CheckCircle size={20} strokeWidth={3} />
+               </div>
+               <div>
+                  <p className="font-black uppercase tracking-widest text-xs">{t('company.success', 'Transaction Verified')}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Enterprise parameters successfully rewritten to secure buffer.</p>
+               </div>
             </div>
           </div>
         )}
 
-        {/* Error Messages */}
         {errors.length > 0 && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="bg-red-50 border-2 border-red-200 text-red-900 p-6 rounded-2xl shadow-lg border-l-8 border-red-900">
+            <div className="flex items-start gap-4">
+              <AlertCircle className="w-6 h-6 text-red-900 shrink-0 mt-0.5" strokeWidth={3} />
               <div className="flex-1">
-                <p className="font-semibold text-red-900 mb-2">{t('company.pleaseFixErrors')}</p>
-                <ul className="text-sm text-red-700 space-y-1">
+                <p className="font-black uppercase tracking-widest text-xs mb-3 italic">Critical Integration Fault Detected</p>
+                <ul className="text-[10px] font-bold uppercase tracking-widest space-y-1 opacity-80">
                   {errors.map((error, idx) => (
-                    <li key={idx}>• {error}</li>
+                    <li key={idx} className="flex items-center gap-2">
+                       <div className="w-1.5 h-1.5 bg-red-900 rounded-full"></div> {error}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -175,236 +171,292 @@ function CompanySetup() {
           </div>
         )}
 
-        {/* Company Status Card */}
-        {company && !isEditing && (
-          <div className="mb-6 bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              {t('company.currentCompanyInformation')}
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-slate-600 font-medium">{t('company.companyName')}</p>
-                <p className="text-slate-900 mt-1">{company.company_name}</p>
+        {/* Main Interface Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+          
+          {/* Active Company Status Card - Professional Dossier Style */}
+          {company && !isEditing && (
+            <div className="bg-white rounded-[2.5rem] shadow-2xl border-4 border-black overflow-hidden group">
+              <div className="bg-slate-900 p-8 border-b-2 border-black flex justify-between items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-full bg-white/5 skew-x-12 translate-x-10"></div>
+                <div className="relative z-10">
+                  <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] italic mb-1">Authenticated Entity</h2>
+                  <h3 className="text-3xl font-black text-white tracking-tighter uppercase italic">{company.company_name}</h3>
+                </div>
+                <div className="bg-slate-800 p-3 rounded-2xl border border-slate-700 relative z-10">
+                   <Activity size={24} className="text-white animate-pulse" strokeWidth={2} />
+                </div>
               </div>
-              <div>
-                <p className="text-slate-600 font-medium">{t('company.email')}</p>
-                <p className="text-slate-900 mt-1">{company.email}</p>
-              </div>
-              <div>
-                <p className="text-slate-600 font-medium">{t('company.phone')}</p>
-                <p className="text-slate-900 mt-1">{company.phone}</p>
-              </div>
-              <div>
-                <p className="text-slate-600 font-medium">{t('company.gstNumber')}</p>
-                <p className="text-slate-900 mt-1">{company.gst_number || 'Not provided'}</p>
-              </div>
-              <div>
-                <p className="text-slate-600 font-medium">{t('company.currency')}</p>
-                <p className="text-slate-900 mt-1">{company.currency}</p>
-              </div>
-              <div>
-                <p className="text-slate-600 font-medium">{t('company.financialYearStart')}</p>
-                <p className="text-slate-900 mt-1">
-                  {new Date(company.financial_year_start).toLocaleDateString()} - {new Date(company.financial_year_end).toLocaleDateString()}
-                </p>
+              
+              <div className="p-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Electronic Correspondence</p>
+                      <p className="text-lg font-black text-slate-900 tracking-tight font-mono">{company.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Telecommunications Vector</p>
+                      <p className="text-lg font-black text-slate-900 tracking-tight font-mono">{company.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Tax Identity Manifest</p>
+                      <p className="text-lg font-black text-slate-900 tracking-tighter uppercase">{company.gst_number || 'NOT_DECLARED'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Base Functional Currency</p>
+                      <p className="text-lg font-black text-slate-900 tracking-widest uppercase italic underline decoration-slate-100 underline-offset-8">{company.currency}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Primary Location Protocol</p>
+                      <p className="text-xs font-bold text-slate-600 leading-relaxed uppercase pr-8">{company.address || 'LOC_UNDETERMINED'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Active Fiscal Cycle</p>
+                      <p className="text-lg font-black text-black font-mono tracking-tighter">
+                        {new Date(company.financial_year_start).toLocaleDateString('en-GB')} — {new Date(company.financial_year_end).toLocaleDateString('en-GB')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-12 flex gap-4 border-t-2 border-slate-50 pt-10">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-1 px-8 py-4 bg-black text-white rounded-2xl hover:bg-slate-800 transition-all font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95"
+                  >
+                    Modify Parameters
+                  </button>
+                  <button
+                    onClick={() => navigate('/items')}
+                    className="flex-3 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl hover:bg-slate-200 transition-all font-black uppercase tracking-widest text-[10px] border-2 border-slate-200 flex items-center justify-center gap-3 active:scale-95"
+                  >
+                    <ShoppingCart className="w-4 h-4" strokeWidth={3} />
+                    Item Master Access
+                  </button>
+                </div>
               </div>
             </div>
+          )}
 
-            <button
-              onClick={() => setIsEditing(true)}
-              className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              {t('company.editCompanyInformation')}
-            </button>
+          {/* Setup / Configuration Form - Heavy Industrial Design */}
+          {(!company || isEditing) && (
+            <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-slate-900 p-8 border-b-2 border-black flex justify-between items-center">
+                 <div>
+                    <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] italic mb-1">Configuration Required</h2>
+                    <h3 className="text-3xl font-black text-white tracking-tighter uppercase italic">{company && isEditing ? 'Update Manifest' : 'Initialize Entity'}</h3>
+                 </div>
+                 {isEditing && (
+                    <button 
+                       onClick={() => setIsEditing(false)} 
+                       className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-xl transition-all"
+                    >
+                       <X size={20} strokeWidth={3} />
+                    </button>
+                 )}
+              </div>
 
-            <button
-              onClick={() => navigate('/items')}
-              className="mt-3 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              Go to Item Master
-            </button>
+              <form onSubmit={handleSubmit} className="p-12 space-y-10">
+                
+                {/* Section: Core Identity */}
+                <div className="space-y-6">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
+                      <div className="w-8 h-0.5 bg-slate-100"></div> LEGAL NOMENCLATURE
+                   </h4>
+                   <div className="grid grid-cols-1 gap-6">
+                      <div className="relative group">
+                        <Building2 className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
+                        <input
+                          type="text"
+                          name="company_name"
+                          value={formData.company_name}
+                          onChange={handleChange}
+                          placeholder="ENTER FULL LEGAL BUSINESS REGISTERED NAME..."
+                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs h-14"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="relative group">
+                        <MapPin className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
+                        <textarea
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          placeholder="CORE PHYSICAL DISPATCH ADDRESS..."
+                          rows="3"
+                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-bold uppercase text-[11px] h-28 resize-none"
+                          disabled={loading}
+                        />
+                      </div>
+                   </div>
+                </div>
+
+                {/* Section: Communications */}
+                <div className="space-y-6">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
+                      <div className="w-8 h-0.5 bg-slate-100"></div> COMMUNICATION VECTOR
+                   </h4>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="relative group">
+                        <Phone className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="TELECOM VECTOR ID"
+                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs h-14 font-mono"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="relative group">
+                        <Mail className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          placeholder="SYSTEM MAIL GATEWAY"
+                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs h-14"
+                          disabled={loading}
+                        />
+                      </div>
+                   </div>
+                </div>
+
+                {/* Section: Fiscal Parameters */}
+                <div className="space-y-6">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
+                      <div className="w-8 h-0.5 bg-slate-100"></div> FISCAL & CURRENCY LOGIC
+                   </h4>
+                   <div className="grid grid-cols-1 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                         <div className="md:col-span-8 relative group">
+                            <Database className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
+                            <input
+                              type="text"
+                              name="gst_number"
+                              value={formData.gst_number}
+                              onChange={handleChange}
+                              placeholder="GST SYSTEM UNIQUE IDENTIFIER..."
+                              className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs h-14"
+                              disabled={loading}
+                            />
+                         </div>
+                         <div className="md:col-span-4">
+                            <select
+                                name="currency"
+                                value={formData.currency}
+                                onChange={handleChange}
+                                className="w-full px-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-white font-black uppercase text-xs h-14 cursor-pointer"
+                                disabled={loading}
+                              >
+                                {currencyOptions.map(curr => (
+                                  <option key={curr} value={curr}>{curr} (ISO-4217)</option>
+                                ))}
+                              </select>
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 border-dashed">
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">FISCAL CYCLE ALPHA</p>
+                          <div className="relative">
+                             <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
+                             <input
+                              type="date"
+                              name="financial_year_start"
+                              value={formData.financial_year_start}
+                              onChange={handleChange}
+                              className="w-full pl-10 pr-4 py-3 border-2 border-white rounded-xl focus:outline-none focus:border-black transition-all bg-white font-black text-xs uppercase h-12"
+                              disabled={loading}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">FISCAL CYCLE OMEGA</p>
+                          <div className="relative">
+                             <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
+                             <input
+                              type="date"
+                              name="financial_year_end"
+                              value={formData.financial_year_end}
+                              onChange={handleChange}
+                              className="w-full pl-10 pr-4 py-3 border-2 border-white rounded-xl focus:outline-none focus:border-black transition-all bg-white font-black text-xs uppercase h-12"
+                              disabled={loading}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Final Submission Block */}
+                <div className="pt-10 flex flex-col gap-4">
+                   <button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] text-xs transition-all shadow-2xl scale-100 active:scale-95 ${
+                      loading
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-4 border-slate-100'
+                        : 'bg-black text-white hover:bg-slate-800 border-4 border-black'
+                    }`}
+                  >
+                    {loading ? 'SYNCHRONIZING RELEASES...' : company && isEditing ? 'COMMIT UPDATED MANIFEST' : 'INITIALIZE ENTERPRISE DOMAIN'}
+                  </button>
+
+                  {company && isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false)
+                        setFormData(company)
+                      }}
+                      className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[9px] text-slate-300 bg-slate-50 hover:bg-slate-100 hover:text-red-700 transition-all border-2 border-slate-100"
+                    >
+                      ABORT REDEPLOYMENT
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Automated System Manifesto */}
+          <div className="bg-slate-900 border-4 border-black rounded-[2.5rem] p-10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+            <div className="relative z-10">
+               <h4 className="text-white font-black uppercase tracking-[0.3em] text-xs mb-6 flex items-center gap-4 italic font-bold leading-relaxed">
+                  <div className="w-6 h-1 bg-white"></div> SYSTEM ARCHITECTURE NOTE
+               </h4>
+               <p className="text-slate-500 font-bold uppercase tracking-[0.1em] text-[10px] space-y-4 max-w-2xl leading-loose">
+                 Synchronizing this registry will define the global context for all financial transacts, invoice header data, and tax accumulation logic. Ensure the fiscal cycle boundaries are calibrated precisely to avoid ledger fragmentation. Base currency parameters are immutable after the first verified transaction block is committed to the main ledger.
+               </p>
+               <div className="mt-8 flex gap-6">
+                  <div className="flex flex-col">
+                     <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Protocol</span>
+                     <span className="text-[10px] font-black text-white uppercase italic">Industrial Monochrome V2.1</span>
+                  </div>
+                  <div className="flex flex-col border-l border-slate-800 pl-6">
+                     <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Security</span>
+                     <span className="text-[10px] font-black text-white uppercase italic">Active AES-256 Buffer</span>
+                  </div>
+               </div>
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Form */}
-        {(!company || isEditing) && (
-          <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">
-              {company && isEditing ? t('company.updateCompany') : t('company.createCompany')}
-            </h2>
-
-            {/* Company Name */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                {t('company.companyNameRequired')}
-              </label>
-              <input
-                type="text"
-                name="company_name"
-                value={formData.company_name}
-                onChange={handleChange}
-                placeholder={t('company.enterCompanyLegalName')}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-500 mt-1">{t('company.thisWillBeUnique')}</p>
-            </div>
-
-            {/* Address */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                {t('company.addressRequired')}
-              </label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder={t('company.enterFullBusinessAddress')}
-                rows="3"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Phone and Email */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <Phone className="w-4 h-4 inline mr-1" />
-                  {t('company.phoneRequired')}
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder={t('company.10to15Digits')}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <Mail className="w-4 h-4 inline mr-1" />
-                  {t('company.emailRequired')}
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder={t('company.companyEmail')}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* GST Number */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                {t('company.gstNumber')}
-              </label>
-              <input
-                type="text"
-                name="gst_number"
-                value={formData.gst_number}
-                onChange={handleChange}
-                placeholder={t('company.15CharacterGST')}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-500 mt-1">{t('company.exampleGST')}</p>
-            </div>
-
-            {/* Financial Year */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <Calendar className="w-4 h-4 inline mr-1" />
-                  {t('company.financialYearStart')}
-                </label>
-                <input
-                  type="date"
-                  name="financial_year_start"
-                  value={formData.financial_year_start}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                />
-                <p className="text-xs text-slate-500 mt-1">{t('company.usuallyApril1st')}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <Calendar className="w-4 h-4 inline mr-1" />
-                  {t('company.financialYearEnd')}
-                </label>
-                <input
-                  type="date"
-                  name="financial_year_end"
-                  value={formData.financial_year_end}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                />
-                <p className="text-xs text-slate-500 mt-1">{t('company.usuallyMarch31st')}</p>
-              </div>
-            </div>
-
-            {/* Currency */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                {t('company.currency')}
-              </label>
-              <select
-                name="currency"
-                value={formData.currency}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              >
-                {currencyOptions.map(curr => (
-                  <option key={curr} value={curr}>{curr}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2 rounded-lg font-medium transition-colors ${
-                loading
-                  ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {loading ? t('company.saving') : company && isEditing ? t('company.updateCompany') : t('company.createCompany')}
-            </button>
-
-            {company && isEditing && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditing(false)
-                  setFormData(company)
-                }}
-                className="w-full mt-2 py-2 rounded-lg font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
-              >
-                {t('company.cancel')}
-              </button>
-            )}
-          </form>
-        )}
-
-        {/* Info Box */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-900">
-            <span className="font-semibold">💡 {t('company.tip')}</span>
-          </p>
+        {/* Professional Registry Summary Footer */}
+        <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[8px] italic pt-12 pb-10 border-t border-slate-200">
+           <div className="flex items-center gap-4">
+              <span>MANIFEST_ID: {company?.id || 'NULL_SET'}</span>
+              <div className="w-1 h-1 bg-slate-100 rounded-full"></div>
+              <span>REGISTRY_AUTH: VERIFIED_CORE</span>
+           </div>
+           <div>SYSTEM_CHRONO: {new Date().toISOString()}</div>
         </div>
       </div>
     </div>

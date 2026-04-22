@@ -177,23 +177,23 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-slate-200 p-6">
-      <h2 className="text-2xl font-bold text-slate-900 mb-6">
+    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-8">
+      <h2 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tighter italic border-b-4 border-black pb-2 inline-block">
         {userId ? t('userMaster.editUser') : t('userMaster.createUser')}
       </h2>
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+        <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 shadow-sm border-l-4 ${
           message.type === 'error' 
-            ? 'bg-red-50 border border-red-200' 
-            : 'bg-green-50 border border-green-200'
+            ? 'bg-white border-red-600 text-red-900' 
+            : 'bg-white border-slate-900 text-slate-900'
         }`}>
           {message.type === 'error' ? (
             <AlertCircle className="w-5 h-5 text-red-600" />
           ) : (
-            <CheckCircle className="w-5 h-5 text-green-600" />
+            <CheckCircle className="w-5 h-5 text-slate-900" />
           )}
-          <p className={message.type === 'error' ? 'text-red-800' : 'text-green-800'}>
+          <p className="font-bold uppercase text-xs tracking-widest leading-none">
             {message.text}
           </p>
         </div>
@@ -210,7 +210,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
         {/* Username */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
             {t('userMaster.username')} *
           </label>
           <input
@@ -219,21 +219,21 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             value={formData.username}
             onChange={handleChange}
             placeholder={t('userMaster.enterUsername')}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold ${
               errors.username
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
+                ? 'border-red-500 bg-red-50'
+                : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
             }`}
             disabled={loading}
           />
           {errors.username && (
-            <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.username}</p>
           )}
         </div>
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
             {t('userMaster.email')} *
           </label>
           <input
@@ -242,21 +242,21 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             value={formData.email}
             onChange={handleChange}
             placeholder={t('userMaster.enterEmail')}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold ${
               errors.email
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
+                ? 'border-red-500 bg-red-50'
+                : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
             }`}
             disabled={loading}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.email}</p>
           )}
         </div>
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
             {t('userMaster.password')} {!userId && '*'}
           </label>
           <div className="relative">
@@ -266,42 +266,42 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
               value={formData.password}
               onChange={handleChange}
               placeholder={userId ? t('userMaster.leaveBlankToKeepCurrent') : t('userMaster.enterPassword')}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 pr-10 ${
+              className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold pr-12 ${
                 errors.password
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-slate-300 focus:ring-blue-500'
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
               }`}
               disabled={loading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900"
+              className="absolute right-4 top-3.5 text-slate-400 hover:text-black transition-colors"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
           {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.password}</p>
           )}
           {userId && (
-            <p className="mt-1 text-xs text-slate-600">{t('userMaster.leaveBlankToKeepCurrent')}</p>
+            <p className="mt-2 text-[10px] font-bold text-slate-400 italic uppercase">{t('userMaster.leaveBlankToKeepCurrent')}</p>
           )}
         </div>
 
         {/* Role */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
             {t('userMaster.role')} *
           </label>
           <select
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236b7280%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.5em_1.5em] ${
               errors.role
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
+                ? 'border-red-500 bg-red-50'
+                : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
             }`}
             disabled={loading}
           >
@@ -310,9 +310,9 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             <option value="hod">{t('userMaster.hod')}</option>
           </select>
           {errors.role && (
-            <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.role}</p>
           )}
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-2 text-[10px] font-bold text-slate-400 italic uppercase">
             {formData.role === 'hod' && t('userMaster.hodCanManageUsers')}
             {formData.role === 'manager' && t('userMaster.managerCanViewReports')}
             {formData.role === 'cashier' && t('userMaster.cashierCanProcessSales')}
@@ -320,13 +320,15 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         </div>
 
         {/* Module Access */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-4">
-            {t('userMaster.moduleAccess')} - {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
-          </label>
-          <p className="text-xs text-slate-600 mb-4">{t('userMaster.selectModulesForRole')}</p>
+        <div className="space-y-4">
+          <div className="flex justify-between items-end border-b-2 border-slate-100 pb-2">
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-900">
+              {t('userMaster.moduleAccess')} - {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
+            </label>
+            <p className="text-[10px] font-bold text-slate-400 uppercase italic leading-none">{t('userMaster.selectModulesForRole')}</p>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {modules.map((module) => {
               const currentAccess = Array.isArray(formData.module_access) ? formData.module_access : Object.keys(formData.module_access || {}).filter(k => formData.module_access[k])
               const isChecked = currentAccess.includes(module.id)
@@ -334,25 +336,27 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
               return (
                 <div
                   key={module.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer group ${
                     isChecked
-                      ? 'bg-blue-50 border-blue-500 shadow-sm'
-                      : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      ? 'bg-slate-900 border-slate-900 shadow-lg'
+                      : 'bg-white border-slate-100 hover:border-slate-300 shadow-sm'
                   }`}
                   onClick={() => handleModuleToggle(module.id)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => handleModuleToggle(module.id)}
-                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    disabled={loading}
-                  />
-                  <div className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{module.icon}</span>
-                      <span className="text-sm font-semibold text-slate-700">{t(`modules.${module.label}`)}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg filter grayscale">{module.icon}</span>
+                      <span className={`text-xs font-black uppercase tracking-wider transition-colors ${
+                        isChecked ? 'text-white' : 'text-slate-700 group-hover:text-black'
+                      }`}>
+                        {t(`modules.${module.label}`)}
+                      </span>
                     </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                    isChecked ? 'bg-white border-white' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    {isChecked && <div className="w-2.5 h-2.5 bg-black rounded-[2px]" />}
                   </div>
                 </div>
               )
@@ -361,27 +365,27 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         </div>
 
         {/* Active Status */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg border border-slate-100">
           <input
             type="checkbox"
             id="is_active"
             name="is_active"
             checked={formData.is_active}
             onChange={handleChange}
-            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            className="w-5 h-5 rounded border-slate-300 text-black focus:ring-black cursor-pointer"
             disabled={loading}
           />
-          <label htmlFor="is_active" className="text-sm font-semibold text-slate-700">
+          <label htmlFor="is_active" className="text-xs font-black uppercase tracking-widest text-slate-900 cursor-pointer">
             {t('userMaster.userActive')}
           </label>
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-4 pt-6 border-t border-slate-200">
+        <div className="flex gap-4 pt-6 border-t-2 border-slate-100">
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-8 py-4 bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3"
           >
             {loading && <Loader className="w-5 h-5 animate-spin" />}
             {userId ? t('userMaster.updateUser') : t('userMaster.createUser')}
@@ -390,7 +394,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 px-6 py-2 bg-slate-200 hover:bg-slate-300 disabled:bg-slate-100 text-slate-900 font-semibold rounded-lg transition-colors"
+            className="px-8 py-4 bg-white border-2 border-slate-100 hover:border-slate-300 text-slate-500 hover:text-black font-black uppercase tracking-widest rounded-xl transition-all"
           >
             {t('common.cancel')}
           </button>
