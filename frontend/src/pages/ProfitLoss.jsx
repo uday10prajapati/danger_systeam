@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, PieChart, 
   ArrowUpRight, ArrowDownLeft, Calendar, FileText,
   Briefcase, ShoppingBag, CreditCard, ChevronRight,
-  Info, RefreshCw, Printer, Download, Activity, Database
+  Info, RefreshCw, Printer, Download, Activity, Database, CheckCircle
 } from 'lucide-react';
 
 export default function ProfitLoss() {
@@ -192,253 +192,254 @@ export default function ProfitLoss() {
           </div>
         </div>
 
-        {viewMode === 'summary' && !plData ? (
-           <div className="bg-white rounded-[2.5rem] p-32 text-center border-4 border-dashed border-slate-100 opacity-60">
-              <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
+        {viewMode === 'summary' && !plData && (
+           <div className="bg-white rounded-[2.5rem] p-32 text-center border-4 border-dashed border-slate-100 animate-pulse">
+              <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
                  <FileText className="text-slate-200" size={48} strokeWidth={1} />
               </div>
-              <h3 className="text-2xl font-black text-slate-300 uppercase tracking-[0.3em] italic">Zero Transaction Density</h3>
               <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] max-w-sm mx-auto mt-4 leading-relaxed">System buffer contains no financial descriptors for the isolated chronological window.</p>
-           </div>
-        ) : viewMode === 'summary' && plData && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            </div>
+        )}
+
+        {viewMode === 'summary' && plData && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
-            {/* Primary Profit Indicator - Industrial Hero Card */}
-            <div className="lg:col-span-12">
-               <div className={`relative overflow-hidden p-10 rounded-[2.5rem] shadow-2xl border-l-[1rem] transition-all group ${plData.netProfit >= 0 ? 'bg-white border-black' : 'bg-slate-900 border-red-700'}`}>
-                  <div className="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-12">
-                     <div className="text-center lg:text-left flex-1">
-                        <span className={`inline-flex items-center gap-2 px-4 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] mb-4 border-2 ${plData.netProfit >= 0 ? 'bg-white text-black border-black' : 'bg-red-800 text-white border-red-900'}`}>
-                           {plData.netProfit >= 0 ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
-                           Settlement Outcome: {plData.netProfit >= 0 ? 'Surplus' : 'Deficit'}
-                        </span>
-                        <h2 className={`text-7xl font-black tracking-tighter flex items-center gap-2 italic ${plData.netProfit >= 0 ? 'text-black' : 'text-white'}`}>
-                           <span className={`text-2xl not-italic ${plData.netProfit >= 0 ? 'text-slate-300 font-black' : 'text-red-900'}`}>₹</span>
-                           {formatCurrency(plData.netProfit)}
-                        </h2>
-                        <div className="flex items-center gap-4 mt-4">
-                           <p className={`text-[11px] font-black uppercase tracking-widest ${plData.netProfit >= 0 ? 'text-slate-400' : 'text-slate-500'}`}>
-                              Efficiency Index: 
-                           </p>
-                           <span className={`px-3 py-1 rounded-md text-xs font-black italic tracking-tighter ${plData.netProfit >= 0 ? 'bg-slate-100 text-black border border-black' : 'bg-red-900 text-white'}`}>
-                              {plData.profitMargin}% Margin Yield
-                           </span>
-                        </div>
-                     </div>
+            {/* High-Impact Result Card */}
+            <div className={`relative overflow-hidden p-10 rounded-[2.5rem] shadow-2xl border-l-[1.5rem] transition-all group ${
+              plData.netProfit >= 0 ? 'bg-white border-green-600' : 'bg-slate-900 border-red-600'
+            }`}>
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                <div className="text-center md:text-left">
+                  <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] mb-4 border-2 ${
+                    plData.netProfit >= 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-900/30 text-red-400 border-red-900'
+                  }`}>
+                    {plData.netProfit >= 0 ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
+                    AUDIT OUTCOME: {plData.netProfit >= 0 ? 'SURPLUS' : 'DEFICIT'}
+                  </span>
+                  <h2 className={`text-7xl font-black tracking-tighter italic ${plData.netProfit >= 0 ? 'text-black' : 'text-white'}`}>
+                    <span className="text-2xl not-italic opacity-30 mr-2">₹</span>
+                    {formatCurrency(plData.netProfit)}
+                  </h2>
+                  <div className="flex items-center gap-4 mt-6">
+                    <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${plData.netProfit >= 0 ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Return Efficiency:
+                    </p>
+                    <span className={`px-4 py-1 rounded-lg text-xs font-black italic tracking-tighter ${
+                      plData.netProfit >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                    }`}>
+                      {plData.profitMargin}% Yield
+                    </span>
+                  </div>
+                </div>
 
-                     <div className={`grid grid-cols-3 gap-10 w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-slate-100/10 pt-10 lg:pt-0 lg:pl-16 ${plData.netProfit >= 0 ? 'text-black' : 'text-slate-500'}`}>
-                        <div className="text-center lg:text-right">
-                           <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-40">Gross Positioning</p>
-                           <p className="text-2xl font-black italic tracking-tight">₹{formatShortCurrency(plData.grossProfit)}</p>
-                        </div>
-                        <div className="text-center lg:text-right">
-                           <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-40">Op. Overhead</p>
-                           <p className="text-2xl font-black italic tracking-tight">₹{formatShortCurrency(plData.operatingExpenses)}</p>
-                        </div>
-                        <div className="text-center lg:text-right">
-                           <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-40">Audit Revenue</p>
-                           <p className={`text-2xl font-black italic tracking-tight ${plData.netProfit >= 0 ? 'text-slate-900' : 'text-white'}`}>₹{formatShortCurrency(plData.revenue.netSales)}</p>
-                        </div>
-                     </div>
+                <div className="flex flex-col items-center md:items-end gap-2">
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center border-4 ${
+                    plData.netProfit >= 0 ? 'border-green-100 text-green-600' : 'border-red-900/30 text-red-600'
+                  }`}>
+                    {plData.netProfit >= 0 ? <TrendingUp size={48} strokeWidth={2.5} /> : <TrendingDown size={48} strokeWidth={2.5} />}
                   </div>
-                  {/* Decorative high-contrast background elements */}
-                  <div className={`absolute -right-16 -bottom-16 opacity-[0.03] pointer-events-none transition-all duration-1000 group-hover:scale-110 ${plData.netProfit >= 0 ? 'text-black' : 'text-white'}`}>
-                     {plData.netProfit >= 0 ? <ArrowUpRight size={400} strokeWidth={4} /> : <ArrowDownLeft size={400} strokeWidth={4} />}
-                  </div>
-               </div>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${plData.netProfit >= 0 ? 'text-green-600/50' : 'text-red-600/50'}`}>
+                    {plData.netProfit >= 0 ? 'Consolidated Profit' : 'Consolidated Loss'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Abstract decorative background */}
+              <div className={`absolute -right-20 -bottom-20 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-1000 ${
+                plData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {plData.netProfit >= 0 ? <TrendingUp size={400} /> : <TrendingDown size={400} />}
+              </div>
             </div>
 
-            {/* Trading Account Structure - Industrial Grids */}
-            <div className="lg:col-span-12 xl:col-span-6 space-y-8">
-              <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
-                <div className="bg-slate-900 px-8 py-5 border-b-2 border-black flex justify-between items-center">
-                  <h3 className="font-black text-white uppercase tracking-[0.2em] italic text-xs flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
-                    Direct Trading Audit
-                  </h3>
-                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest border border-slate-700 px-3 py-1 rounded-lg">Operational Inflow</span>
+            {/* Two-Column Profit & Loss Account */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-4 border-black rounded-[3rem] overflow-hidden shadow-2xl bg-white">
+              
+              {/* LEFT SIDE: EXPENSES / DEBIT */}
+              <div className="border-b-4 lg:border-b-0 lg:border-r-4 border-black flex flex-col bg-slate-50/30">
+                <div className="bg-slate-900 p-8 border-b-4 border-black text-center relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
+                  <h3 className="text-white font-black uppercase tracking-[0.6em] italic text-sm">Expenditure Registry</h3>
+                  <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Debit Allocations (ઉધાર બાજુ)</p>
                 </div>
-                
-                <div className="p-10 space-y-10">
-                  {/* Revenue Part - Sleek Monochrome */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-slate-900 border-b border-slate-100 pb-2">
-                      <TrendingUp size={16} strokeWidth={3} />
-                      <span className="text-[11px] font-black uppercase tracking-[0.3em]">Gross Revenue Streams</span>
+
+                <div className="flex-1 divide-y-2 divide-slate-100">
+                  {/* Purchase Header */}
+                  <div className="p-8 flex justify-between items-center hover:bg-white transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-2xl bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                        <ShoppingBag size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">Net Purchases</h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Inventory Inflow Value</p>
+                      </div>
                     </div>
-                    <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 space-y-4 shadow-inner">
-                       <div className="flex justify-between items-center group">
-                          <span className="text-slate-400 font-black uppercase text-[10px] tracking-widest group-hover:text-black transition-colors">Nominal Sales Volume</span>
-                          <span className="text-slate-900 font-black font-mono">₹{formatCurrency(plData.revenue.totalSalesRevenue)}</span>
-                       </div>
-                       <div className="flex justify-between items-center group">
-                          <span className="text-slate-400 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 group-hover:text-red-600 transition-colors">
-                             <div className="w-4 h-0.5 bg-red-600/20"></div> Returns & Cancellations
-                          </span>
-                          <span className="font-black text-red-700 italic font-mono">- ₹{formatCurrency(plData.revenue.salesReturns)}</span>
-                       </div>
-                       <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
-                          <span className="text-black font-black text-xs uppercase tracking-widest">Net Revenue Aggregation</span>
-                          <span className="text-slate-900 font-black text-2xl tracking-tighter italic">₹{formatCurrency(plData.revenue.netSales)}</span>
-                       </div>
-                    </div>
+                    <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(plData.costOfGoodsSold.netCostOfGoodsSold)}</span>
                   </div>
 
-                  {/* COGS Part - Sleek Monochrome */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-slate-500 border-b border-slate-100 pb-2">
-                      <TrendingDown size={16} strokeWidth={3} />
-                      <span className="text-[11px] font-black uppercase tracking-[0.3em]">Direct Inventory Costs</span>
-                    </div>
-                    <div className="bg-white border-2 border-slate-50 rounded-2xl p-6 space-y-4 shadow-sm italic">
-                       <div className="flex justify-between items-center group">
-                          <span className="text-slate-400 font-black uppercase text-[10px] tracking-widest group-hover:text-black transition-colors">Procurement Volume</span>
-                          <span className="text-slate-500 font-black font-mono">₹{formatCurrency(plData.costOfGoodsSold.purchaseCost)}</span>
-                       </div>
-                       <div className="flex justify-between items-center group">
-                          <span className="text-slate-400 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 group-hover:text-black transition-colors">
-                             <div className="w-4 h-0.5 bg-slate-200"></div> Recovery & Rebates
-                          </span>
-                          <span className="font-black text-slate-400 font-mono">- ₹{formatCurrency(plData.costOfGoodsSold.purchaseReturns)}</span>
-                       </div>
-                       <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                          <span className="text-slate-400 font-black text-xs uppercase tracking-widest italic opacity-50 underline decoration-slate-200 underline-offset-4">Cost Basis Output</span>
-                          <span className="text-slate-500 font-black text-2xl tracking-tighter opacity-80 decoration-slate-100 underline decoration-8 underline-offset-[-2px]">₹{formatCurrency(plData.costOfGoodsSold.netCostOfGoodsSold)}</span>
-                       </div>
-                    </div>
-                  </div>
-                  
-                  {/* Gross Profit Summary Ribbon */}
-                  <div className="bg-black rounded-2xl p-6 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.3)] flex justify-between items-center text-white relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 w-24 h-full bg-white/5 skew-x-12 translate-x-12 group-hover:translate-x-0 transition-transform duration-700"></div>
-                     <div className="flex items-center gap-4 relative z-10">
-                        <div className="bg-white/10 p-2.5 rounded-xl border border-white/20">
-                           <DollarSign size={24} strokeWidth={3} />
+                  {/* Individual Expense Accounts */}
+                  {plData.expenseAccounts && plData.expenseAccounts.length > 0 ? (
+                    plData.expenseAccounts.map((acc, idx) => (
+                      <div key={idx} className="p-8 flex justify-between items-center hover:bg-white transition-colors group">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 rounded-2xl bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                            <CreditCard size={20} />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{acc.account_name}</h4>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Operational Overhead</p>
+                          </div>
                         </div>
-                        <div>
-                           <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.3em]">Consolidated Result</p>
-                           <p className="text-2xl font-black uppercase italic tracking-tighter">Gross Trading Profit</p>
+                        <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(acc.amount)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-12 text-center opacity-20 italic font-black text-slate-300 uppercase tracking-widest text-xs">
+                      No Additional Overheads Detected
+                    </div>
+                  )}
+
+                  {/* Spacer to push balanced items to bottom */}
+                  <div className="flex-grow min-h-[100px]"></div>
+
+                  {/* Balancing Item: NET PROFIT (If positive, it balances the expense side) */}
+                  {plData.netProfit > 0 && (
+                     <div className="p-10 bg-green-600 text-white flex justify-between items-end relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
+                        <div className="relative z-10">
+                           <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-2 text-green-200">System Surplus</p>
+                           <h4 className="text-4xl font-black uppercase italic tracking-tighter">Net Profit</h4>
+                        </div>
+                        <div className="relative z-10 text-right">
+                           <p className="text-[9px] font-bold uppercase tracking-widest text-green-200 mb-1">C/O to Balance Sheet</p>
+                           <span className="text-4xl font-black font-mono tracking-tighter">₹{formatCurrency(plData.netProfit)}</span>
                         </div>
                      </div>
-                     <span className="text-3xl font-black italic tracking-tighter relative z-10 transition-transform group-hover:translate-x-[-10px] duration-500">₹{formatCurrency(plData.grossProfit)}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT SIDE: INCOME / CREDIT */}
+              <div className="flex flex-col bg-white">
+                <div className="bg-slate-900 p-8 border-b-4 border-black text-center relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
+                  <h3 className="text-white font-black uppercase tracking-[0.6em] italic text-sm">Income Registry</h3>
+                  <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Credit Allocations (જમા બાજુ)</p>
+                </div>
+
+                <div className="flex-1 divide-y-2 divide-slate-100 flex flex-col">
+                  {/* Sales Header */}
+                  <div className="p-8 flex justify-between items-center hover:bg-slate-50 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-2xl bg-slate-900 text-white group-hover:bg-black transition-all">
+                        <TrendingUp size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">Net Sales</h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Revenue Outflow Value</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(plData.revenue.netSales)}</span>
                   </div>
+
+                  {/* Individual Revenue Accounts */}
+                  {plData.incomeAccounts && plData.incomeAccounts.length > 0 ? (
+                    plData.incomeAccounts.map((acc, idx) => (
+                      <div key={idx} className="p-8 flex justify-between items-center hover:bg-slate-50 transition-colors group">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 rounded-2xl bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                            <DollarSign size={20} />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{acc.account_name}</h4>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Indirect Revenue</p>
+                          </div>
+                        </div>
+                        <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(acc.amount)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-12 text-center opacity-20 italic font-black text-slate-300 uppercase tracking-widest text-xs">
+                      No Secondary Revenue Streams
+                    </div>
+                  )}
+
+                  {/* Spacer to push balanced items to bottom */}
+                  <div className="flex-grow min-h-[100px]"></div>
+
+                  {/* Balancing Item: NET LOSS (If negative, it balances the income side) */}
+                  {plData.netProfit < 0 && (
+                     <div className="p-10 bg-red-600 text-white flex justify-between items-end relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
+                        <div className="relative z-10">
+                           <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-2 text-red-200">System Deficit</p>
+                           <h4 className="text-4xl font-black uppercase italic tracking-tighter">Net Loss</h4>
+                        </div>
+                        <div className="relative z-10 text-right">
+                           <p className="text-[9px] font-bold uppercase tracking-widest text-red-200 mb-1">Impact on Capital</p>
+                           <span className="text-4xl font-black font-mono tracking-tighter">₹{formatCurrency(Math.abs(plData.netProfit))}</span>
+                        </div>
+                     </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Operating Results - Heavy Industrial Grid */}
-            <div className="lg:col-span-12 xl:col-span-6 space-y-8">
-              <div className="bg-slate-900 rounded-[2.5rem] shadow-2xl border-4 border-black overflow-hidden h-full flex flex-col">
-                <div className="px-8 py-5 border-b-2 border-black flex justify-between items-center bg-black">
-                  <h3 className="font-black text-white uppercase tracking-[0.2em] italic text-xs flex items-center gap-3">
-                    <Activity size={18} className="text-slate-500" strokeWidth={3} />
-                    Indirect Performance Matrix
-                  </h3>
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest border border-slate-800 px-3 py-1 rounded-lg">Overhead Load</span>
-                </div>
-                
-                <div className="p-10 flex-1 flex flex-col space-y-12">
-                  {/* Expenses Heavy Visualizer */}
-                  <div className="space-y-6">
-                     <div className="flex justify-between items-end border-b-2 border-slate-800 pb-4">
-                        <div className="flex items-center gap-3 text-slate-500">
-                           <CreditCard size={18} strokeWidth={3} />
-                           <span className="text-[11px] font-black uppercase tracking-[0.3em]">Indirect Expenditure Capture</span>
-                        </div>
-                        <span className="text-3xl font-black text-white italic tracking-tighter">₹{formatCurrency(plData.operatingExpenses)}</span>
-                     </div>
-                     
-                     {/* Heavy Industrial Progress Bars */}
-                     <div className="space-y-6">
-                        <div className="space-y-2">
-                           <div className="flex justify-between text-[10px] font-black text-slate-500 px-1 uppercase tracking-widest">
-                              <span>Overhead Absorption Index</span>
-                              <span className={plData.operatingExpenses > plData.grossProfit ? 'text-red-600' : 'text-white'}>
-                                 {((plData.operatingExpenses / (plData.grossProfit || 1)) * 100).toFixed(1)}% Usage
-                              </span>
-                           </div>
-                           <div className="w-full h-4 bg-black rounded-lg overflow-hidden flex border border-slate-800 p-1">
-                              <div 
-                                className={`h-full rounded transition-all duration-1000 shadow-xl ${plData.operatingExpenses > plData.grossProfit ? 'bg-red-700 animate-pulse' : 'bg-slate-600'}`} 
-                                style={{ width: `${Math.min(100, (plData.operatingExpenses / (plData.grossProfit || 1)) * 100)}%` }}
-                              />
-                           </div>
-                        </div>
-
-                        {/* Heavy Industrial System Memo */}
-                        <div className="bg-black/50 rounded-2xl p-8 border-2 border-slate-800 mt-6 relative overflow-hidden group">
-                           <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-1000"></div>
-                           <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px] leading-relaxed relative z-10 italic">
-                             <span className="text-white block mb-2 not-italic">AUTOMATED LEDGER ANALYSIS:</span>
-                             Total overhead encapsulates all indirect disbursements captured from global account registries flagged with "Administrative" or "Establishment" cost tags. This includes verified salary disbursements, rent utilities, and ancillary overheads processed within the current isolation window.
-                           </p>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Ultimate Bottom Line Section */}
-                  <div className="mt-auto space-y-6">
-                     <div className="flex items-center gap-3 text-slate-600 border-b border-slate-800 pb-2">
-                        <ArrowUpRight size={18} strokeWidth={3} />
-                        <span className="text-[11px] font-black uppercase tracking-[0.3em]">Final Settlement Status</span>
-                     </div>
-                     <div className={`p-10 rounded-[2.5rem] flex flex-col items-center justify-center border-4 text-center transition-all group ${
-                        plData.netProfit >= 0 ? 'bg-white border-white' : 'bg-black border-red-900 border-dashed'
-                     }`}>
-                        <p className={`text-[11px] font-black uppercase tracking-[0.5em] mb-2 ${plData.netProfit >= 0 ? 'text-slate-400' : 'text-red-800'}`}>
-                           Audited Position
-                        </p>
-                        <h4 className={`text-5xl font-black mb-2 italic tracking-tighter uppercase transition-transform group-hover:scale-110 duration-500 ${
-                           plData.netProfit >= 0 ? 'text-black' : 'text-red-700'
-                        }`}>
-                           {plData.netProfit >= 0 ? 'Net Surplus' : 'Net Deficit'}
-                        </h4>
-                        <div className={`text-2xl font-black font-mono italic ${
-                           plData.netProfit >= 0 ? 'text-slate-400' : 'text-white underline decoration-red-900 decoration-8 underline-offset-8'
-                        }`}>
-                           ₹{formatCurrency(plData.netProfit)}
-                        </div>
-                     </div>
-                  </div>
-                </div>
-              </div>
+            {/* Verification Line - Industrial Totals */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-x-4 border-b-4 border-black rounded-b-[3rem] overflow-hidden -mt-8 bg-black group">
+               <div className="p-6 border-r-2 border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
+                  <span className="text-white font-black uppercase tracking-[0.5em] text-[10px]">TOTAL EXPENDITURE</span>
+                  <span className="text-white text-3xl font-black font-mono italic tracking-tighter">
+                     ₹{formatCurrency(Math.max(
+                        plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                        plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                     ))}
+                  </span>
+               </div>
+               <div className="p-6 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
+                  <span className="text-white font-black uppercase tracking-[0.5em] text-[10px]">TOTAL REVENUE</span>
+                  <span className="text-white text-3xl font-black font-mono italic tracking-tighter">
+                  ₹{formatCurrency(Math.max(
+                        plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                        plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                     ))}
+                  </span>
+               </div>
             </div>
 
-            {/* Sales Componentization Visualizer */}
-            {plData.salesByType && plData.salesByType.length > 0 && (
-               <div className="lg:col-span-12">
-                  <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-                     <div className="bg-slate-50 px-10 py-6 border-b border-slate-200 flex justify-between items-center">
-                        <div>
-                           <h3 className="font-black text-slate-900 text-2xl tracking-tighter uppercase italic">Registry Componentization</h3>
-                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Transaction Methodology Distribution</p>
-                        </div>
-                        <div className="bg-white px-6 py-2 rounded-xl border border-slate-200 font-black uppercase text-[10px] tracking-widest text-black shadow-sm italic">
-                           Live Data Stream Active
-                        </div>
-                     </div>
-                     <div className="p-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                           {plData.salesByType.map((sale, idx) => (
-                              <div key={idx} className="group relative bg-white hover:bg-black p-8 rounded-[2rem] border-2 border-slate-50 hover:border-black transition-all hover:shadow-2xl hover:translate-y-[-5px]">
-                                 <div className="flex justify-between items-start mb-8">
-                                    <div className="p-3 rounded-2xl bg-slate-100 group-hover:bg-white/10 group-hover:text-white transition-colors border border-slate-200 group-hover:border-white/20 shadow-inner">
-                                       {sale.payment_type === 'cash' ? <CreditCard size={24} strokeWidth={2.5} /> : <FileText size={24} strokeWidth={2.5} />}
-                                    </div>
-                                    <div className="text-right">
-                                       <span className="text-[10px] font-black text-slate-300 uppercase group-hover:text-slate-600 block">Batch Vol.</span>
-                                       <span className="text-xs font-black text-slate-900 group-hover:text-white font-mono">{sale.transaction_count} TX</span>
-                                    </div>
-                                 </div>
-                                 <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500 mb-1">{sale.payment_type} PROTOCOL</h4>
-                                 <p className="text-3xl font-black text-slate-900 group-hover:text-white tracking-tighter italic font-mono transition-transform group-hover:translate-x-2 duration-300">₹{formatCurrency(sale.amount)}</p>
-                              </div>
-                           ))}
-                        </div>
+            {/* Performance Indicators Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+               <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-xl group hover:border-black transition-all">
+                  <p className="text-slate-400 font-black uppercase tracking-widest text-[9px] mb-2">Operating Margin</p>
+                  <div className="flex items-end justify-between">
+                     <h5 className="text-4xl font-black italic tracking-tighter">{plData.profitMargin}%</h5>
+                     <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-black" style={{ width: `${Math.min(100, Math.max(0, plData.profitMargin))}%` }}></div>
                      </div>
                   </div>
                </div>
-            )}
+               <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-xl group hover:border-black transition-all">
+                  <p className="text-slate-400 font-black uppercase tracking-widest text-[9px] mb-2">Expense Absorption</p>
+                  <div className="flex items-end justify-between">
+                     <h5 className="text-4xl font-black italic tracking-tighter">{((plData.operatingExpenses / (plData.revenue.netSales || 1)) * 100).toFixed(1)}%</h5>
+                     <CreditCard className="text-slate-200 group-hover:text-black transition-colors" size={32} />
+                  </div>
+               </div>
+               <div className={`p-8 rounded-3xl border-2 shadow-xl flex items-center justify-between transition-all ${
+                  plData.netProfit >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'
+               }`}>
+                  <div>
+                     <p className="text-slate-400 font-black uppercase tracking-widest text-[9px] mb-1">Fiscal Health</p>
+                     <h5 className={`text-2xl font-black italic tracking-tighter ${plData.netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        {plData.netProfit >= 0 ? 'Optimal Surplus' : 'Deficit Risk'}
+                     </h5>
+                  </div>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${plData.netProfit >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                     <CheckCircle size={24} />
+                  </div>
+               </div>
+            </div>
           </div>
         )}
 
@@ -528,19 +529,19 @@ export default function ProfitLoss() {
 
     </div>
   );
+}
 
-  function formatDate(dateStr) {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-  function formatShortCurrency(value) {
-    if (!value) return '0';
-    const val = parseFloat(value);
-    if (val >= 10000000) return (val / 10000000).toFixed(2) + ' Cr';
-    if (val >= 100000) return (val / 100000).toFixed(2) + ' L';
-    if (val >= 1000) return (val / 1000).toFixed(1) + ' K';
-    return val.toFixed(0);
-  }
+function formatShortCurrency(value) {
+  if (!value) return '0';
+  const val = parseFloat(value);
+  if (val >= 10000000) return (val / 10000000).toFixed(2) + ' Cr';
+  if (val >= 100000) return (val / 100000).toFixed(2) + ' L';
+  if (val >= 1000) return (val / 1000).toFixed(1) + ' K';
+  return val.toFixed(0);
 }

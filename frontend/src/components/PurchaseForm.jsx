@@ -14,10 +14,14 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   const [paymentType, setPaymentType] = useState('credit'); // credit, cash
   const [taxType, setTaxType] = useState('CGST/SGST'); // CGST/SGST, IGST
   const [supplierId, setSupplierId] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [gadiNumber, setGadiNumber] = useState('');
 
   // Supplier (Party) Search State
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
-  const [supplierSearchText, setSupplierSearchText] = useState('');
+  const [supplierCodeSearch, setSupplierCodeSearch] = useState('');
+  const [supplierNameSearch, setSupplierNameSearch] = useState('');
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
 
@@ -31,6 +35,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   const [currentRate, setCurrentRate] = useState('');
   const [itemSearchText, setItemSearchText] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [itemSelectedIndex, setItemSelectedIndex] = useState(0);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Form Extraneous
@@ -38,6 +43,9 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
   // Input Refs for hotkeys
   const itemInputRef = useRef(null);
+  const supplierDropdownRef = useRef(null);
+  const itemDropdownRef = useRef(null);
+  const dropdownListRef = useRef(null);
 
   const calculateDropdownPos = () => {
     if (itemInputRef.current) {
@@ -57,6 +65,47 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
       return () => window.removeEventListener('resize', calculateDropdownPos);
     }
   }, [showItemDropdown]);
+
+  // Auto-scroll selected item into view
+  useEffect(() => {
+    if (showItemDropdown && dropdownListRef.current) {
+      const selectedEl = dropdownListRef.current.children[itemSelectedIndex + 1]; // +1 for the header
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [itemSelectedIndex, showItemDropdown]);
+
+  useEffect(() => {
+    const handleGlobalClick = (e) => {
+      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(e.target)) {
+        setShowSupplierDropdown(false);
+      }
+      if (itemDropdownRef.current && !itemDropdownRef.current.contains(e.target)) {
+        setShowItemDropdown(false);
+      }
+    };
+    window.addEventListener('mousedown', handleGlobalClick);
+    return () => window.removeEventListener('mousedown', handleGlobalClick);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showItemDropdown) {
+          setShowItemDropdown(false);
+          return;
+        }
+        if (showSupplierDropdown) {
+          setShowSupplierDropdown(false);
+          return;
+        }
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [showItemDropdown, showSupplierDropdown, onCancel]);
 
   useEffect(() => {
     loadCompanyAndData();
@@ -115,6 +164,27 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
     return { amount, cgstPercent, cgstAmt, sgstPercent, sgstAmt, igstPercent, igstAmt, totalAmount };
   };
+  
+  // Auto-fetch supplier by code
+  useEffect(() => {
+    if (supplierCodeSearch) {
+      const match = availableSuppliers.find(s => String(s.id) === supplierCodeSearch || String(s.phone) === supplierCodeSearch);
+      if (match) {
+        setSelectedSupplier(match);
+        setSupplierId(match.id);
+        setSupplierNameSearch(match.account_name);
+        setShowSupplierDropdown(false);
+      } else {
+        if (selectedSupplier && String(selectedSupplier.id) !== supplierCodeSearch) {
+          setSelectedSupplier(null);
+          setSupplierId('');
+        }
+      }
+    } else {
+      setSelectedSupplier(null);
+      setSupplierId('');
+    }
+  }, [supplierCodeSearch, availableSuppliers]);
 
   const handleAddItem = (e) => {
     if (e) e.preventDefault();
@@ -150,7 +220,8 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   const handleSupplierSelect = (supplier) => {
     setSelectedSupplier(supplier);
     setSupplierId(supplier.id);
-    setSupplierSearchText(`${supplier.account_name}`);
+    setSupplierCodeSearch(String(supplier.id));
+    setSupplierNameSearch(supplier.account_name);
     setShowSupplierDropdown(false);
   };
 
@@ -160,6 +231,31 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
     const defaultRate = item.purchase_price !== undefined ? item.purchase_price : '';
     setCurrentRate(defaultRate);
     setShowItemDropdown(false);
+    setItemSelectedIndex(0);
+  };
+
+  const handleItemSearchKeyDown = (e) => {
+    const filteredItems = availableItems.filter(i => 
+      String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || 
+      String(i.item_code).includes(itemSearchText)
+    );
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setItemSelectedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setItemSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      if (showItemDropdown && filteredItems.length > 0) {
+        e.preventDefault();
+        handleItemSelect(filteredItems[itemSelectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowItemDropdown(false);
+    }
   };
 
   // Recalculate totals
@@ -202,6 +298,9 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
         is_intra_state: taxType === 'CGST/SGST',
         payment_type: paymentType,
         notes: '',
+        driver_name: driverName,
+        mobile_number: mobileNumber,
+        gadi_number: gadiNumber,
         items: purchaseItems.map(row => ({
           item_id: row.id,
           quantity: row.quantity,
@@ -250,31 +349,51 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           {/* Top Form Section */}
           <div className="bg-slate-50 p-3 border-b border-slate-200 shadow-sm font-semibold text-[12px] text-slate-800">
 
-            {/* Row 1: Party */}
+            {/* Row 1: Party & Payment Type */}
             <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 items-center">
-              <div className="flex items-center gap-3 relative z-20">
+              <div className="flex items-center gap-3 relative z-30" ref={supplierDropdownRef}>
                 <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Party :</span>
                 <input
                   type="text"
-                  value={supplierSearchText}
+                  value={supplierCodeSearch}
                   onChange={(e) => {
-                    setSupplierSearchText(e.target.value);
+                    setSupplierCodeSearch(e.target.value);
                     setShowSupplierDropdown(true);
                   }}
                   onFocus={() => setShowSupplierDropdown(true)}
-                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-50 w-[400px] outline-none rounded-lg focus:border-black focus:bg-white transition-all uppercase font-black text-slate-900 shadow-sm"
-                  placeholder="SEARCH SUPPLIER / PARTY..."
+                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-50 w-24 outline-none rounded focus:border-black focus:bg-white transition-all uppercase font-black text-slate-900 shadow-sm text-center"
+                  placeholder="CODE"
+                />
+                <input
+                  type="text"
+                  value={supplierNameSearch}
+                  onChange={(e) => {
+                    setSupplierNameSearch(e.target.value);
+                    setShowSupplierDropdown(true);
+                    if (selectedSupplier && selectedSupplier.account_name !== e.target.value) {
+                      setSelectedSupplier(null);
+                      setSupplierId('');
+                    }
+                  }}
+                  onFocus={() => setShowSupplierDropdown(true)}
+                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-50 w-80 outline-none rounded focus:border-black focus:bg-white transition-all uppercase font-black text-slate-900 shadow-sm"
+                  placeholder="SEARCH SUPPLIER NAME..."
                 />
 
                 {showSupplierDropdown && (
-                  <div className="absolute top-full left-14 bg-white border-2 border-black shadow-2xl w-[400px] max-h-64 overflow-y-auto z-40 rounded-lg mt-2 overflow-hidden">
-                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center">
+                  <div className="absolute top-full left-16 bg-white border-2 border-black shadow-2xl w-[400px] max-h-64 overflow-y-auto z-40 rounded-lg mt-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0">
                       <span className="text-white text-[10px] font-black uppercase tracking-widest px-2">Suppliers</span>
                       <X size={16} className="text-white cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowSupplierDropdown(false)} />
                     </div>
-                    {availableSuppliers.filter(m => String(m.account_name).toLowerCase().includes(supplierSearchText.toLowerCase())).map((m) => (
-                      <div key={m.id} onClick={() => handleSupplierSelect(m)} className="px-4 py-2 hover:bg-black hover:text-white cursor-pointer text-[13px] font-black border-b border-slate-100 last:border-0 transition-colors">
-                        {m.account_name}
+                    {availableSuppliers.filter(s => {
+                      const codeMatch = supplierCodeSearch ? (String(s.id).includes(supplierCodeSearch) || String(s.phone).includes(supplierCodeSearch)) : true;
+                      const nameMatch = supplierNameSearch ? String(s.account_name).toLowerCase().includes(supplierNameSearch.toLowerCase()) : true;
+                      return codeMatch && nameMatch;
+                    }).map((m) => (
+                      <div key={m.id} onClick={() => handleSupplierSelect(m)} className="px-4 py-3 hover:bg-black hover:text-white cursor-pointer text-[13px] font-black border-b border-slate-100 last:border-0 transition-colors flex justify-between items-center group uppercase">
+                        <span>{m.account_name}</span>
+                        <span className="text-[10px] text-slate-400 group-hover:text-slate-300">#{m.id}</span>
                       </div>
                     ))}
                   </div>
@@ -282,51 +401,90 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
               </div>
 
               <div className="flex items-center gap-2 ml-auto text-[11px] bg-slate-900 text-white p-1 rounded-lg border-2 border-slate-900 shadow-lg font-black uppercase tracking-widest">
-                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded-md transition-all ${paymentType === 'cash' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Cash</button>
-                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded-md transition-all ${paymentType === 'credit' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Credit</button>
+                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded transition-all ${paymentType === 'cash' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Cash</button>
+                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded transition-all ${paymentType === 'credit' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Credit</button>
               </div>
             </div>
 
-            {/* Row 2: Bill No & Date */}
-            <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 mt-4">
+            {/* Row 2: Bill No, Date, Vehicle */}
+            <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 mt-3">
               <div className="flex items-center gap-3">
                 <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Bill No :</span>
                 <input
                   type="text"
                   value={billNo}
                   onChange={(e) => setBillNo(e.target.value)}
-                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-900 text-white w-40 outline-none rounded-lg font-mono font-black text-center shadow-lg focus:ring-2 focus:ring-slate-400"
+                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-slate-900 text-white w-32 outline-none rounded font-mono font-black text-center shadow-lg focus:ring-2 focus:ring-slate-400"
                 />
               </div>
 
-              <div className="flex items-center gap-3 ml-4">
+              <div className="flex items-center gap-3">
                 <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Date :</span>
                 <input
                   type="date"
                   value={invoiceDate}
                   onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="border border-slate-300 px-4 py-2 text-[13px] bg-white w-44 outline-none rounded-lg font-bold shadow-sm focus:border-black transition-all"
+                  className="border border-slate-300 px-4 py-1.5 text-[12px] bg-white w-40 outline-none rounded font-bold shadow-sm focus:border-black transition-all"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Vehicle # :</span>
+                <input
+                  type="text"
+                  value={gadiNumber}
+                  onChange={(e) => setGadiNumber(e.target.value)}
+                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-white w-36 outline-none rounded font-black uppercase shadow-sm focus:border-black transition-all"
+                  placeholder="GADI NO"
                 />
               </div>
             </div>
 
-            {/* Row 3: Tax Type */}
-            <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 mt-4 items-center">
+            {/* Row 3: Driver & Mobile */}
+            <div className="flex flex-wrap gap-x-8 gap-y-3 px-2 mt-3 items-center">
+               <div className="flex items-center gap-3">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Driver :</span>
+                <input
+                  type="text"
+                  value={driverName}
+                  onChange={(e) => setDriverName(e.target.value)}
+                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-white w-44 outline-none rounded font-black uppercase shadow-sm focus:border-black transition-all"
+                  placeholder="DRIVER NAME"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Mobile :</span>
+                <input
+                  type="text"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-white w-40 outline-none rounded font-black uppercase shadow-sm focus:border-black transition-all"
+                  placeholder="MOBILE NO"
+                />
+              </div>
+            </div>
+
+            {/* Row 4: Tax Type & State */}
+            <div className="flex flex-wrap gap-x-8 gap-y-3 px-2 mt-3 items-center">
               <div className="flex items-center gap-3">
                 <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Tax :</span>
-                <select value={taxType} onChange={(e) => setTaxType(e.target.value)} className="border border-slate-300 px-4 py-2 text-[13px] bg-white w-52 outline-none rounded-lg font-black text-slate-900 shadow-sm focus:border-black transition-all">
+                <select
+                  value={taxType}
+                  onChange={(e) => setTaxType(e.target.value)}
+                  className="border border-slate-300 px-4 py-1.5 text-[12px] bg-white w-44 outline-none rounded font-black shadow-sm focus:border-black transition-all cursor-pointer"
+                >
                   <option value="CGST/SGST">LOCAL (CGST/SGST)</option>
                   <option value="IGST">INTERSTATE (IGST)</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-3 ml-4">
+              <div className="flex items-center gap-3">
                 <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">State :</span>
                 <input
                   type="text"
-                  disabled
-                  value="GUJARAT (24)"
-                  className="border border-slate-200 px-4 py-2 text-[13px] bg-slate-100 w-48 outline-none rounded-lg font-bold text-slate-400 cursor-not-allowed"
+                  value={company?.state_name ? `${company.state_name} (${company.state_code})` : 'GUJARAT (24)'}
+                  readOnly
+                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-slate-100 w-44 outline-none rounded font-bold text-slate-500 shadow-inner"
                 />
               </div>
             </div>
@@ -364,8 +522,8 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     <td className="p-3 px-2 text-right font-mono text-slate-400 text-[10px]">{taxType === 'IGST' ? row.igstPercent.toFixed(2) : row.cgstPercent.toFixed(2)}</td>
                     <td className="p-3 px-2 text-right font-mono text-slate-700">{taxType === 'IGST' ? row.igstAmt.toFixed(1) : row.cgstAmt.toFixed(1)}</td>
 
-                    <td className="p-3 px-2 text-right font-mono text-slate-400 text-[10px]">{taxType === 'IGST' ? '' : row.sgstPercent.toFixed(2)}</td>
-                    <td className="p-3 px-2 text-right font-mono text-slate-700">{taxType === 'IGST' ? '' : row.sgstAmt.toFixed(1)}</td>
+                    <td className={`p-3 px-2 text-right font-mono text-slate-400 text-[10px] ${taxType === 'CGST/SGST' ? 'bg-slate-50/50' : ''}`}>{taxType === 'IGST' ? '' : row.sgstPercent.toFixed(2)}</td>
+                    <td className={`p-3 px-2 text-right font-mono text-slate-700 ${taxType === 'CGST/SGST' ? 'bg-slate-50/50' : ''}`}>{taxType === 'IGST' ? '' : row.sgstAmt.toFixed(1)}</td>
 
                     <td className="p-3 px-4 text-right font-mono font-black text-black bg-slate-50">{row.totalAmount.toFixed(2)}</td>
                     <td className="p-3 text-center text-slate-300 hover:text-red-500 cursor-pointer font-bold transition-colors" onClick={() => handleRemoveItem(idx)}>
@@ -385,8 +543,10 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                       onChange={(e) => {
                         setItemSearchText(e.target.value);
                         setShowItemDropdown(true);
+                        setItemSelectedIndex(0);
                       }}
                       onFocus={() => setShowItemDropdown(true)}
+                      onKeyDown={handleItemSearchKeyDown}
                       className="w-full h-10 px-4 outline-none border-none text-[12px] bg-white font-black uppercase text-black placeholder:text-slate-400 shadow-inner"
                       placeholder="SEARCH ITEM BY NAME OR CODE..."
                     />
@@ -437,22 +597,33 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           {/* Absolute Item Dropdown - High Contrast Monochrome */}
           {showItemDropdown && (
             <div
+              ref={itemDropdownRef}
               style={{ position: 'fixed', top: `${dropdownPos.top + 5}px`, left: dropdownPos.left || 0, width: dropdownPos.width || 400 }}
               className="bg-white border-2 border-black shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] max-h-80 overflow-y-auto z-[9999] rounded-lg animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="p-2 border-b bg-slate-900 flex justify-between font-black text-white text-[10px] uppercase tracking-widest sticky top-0 items-center">
-                <span>Select Product From Inventory</span>
-                <X size={16} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)} />
-              </div>
-              {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((item) => (
-                <div key={item.id} onClick={() => handleItemSelect(item)} className="px-4 py-3 border-b border-slate-100 hover:bg-slate-900 group cursor-pointer transition-colors flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-black uppercase text-slate-800 group-hover:text-white">{item.item_name}</span>
-                    <span className="text-[10px] text-slate-400 group-hover:text-slate-300 font-bold uppercase tracking-widest">Code: {item.item_code} | PR: ₹{item.purchase_price}</span>
-                  </div>
-                  <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200 text-black font-black text-[10px] group-hover:bg-slate-800 group-hover:text-white group-hover:border-slate-700">Stock: {item.current_stock || 0}</div>
+              <div ref={dropdownListRef}>
+                <div className="p-2 border-b bg-slate-900 flex justify-between font-black text-white text-[10px] uppercase tracking-widest sticky top-0 items-center">
+                  <span>Select Product From Inventory</span>
+                  <X size={16} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)} />
                 </div>
-              ))}
+                {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((item, idx) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => handleItemSelect(item)} 
+                    className={`px-4 py-3 border-b border-slate-100 transition-colors flex justify-between items-center group cursor-pointer ${
+                      itemSelectedIndex === idx ? 'bg-slate-900 text-white' : 'hover:bg-slate-50 text-slate-800'
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className={`text-xs font-black uppercase transition-colors ${itemSelectedIndex === idx ? 'text-white' : 'text-slate-800'}`}>{item.item_name}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${itemSelectedIndex === idx ? 'text-slate-400' : 'text-slate-400'}`}>Code: {item.item_code} | PR: ₹{item.purchase_price}</span>
+                    </div>
+                    <div className={`px-2 py-1 rounded border text-[10px] font-black transition-all ${
+                      itemSelectedIndex === idx ? 'bg-slate-800 text-white border-slate-700' : 'bg-slate-50 text-black border-slate-200'
+                    }`}>Stock: {item.current_stock || 0}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -475,10 +646,23 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">Base :</span>
                   <span className="font-mono font-black text-white text-[9px]">{totalBaseAmount.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between items-center w-36 py-0.5">
-                  <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">GST :</span>
-                  <span className="font-mono font-black text-white text-[9px]">{(totalCgst + totalSgst + totalIgst).toFixed(2)}</span>
-                </div>
+                {taxType === 'CGST/SGST' ? (
+                  <>
+                    <div className="flex justify-between items-center w-36 py-0.5">
+                      <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">CGST :</span>
+                      <span className="font-mono font-black text-white text-[9px]">{totalCgst.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center w-36 py-0.5">
+                      <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">SGST :</span>
+                      <span className="font-mono font-black text-white text-[9px]">{totalSgst.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center w-36 py-0.5">
+                    <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">IGST :</span>
+                    <span className="font-mono font-black text-white text-[9px]">{totalIgst.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center w-36 py-0.5 border-t border-slate-800 mt-0.5 pt-0.5">
                   <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">Round :</span>
                   <span className={`font-mono font-black text-[9px] ${rounding >= 0 ? 'text-green-400' : 'text-red-400'}`}>{rounding.toFixed(2)}</span>

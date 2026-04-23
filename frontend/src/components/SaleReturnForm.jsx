@@ -19,6 +19,19 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
   const [gstData, setGstData] = useState(null);
   const [company, setCompany] = useState(null);
 
+  // Member Search States
+  const [members, setMembers] = useState([]);
+  const [searchCode, setSearchCode] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [memberSelectedIndex, setMemberSelectedIndex] = useState(0);
+
+  // Refs
+  const memberDropdownRef = React.useRef(null);
+  const memberCodeRef = React.useRef(null);
+  const memberNameRef = React.useRef(null);
+
   useEffect(() => {
     loadCompany();
   }, []);
@@ -37,8 +50,73 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
   useEffect(() => {
     if (step === 1 && company?.id) {
       fetchAvailableSales();
+      fetchMembers();
     }
   }, [step, company]);
+
+  const fetchMembers = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`, {
+        headers: { 'x-company-id': company.id }
+      });
+      setMembers(res.data.success ? res.data.data : []);
+    } catch (err) {
+      console.error('Fetch members error', err);
+    }
+  };
+
+  // Auto-fetch by code
+  useEffect(() => {
+    if (searchCode && !selectedMember) {
+      const match = members.find(m => String(m.id) === searchCode || String(m.phone) === searchCode);
+      if (match) {
+        handleMemberSelect(match);
+      }
+    }
+  }, [searchCode, members]);
+
+  // Global Listeners
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(e.target)) {
+        setShowMemberDropdown(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMemberSelect = (m) => {
+    setSelectedMember(m);
+    setSearchCode(String(m.id));
+    setSearchText(m.account_name);
+    setShowMemberDropdown(false);
+  };
+
+  const filteredMembers = members.filter(m => {
+    const cMatch = searchCode ? (String(m.id).includes(searchCode) || String(m.phone).includes(searchCode)) : true;
+    const nMatch = searchText ? m.account_name.toLowerCase().includes(searchText.toLowerCase()) : true;
+    return cMatch && nMatch;
+  });
+
+  const handleMemberKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMemberSelectedIndex(prev => (prev < filteredMembers.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMemberSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      if (showMemberDropdown && filteredMembers.length > 0) {
+        e.preventDefault();
+        handleMemberSelect(filteredMembers[memberSelectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowMemberDropdown(false);
+    }
+  };
 
   const fetchAvailableSales = async () => {
     try {
@@ -161,51 +239,115 @@ export default function SaleReturnForm({ onClose, onSuccess }) {
           {/* STEP 1: NOMENCLATURE SELECTION */}
           {step === 1 && (
             <div className="space-y-6">
-              <div className="flex items-center gap-4 mb-4 border-l-4 border-black pl-4">
+              <div className="flex items-center justify-between gap-4 mb-4 border-l-4 border-black pl-4">
                  <div>
                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Select Active Transaction</h3>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Isolating available sales pipeline density</p>
                  </div>
+                 
+                 {/* Member Search Module */}
+                 <div className="flex items-center gap-2 relative z-50 mr-2" ref={memberDropdownRef}>
+                    <input
+                      ref={memberCodeRef}
+                      type="text"
+                      placeholder="CODE"
+                      value={searchCode}
+                      onChange={(e) => {
+                        setSearchCode(e.target.value);
+                        setShowMemberDropdown(true);
+                        if (selectedMember) setSelectedMember(null);
+                      }}
+                      onFocus={() => setShowMemberDropdown(true)}
+                      onKeyDown={handleMemberKeyDown}
+                      className="w-20 border border-slate-300 px-3 py-1.5 rounded-lg outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-slate-50 shadow-sm text-center"
+                    />
+                    <input
+                      ref={memberNameRef}
+                      type="text"
+                      placeholder="OR NAME..."
+                      value={searchText}
+                      onChange={(e) => {
+                        setSearchText(e.target.value);
+                        setShowMemberDropdown(true);
+                        if (selectedMember) setSelectedMember(null);
+                      }}
+                      onFocus={() => setShowMemberDropdown(true)}
+                      onKeyDown={handleMemberKeyDown}
+                      className="w-48 border border-slate-300 px-3 py-1.5 rounded-lg outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-slate-50 shadow-sm"
+                    />
+
+                    {showMemberDropdown && (
+                      <div className="absolute top-full right-0 w-[300px] bg-white border-2 border-black shadow-2xl z-[60] max-h-60 overflow-y-auto rounded-xl mt-1 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
+                          <span>Identity Logs</span>
+                          <X size={12} className="cursor-pointer" onClick={() => setShowMemberDropdown(false)} />
+                        </div>
+                        {filteredMembers.map((m, idx) => (
+                          <div 
+                            key={m.id}
+                            onClick={() => handleMemberSelect(m)}
+                            className={`px-4 py-2 border-b border-slate-50 flex justify-between items-center cursor-pointer ${
+                              memberSelectedIndex === idx ? 'bg-slate-900 text-white italic' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="font-black text-[10px] uppercase truncate flex-1">{m.account_name}</span>
+                            <span className={`text-[8px] font-black ml-2 ${memberSelectedIndex === idx ? 'text-slate-400' : 'text-slate-300'}`}>#{m.id}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                 </div>
               </div>
 
-              {availableSales.length === 0 ? (
-                <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-3xl group">
-                   <Hash className="w-12 h-12 text-slate-100 mx-auto mb-4 group-hover:text-black transition-colors" strokeWidth={1} />
-                   <p className="text-slate-300 font-black uppercase tracking-[0.5em] text-[10px] italic">Zero Transaction Density Detected</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {availableSales.map(sale => (
-                    <button
-                      key={sale.id}
-                      onClick={() => handleSelectSale(sale)}
-                      className="group relative transition-all text-left p-6 bg-slate-50 border-2 border-transparent hover:border-black hover:bg-white rounded-2xl hover:shadow-[0_20px_40px_rgba(0,0,0,0.05)] overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-24 h-full bg-slate-900 overflow-hidden translate-x-full transition-transform group-hover:translate-x-0 duration-500 flex items-center justify-center">
-                         <ChevronRight size={32} className="text-white" strokeWidth={3} />
-                      </div>
-                      
-                      <div className="relative z-10 flex justify-between items-center">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-black text-[10px]">{sale.invoice_no.split('-').pop()}</div>
-                             <span className="font-black text-slate-900 uppercase tracking-tighter text-base">{sale.invoice_no}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                             <User size={12} strokeWidth={3} />
-                             {sale.customer_name || 'WALK_IN_AUTHENTICATION'}
-                          </div>
-                          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2 bg-slate-200/50 px-2 py-1 rounded inline-block">{sale.item_summary}</p>
+              <div className="grid grid-cols-1 gap-3">
+                {availableSales
+                  .filter(s => {
+                    if (!selectedMember) return true;
+                    // Usually availableSales.customer_id should match
+                    return s.customer_account_id === selectedMember.id;
+                  })
+                  .length === 0 ? (
+                  <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-[2rem] group">
+                    <Hash className="w-12 h-12 text-slate-100 mx-auto mb-4 group-hover:text-black transition-colors" strokeWidth={1} />
+                    <p className="text-slate-300 font-black uppercase tracking-[0.5em] text-[10px] italic">Zero Transaction Density Detected</p>
+                  </div>
+                ) : (
+                  availableSales
+                    .filter(s => {
+                      if (!selectedMember) return true;
+                      return s.customer_account_id === selectedMember.id;
+                    })
+                    .map(sale => (
+                      <button
+                        key={sale.id}
+                        onClick={() => handleSelectSale(sale)}
+                        className="group relative transition-all text-left p-4 bg-slate-50 border border-slate-200 hover:border-black hover:bg-white rounded-xl overflow-hidden shadow-sm"
+                      >
+                        <div className="absolute top-0 right-0 w-16 h-full bg-slate-900 overflow-hidden translate-x-full transition-transform group-hover:translate-x-0 duration-500 flex items-center justify-center">
+                           <ChevronRight size={24} className="text-white" strokeWidth={3} />
                         </div>
-                        <div className="text-right group-hover:translate-x-[-100px] transition-transform duration-500 mr-8">
-                          <p className="text-xl font-black text-slate-900 italic tracking-tighter">₹{parseFloat(sale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{sale.item_count} CORE_OBJECTS</p>
+                        
+                        <div className="relative z-10 flex justify-between items-center">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                               <div className="w-6 h-6 bg-black text-white rounded flex items-center justify-center font-black text-[9px]">{sale.invoice_no.split('-').pop()}</div>
+                               <span className="font-black text-slate-900 uppercase tracking-tighter text-sm italic">{sale.invoice_no}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                               <User size={10} strokeWidth={3} />
+                               {sale.customer_name || 'WALK_IN_AUTHENTICATION'}
+                            </div>
+                            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1 bg-slate-200/50 px-2 py-0.5 rounded inline-block">{sale.item_summary}</p>
+                          </div>
+                          <div className="text-right group-hover:translate-x-[-64px] transition-transform duration-500 mr-4">
+                            <p className="text-base font-black text-slate-900 italic tracking-tighter">₹{parseFloat(sale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">{sale.item_count} CORE_OBJECTS</p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                      </button>
+                    ))
+                )}
+              </div>
             </div>
           )}
 

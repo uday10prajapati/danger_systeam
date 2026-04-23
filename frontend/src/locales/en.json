@@ -154,7 +154,9 @@
     "profitAndLoss": "Profit & Loss",
     "viewPnLStatements": "View P&L Statements",
     "stockReport": "Stock Report",
-    "viewStockDetails": "View Stock Details"
+    "viewStockDetails": "View Stock Details",
+    "purchaseReport": "Purchase Audit",
+    "saleReport": "Sale Audit"
   },
   "accountMaster": {
     "accountMaster": "Account Master",

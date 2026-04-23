@@ -19,6 +19,17 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Search States
+  const [searchCode, setSearchCode] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Refs
+  const dropdownRef = React.useRef(null);
+  const codeInputRef = React.useRef(null);
+  const nameInputRef = React.useRef(null);
+
   useEffect(() => {
     fetchAccounts();
   }, [company]);
@@ -37,6 +48,72 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleAccountSelect = (acc) => {
+    setFormData(prev => ({ ...prev, account_id: acc.id }));
+    setSearchCode(String(acc.id));
+    setSearchText(acc.account_name);
+    setShowDropdown(false);
+  };
+
+  // Auto-fetch by code
+  useEffect(() => {
+    if (searchCode && !formData.account_id) {
+      const match = accounts.find(a => String(a.id) === searchCode || String(a.phone) === searchCode);
+      if (match) {
+        handleAccountSelect(match);
+      }
+    }
+  }, [searchCode, accounts]);
+
+  // Global Listeners for Esc and Click Outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showDropdown) {
+          setShowDropdown(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showDropdown, onClose]);
+
+  const filteredAccounts = accounts.filter(a => {
+    const codeMatch = searchCode ? (String(a.id).includes(searchCode) || String(a.phone).includes(searchCode)) : true;
+    const nameMatch = searchText ? a.account_name.toLowerCase().includes(searchText.toLowerCase()) : true;
+    return codeMatch && nameMatch;
+  });
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < filteredAccounts.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      if (showDropdown && filteredAccounts.length > 0) {
+        e.preventDefault();
+        handleAccountSelect(filteredAccounts[selectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowDropdown(false);
+    }
   };
 
   const handleSave = async () => {
@@ -131,19 +208,67 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
             />
           </div>
 
-          <div className="grid grid-cols-12 gap-3 items-center px-1">
+          <div className="grid grid-cols-12 gap-3 items-center px-1 relative">
              <label className="col-span-2 text-[9px] text-slate-500 font-black uppercase tracking-widest">Account :</label>
-             <select 
-               name="account_id"
-               value={formData.account_id}
-               onChange={handleChange}
-               className="col-span-10 border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-white shadow-sm"
-             >
-               <option value="">-- SELECT ACCOUNT / PARTY --</option>
-               {accounts.map(acc => (
-                 <option key={acc.id} value={acc.id}>{acc.account_name}</option>
-               ))}
-             </select>
+             <div className="col-span-10 flex gap-2" ref={dropdownRef}>
+               <input
+                 ref={codeInputRef}
+                 type="text"
+                 placeholder="CODE"
+                 value={searchCode}
+                 onChange={(e) => {
+                   setSearchCode(e.target.value);
+                   setShowDropdown(true);
+                   if (formData.account_id) {
+                     setFormData(prev => ({ ...prev, account_id: '' }));
+                   }
+                 }}
+                 onFocus={() => setShowDropdown(true)}
+                 onKeyDown={handleSearchKeyDown}
+                 className="w-20 border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-white shadow-sm text-center"
+               />
+               <input
+                 ref={nameInputRef}
+                 type="text"
+                 placeholder="SEARCH ACCOUNT NAME..."
+                 value={searchText}
+                 onChange={(e) => {
+                   setSearchText(e.target.value);
+                   setShowDropdown(true);
+                   if (formData.account_id) {
+                     setFormData(prev => ({ ...prev, account_id: '' }));
+                   }
+                 }}
+                 onFocus={() => setShowDropdown(true)}
+                 onKeyDown={handleSearchKeyDown}
+                 className="flex-1 border border-slate-300 px-4 py-1.5 rounded outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-white shadow-sm"
+               />
+
+               {showDropdown && (
+                 <div className="absolute top-full left-24 mt-1 w-[400px] bg-white border-2 border-black shadow-2xl z-[100] max-h-60 overflow-y-auto rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
+                      <span>Accounts</span>
+                      <X size={12} className="cursor-pointer hover:bg-red-500 rounded" onClick={() => setShowDropdown(false)} />
+                    </div>
+                    {filteredAccounts.length === 0 ? (
+                      <div className="p-4 text-center text-slate-400 text-[10px] font-bold italic uppercase">No accounts found</div>
+                    ) : (
+                      filteredAccounts.map((acc, idx) => (
+                        <div 
+                          key={acc.id}
+                          onClick={() => handleAccountSelect(acc)}
+                          className={`px-4 py-2.5 border-b border-slate-50 flex justify-between items-center cursor-pointer transition-colors ${
+                            selectedIndex === idx ? 'bg-slate-900 text-white' : 'hover:bg-slate-50 text-slate-800'
+                          }`}
+                        >
+                          <span className="font-black text-[11px] uppercase">{acc.account_name}</span>
+                          <span className={`text-[9px] font-bold ${selectedIndex === idx ? 'text-slate-400' : 'text-slate-300'}`}>#{acc.id}</span>
+                        </div>
+                      ))
+                    )}
+                 </div>
+               )}
+             </div>
           </div>
 
           <div className="grid grid-cols-12 gap-4 items-center px-1">

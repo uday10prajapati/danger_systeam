@@ -63,6 +63,12 @@ export default function LedgerReport() {
     }
   };
 
+  useEffect(() => {
+    if (company?.id && accountId && dateRange.startDate && dateRange.endDate) {
+      fetchReportData();
+    }
+  }, [accountId, dateRange.startDate, dateRange.endDate, company]);
+
   const fetchReportData = async () => {
     if (!company?.id || !accountId) return;
     
@@ -197,21 +203,29 @@ export default function LedgerReport() {
             </div>
 
             <div className="lg:col-span-4 flex flex-wrap items-center justify-end gap-6 text-slate-400 font-black uppercase text-[10px] tracking-widest bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <label className="flex items-center gap-2 cursor-pointer hover:text-black transition-colors group">
+              <label className="flex items-center gap-2 cursor-pointer hover:text-black transition-colors group outline-none"
+                tabIndex="0"
+                onKeyDown={(e) => { if (e.key === 'Enter') setPrintSubAmount(!printSubAmount); }}
+              >
                 <input 
                   type="checkbox" 
                   checked={printSubAmount}
                   onChange={e => setPrintSubAmount(e.target.checked)}
                   className="w-4 h-4 cursor-pointer accent-black"
+                  tabIndex="-1"
                 />
                 <span className="group-hover:translate-x-1 transition-transform">Sub-Amounts</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer hover:text-black transition-colors group">
+              <label className="flex items-center gap-2 cursor-pointer hover:text-black transition-colors group outline-none"
+                tabIndex="0"
+                onKeyDown={(e) => { if (e.key === 'Enter') setShowAccountNumber(!showAccountNumber); }}
+              >
                 <input 
                   type="checkbox" 
                   checked={showAccountNumber}
                   onChange={e => setShowAccountNumber(e.target.checked)}
                   className="w-4 h-4 cursor-pointer accent-black"
+                  tabIndex="-1"
                 />
                 <span className="group-hover:translate-x-1 transition-transform">Acc. ID</span>
               </label>

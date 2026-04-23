@@ -20,7 +20,20 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
   const [showPurchaseSearch, setShowPurchaseSearch] = useState(false);
   const [gstData, setGstData] = useState(null);
 
-  // Load purchases
+  // Supplier Search States
+  const [suppliers, setSuppliers] = useState([]);
+  const [supplierCode, setSupplierCode] = useState('');
+  const [supplierText, setSupplierText] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(0);
+
+  // Refs
+  const supplierDropdownRef = React.useRef(null);
+  const supplierCodeRef = React.useRef(null);
+  const supplierNameRef = React.useRef(null);
+
+  // Load purchases & suppliers
   useEffect(() => {
     const fetchPurchases = async () => {
       try {
@@ -36,8 +49,72 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
         console.error('Fetch purchases error:', err);
       }
     };
+    const fetchSuppliers = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`, {
+          headers: { 'x-company-id': company.id }
+        });
+        setSuppliers(res.data.success ? res.data.data : []);
+      } catch (err) {
+        console.error('Fetch suppliers error', err);
+      }
+    };
     fetchPurchases();
+    fetchSuppliers();
   }, [company]);
+
+  // Auto-fetch by code
+  useEffect(() => {
+    if (supplierCode && !selectedSupplier) {
+      const match = suppliers.find(s => String(s.id) === supplierCode || String(s.phone) === supplierCode);
+      if (match) {
+        handleSupplierSelect(match);
+      }
+    }
+  }, [supplierCode, suppliers]);
+
+  // Global Click-Outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(e.target)) {
+        setShowSupplierDropdown(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSupplierSelect = (s) => {
+    setSelectedSupplier(s);
+    setSupplierCode(String(s.id));
+    setSupplierText(s.account_name);
+    setShowSupplierDropdown(false);
+  };
+
+  const filteredSuppliers = suppliers.filter(s => {
+    const cMatch = supplierCode ? (String(s.id).includes(supplierCode) || String(s.phone).includes(supplierCode)) : true;
+    const nMatch = supplierText ? s.account_name.toLowerCase().includes(supplierText.toLowerCase()) : true;
+    return cMatch && nMatch;
+  });
+
+  const handleSupplierKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSupplierSelectedIndex(prev => (prev < filteredSuppliers.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSupplierSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      if (showSupplierDropdown && filteredSuppliers.length > 0) {
+        e.preventDefault();
+        handleSupplierSelect(filteredSuppliers[supplierSelectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowSupplierDropdown(false);
+    }
+  };
 
   const filteredPurchases = purchases.filter(p =>
     p.invoice_no.toLowerCase().includes(searchPurchase.toLowerCase()) ||
@@ -174,86 +251,143 @@ export default function PurchaseReturnForm({ company, onSubmit, onClose }) {
                <div className="lg:col-span-12 space-y-8">
                   
                   {/* Purchase Selector */}
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 italic">Phase_01: Source Isolation</label>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 italic">Phase_01: Source Isolation</label>
+                       
+                       {/* Supplier Search Module */}
+                       {!selectedPurchase && (
+                         <div className="flex items-center gap-2 relative z-[130]" ref={supplierDropdownRef}>
+                            <input
+                              ref={supplierCodeRef}
+                              type="text"
+                              placeholder="CODE"
+                              value={supplierCode}
+                              onChange={(e) => {
+                                setSupplierCode(e.target.value);
+                                setShowSupplierDropdown(true);
+                                if (selectedSupplier) setSelectedSupplier(null);
+                              }}
+                              onFocus={() => setShowSupplierDropdown(true)}
+                              onKeyDown={handleSupplierKeyDown}
+                              className="w-20 border border-slate-300 px-3 py-1.5 rounded-lg outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-slate-50 shadow-sm text-center"
+                            />
+                            <input
+                              ref={supplierNameRef}
+                              type="text"
+                              placeholder="SEARCH SUPPLIER..."
+                              value={supplierText}
+                              onChange={(e) => {
+                                setSupplierText(e.target.value);
+                                setShowSupplierDropdown(true);
+                                if (selectedSupplier) setSelectedSupplier(null);
+                              }}
+                              onFocus={() => setShowSupplierDropdown(true)}
+                              onKeyDown={handleSupplierKeyDown}
+                              className="w-48 border border-slate-300 px-3 py-1.5 rounded-lg outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-slate-50 shadow-sm"
+                            />
+
+                            {showSupplierDropdown && (
+                              <div className="absolute top-full right-0 w-[300px] bg-white border-2 border-black shadow-2xl z-[140] max-h-60 overflow-y-auto rounded-xl mt-1 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                                <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
+                                  <span>Supplier Logs</span>
+                                  <X size={12} className="cursor-pointer" onClick={() => setShowSupplierDropdown(false)} />
+                                </div>
+                                {filteredSuppliers.map((s, idx) => (
+                                  <div 
+                                    key={s.id}
+                                    onClick={() => handleSupplierSelect(s)}
+                                    className={`px-4 py-2 border-b border-slate-50 flex justify-between items-center cursor-pointer ${
+                                      supplierSelectedIndex === idx ? 'bg-slate-900 text-white italic' : 'hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <span className="font-black text-[10px] uppercase truncate flex-1">{s.account_name}</span>
+                                    <span className={`text-[8px] font-black ml-2 ${supplierSelectedIndex === idx ? 'text-slate-400' : 'text-slate-300'}`}>#{s.id}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                         </div>
+                       )}
+                    </div>
+
                     <div className="relative">
                       {selectedPurchase ? (
-                        <div className="w-full p-6 bg-slate-900 border-2 border-black rounded-2xl shadow-xl flex justify-between items-center group overflow-hidden">
+                        <div className="w-full p-4 bg-slate-900 border-2 border-black rounded-xl shadow-xl flex justify-between items-center group overflow-hidden">
                            <div className="absolute top-0 right-0 w-32 h-full bg-white/5 skew-x-12 translate-x-16"></div>
                            <div className="relative z-10">
                               <div className="flex items-center gap-3">
                                  <Hash size={14} className="text-slate-500" />
-                                 <p className="text-lg font-black text-white italic tracking-tighter uppercase">{selectedPurchase.invoice_no}</p>
+                                 <p className="text-base font-black text-white italic tracking-tighter uppercase">{selectedPurchase.invoice_no}</p>
                               </div>
-                              <div className="flex items-center gap-3 mt-1">
-                                 <User size={12} className="text-slate-500" />
-                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedPurchase.supplier_name}</p>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                 <User size={10} className="text-slate-500" />
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{selectedPurchase.supplier_name}</p>
                               </div>
                            </div>
                            <button
                              type="button"
                              onClick={() => setSelectedPurchase(null)}
-                             className="relative z-10 px-6 py-2.5 bg-white text-slate-900 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-black/20 italic"
+                             className="relative z-10 px-4 py-1.5 bg-white text-slate-900 rounded-lg font-black text-[8px] uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 shadow-lg italic"
                            >
                              Reset Pipeline
                            </button>
                         </div>
                       ) : (
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setShowPurchaseSearch(!showPurchaseSearch)}
-                            className="w-full p-6 bg-slate-50 border-2 border-slate-100 hover:border-black rounded-2xl text-left transition-all group flex items-center justify-between"
-                          >
-                             <div className="flex items-center gap-4">
-                                <Search className="w-6 h-6 text-slate-300 group-hover:text-black transition-colors" strokeWidth={3} />
-                                <span className="font-black text-slate-300 group-hover:text-black uppercase tracking-widest text-[11px] italic">Access Inward Manifest Stream...</span>
-                             </div>
-                             <ChevronRight className="text-slate-200 group-hover:translate-x-1 transition-all" />
-                          </button>
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 pointer-events-none" strokeWidth={3} />
+                            <input
+                              type="text"
+                              placeholder="FILTER INWARD STREAM BY INVOICE ID..."
+                              value={searchPurchase}
+                              onChange={(e) => setSearchPurchase(e.target.value)}
+                              className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 focus:border-black rounded-2xl outline-none transition-all font-black text-[11px] uppercase tracking-widest italic shadow-inner"
+                            />
+                          </div>
 
-                          {showPurchaseSearch && (
-                            <div className="absolute top-full left-0 right-0 mt-4 bg-white border-2 border-black rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.15)] z-[120] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                              <div className="p-4 bg-slate-50 border-b border-slate-100 sticky top-0 bg-white">
-                                <div className="relative">
-                                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={3} />
-                                  <input
-                                    type="text"
-                                    placeholder="ISOLATE BY INVOICE_ID OR ENTITY_NAME..."
-                                    value={searchPurchase}
-                                    onChange={(e) => setSearchPurchase(e.target.value)}
-                                    className="w-full pl-12 pr-6 py-3 border-2 border-slate-200 rounded-xl text-[10px] uppercase font-black tracking-widest outline-none focus:border-black transition-all bg-white shadow-inner"
-                                    autoFocus
-                                  />
+                          <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-1">
+                            {purchases
+                              .filter(p => {
+                                const supplierMatch = selectedSupplier ? p.supplier_id === selectedSupplier.id : true;
+                                const textMatch = p.invoice_no.toLowerCase().includes(searchPurchase.toLowerCase()) || 
+                                                 p.supplier_name.toLowerCase().includes(searchPurchase.toLowerCase());
+                                return supplierMatch && textMatch;
+                              })
+                              .length === 0 ? (
+                                <div className="p-12 text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">
+                                  Zero Manifest Matches Detected
                                 </div>
-                              </div>
-                              <div className="max-h-64 overflow-y-auto scroller-industrial">
-                                {filteredPurchases.length === 0 ? (
-                                  <div className="p-12 text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">
-                                    Zero Manifest Matches Detected
-                                  </div>
-                                ) : (
-                                  filteredPurchases.map(purchase => (
+                              ) : (
+                                purchases
+                                  .filter(p => {
+                                    const supplierMatch = selectedSupplier ? p.supplier_id === selectedSupplier.id : true;
+                                    const textMatch = p.invoice_no.toLowerCase().includes(searchPurchase.toLowerCase()) || 
+                                                     p.supplier_name.toLowerCase().includes(searchPurchase.toLowerCase());
+                                    return supplierMatch && textMatch;
+                                  })
+                                  .map(purchase => (
                                     <button
                                       key={purchase.id}
                                       type="button"
                                       onClick={() => handleSelectPurchase(purchase)}
-                                      className="w-full px-8 py-5 text-left hover:bg-slate-50 border-b border-slate-50 transition-colors flex justify-between items-center group"
+                                      className="w-full px-5 py-3 text-left bg-white border border-slate-100 hover:border-black rounded-xl transition-all flex justify-between items-center group shadow-sm"
                                     >
                                       <div>
-                                        <p className="font-black text-slate-900 italic uppercase tracking-tight">{purchase.invoice_no}</p>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{purchase.supplier_name}</p>
+                                        <p className="font-black text-slate-900 italic uppercase tracking-tight text-sm">{purchase.invoice_no}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <User size={10} className="text-slate-300" />
+                                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{purchase.supplier_name}</p>
+                                        </div>
                                       </div>
                                       <div className="text-right">
-                                         <p className="text-xs font-black text-slate-900 italic">₹{parseFloat(purchase.total_amount).toLocaleString('en-IN')}</p>
+                                         <p className="text-sm font-black text-slate-900 italic tracking-tighter">₹{parseFloat(purchase.total_amount).toLocaleString('en-IN')}</p>
                                          <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">Audit_Ref: {purchase.id}</p>
                                       </div>
                                     </button>
                                   ))
-                                )}
-                              </div>
-                            </div>
-                          )}
+                              )}
+                          </div>
                         </div>
                       )}
                     </div>

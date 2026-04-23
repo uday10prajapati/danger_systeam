@@ -101,6 +101,9 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
       const existingItem = itemsList.find(i => i.item_code.toUpperCase() === finalValue);
       if (existingItem) {
         setCurrentItem(existingItem);
+        // Use existing barcode or generate if missing for existing item
+        const finalBarcode = existingItem.barcode || Math.floor(100000 + Math.random() * 900000).toString();
+        
         setFormData({
           item_code: existingItem.item_code || '',
           consider_in_autostock: existingItem.consider_in_autostock || 0,
@@ -110,7 +113,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
           desc_gu: existingItem.desc_gu || '',
           unit: existingItem.unit || 'Nos',
           unit_gu: existingItem.unit_gu || 'નંગ',
-          barcode: existingItem.barcode || '',
+          barcode: finalBarcode,
           category: existingItem.category || '',
           purchase_account_id: existingItem.purchase_account_id || '',
           sales_account_id: existingItem.sales_account_id || '',
@@ -131,10 +134,18 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
           reorder_level: existingItem.reorder_level || 0,
           purchase_price: existingItem.purchase_price || 0,
           sale_price: existingItem.sale_price || 0,
+          inward: (parseFloat(existingItem.inward || 0)).toFixed(3),
+          outward: (parseFloat(existingItem.outward || 0)).toFixed(3),
         });
         return;
       } else {
+        // If it's a NEW code being typed, auto-generate a barcode if currently empty
         setCurrentItem(null);
+        if (finalValue && !formData.barcode) {
+          const autoBarcode = Math.floor(100000 + Math.random() * 900000).toString();
+          setFormData(prev => ({ ...prev, item_code: finalValue, barcode: autoBarcode }));
+          return;
+        }
       }
     }
     
@@ -159,6 +170,12 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
 
       return newData;
     });
+  };
+
+  const handleGenerateBarcode = () => {
+    // Generate a 6-digit random code
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setFormData(prev => ({ ...prev, barcode: newCode }));
   };
 
   const handleSubmit = async (e) => {
@@ -216,33 +233,64 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
           {/* Main Form Fields */}
           <div className="grid grid-cols-[160px_1fr_160px_1fr] items-center gap-x-4 gap-y-[12px] mb-8">
             
-            {/* ROW: Item Code & AutoStock */}
-            <FormLabel>{t('itemMaster.itemCode') || 'Item Code'} :</FormLabel>
-            <div className="col-span-1">
-              <FormInput 
-                name="item_code" 
-                value={formData.item_code} 
-                onChange={handleChange} 
-                required 
-                disabled={!!item}
-                className="w-44 font-black bg-slate-50 border-slate-900 border-2" 
-              />
-              <datalist id="item-codes-list">
-                {itemsList.map((i) => (
-                  <option key={i.id} value={i.item_code}>{i.item_name}</option>
-                ))}
-              </datalist>
-            </div>
-            <div className="col-span-2 flex items-center gap-3">
-              <input 
-                type="checkbox" 
-                name="consider_in_autostock" 
-                checked={formData.consider_in_autostock === 1} 
-                onChange={handleChange} 
-                className="w-4 h-4 border-2 border-slate-900 rounded accent-black"
-              />
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">AutoStock Process ?</span>
-            </div>
+             {/* ROW: Item Code & AutoStock */}
+             <FormLabel>{t('itemMaster.itemCode') || 'Item Code'} :</FormLabel>
+             <div className="col-span-1 flex gap-2">
+               <FormInput 
+                 name="item_code" 
+                 value={formData.item_code} 
+                 onChange={handleChange} 
+                 required 
+                 disabled={!!item}
+                 className="flex-1 font-black bg-slate-50 border-slate-900 border-2" 
+               />
+               {!item && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const nextCode = itemsList.length > 0 ? (Math.max(...itemsList.map(i => parseInt(i.item_code) || 0)) + 1).toString() : "1";
+                      const nextBarcode = Math.floor(100000 + Math.random() * 900000).toString();
+                      setFormData(prev => ({ ...prev, item_code: nextCode, barcode: nextBarcode }));
+                    }}
+                    className="px-2 h-8 bg-slate-900 text-white text-[9px] font-black uppercase rounded hover:bg-black transition-all shadow-sm"
+                  >
+                    Auto
+                  </button>
+               )}
+             </div>
+             <div className="col-span-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="checkbox" 
+                    name="consider_in_autostock" 
+                    checked={formData.consider_in_autostock === 1} 
+                    onChange={handleChange} 
+                    className="w-4 h-4 border-2 border-slate-900 rounded accent-black"
+                  />
+                  <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">AutoStock Process ?</span>
+                </div>
+                
+                {/* Barcode Field */}
+                <div className="flex items-center gap-2">
+                   <FormLabel className="!pr-0">Barcode :</FormLabel>
+                   <div className="flex">
+                      <input 
+                        name="barcode"
+                        value={formData.barcode}
+                        onChange={handleChange}
+                        placeholder="6-DIGIT"
+                        className="w-24 h-8 px-3 text-[11px] border border-slate-300 rounded-l font-mono font-black"
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleGenerateBarcode}
+                        className="h-8 px-2 bg-slate-900 text-white text-[9px] font-black uppercase rounded-r hover:bg-black transition-all"
+                      >
+                        Gen
+                      </button>
+                   </div>
+                </div>
+             </div>
 
             {/* ROW: Item Name */}
             <FormLabel>{t('itemMaster.itemName') || 'Item Name'} :</FormLabel>
@@ -361,17 +409,31 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
               <FormInput type="number" step="0.01" name="sale_price" value={formData.sale_price} onChange={handleChange} className="text-right font-mono bg-yellow-50/50 border-slate-900 border-2 text-xs" />
 
               <FormLabel>Inward (Total) :</FormLabel>
-              <FormInput disabled value={parseFloat(formData.inward || 0).toFixed(3)} className="text-right bg-slate-100 font-mono text-xs" />
+              <div className="relative">
+                <FormInput 
+                  disabled 
+                  value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0)).toFixed(3)} 
+                  className="text-right bg-blue-50 font-mono text-xs border-blue-200" 
+                />
+                <span className="absolute -top-3 right-0 text-[7px] font-black text-blue-400 uppercase tracking-tighter">Gross Inflow</span>
+              </div>
               
               <FormLabel>Op Stock Val :</FormLabel>
               <FormInput disabled value={formData.opening_stock_value} className="text-right bg-slate-50 font-mono text-xs" />
-
+              
               <FormLabel>Outward (Total) :</FormLabel>
-              <FormInput disabled value={parseFloat(formData.outward || 0).toFixed(3)} className="text-right bg-slate-100 font-mono text-xs" />
+              <div className="relative">
+                <FormInput 
+                  disabled 
+                  value={parseFloat(formData.outward || 0).toFixed(3)} 
+                  className="text-right bg-slate-100 font-mono text-xs" 
+                />
+                <span className="absolute -top-3 right-0 text-[7px] font-black text-slate-400 uppercase tracking-tighter">Total Dispatch</span>
+              </div>
               
               <FormLabel>Critical Min :</FormLabel>
               <FormInput type="number" step="0.001" name="minimum_stock" value={formData.minimum_stock} onChange={handleChange} className="text-right font-mono text-xs" />
-
+              
               <FormLabel>Closing Bal :</FormLabel>
               <FormInput disabled value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0) - parseFloat(formData.outward || 0)).toFixed(3)} className="text-right bg-slate-900 text-white font-mono text-xs shadow-xl" />
             </div>

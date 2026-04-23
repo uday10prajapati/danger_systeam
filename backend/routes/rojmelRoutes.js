@@ -2,6 +2,42 @@ import express from 'express';
 import { query, getCashBalance } from '../db.js';
 
 const router = express.Router();
+ 
+router.get('/nav-dates', async (req, res) => {
+  try {
+    const companyId = req.header('x-company-id');
+    const { date } = req.query;
+
+    if (!companyId || !date) return res.status(400).json({ success: false, error: 'Company ID and date required' });
+
+    const prevSql = `
+      SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as nav_date
+      FROM cash_book 
+      WHERE company_id = ? AND transaction_date < DATE(?) 
+      ORDER BY transaction_date DESC 
+      LIMIT 1
+    `;
+    const nextSql = `
+      SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as nav_date
+      FROM cash_book 
+      WHERE company_id = ? AND transaction_date > DATE(?) 
+      ORDER BY transaction_date ASC 
+      LIMIT 1
+    `;
+
+    const prevResult = await query(prevSql, [companyId, date]);
+    const nextResult = await query(nextSql, [companyId, date]);
+
+    res.json({
+      success: true,
+      prevDate: prevResult && prevResult.length > 0 ? prevResult[0].nav_date : null,
+      nextDate: nextResult && nextResult.length > 0 ? nextResult[0].nav_date : null
+    });
+  } catch (error) {
+    console.error('Nav Dates Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 router.get('/', async (req, res) => {
   try {

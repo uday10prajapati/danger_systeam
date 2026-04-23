@@ -22,7 +22,8 @@ import {
   ChevronRight,
   Settings,
   ChevronLeft,
-  X
+  X,
+  FileText,
 } from 'lucide-react'
 
 function Sidebar() {
@@ -58,6 +59,8 @@ function Sidebar() {
     { id: 'ledger-report', title: t('modules.ledgerAudit'), icon: BookOpen, path: '/ledger-report' },
     { id: 'profit-loss', title: t('modules.profitAndLoss'), icon: BarChart2, path: '/profit-loss' },
     { id: 'stock', title: t('modules.stockReport'), icon: Package, path: '/stock' },
+    { id: 'purchase-report', title: t('modules.purchaseReport'), icon: FileText, path: '/purchase-report' },
+    { id: 'sale-report', title: t('modules.saleReport'), icon: ShoppingCart, path: '/sale-report' },
   ]
 
   const handleLogout = () => {
@@ -122,13 +125,26 @@ function Sidebar() {
                       : 'hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <m.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-900'}`} />
+                  <m.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${active ? 'text-blue-600 scale-110' : 'text-slate-400 group-hover:text-slate-900 group-hover:scale-110'}`} />
+                  
+                  {/* Expanded Label */}
                   {sidebarOpen && (
-                    <span className={`ml-3 text-sm font-bold truncate ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>
+                    <span className={`ml-3 text-sm font-bold truncate transition-all duration-200 ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>
                       {m.title}
                     </span>
                   )}
-                  {sidebarOpen && active && <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full" />}
+
+                  {/* Active Indicator (Expanded) */}
+                  {sidebarOpen && active && <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.6)]" />}
+
+                  {/* Collapsed Tooltip (Premium Industrial Label) */}
+                  {!sidebarOpen && (
+                    <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-x-2 group-hover:translate-x-0 shadow-2xl z-50 whitespace-nowrap border border-white/10 pointer-events-none">
+                       {m.title}
+                       {/* Tooltip Arrow */}
+                       <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45 border-l border-b border-white/10" />
+                    </div>
+                  )}
                 </button>
               )
            })}

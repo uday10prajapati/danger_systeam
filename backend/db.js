@@ -293,6 +293,9 @@ export async function initializeDatabase() {
           invoice_no VARCHAR(100) NOT NULL UNIQUE,
           invoice_date DATE NOT NULL,
           total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          driver_name VARCHAR(100),
+          mobile_number VARCHAR(20),
+          gadi_number VARCHAR(50),
           notes TEXT,
           created_by INT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -2000,6 +2003,29 @@ export async function getProfitLossStatement(companyId, startDate, endDate) {
       [companyId, startDate, endDate]
     );
 
+    // 11. ACCOUNT-WISE BREAKDOWN
+    const expenseAccountsResult = await query(
+      `SELECT a.account_name, COALESCE(SUM(al.debit - al.credit), 0) as amount
+       FROM account_ledger al
+       JOIN accounts a ON al.account_id = a.id
+       WHERE a.company_id = ? AND a.account_type = 'Expense' 
+       AND DATE(al.transaction_date) BETWEEN ? AND ?
+       GROUP BY a.id, a.account_name
+       HAVING amount != 0`,
+      [companyId, startDate, endDate]
+    );
+
+    const incomeAccountsResult = await query(
+      `SELECT a.account_name, COALESCE(SUM(al.credit - al.debit), 0) as amount
+       FROM account_ledger al
+       JOIN accounts a ON al.account_id = a.id
+       WHERE a.company_id = ? AND a.account_type = 'Revenue' 
+       AND DATE(al.transaction_date) BETWEEN ? AND ?
+       GROUP BY a.id, a.account_name
+       HAVING amount != 0`,
+      [companyId, startDate, endDate]
+    );
+
     return {
       period: {
         startDate,
@@ -2019,7 +2045,9 @@ export async function getProfitLossStatement(companyId, startDate, endDate) {
       operatingExpenses,
       netProfit,
       profitMargin: netSales > 0 ? ((netProfit / netSales) * 100).toFixed(2) : 0,
-      salesByType: salesByTypeResult
+      salesByType: salesByTypeResult,
+      expenseAccounts: expenseAccountsResult,
+      incomeAccounts: incomeAccountsResult
     };
   } catch (error) {
     console.error('Error calculating P&L statement:', error);

@@ -21,6 +21,8 @@ import LedgerReport from './pages/LedgerReport'
 import Rojmel from './pages/Rojmel'
 import StockReport from './pages/StockReport'
 import ProfitLoss from './pages/ProfitLoss'
+import PurchaseReport from './pages/PurchaseReport'
+import SaleReport from './pages/SaleReport'
 import BarcodeScannerPage from './pages/BarcodeScannerPage'
 import ModulePage from './pages/ModulePage'
 import Navbar from './components/Navbar'
@@ -116,6 +118,8 @@ function AppContent() {
               <Route path="/sabhasad-ledger" element={<SabhasadLedgerSummary />} />
               <Route path="/profit-loss" element={<ProfitLoss />} />
               <Route path="/stock" element={<StockReport />} />
+              <Route path="/purchase-report" element={<PurchaseReport />} />
+              <Route path="/sale-report" element={<SaleReport />} />
             </Routes>
           </div>
         </div>

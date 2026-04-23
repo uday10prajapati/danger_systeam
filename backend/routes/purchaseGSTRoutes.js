@@ -17,7 +17,11 @@ router.post('/with-gst', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Company ID and User ID required' });
     }
 
-    const { invoice_date, supplier_account_id, invoice_no, items, payment_type, is_intra_state, notes } = req.body;
+    const { 
+      invoice_date, supplier_account_id, invoice_no, items, 
+      payment_type, is_intra_state, notes,
+      driver_name, mobile_number, gadi_number 
+    } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'Items array is required and must not be empty' });
@@ -52,9 +56,11 @@ router.post('/with-gst', async (req, res) => {
          (company_id, invoice_no, invoice_date, supplier_account_id, 
           total_amount, payment_type, notes, created_by,
           taxable_amount, gst_percent, cgst_percent, sgst_percent, igst_percent,
-          cgst_amount, sgst_amount, igst_amount, total_tax, net_amount, is_intra_state)
+          cgst_amount, sgst_amount, igst_amount, total_tax, net_amount, is_intra_state,
+          driver_name, mobile_number, gadi_number)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                 ?, ?, ?)`,
         [
           companyId, invoice_no, invoice_date, supplier_account_id || null, 
           gstCalculation.total_taxable_amount, payment_type || 'credit', notes, userId,
@@ -65,7 +71,8 @@ router.post('/with-gst', async (req, res) => {
           gstCalculation.total_cgst_amount, gstCalculation.total_sgst_amount, gstCalculation.total_igst_amount,
           gstCalculation.total_tax, 
           gstCalculation.total_taxable_amount + gstCalculation.total_tax,
-          is_intra_state !== false
+          is_intra_state !== false,
+          driver_name || null, mobile_number || null, gadi_number || null
         ]
       );
 

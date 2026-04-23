@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Printer, FileText, X, ChevronRight, RefreshCcw } from 'lucide-react';
+import { Search, Printer, FileText, X, ChevronRight, RefreshCcw, ChevronLeft } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import PurchaseForm from '../components/PurchaseForm';
@@ -13,8 +13,9 @@ export default function Rojmel() {
   // Date State
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState(null);
+  const [navDates, setNavDates] = useState({ prev: null, next: null });
 
   // Checkboxes
   const [showSubledger, setShowSubledger] = useState(false);
@@ -35,6 +36,30 @@ export default function Rojmel() {
       }
     } catch (error) {
       console.error('Failed to load company', error);
+    }
+  };
+
+  useEffect(() => {
+    if (company?.id && date) {
+      fetchRojmel();
+      fetchNavDates();
+    }
+  }, [date, company]);
+
+  const fetchNavDates = async () => {
+    try {
+      const response = await axios.get('/api/rojmel/nav-dates', {
+        params: { date },
+        headers: { 'x-company-id': company.id }
+      });
+      if (response.data.success) {
+        setNavDates({ 
+          prev: response.data.prevDate || null, 
+          next: response.data.nextDate || null 
+        });
+      }
+    } catch (error) {
+      console.error('Fetch nav dates error:', error);
     }
   };
 
@@ -136,19 +161,25 @@ export default function Rojmel() {
         {/* Global Toolbar - High Contrast Grayscale */}
         <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-200 flex flex-wrap gap-8 items-center print:hidden">
            <div className="flex gap-6 border-r border-slate-200 pr-8">
-             <label className="flex items-center gap-2.5 cursor-pointer group">
+             <label className="flex items-center gap-2.5 cursor-pointer group outline-none" 
+               tabIndex="0"
+               onKeyDown={(e) => { if (e.key === 'Enter') setShowSubledger(!showSubledger); }}
+             >
                <div className="relative w-5 h-5">
-                 <input type="checkbox" checked={showSubledger} onChange={(e) => setShowSubledger(e.target.checked)} className="peer hidden" />
-                 <div className="w-5 h-5 border-2 border-slate-300 rounded peer-checked:bg-black peer-checked:border-black transition-all"></div>
+                 <input type="checkbox" checked={showSubledger} onChange={(e) => setShowSubledger(e.target.checked)} className="peer hidden" tabIndex="-1" />
+                 <div className="w-5 h-5 border-2 border-slate-300 rounded peer-checked:bg-black peer-checked:border-black transition-all group-focus:border-black"></div>
                  <X size={14} className="absolute top-0.5 left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={4} />
                </div>
                <span className="font-black text-[10px] text-slate-500 uppercase tracking-widest group-hover:text-black transition-colors">Show Subledger</span>
              </label>
              
-             <label className="flex items-center gap-2.5 cursor-pointer group">
+             <label className="flex items-center gap-2.5 cursor-pointer group outline-none" 
+               tabIndex="0"
+               onKeyDown={(e) => { if (e.key === 'Enter') setPrintItemDetails(!printItemDetails); }}
+             >
                <div className="relative w-5 h-5">
-                 <input type="checkbox" checked={printItemDetails} onChange={(e) => setPrintItemDetails(e.target.checked)} className="peer hidden" />
-                 <div className="w-5 h-5 border-2 border-slate-300 rounded peer-checked:bg-black peer-checked:border-black transition-all"></div>
+                 <input type="checkbox" checked={printItemDetails} onChange={(e) => setPrintItemDetails(e.target.checked)} className="peer hidden" tabIndex="-1" />
+                 <div className="w-5 h-5 border-2 border-slate-300 rounded peer-checked:bg-black peer-checked:border-black transition-all group-focus:border-black"></div>
                  <X size={14} className="absolute top-0.5 left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={4} />
                </div>
                <span className="font-black text-[10px] text-slate-500 uppercase tracking-widest group-hover:text-black transition-colors">Item Details</span>
@@ -157,12 +188,30 @@ export default function Rojmel() {
 
            <div className="flex items-center gap-3">
              <span className="font-black text-[10px] text-slate-400 uppercase tracking-widest leading-none">Primary Date :</span>
-             <input 
-               type="date" 
-               value={date} 
-               onChange={(e) => setDate(e.target.value)}
-               className="px-4 py-2 border-2 border-slate-100 rounded-lg outline-none w-48 focus:border-black transition-all bg-slate-50 font-black text-xs shadow-inner uppercase h-10"
-             />
+             <div className="flex items-center gap-1.5">
+                <button 
+                  disabled={!navDates.prev}
+                  onClick={() => setDate(navDates.prev)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg disabled:opacity-20 disabled:grayscale transition-all active:scale-90"
+                  title="Previous Entry Date"
+                >
+                  <ChevronLeft size={18} strokeWidth={3} />
+                </button>
+                <input 
+                  type="date" 
+                  value={date} 
+                  onChange={(e) => setDate(e.target.value)}
+                  className="px-4 py-2 border-2 border-slate-100 rounded-lg outline-none w-48 focus:border-black transition-all bg-slate-50 font-black text-xs shadow-inner uppercase h-10"
+                />
+                <button 
+                  disabled={!navDates.next}
+                  onClick={() => setDate(navDates.next)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg disabled:opacity-20 disabled:grayscale transition-all active:scale-90"
+                  title="Next Entry Date"
+                >
+                  <ChevronRight size={18} strokeWidth={3} />
+                </button>
+             </div>
            </div>
 
            <div className="flex items-center gap-4 ml-auto">

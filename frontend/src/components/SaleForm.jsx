@@ -24,6 +24,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   // Member Search State
   const [availableMembers, setAvailableMembers] = useState([]);
   const [memberSearchText, setMemberSearchText] = useState('');
+  const [memberNameSearch, setMemberNameSearch] = useState('');
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
 
@@ -42,10 +43,14 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const [currentRate, setCurrentRate] = useState('');
   const [itemSearchText, setItemSearchText] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [itemSelectedIndex, setItemSelectedIndex] = useState(0);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Input Refs for hotkeys
   const itemInputRef = useRef(null);
+  const memberDropdownRef = useRef(null);
+  const itemDropdownRef = useRef(null);
+  const dropdownListRef = useRef(null);
 
   const calculateDropdownPos = () => {
     if (itemInputRef.current) {
@@ -65,6 +70,69 @@ export default function SaleForm({ onSubmit, onCancel }) {
       return () => window.removeEventListener('resize', calculateDropdownPos);
     }
   }, [showItemDropdown]);
+
+  // Auto-scroll selected item into view
+  useEffect(() => {
+    if (showItemDropdown && dropdownListRef.current) {
+      const selectedEl = dropdownListRef.current.children[itemSelectedIndex + 1]; // +1 for header
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [itemSelectedIndex, showItemDropdown]);
+
+  // Auto-fetch member by code
+  useEffect(() => {
+    if (memberSearchText) {
+      const match = availableMembers.find(m => String(m.member_code) === memberSearchText);
+      if (match) {
+        setSelectedMember(match);
+        setMemberId(match.id);
+        setMemberNameSearch(match.member_name);
+        setShowMemberDropdown(false); // Auto-close on exact code match
+      } else {
+        // Only clear if we were previously matched
+        if (selectedMember && String(selectedMember.member_code) !== memberSearchText) {
+          setSelectedMember(null);
+          setMemberId('');
+        }
+      }
+    } else {
+      setSelectedMember(null);
+      setMemberId('');
+    }
+  }, [memberSearchText, availableMembers]);
+
+  useEffect(() => {
+    const handleGlobalClick = (e) => {
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(e.target)) {
+        setShowMemberDropdown(false);
+      }
+      if (itemDropdownRef.current && !itemDropdownRef.current.contains(e.target)) {
+        setShowItemDropdown(false);
+      }
+    };
+    window.addEventListener('mousedown', handleGlobalClick);
+    return () => window.removeEventListener('mousedown', handleGlobalClick);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showItemDropdown) {
+          setShowItemDropdown(false);
+          return;
+        }
+        if (showMemberDropdown) {
+          setShowMemberDropdown(false);
+          return;
+        }
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [showItemDropdown, showMemberDropdown, onCancel]);
 
   useEffect(() => {
     loadCompanyAndData();
@@ -168,6 +236,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
     setSelectedMember(member);
     setMemberId(member.id);
     setMemberSearchText(member.member_code ? String(member.member_code) : '');
+    setMemberNameSearch(member.member_name);
     setShowMemberDropdown(false);
   };
 
@@ -177,6 +246,31 @@ export default function SaleForm({ onSubmit, onCancel }) {
     const defaultRate = item.sale_price !== undefined ? item.sale_price : item.sale_rate || '';
     setCurrentRate(defaultRate);
     setShowItemDropdown(false);
+    setItemSelectedIndex(0);
+  };
+
+  const handleItemSearchKeyDown = (e) => {
+    const filteredItems = availableItems.filter(i => 
+      String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || 
+      String(i.item_code).includes(itemSearchText)
+    );
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setItemSelectedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setItemSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      if (showItemDropdown && filteredItems.length > 0) {
+        e.preventDefault();
+        handleItemSelect(filteredItems[itemSelectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowItemDropdown(false);
+    }
   };
 
   const totalBaseAmount = saleItems.reduce((sum, row) => sum + row.amount, 0);
@@ -263,7 +357,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
             {/* Row 2: Member & Tax */}
             <div className="flex flex-wrap gap-x-8 gap-y-3 items-center px-2">
-              <div className="flex items-center gap-3 relative">
+              <div className="flex items-center gap-3 relative" ref={memberDropdownRef}>
                 <span className="font-black text-slate-500 uppercase tracking-widest text-[9px] w-14 text-right">Member :</span>
                 <input 
                   type="text" 
@@ -275,19 +369,34 @@ export default function SaleForm({ onSubmit, onCancel }) {
                 />
                 <input 
                   type="text" 
-                  value={selectedMember ? selectedMember.member_name : ''} 
-                  readOnly 
-                  className="border border-slate-200 px-4 h-8 text-xs bg-slate-100 w-64 outline-none rounded font-black text-slate-400 cursor-not-allowed uppercase shadow-inner" 
-                  placeholder="SELECT MEMBER FROM DROPDOWN..."
+                  value={memberNameSearch} 
+                  onChange={e => { 
+                    setMemberNameSearch(e.target.value); 
+                    setShowMemberDropdown(true); 
+                    if (selectedMember && selectedMember.member_name !== e.target.value) {
+                      setSelectedMember(null);
+                      setMemberId('');
+                    }
+                  }} 
+                  onFocus={() => setShowMemberDropdown(true)}
+                  className="border border-slate-300 px-4 h-8 text-xs bg-white w-64 outline-none rounded font-black text-slate-900 uppercase shadow-sm focus:border-black" 
+                  placeholder="NAME OR SEARCH..."
                 />
                 {showMemberDropdown && (
-                  <div className="absolute top-full left-16 bg-white border-2 border-black shadow-2xl w-[350px] max-h-56 overflow-y-auto z-50 rounded-lg mt-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-16 bg-white border-2 border-black shadow-2xl w-[400px] max-h-56 overflow-y-auto z-50 rounded-lg mt-1 animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0">
                        <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Members</span>
                        <X size={14} className="text-white cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowMemberDropdown(false)}/>
                     </div>
-                    {availableMembers.filter(m => String(m.member_code).includes(memberSearchText) || String(m.member_name).toLowerCase().includes(memberSearchText.toLowerCase())).map(m => (
-                      <div key={m.id} onClick={() => handleMemberSelect(m)} className="px-4 py-2 hover:bg-black hover:text-white cursor-pointer text-xs font-black border-b border-slate-50 last:border-0 transition-colors uppercase tracking-tight">{m.member_name} [{m.member_code}]</div>
+                    {availableMembers.filter(m => {
+                      const codeMatch = memberSearchText ? String(m.member_code).includes(memberSearchText) : true;
+                      const nameMatch = memberNameSearch ? String(m.member_name).toLowerCase().includes(memberNameSearch.toLowerCase()) : true;
+                      return codeMatch && nameMatch;
+                    }).map(m => (
+                      <div key={m.id} onClick={() => handleMemberSelect(m)} className="px-4 py-2 hover:bg-black hover:text-white cursor-pointer text-xs font-black border-b border-slate-50 last:border-0 transition-colors uppercase tracking-tight flex justify-between items-center group">
+                        <span>{m.member_name}</span>
+                        <span className="text-[9px] text-slate-400 group-hover:text-slate-300">#{m.member_code}</span>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -346,8 +455,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
                     <td className="p-2 text-right font-mono text-slate-900">{item.amount.toFixed(2)}</td>
                     <td className="p-2 text-right text-slate-400 text-[9px]">{taxType === 'IGST' ? item.igstPercent.toFixed(1) : item.cgstPercent.toFixed(1)}</td>
                     <td className="p-2 text-right font-mono text-slate-600 font-bold">{taxType === 'IGST' ? item.igstAmt.toFixed(1) : item.cgstAmt.toFixed(1)}</td>
-                    <td className="p-2 text-right text-slate-400 text-[9px]">{taxType === 'IGST' ? '' : item.sgstPercent.toFixed(1)}</td>
-                    <td className="p-2 text-right font-mono text-slate-600 font-bold">{taxType === 'IGST' ? '' : item.sgstAmt.toFixed(1)}</td>
+                    <td className={`p-2 text-right text-slate-400 text-[9px] ${taxType === 'CGST/SGST' ? 'bg-slate-50/50' : ''}`}>{taxType === 'IGST' ? '' : item.sgstPercent.toFixed(1)}</td>
+                    <td className={`p-2 text-right font-mono text-slate-600 font-bold ${taxType === 'CGST/SGST' ? 'bg-slate-50/50' : ''}`}>{taxType === 'IGST' ? '' : item.sgstAmt.toFixed(1)}</td>
                     <td className="p-2 text-right font-mono bg-slate-50 text-slate-900 font-black">{item.totalAmount.toFixed(2)}</td>
                     <td className="p-2 text-center text-slate-400 hover:text-red-500 cursor-pointer transition-all" onClick={() => handleRemoveItem(idx)}><X size={14} strokeWidth={3}/></td>
                   </tr>
@@ -356,7 +465,20 @@ export default function SaleForm({ onSubmit, onCancel }) {
                 <tr className="bg-white border-t-2 border-slate-900 sticky bottom-0 z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] h-11">
                   <td className="p-2 bg-slate-50 text-center text-[8px] font-black uppercase text-slate-300 italic w-10">NEW</td>
                   <td className="p-0 relative w-72">
-                    <input ref={itemInputRef} type="text" value={itemSearchText} onChange={e => { setItemSearchText(e.target.value); setShowItemDropdown(true); }} onFocus={() => setShowItemDropdown(true)} className="w-full h-full px-4 outline-none border-none text-xs bg-white font-black uppercase text-black placeholder:text-slate-300" placeholder="SEARCH PRODUCT..." />
+                    <input 
+                      ref={itemInputRef} 
+                      type="text" 
+                      value={itemSearchText} 
+                      onChange={e => { 
+                        setItemSearchText(e.target.value); 
+                        setShowItemDropdown(true); 
+                        setItemSelectedIndex(0);
+                      }} 
+                      onFocus={() => setShowItemDropdown(true)} 
+                      onKeyDown={handleItemSearchKeyDown}
+                      className="w-full h-full px-4 outline-none border-none text-xs bg-white font-black uppercase text-black placeholder:text-slate-300" 
+                      placeholder="SEARCH PRODUCT..." 
+                    />
                   </td>
                   <td className="p-0 bg-yellow-50 w-20">
                     <input type="number" value={currentQty} onChange={e => setCurrentQty(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} className="w-full h-full px-2 text-right outline-none bg-transparent font-black font-mono text-xs focus:bg-yellow-100 transition-colors" placeholder="0.000" />
@@ -390,20 +512,30 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
           {/* Item Selector Dropdown */}
           {showItemDropdown && (
-            <div style={{ position: 'fixed', top: `${dropdownPos.top}px`, left: dropdownPos.left, width: dropdownPos.width }} className="bg-white border-2 border-black shadow-2xl max-h-72 overflow-y-auto z-[9999] rounded-lg animate-in slide-in-from-top-1 duration-200">
-              <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
-                <span>Select Item</span>
-                <X size={14} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)}/>
-              </div>
-              {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map(i => (
-                <div key={i.id} onClick={() => handleItemSelect(i)} className="px-3 py-2 border-b border-slate-50 hover:bg-slate-900 group cursor-pointer flex justify-between items-center bg-white transition-colors">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black uppercase text-slate-800 group-hover:text-white transition-colors">{i.item_name}</span>
-                    <span className="text-[8px] text-slate-400 font-bold tracking-widest uppercase group-hover:text-slate-300">₹{i.sale_price !== undefined ? i.sale_price : i.sale_rate} | STK: {i.current_stock || 0}</span>
-                  </div>
-                  <div className="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[9px] font-black group-hover:bg-white group-hover:text-black transition-all border border-slate-200">{i.item_code}</div>
+            <div ref={itemDropdownRef} style={{ position: 'fixed', top: `${dropdownPos.top}px`, left: dropdownPos.left, width: dropdownPos.width }} className="bg-white border-2 border-black shadow-2xl max-h-72 overflow-y-auto z-[9999] rounded-lg animate-in slide-in-from-top-1 duration-200">
+              <div ref={dropdownListRef}>
+                <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
+                  <span>Select Item</span>
+                  <X size={14} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)}/>
                 </div>
-              ))}
+                {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((i, idx) => (
+                  <div 
+                    key={i.id} 
+                    onClick={() => handleItemSelect(i)} 
+                    className={`px-3 py-2 border-b border-slate-50 transition-colors flex justify-between items-center cursor-pointer ${
+                      itemSelectedIndex === idx ? 'bg-slate-900 text-white' : 'hover:bg-slate-50 text-slate-800'
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className={`text-[11px] font-black uppercase transition-colors ${itemSelectedIndex === idx ? 'text-white' : 'text-slate-800'}`}>{i.item_name}</span>
+                      <span className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${itemSelectedIndex === idx ? 'text-slate-300' : 'text-slate-400'}`}>₹{i.sale_price !== undefined ? i.sale_price : i.sale_rate} | STK: {i.current_stock || 0}</span>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-[9px] font-black transition-all border ${
+                      itemSelectedIndex === idx ? 'bg-slate-800 text-white border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200'
+                    }`}>{i.item_code}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -416,7 +548,14 @@ export default function SaleForm({ onSubmit, onCancel }) {
             <div className="flex gap-6 items-center">
               <div className="flex flex-col gap-1 pr-6 border-r border-slate-800">
                 <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>BASE:</span><span className="font-mono text-white text-[11px]">{totalBaseAmount.toFixed(2)}</span></div>
-                <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>GST:</span><span className="font-mono text-white text-[11px]">{(totalCgst+totalSgst+totalIgst).toFixed(2)}</span></div>
+                {taxType === 'CGST/SGST' ? (
+                  <>
+                    <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>CGST:</span><span className="font-mono text-white text-[11px]">{totalCgst.toFixed(2)}</span></div>
+                    <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>SGST:</span><span className="font-mono text-white text-[11px]">{totalSgst.toFixed(2)}</span></div>
+                  </>
+                ) : (
+                  <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>IGST:</span><span className="font-mono text-white text-[11px]">{totalIgst.toFixed(2)}</span></div>
+                )}
                 <div className="flex justify-between w-40 border-t border-slate-800 pt-1 mt-1 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>ROUND:</span><span className={`font-mono text-[11px] ${rounding >= 0 ? 'text-green-400' : 'text-red-400'}`}>{rounding.toFixed(2)}</span></div>
               </div>
               <div className="flex flex-col items-end pr-2 justify-center">
