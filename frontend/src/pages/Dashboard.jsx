@@ -1,270 +1,298 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import {
-  Building2,
-  Users,
-  DollarSign,
-  Users2,
-  Package,
-  BarChart3,
-  ShoppingCart,
-  RotateCcw,
-  TrendingUp,
-  TrendingDown,
-  Book,
-  BarChart2,
-  Barcode,
-  BookOpen,
-  AlertTriangle,
-  Clock,
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  ArrowRight,
-  Plus,
-  RefreshCw,
-  LayoutGrid,
-  List,
-  CheckCircle2,
-  Zap,
-  Calendar,
-  ChevronRight,
-  ShieldCheck,
-  History,
-  LayoutDashboard
+import { 
+  Package, AlertCircle, ShoppingCart, RefreshCw, 
+  Search, Filter, ChevronDown, Download,
+  TrendingUp, TrendingDown, Clock, MoreHorizontal,
+  Calendar, ArrowUpRight, Users
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import api from '../api'
 
 function Dashboard() {
-  const navigate = useNavigate()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('grid') 
 
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (!user) navigate('/login');
+    fetchStats();
   }, [navigate]);
-
-  useEffect(() => { fetchStats(); }, []);
 
   const fetchStats = async () => {
     try {
       setLoading(true)
       const response = await api.get('/dashboard/stats')
       setStats(response.data)
-      setError(null)
     } catch (err) {
-      setError(err.message)
       setStats({
-        totalModules: 15, activeUsers: 0, todaysSales: 0, totalItems: 0,
-        todaysTransactions: 0, totalStockValue: 0, lowStockItems: [],
-        bestSellingItems: [], recentSalesData: []
+        totalItems: 1500,
+        lowStockCount: 420,
+        belowThreshold: 800,
+        reorders: 500
       })
     } finally {
       setLoading(false)
     }
   }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-    }).format(value || 0)
-  }
-
-  const modules = [
-    { id: 'sale', title: t('modules.sale'), icon: ShoppingCart, color: 'emerald', path: '/sales', desc: 'Direct Billing' },
-    { id: 'purchase', title: t('modules.purchase'), icon: TrendingUp, color: 'blue', path: '/purchase', desc: 'Stock Inward' },
-    { id: 'rojmel', title: t('modules.rojmel'), icon: Book, color: 'indigo', path: '/rojmel', desc: 'Daily Ledger' },
-    { id: 'profit-loss', title: t('modules.profitAndLoss'), icon: BarChart2, color: 'rose', path: '/profit-loss', desc: 'Net Results' },
-    { id: 'members', title: t('modules.memberMaster'), icon: Users2, color: 'cyan', path: '/members', desc: 'Sabhasad' },
-    { id: 'items', title: t('modules.itemMaster'), icon: Package, color: 'violet', path: '/items', desc: 'Catalog' },
-    { id: 'ledger-report', title: t('modules.ledgerAudit'), icon: BookOpen, color: 'amber', path: '/ledger-report', desc: 'Statements' },
-    { id: 'stock', title: t('modules.stockReport'), icon: Package, color: 'orange', path: '/stock', desc: 'Stock Audit' },
-    { id: 'user-master', title: 'User Admin', icon: ShieldCheck, color: 'slate', path: '/user-master', desc: 'Security' },
-    { id: 'barcode', title: 'Barcode Control', icon: Barcode, color: 'slate', path: '/barcode-scanner', desc: 'Sensors' },
+  const summaryCards = [
+    { label: t('dashboard.stats.totalProducts', 'Total Products in Inventory'), value: stats?.totalItems || '0', unit: 'items', trend: '+0.00% vs last month', isUp: true, icon: Package, color: 'blue' },
+    { label: t('dashboard.stats.belowThreshold', 'Products Below Threshold'), value: stats?.belowThreshold || '0', unit: 'items', trend: 'Audit Required', isUp: false, icon: TrendingDown, color: 'green' },
+    { label: t('dashboard.stats.lowStock', 'Low Stock Products'), value: stats?.lowStockCount || '0', unit: 'items', trend: 'Immediate Action', isUp: true, icon: TrendingUp, color: 'rose' },
+    { label: t('dashboard.stats.reorders', 'Reorders Needed'), value: stats?.reorders || '0', unit: 'items', trend: 'Auto-Stock Linked', isUp: false, icon: RefreshCw, color: 'amber' },
   ]
 
-  const quickStats = [
-    { label: 'Revenue Momentum', value: formatCurrency(stats?.todaysSales), icon: DollarSign, trend: '+12%', color: 'text-black', bg: 'bg-white' },
-    { label: 'Operational Load', value: stats?.todaysTransactions, icon: Zap, trend: 'Optimal', color: 'text-black', bg: 'bg-white' },
-    { label: 'Critical Errors', value: stats?.lowStockItems?.length || 0, icon: AlertTriangle, trend: 'Isolation Required', color: 'text-red-600', bg: 'bg-red-50' },
-    { label: 'Net Asset Value', value: formatCurrency(stats?.totalStockValue), icon: Activity, trend: 'Audited', color: 'text-black', bg: 'bg-white' },
+  const financialCards = [
+    { label: "Today's Gross Sales", value: `₹${(stats?.todaysSales || 0).toLocaleString()}`, icon: ArrowUpRight, color: 'blue' },
+    { label: "Today's Purchases", value: `₹${(stats?.todaysPurchases || 0).toLocaleString()}`, icon: TrendingDown, color: 'rose' },
   ]
+
+  const inventoryItems = stats?.inventoryItems || []
+
+  const supplierInfo = stats?.supplierInfo || []
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-900">
-      <div className="max-w-[1600px] mx-auto space-y-10">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
+      <div className="max-w-[1600px] mx-auto px-8">
         
-        {/* Header - Industrial Monochrome */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 border-b-4 border-black pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 mb-2">
-               <span className="px-3 py-1 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded-md italic shadow-xl">Secure Platform V3</span>
-               <div className="w-2 h-2 bg-slate-900 rounded-full animate-ping" />
-            </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('dashboard.enterpriseOverview', 'Control Center')}</h1>
-            <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-widest">
-               <Calendar size={14} strokeWidth={3} />
-               <span>SYSTEM TERMINAL — {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-            </div>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{t('dashboard.inventoryManagement', 'Inventory Management')}</h1>
           </div>
-          
-          <div className="flex items-center gap-3 w-full lg:w-auto">
-             <button 
-               onClick={() => navigate('/sales')}
-               className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-black text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-slate-800 transition-all active:scale-95 border-2 border-black"
-             >
-                <Plus size={18} strokeWidth={3} /> {t('dashboard.createSale', 'Initiate Transaction')}
+          <div className="flex items-center gap-3">
+             <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                <Calendar size={18} />
+                {t('dashboard.thisMonth', 'This Month')}
+                <ChevronDown size={16} />
              </button>
-             <button onClick={fetchStats} className="p-3.5 bg-white border-2 border-slate-200 text-slate-400 hover:text-black hover:border-black transition-all rounded-2xl shadow-sm active:rotate-180">
-                <RefreshCw size={20} strokeWidth={3} className={loading ? 'animate-spin' : ''} />
+             <button className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95">
+                {t('dashboard.export', 'Export')}
+                <Download size={18} />
              </button>
           </div>
         </div>
 
-        {/* Sharp Industrial Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-           {quickStats.map((stat, idx) => (
-             <div key={idx} className={`relative overflow-hidden p-5 rounded-3xl border-2 transition-all group shadow-xl ${stat.bg === 'bg-white' ? 'bg-white border-slate-100 hover:border-black' : 'bg-red-50 border-red-200'}`}>
-                <div className="absolute top-0 right-0 w-24 h-full bg-slate-50 -skew-x-12 translate-x-12 transition-transform group-hover:translate-x-0 duration-700 opacity-50"></div>
-                <div className="relative z-10">
-                  <div className={`w-10 h-10 flex items-center justify-center mb-3 rounded-xl border-2 ${stat.color === 'text-black' ? 'bg-slate-900 text-white border-black' : 'bg-red-900 text-white border-red-900 shadow-lg shadow-red-200'}`}>
-                    <stat.icon size={18} strokeWidth={3} />
-                  </div>
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5 italic">{stat.label}</p>
-                  <h3 className={`text-2xl font-black tracking-tighter font-mono italic ${stat.color}`}>{stat.value}</h3>
-                  <div className="flex items-center gap-1.5 mt-1.5 text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                     <div className={`w-1 h-1 rounded-full ${stat.color === 'text-red-600' ? 'bg-red-600 animate-pulse' : 'bg-slate-300'}`}></div>
-                     {stat.trend}
-                  </div>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {summaryCards.map((card, idx) => (
+            <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-xs font-semibold text-slate-400 group-hover:text-slate-500 transition-colors">{card.label}</p>
+                <div className={`p-2 rounded-xl border ${
+                  card.color === 'blue' ? 'bg-blue-50 text-blue-600' : 
+                  card.color === 'green' ? 'bg-emerald-50 text-emerald-600' :
+                  card.color === 'rose' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+                }`}>
+                  <card.icon size={20} />
                 </div>
-             </div>
+              </div>
+              <div className="flex items-baseline gap-2 mb-2">
+                <h3 className="text-2xl font-bold text-slate-800">{card.value}</h3>
+                <span className="text-sm font-semibold text-slate-400">{card.unit}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {card.isUp ? <TrendingUp size={14} className="text-emerald-500" /> : <TrendingDown size={14} className="text-rose-500" />}
+                <span className={`text-xs font-bold ${card.isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {card.trend}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Financial Flow Shards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+           {financialCards.map((card, idx) => (
+              <div key={idx} className={`p-6 rounded-[2.5rem] border flex items-center justify-between shadow-sm hover:shadow-md transition-all ${
+                 card.color === 'blue' ? 'bg-blue-600 border-blue-700 text-white shadow-blue-100' : 'bg-white border-slate-100 text-slate-800'
+              }`}>
+                 <div className="flex items-center gap-5">
+                    <div className={`p-4 rounded-2xl ${card.color === 'blue' ? 'bg-white/10 text-white' : 'bg-rose-50 text-rose-600'}`}>
+                       <card.icon size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                       <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${card.color === 'blue' ? 'text-blue-100' : 'text-slate-400'}`}>
+                          {card.label}
+                       </p>
+                       <h3 className="text-2xl font-black font-mono tracking-tighter">
+                          {card.value}
+                       </h3>
+                    </div>
+                 </div>
+                 <button className={`px-5 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${
+                    card.color === 'blue' ? 'bg-white text-blue-600 hover:bg-blue-50' : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-200'
+                 }`}>
+                    {idx === 0 ? 'View Sales' : 'View Purchases'}
+                 </button>
+              </div>
            ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-           
-           <div className="lg:col-span-12 space-y-8">
-              {/* Navigation Grid - High Density Industrial */}
-              <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-2xl relative overflow-hidden">
-                 <div className="absolute -right-20 -bottom-20 opacity-[0.03] pointer-events-none rotate-12">
-                   <LayoutDashboard size={400} strokeWidth={1} />
-                 </div>
-                 
-                 <div className="flex flex-wrap items-center justify-between gap-6 mb-10 border-b-2 border-slate-50 pb-8">
-                    <div className="flex items-center gap-4">
-                       <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-xl"><LayoutGrid size={24} strokeWidth={2.5}/></div>
-                       <div>
-                          <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">{t('dashboard.mainBusinessModules', 'System Architecture')}</h2>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mt-1">Modular Enterprise Application Protocol</p>
-                       </div>
-                    </div>
-                    <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl border-2 border-slate-200">
-                       <button onClick={() => setActiveTab('grid')} className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${activeTab === 'grid' ? 'bg-black text-white shadow-xl italic' : 'text-slate-400 hover:text-black'}`}>Grid</button>
-                       <button onClick={() => setActiveTab('list')} className={`px-6 py-2 rounded-xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${activeTab === 'list' ? 'bg-black text-white shadow-xl italic' : 'text-slate-400 hover:text-black'}`}>List</button>
-                    </div>
-                 </div>
-
-                 {activeTab === 'grid' ? (
-                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                      {modules.map(m => (
-                        <button 
-                          key={m.id}
-                          onClick={() => navigate(m.path)}
-                          className="group relative p-8 min-h-[220px] bg-slate-50 hover:bg-black border-2 border-transparent hover:border-black rounded-[2rem] text-left transition-all hover:shadow-[0_40px_80px_rgba(0,0,0,0.15)] flex flex-col justify-between overflow-hidden group"
-                        >
-                           <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 opacity-0 group-hover:opacity-100 group-hover:scale-150 transition-all duration-700 -rotate-12 translate-x-10 translate-y-[-10px]">
-                              <m.icon size={80} strokeWidth={1} />
-                           </div>
-                           <div className="w-14 h-14 bg-white border-2 border-slate-100 text-slate-900 group-hover:text-white group-hover:bg-slate-900 group-hover:border-slate-800 rounded-2xl flex items-center justify-center mb-6 transition-all shadow-sm">
-                              <m.icon size={28} strokeWidth={2.5} />
-                           </div>
-                           <div>
-                             <h4 className="font-black text-slate-900 group-hover:text-white text-base tracking-tighter uppercase mb-1 italic">{m.title}</h4>
-                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none group-hover:text-slate-500">{m.desc}</span>
-                                <ChevronRight size={16} className="text-slate-200 group-hover:text-white group-hover:translate-x-1 transition-all" strokeWidth={3} />
-                             </div>
-                           </div>
-                        </button>
-                      ))}
-                   </div>
-                 ) : (
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {modules.map(m => (
-                        <button 
-                          key={m.id}
-                          onClick={() => navigate(m.path)}
-                          className="w-full flex items-center p-6 bg-slate-50 hover:bg-black rounded-3xl transition-all group border-2 border-transparent hover:border-black"
-                        >
-                           <div className="w-12 h-12 bg-white text-slate-900 border-2 border-slate-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-800 rounded-2xl flex items-center justify-center mr-6 shadow-sm">
-                              <m.icon size={22} strokeWidth={2.5} />
-                           </div>
-                           <div className="flex-1 text-left">
-                              <h4 className="font-black text-slate-900 group-hover:text-white text-sm uppercase italic tracking-tight">{m.title}</h4>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{m.desc}</p>
-                           </div>
-                           <ArrowRight size={20} strokeWidth={3} className="text-slate-200 group-hover:text-white group-hover:translate-x-2 transition-all" />
-                        </button>
-                      ))}
-                   </div>
-                 )}
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          
+          {/* Inventory Status Overview */}
+          <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="p-8 pb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                  <TrendingUp size={20} />
+                </div>
+                <h2 className="text-lg font-bold text-slate-800">{t('dashboard.inventoryStatus', 'Inventory Status Overview')}</h2>
               </div>
-           </div>
-
-           {/* PLATFORM EVENT FEED */}
-           <div className="lg:col-span-12">
-              <div className="bg-slate-900 p-10 rounded-[2.5rem] border-4 border-black shadow-2xl relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
-                 <div className="flex items-center justify-between mb-8 border-b-2 border-slate-800 pb-6 relative z-10">
-                    <div className="flex items-center gap-4">
-                       <div className="bg-white text-black p-3 rounded-2xl shadow-2xl"><History size={24} strokeWidth={2.5}/></div>
-                       <div>
-                          <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">{t('dashboard.recentPlatformActivity', 'Event Timeline')}</h2>
-                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1 italic">Chronological System Log Stream</p>
-                       </div>
-                    </div>
+              <div className="flex items-center gap-4">
+                 <div className="hidden sm:flex items-center gap-2 bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
+                    <Search size={16} className="text-slate-400" />
+                    <input type="text" placeholder={t('dashboard.search', 'Search here...')} className="bg-transparent border-none outline-none text-xs text-slate-600 w-32 placeholder:text-slate-300" />
                  </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+                 <button className="text-blue-600 text-sm font-bold hover:underline flex items-center gap-1">
+                   {t('dashboard.seeAll', 'See All')} <Download size={14} className="rotate-270" />
+                 </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-[#F8FAFC]">
+                  <tr>
                     {[
-                      { icon: ShoppingCart, text: 'Transaction 00x9_Settled', time: '14 mins ago', tag: 'SALES_OP' },
-                      { icon: TrendingUp, text: 'Inward Manifest 0x41_Commit', time: '41 mins ago', tag: 'WAREHOUSE' },
-                      { icon: BookOpen, text: 'Audit Log 0x11_Export', time: '1 hour ago', tag: 'ADMIN' },
-                      { icon: Users2, text: 'Registry ID 0x33_Initialization', time: '2 hours ago', tag: 'IDENTITY' },
-                    ].map((item, i) => (
-                      <div key={i} className="flex flex-col gap-4 p-6 bg-black/40 border-2 border-slate-800 rounded-3xl hover:bg-black hover:border-slate-600 transition-all group/item shadow-inner">
-                         <div className="flex justify-between items-start">
-                            <div className="p-3 bg-slate-800 text-white rounded-xl border border-slate-700 group-hover/item:bg-white group-hover/item:text-black transition-colors"><item.icon size={20} strokeWidth={2.5}/></div>
-                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest border border-slate-800 px-2 py-1 rounded group-hover/item:border-slate-600">{item.tag}</span>
-                         </div>
-                         <div>
-                            <p className="text-sm font-black text-slate-100 uppercase italic tracking-tight">{item.text}</p>
-                            <div className="flex items-center gap-2 mt-2 opacity-40">
-                               <Clock size={12} className="text-slate-400" strokeWidth={3} />
-                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.time}</span>
-                            </div>
-                         </div>
-                      </div>
+                      t('dashboard.table.productName', 'Product Name'), 
+                      t('dashboard.table.currentStock', 'Current Stock'), 
+                      t('dashboard.table.threshold', 'Threshold'), 
+                      t('dashboard.table.statusCol', 'Status'), 
+                      t('dashboard.table.lastRestocked', 'Last Restocked'), 
+                      t('dashboard.table.daysLeft', 'Days Left')
+                    ].map((head) => (
+                      <th key={head} className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
                     ))}
-                 </div>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {inventoryItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-8 py-5 text-sm font-bold text-slate-700">{item.name}</td>
+                      <td className="px-8 py-5 text-sm font-semibold text-slate-500">{item.stock}</td>
+                      <td className="px-8 py-5 text-sm font-semibold text-slate-500">{item.threshold}</td>
+                      <td className="px-8 py-5">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                          item.statusColor === 'amber' ? 'bg-amber-50 text-amber-600' :
+                          item.statusColor === 'orange' ? 'bg-orange-50 text-orange-600' :
+                          'bg-rose-50 text-rose-600'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5 text-sm font-semibold text-slate-500">{item.date}</td>
+                      <td className="px-8 py-5 text-sm font-semibold text-slate-500">{item.daysLeft}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Activity/Chart Section */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 flex flex-col">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-lg font-bold text-slate-800">{t('dashboard.inventoryDistribution', 'Inventory Distribution')}</h2>
+              <button className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-100">
+                {t('dashboard.monthly', 'Monthly')} <ChevronDown size={14} />
+              </button>
+            </div>
+
+            {/* Donut Chart SVG */}
+            <div className="relative flex justify-center mb-10">
+              <svg width="200" height="200" viewBox="0 0 36 36" className="transform -rotate-90 scale-125">
+                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#E2E8F0" strokeWidth="3"></circle>
+                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#EAB308" strokeWidth="3" strokeDasharray="25 75" strokeDashoffset="0"></circle>
+                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#2563EB" strokeWidth="3" strokeDasharray="20 80" strokeDashoffset="-25"></circle>
+                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#22C55E" strokeWidth="3" strokeDasharray="15 85" strokeDashoffset="-45"></circle>
+                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#D1D5DB" strokeWidth="3" strokeDasharray="40 60" strokeDashoffset="-60"></circle>
+              </svg>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                <p className="text-xs font-bold text-slate-400">Total</p>
+                <p className="text-xl font-black text-slate-800">1.3k</p>
               </div>
-           </div>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                { label: t('dashboard.distribution.grocery', 'Grocery Products'), value: '40%', color: 'bg-slate-300' },
+                { label: t('dashboard.distribution.dairy', 'Dairy Products'), value: '25%', color: 'bg-yellow-400' },
+                { label: t('dashboard.distribution.fresh', 'Fresh Produce'), value: '20%', color: 'bg-blue-600' },
+                { label: t('dashboard.distribution.bakery', 'Bakery Products'), value: '15%', color: 'bg-emerald-500' },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                    <span className="text-sm font-semibold text-slate-500">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
 
-        {/* Global Registry Summary Footer */}
-        <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[8px] italic pt-12 pb-10 border-t border-slate-200">
-           <div className="flex items-center gap-4">
-              <span>PLATFORM_STATUS: NOMINAL</span>
-              <div className="w-1 h-1 bg-slate-100 rounded-full"></div>
-              <span>REGISTRY_LOCK: ACTIVE</span>
-           </div>
-           <div>SYSTEM_TIMESTAMP: {new Date().toISOString()}</div>
+        {/* Supplier Information */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                <Users size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-slate-800">{t('dashboard.supplierInfo', 'Supplier Information')}</h2>
+            </div>
+            <div className="flex items-center gap-3">
+               <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
+                  <Search size={16} className="text-slate-400" />
+                  <input type="text" placeholder="Search..." className="bg-transparent border-none outline-none text-xs text-slate-600 w-full sm:w-48 placeholder:text-slate-300" />
+               </div>
+               <button className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-[#F8FAFC]">
+                <tr>
+                  {[
+                    t('dashboard.table.supplierName', 'Supplier Name'), 
+                    t('dashboard.table.productsSupplied', 'Products Supplied'), 
+                    t('dashboard.table.lastShipment', 'Last Shipment Date'), 
+                    t('dashboard.table.nextExpected', 'Next Expected Shipment'), 
+                    t('dashboard.table.contactInfo', 'Contact Info'), 
+                    t('dashboard.table.rating', 'Supplier Rating')
+                  ].map((head) => (
+                    <th key={head} className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {supplierInfo.map((sup, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-8 py-5 text-sm font-bold text-slate-700">{sup.name}</td>
+                    <td className="px-8 py-5 text-sm font-semibold text-slate-500">{sup.products}</td>
+                    <td className="px-8 py-5 text-sm font-semibold text-slate-500">{sup.lastShipment}</td>
+                    <td className="px-8 py-5 text-sm font-semibold text-slate-500">{sup.nextShipment}</td>
+                    <td className="px-8 py-5 text-sm font-semibold text-slate-500">{sup.contact}</td>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-0.5">
+                        {[1,2,3,4,5].map((s) => (
+                          <span key={s} className={`w-3 h-3 ${s <= sup.rating ? 'text-yellow-400' : 'text-slate-200'}`}>★</span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>

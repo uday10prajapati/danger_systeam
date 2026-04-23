@@ -318,53 +318,53 @@ export default function SaleForm({ onSubmit, onCancel }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm">
-      <div className="bg-slate-200 w-full max-w-6xl max-h-[90vh] rounded-lg shadow-2xl flex flex-col border-2 border-slate-900 overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 sm:p-4 backdrop-blur-md">
+      <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
         
-        {/* Header Ribbon */}
-        <div className="flex justify-between items-center bg-black text-white px-5 py-2">
+        {/* Header Ribbon - Modern Design */}
+        <div className="flex justify-between items-center bg-slate-900 text-white px-6 py-3">
           <div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest">
-            <div className="w-3 h-3 bg-white rounded-full"></div>
+            <div className="w-2.5 h-2.5 bg-violet-400 rounded-full"></div>
             Sale Entry
           </div>
-          <button onClick={onCancel} className="hover:bg-red-600 text-white rounded-lg p-1 transition-all active:scale-90">
+          <button onClick={onCancel} className="hover:bg-violet-100 text-slate-600 hover:text-violet-700 rounded-lg p-1.5 transition-all active:scale-90">
             <X size={18} strokeWidth={3} />
           </button>
         </div>
 
         {/* Dynamic Alerts */}
-        {error && <div className="bg-red-500 text-white text-[10px] font-black px-6 py-1.5 animate-pulse uppercase tracking-widest">{error}</div>}
-        {success && <div className="bg-slate-900 text-white text-[10px] font-black px-6 py-1.5 uppercase tracking-widest border-l-4 border-white">{success}</div>}
+        {error && <div className="bg-red-500/90 text-white text-[10px] font-black px-6 py-2 animate-pulse uppercase tracking-widest">{error}</div>}
+        {success && <div className="bg-emerald-600 text-white text-[10px] font-black px-6 py-2 uppercase tracking-widest border-l-4 border-l-emerald-300">{success}</div>}
 
-        <div className="flex-1 overflow-auto bg-white flex flex-col">
+        <div className="flex-1 overflow-auto bg-[#F8FAFC] flex flex-col">
           {/* Top Form Section */}
-          <div className="bg-slate-50 p-3 border-b border-slate-200 flex flex-col gap-3">
+          <div className="bg-white p-4 border-b border-slate-100 flex flex-col gap-3">
             {/* Row 1: Bill & Date */}
             <div className="flex flex-wrap gap-x-8 gap-y-3 items-center px-2">
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[9px] w-14 text-right">Bill No :</span>
-                <input type="text" value={billNo} onChange={e => setBillNo(e.target.value)} className="border border-slate-300 px-4 h-8 text-xs bg-slate-900 text-white w-32 outline-none rounded font-mono font-black text-center shadow-lg focus:ring-2 focus:ring-slate-400" />
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[9px] w-14 text-right">Bill No :</span>
+                <input type="text" value={billNo} onChange={e => setBillNo(e.target.value)} className="border border-slate-200 px-4 h-8 text-xs bg-violet-600 text-white w-32 outline-none rounded-xl font-mono font-black text-center shadow-sm focus:ring-2 focus:ring-violet-400" />
               </div>
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[9px]">Date :</span>
-                <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className="border border-slate-300 px-4 h-8 text-[11px] bg-white w-40 outline-none rounded font-bold shadow-sm focus:border-black transition-all" />
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[9px]">Date :</span>
+                <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className="border border-slate-200 px-4 h-8 text-[11px] bg-white w-40 outline-none rounded-xl font-bold shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
               </div>
-              <div className="flex items-center gap-2 ml-auto text-[10px] bg-slate-900 text-white p-1 rounded-lg border-2 border-slate-900 shadow-lg font-black uppercase tracking-widest h-9">
-                <button onClick={() => setSalesType('cash')} className={`px-4 py-1.5 rounded-md transition-all h-full ${salesType === 'cash' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Cash</button>
-                <button onClick={() => setSalesType('credit')} className={`px-4 py-1.5 rounded-md transition-all h-full ${salesType === 'credit' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Credit</button>
+              <div className="flex items-center gap-2 ml-auto text-[10px] bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm font-black uppercase tracking-widest h-9">
+                <button onClick={() => setSalesType('cash')} className={`px-4 py-1.5 rounded-xl transition-all h-full ${salesType === 'cash' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Cash</button>
+                <button onClick={() => setSalesType('credit')} className={`px-4 py-1.5 rounded-xl transition-all h-full ${salesType === 'credit' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Credit</button>
               </div>
             </div>
 
             {/* Row 2: Member & Tax */}
             <div className="flex flex-wrap gap-x-8 gap-y-3 items-center px-2">
               <div className="flex items-center gap-3 relative" ref={memberDropdownRef}>
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[9px] w-14 text-right">Member :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[9px] w-14 text-right">Member :</span>
                 <input 
                   type="text" 
                   value={memberSearchText} 
                   onChange={e => { setMemberSearchText(e.target.value); setShowMemberDropdown(true); }}
                   onFocus={() => setShowMemberDropdown(true)}
-                  className="border border-slate-300 px-4 h-8 text-xs bg-white w-28 outline-none rounded font-black text-center uppercase shadow-sm focus:border-black" 
+                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-28 outline-none rounded-xl font-black text-center uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all" 
                   placeholder="CODE"
                 />
                 <input 
@@ -379,26 +379,25 @@ export default function SaleForm({ onSubmit, onCancel }) {
                     }
                   }} 
                   onFocus={() => setShowMemberDropdown(true)}
-                  className="border border-slate-300 px-4 h-8 text-xs bg-white w-64 outline-none rounded font-black text-slate-900 uppercase shadow-sm focus:border-black" 
+                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-64 outline-none rounded-xl font-black text-slate-900 uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all" 
                   placeholder="NAME OR SEARCH..."
                 />
                 {showMemberDropdown && (
-                  <div className="absolute top-full left-16 bg-white border-2 border-black shadow-2xl w-[400px] max-h-56 overflow-y-auto z-50 rounded-lg mt-1 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0">
+                  <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-56 overflow-y-auto z-50 rounded-2xl mt-1 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0 rounded-t-2xl">
                        <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Members</span>
-                       <X size={14} className="text-white cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowMemberDropdown(false)}/>
+                       <X size={14} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowMemberDropdown(false)}/>
                     </div>
                     {availableMembers.filter(m => {
                       const codeMatch = memberSearchText ? String(m.member_code).includes(memberSearchText) : true;
                       const nameMatch = memberNameSearch ? String(m.member_name).toLowerCase().includes(memberNameSearch.toLowerCase()) : true;
                       return codeMatch && nameMatch;
                     }).map(m => (
-                      <div key={m.id} onClick={() => handleMemberSelect(m)} className="px-4 py-2 hover:bg-black hover:text-white cursor-pointer text-xs font-black border-b border-slate-50 last:border-0 transition-colors uppercase tracking-tight flex justify-between items-center group">
+                      <div key={m.id} onClick={() => handleMemberSelect(m)} className="px-4 py-2 hover:bg-violet-600 hover:text-white cursor-pointer text-xs font-black border-b border-slate-100 last:border-0 transition-colors uppercase tracking-tight flex justify-between items-center group">
                         <span>{m.member_name}</span>
                         <span className="text-[9px] text-slate-400 group-hover:text-slate-300">#{m.member_code}</span>
                       </div>
-                    ))}
-                  </div>
+                    ))}\n                  </div>
                 )}
               </div>
 
@@ -462,8 +461,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
                   </tr>
                 ))}
                 {/* Live Entry Input Row */}
-                <tr className="bg-white border-t-2 border-slate-900 sticky bottom-0 z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] h-11">
-                  <td className="p-2 bg-slate-50 text-center text-[8px] font-black uppercase text-slate-300 italic w-10">NEW</td>
+                <tr className="bg-violet-50/30 border-t-2 border-violet-200 sticky bottom-0 z-20 shadow-[0_-5px_15px_rgba(139,92,246,0.05)] h-11">
+                  <td className="p-2 bg-slate-100 text-center text-[8px] font-black uppercase text-slate-600 italic w-10">NEW</td>
                   <td className="p-0 relative w-72">
                     <input 
                       ref={itemInputRef} 
@@ -476,34 +475,34 @@ export default function SaleForm({ onSubmit, onCancel }) {
                       }} 
                       onFocus={() => setShowItemDropdown(true)} 
                       onKeyDown={handleItemSearchKeyDown}
-                      className="w-full h-full px-4 outline-none border-none text-xs bg-white font-black uppercase text-black placeholder:text-slate-300" 
+                      className="w-full h-full px-4 outline-none border-none text-xs bg-white font-black uppercase text-black placeholder:text-slate-400" 
                       placeholder="SEARCH PRODUCT..." 
                     />
                   </td>
-                  <td className="p-0 bg-yellow-50 w-20">
-                    <input type="number" value={currentQty} onChange={e => setCurrentQty(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} className="w-full h-full px-2 text-right outline-none bg-transparent font-black font-mono text-xs focus:bg-yellow-100 transition-colors" placeholder="0.000" />
+                  <td className="p-0 bg-violet-100/20 w-20">
+                    <input type="number" value={currentQty} onChange={e => setCurrentQty(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} className="w-full h-full px-2 text-right outline-none bg-transparent font-black font-mono text-xs focus:bg-white transition-colors" placeholder="0.000" />
                   </td>
-                  <td className="p-0 bg-yellow-50 w-20">
-                    <input type="number" value={currentRate} onChange={e => setCurrentRate(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} className="w-full h-full px-2 text-right outline-none bg-transparent font-black font-mono text-xs focus:bg-yellow-100 transition-colors" placeholder="0.00" />
+                  <td className="p-0 bg-violet-100/20 w-20">
+                    <input type="number" value={currentRate} onChange={e => setCurrentRate(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} className="w-full h-full px-2 text-right outline-none bg-transparent font-black font-mono text-xs focus:bg-white transition-colors" placeholder="0.00" />
                   </td>
                   
                   {livePreview ? (
                     <>
                       <td className="p-2 text-right font-black font-mono bg-slate-50 text-[11px] w-24">₹{livePreview.amount.toFixed(2)}</td>
-                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-400 w-12">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(1) : livePreview.cgstPercent.toFixed(1)}%</td>
-                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-600 w-16">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(1) : livePreview.cgstAmt.toFixed(1)}</td>
-                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-400 w-12">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(1) + '%'}</td>
-                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-600 w-16">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(1)}</td>
-                      <td className="p-2 text-right font-black font-mono bg-slate-900 text-white text-[11px] w-28">₹{livePreview.totalAmount.toFixed(2)}</td>
+                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-500 w-12">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(1) : livePreview.cgstPercent.toFixed(1)}%</td>
+                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-700 w-16">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(1) : livePreview.cgstAmt.toFixed(1)}</td>
+                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-500 w-12">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(1) + '%'}</td>
+                      <td className="p-2 text-right font-black font-mono bg-slate-50 text-[10px] text-slate-700 w-16">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(1)}</td>
+                      <td className="p-2 text-right font-black font-mono bg-violet-600 text-white text-[11px] w-28">₹{livePreview.totalAmount.toFixed(2)}</td>
                     </>
                   ) : (
-                    <td colSpan={6} className="bg-slate-50 text-[9px] font-black uppercase text-slate-300 italic tracking-[0.2em] text-center">
+                    <td colSpan={6} className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em] text-center">
                       [ Enter Quantity & Rate ]
                     </td>
                   )}
                   
-                  <td className="bg-black text-white w-10">
-                    <button onClick={handleAddItem} className="w-full h-full text-[10px] font-black uppercase hover:bg-slate-800 transition-all active:scale-95">Add</button>
+                  <td className="bg-violet-600 hover:bg-violet-700 transition-colors text-white">
+                    <button onClick={handleAddItem} className="w-full h-full text-[10px] font-black uppercase transition-all active:scale-95">Add</button>
                   </td>
                 </tr>
               </tbody>
@@ -512,26 +511,26 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
           {/* Item Selector Dropdown */}
           {showItemDropdown && (
-            <div ref={itemDropdownRef} style={{ position: 'fixed', top: `${dropdownPos.top}px`, left: dropdownPos.left, width: dropdownPos.width }} className="bg-white border-2 border-black shadow-2xl max-h-72 overflow-y-auto z-[9999] rounded-lg animate-in slide-in-from-top-1 duration-200">
+            <div ref={itemDropdownRef} style={{ position: 'fixed', top: `${dropdownPos.top}px`, left: dropdownPos.left, width: dropdownPos.width }} className="bg-white border border-slate-200 shadow-lg max-h-72 overflow-y-auto z-[9999] rounded-2xl animate-in slide-in-from-top-1 duration-200">
               <div ref={dropdownListRef}>
-                <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
+                <div className="bg-slate-900 text-white p-3 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0 rounded-t-2xl">
                   <span>Select Item</span>
-                  <X size={14} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)}/>
+                  <X size={14} className="cursor-pointer text-slate-400 hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowItemDropdown(false)}/>
                 </div>
                 {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((i, idx) => (
                   <div 
                     key={i.id} 
                     onClick={() => handleItemSelect(i)} 
-                    className={`px-3 py-2 border-b border-slate-50 transition-colors flex justify-between items-center cursor-pointer ${
-                      itemSelectedIndex === idx ? 'bg-slate-900 text-white' : 'hover:bg-slate-50 text-slate-800'
+                    className={`px-4 py-3 border-b border-slate-100 transition-colors flex justify-between items-center cursor-pointer ${
+                      itemSelectedIndex === idx ? 'bg-violet-600 text-white' : 'hover:bg-slate-50 text-slate-800'
                     }`}
                   >
                     <div className="flex flex-col">
                       <span className={`text-[11px] font-black uppercase transition-colors ${itemSelectedIndex === idx ? 'text-white' : 'text-slate-800'}`}>{i.item_name}</span>
-                      <span className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${itemSelectedIndex === idx ? 'text-slate-300' : 'text-slate-400'}`}>₹{i.sale_price !== undefined ? i.sale_price : i.sale_rate} | STK: {i.current_stock || 0}</span>
+                      <span className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${itemSelectedIndex === idx ? 'text-violet-100' : 'text-slate-400'}`}>₹{i.sale_price !== undefined ? i.sale_price : i.sale_rate} | STK: {i.current_stock || 0}</span>
                     </div>
                     <div className={`px-2 py-1 rounded text-[9px] font-black transition-all border ${
-                      itemSelectedIndex === idx ? 'bg-slate-800 text-white border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200'
+                      itemSelectedIndex === idx ? 'bg-violet-600 text-white border-violet-500' : 'bg-violet-50 text-black border-violet-200'
                     }`}>{i.item_code}</div>
                   </div>
                 ))}
@@ -540,29 +539,28 @@ export default function SaleForm({ onSubmit, onCancel }) {
           )}
 
           {/* Footer Summary Bar */}
-          <div className="bg-slate-900 p-4 text-white flex justify-between items-center sm:flex-row flex-col gap-4 border-t border-slate-800">
-            <div className="text-[9px] font-mono opacity-40 uppercase tracking-[0.2em] italic leading-relaxed">
+          <div className="bg-violet-50 p-4 text-slate-900 flex justify-between items-center sm:flex-row flex-col gap-4 border-t border-violet-100">
+            <div className="text-[9px] font-mono text-slate-500 opacity-70 uppercase tracking-[0.2em] italic leading-relaxed">
               * LIVE GST CALCULATION ENABLED<br/>
-              * ROUNDED TO NEAREST INDIAN RUPEE
+              * ROUNDED TO NEAREST RUPEE
             </div>
             <div className="flex gap-6 items-center">
-              <div className="flex flex-col gap-1 pr-6 border-r border-slate-800">
-                <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>BASE:</span><span className="font-mono text-white text-[11px]">{totalBaseAmount.toFixed(2)}</span></div>
+              <div className="flex flex-col gap-1 pr-6 border-r border-violet-200">
+                <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-violet-700"><span>BASE:</span><span className="font-mono text-slate-900 text-[11px]">{totalBaseAmount.toFixed(2)}</span></div>
                 {taxType === 'CGST/SGST' ? (
                   <>
-                    <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>CGST:</span><span className="font-mono text-white text-[11px]">{totalCgst.toFixed(2)}</span></div>
-                    <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>SGST:</span><span className="font-mono text-white text-[11px]">{totalSgst.toFixed(2)}</span></div>
+                    <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-violet-700"><span>CGST:</span><span className="font-mono text-slate-900 text-[11px]">{totalCgst.toFixed(2)}</span></div>
+                    <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-violet-700"><span>SGST:</span><span className="font-mono text-slate-900 text-[11px]">{totalSgst.toFixed(2)}</span></div>
                   </>
                 ) : (
-                  <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>IGST:</span><span className="font-mono text-white text-[11px]">{totalIgst.toFixed(2)}</span></div>
+                  <div className="flex justify-between w-40 font-black text-[9px] uppercase tracking-widest text-violet-700"><span>IGST:</span><span className="font-mono text-slate-900 text-[11px]">{totalIgst.toFixed(2)}</span></div>
                 )}
-                <div className="flex justify-between w-40 border-t border-slate-800 pt-1 mt-1 font-black text-[9px] uppercase tracking-widest text-slate-400"><span>ROUND:</span><span className={`font-mono text-[11px] ${rounding >= 0 ? 'text-green-400' : 'text-red-400'}`}>{rounding.toFixed(2)}</span></div>
+                <div className="flex justify-between w-40 border-t border-violet-200 pt-1 mt-1 font-black text-[9px] uppercase tracking-widest text-violet-700"><span>ROUND:</span><span className={`font-mono text-[11px] ${rounding >= 0 ? 'text-violet-600' : 'text-red-500'}`}>{rounding.toFixed(2)}</span></div>
               </div>
               <div className="flex flex-col items-end pr-2 justify-center">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">NET PAYABLE ₹</span>
-                <div className="bg-white text-black px-5 py-2 rounded-lg h-12 flex items-center font-black font-mono text-[24px] shadow-2xl tracking-tighter border-2 border-slate-100 relative">
+                <span className="text-[8px] font-black text-violet-700 uppercase tracking-[0.3em] mb-1">NET PAYABLE ₹</span>
+                <div className="bg-violet-600 text-white px-6 py-2 rounded-lg h-12 flex items-center font-black font-mono text-[24px] shadow-md tracking-tighter border border-violet-500">
                   ₹{netAmount.toFixed(2)}
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-slate-900 rounded-full animate-ping"></div>
                 </div>
               </div>
             </div>
@@ -570,9 +568,9 @@ export default function SaleForm({ onSubmit, onCancel }) {
         </div>
 
         {/* Global Action Bar */}
-        <div className="bg-slate-200 p-3 border-t border-slate-300 flex justify-end gap-3 shadow-inner">
-          <button onClick={onCancel} className="px-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-600 font-black rounded-lg text-xs uppercase tracking-widest h-9 transition-all active:scale-95 shadow-sm">Cancel</button>
-          <button onClick={handleSave} disabled={loading} className="px-12 py-2 bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-black rounded-lg text-xs uppercase tracking-widest h-9 transition-all active:scale-95 shadow-xl border border-black">{loading ? 'Processing...' : 'Confirm & Post Entry'}</button>
+        <div className="bg-violet-50 p-4 border-t border-violet-100 flex justify-end gap-3 shadow-sm">
+          <button onClick={onCancel} className="px-8 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-black rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm">Cancel</button>
+          <button onClick={handleSave} disabled={loading} className="px-12 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-400 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 shadow-md">{loading ? 'Processing...' : 'Confirm & Post Entry'}</button>
         </div>
       </div>
     </div>

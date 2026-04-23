@@ -1,356 +1,492 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Search, AlertCircle, Trash2, Edit3 } from 'lucide-react';
+import { 
+  X, Search, AlertCircle, Trash2, Edit3, 
+  Calendar, FileText, ArrowRightLeft, Plus, 
+  ChevronRight, Calculator, CheckCircle2,
+  Database
+} from 'lucide-react';
 
 export default function JVEntryModal({ company, onClose, onSubmit }) {
-  const [voucherDate, setVoucherDate] = useState(new Date().toISOString().split('T')[0]);
-  const [credits, setCredits] = useState([]);
-  const [debits, setDebits] = useState([]);
-  
-  // Modals state
-  const [activeSubModal, setActiveSubModal] = useState(null); // 'credit' | 'debit' | null
-  const [editIndex, setEditIndex] = useState(null);
-  const [selected, setSelected] = useState(null); // { type, index }
+   const [voucherDate, setVoucherDate] = useState(new Date().toISOString().split('T')[0]);
+   const [credits, setCredits] = useState([]);
+   const [debits, setDebits] = useState([]);
 
-  // Dropdown lists
-  const [accounts, setAccounts] = useState([]);
-  
-  useEffect(() => {
-    fetchAccounts();
-  }, [company]);
+   const [activeSubModal, setActiveSubModal] = useState(null); 
+   const [editIndex, setEditIndex] = useState(null);
+   const [selected, setSelected] = useState(null); 
 
-  const fetchAccounts = async () => {
-    try {
-      const res = await axios.get(`/api/accounts/company/${company?.id}`, {
-        headers: { 'x-company-id': company?.id }
-      });
-      if (res.data.success) {
-        setAccounts(res.data.data);
+   const [accounts, setAccounts] = useState([]);
+
+   useEffect(() => {
+      fetchAccounts();
+   }, [company]);
+
+   const fetchAccounts = async () => {
+      try {
+         const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company?.id}`, {
+            headers: { 'x-company-id': company?.id }
+         });
+         if (res.data.success) {
+            setAccounts(res.data.data);
+         }
+      } catch (err) { }
+   };
+
+   const handleSave = async () => {
+      try {
+         if (credits.length === 0 && debits.length === 0) return;
+
+         const payload = {
+            voucher_date: voucherDate,
+            credits,
+            debits,
+            voucher_type: 'CONTRA/JV'
+         };
+
+         await axios.post(`${import.meta.env.VITE_API_URL}/api/jv`, payload, {
+            headers: { 'x-company-id': company.id, 'x-user-id': 1 }
+         });
+
+         if (onSubmit) onSubmit();
+      } catch (err) {
+         alert('Failed to save JV: ' + (err.response?.data?.error || err.message));
       }
-    } catch (err) { }
-  };
+   };
 
-  const handleSave = async () => {
-    try {
-      if (credits.length === 0 && debits.length === 0) return;
-      
-      const payload = {
-        voucher_date: voucherDate,
-        credits,
-        debits,
-        voucher_type: 'CONTRA/JV'
-      };
+   const removeItem = (type, index) => {
+      if (type === 'credit') {
+         setCredits(prev => prev.filter((_, i) => i !== index));
+      } else {
+         setDebits(prev => prev.filter((_, i) => i !== index));
+      }
+      if (selected?.type === type && selected?.index === index) setSelected(null);
+   };
 
-      await axios.post('/api/jv', payload, {
-        headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-      });
+   const totalCredit = credits.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+   const totalDebit = debits.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 
-      if (onSubmit) onSubmit();
-    } catch (err) {
-      alert('Failed to save JV: ' + (err.response?.data?.error || err.message));
-    }
-  };
+   const displayCredits = [...credits];
+   const displayDebits = [...debits];
+   while (displayCredits.length < 5) displayCredits.push(null);
+   while (displayDebits.length < 5) displayDebits.push(null);
 
-  const removeItem = (type, index) => {
-    if (type === 'credit') {
-      setCredits(prev => prev.filter((_, i) => i !== index));
-    } else {
-      setDebits(prev => prev.filter((_, i) => i !== index));
-    }
-    if (selected?.type === type && selected?.index === index) setSelected(null);
-  };
+   return (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 font-sans animate-in fade-in duration-300">
 
-  const totalCredit = credits.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-  const totalDebit = debits.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+         <div className="bg-white rounded-[2.5rem] w-full max-w-5xl shadow-2xl flex flex-col border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-500 relative">
 
-  // Pad tables to look nice
-  const displayCredits = [...credits];
-  const displayDebits = [...debits];
-  while (displayCredits.length < 5) displayCredits.push(null);
-  while (displayDebits.length < 5) displayDebits.push(null);
+            {/* Light Header Shard */}
+            <div className="bg-slate-50 p-5 px-8 flex justify-between items-center border-b border-slate-100">
+               <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-600">
+                     <ArrowRightLeft size={22} strokeWidth={3} />
+                  </div>
+                  <div>
+                     <h2 className="text-base font-bold text-slate-800 tracking-tight italic uppercase">Contra / J.V. Entry</h2>
+                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 italic">Inter-Account Logic Shard</p>
+                  </div>
+               </div>
+               <button onClick={onClose} className="hover:bg-red-50 text-slate-400 hover:text-red-600 p-2.5 rounded-xl transition-all active:scale-95">
+                  <X size={20} strokeWidth={3} />
+               </button>
+            </div>
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 select-none">
-      
-      {/* Main JV Wrap - Industrial Monochrome */}
-      <div className="bg-slate-200 border-2 border-slate-900 w-full max-w-4xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col font-sans relative rounded-lg overflow-hidden">
-        
-        {/* Title Bar */}
-        <div className="bg-black text-white px-4 py-1.5 flex justify-between items-center cursor-move">
-          <div className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
-            <div className="w-3.5 h-3.5 bg-white rounded-sm rotate-45"></div>
-            Contra / J.V. Entry
-          </div>
-          <button onClick={onClose} className="hover:bg-red-600 p-0.5 rounded transition-all active:scale-90">
-            <X size={16} strokeWidth={3} />
-          </button>
-        </div>
+            {/* Global Metadata Strip */}
+            <div className="p-4 px-8 bg-white flex items-center justify-between border-b border-slate-50">
+               <div className="flex items-center gap-4 bg-[#F8FAFC] p-2 px-5 rounded-2xl border border-slate-50">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Node Date :</span>
+                  <input
+                     type="date"
+                     value={voucherDate}
+                     onChange={e => setVoucherDate(e.target.value)}
+                     className="bg-transparent border-none outline-none font-bold text-slate-700 text-xs italic"
+                  />
+               </div>
+               
+               {totalCredit !== totalDebit && (
+                  <div className="flex items-center gap-2 text-red-500 font-black text-[9px] uppercase tracking-widest animate-pulse italic">
+                     <AlertCircle size={14} /> Fiscal Imbalance: ({(totalCredit - totalDebit).toFixed(2)})
+                  </div>
+               )}
+            </div>
 
-        {/* Top Controls */}
-        <div className="p-2.5 flex gap-4 bg-white border-b border-slate-300 items-center">
-           <div className="flex items-center gap-2">
-             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date :</span>
-             <input 
-               type="date"
-               value={voucherDate}
-               onChange={e => setVoucherDate(e.target.value)}
-               className="border border-slate-300 px-3 py-1 text-xs outline-none rounded font-bold shadow-sm focus:border-black"
-             />
-           </div>
-        </div>
+            {/* Dual Processing Vector */}
+            <div className="flex h-[400px]">
+               {/* Credit Vector */}
+               <div className="flex-1 flex flex-col border-r border-slate-100">
+                  <div className="bg-emerald-50/30 p-3 px-6 border-b border-emerald-50 flex justify-between items-center">
+                     <div className="flex items-center gap-2.5">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] italic">Credit Stream (Jama)</span>
+                     </div>
+                     <button 
+                        onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }} 
+                        className="bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                     >
+                        <Plus size={12} strokeWidth={4} /> Add Credit
+                     </button>
+                  </div>
 
-        {/* Two Tables Wrap */}
-        <div className="flex h-[350px] bg-white">
-           {/* Credit Side */}
-           <div className="flex-1 flex flex-col border-r border-slate-900">
-              <div className="bg-slate-50 p-1.5 border-b border-slate-200 flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-2">Credit (Jama)</span>
-                <button onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }} className="text-[9px] bg-black text-white px-3 py-0.5 rounded font-black hover:bg-slate-800 transition-all uppercase tracking-widest tracking-tighter">+ Add Credit</button>
-              </div>
-              
-              <div className="grid grid-cols-12 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest border-b border-slate-900">
-                 <div className="col-span-8 p-1.5 border-r border-slate-800 text-left px-3">Particular Account</div>
-                 <div className="col-span-4 p-1.5 text-right px-3">Amount (₹)</div>
-              </div>
+                  <div className="grid grid-cols-12 bg-[#F8FAFC] text-slate-400 text-[9px] font-black uppercase tracking-widest py-2 border-b border-slate-50">
+                     <div className="col-span-8 px-6">Source Particular</div>
+                     <div className="col-span-4 px-6 text-right">Value (₹)</div>
+                  </div>
 
-              <div className="flex-1 overflow-y-auto bg-white scrollbar-hide">
-                 {displayCredits.map((item, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => item && setSelected({ type: 'credit', index: i })}
-                      onDoubleClick={() => { if(item) { setEditIndex(i); setActiveSubModal('credit'); } }}
-                      className={`grid grid-cols-12 border-b transition-all min-h-[3.5rem] py-2 items-center group cursor-pointer ${
-                         selected?.type === 'credit' && selected?.index === i 
-                         ? 'bg-black text-white' 
-                         : 'text-slate-800 border-slate-50 hover:bg-slate-50'
-                      }`}
-                    >
-                       <div className={`col-span-8 p-1 border-r px-3 flex flex-col gap-0.5 ${selected?.type === 'credit' && selected?.index === i ? 'border-slate-800' : 'border-slate-50'}`}>
-                          <div className={`font-black uppercase text-xs tracking-tighter leading-tight ${selected?.type === 'credit' && selected?.index === i ? 'text-white' : 'text-slate-900'}`}>
-                             {item?.account_name || ''}
-                          </div>
-                          <div className={`text-[10px] font-bold italic truncate ${selected?.type === 'credit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
-                             {item?.particulars || ''}
-                          </div>
-                       </div>
-                       <div className="col-span-4 p-1 flex justify-between items-center px-3">
-                          <span className="font-black font-mono text-sm">{item ? parseFloat(item.amount).toFixed(2) : ''}</span>
-                          {item && (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); removeItem('credit', i); }}
-                              className={`p-1.5 rounded opacity-0 group-hover:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50'}`}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                       </div>
-                    </div>
-                 ))}
-              </div>
+                  <div className="flex-1 overflow-y-auto scroller-airy">
+                     {displayCredits.map((item, i) => (
+                        <div
+                           key={i}
+                           onClick={() => item && setSelected({ type: 'credit', index: i })}
+                           onDoubleClick={() => { if (item) { setEditIndex(i); setActiveSubModal('credit'); } }}
+                           className={`grid grid-cols-12 transition-all min-h-[4rem] items-center border-b border-slate-50 group cursor-pointer ${selected?.type === 'credit' && selected?.index === i
+                                 ? 'bg-slate-900 text-white'
+                                 : 'hover:bg-slate-50'
+                              }`}
+                        >
+                           <div className="col-span-8 px-6 flex flex-col gap-1">
+                              <div className={`font-black uppercase text-xs tracking-tight italic ${selected?.type === 'credit' && selected?.index === i ? 'text-white' : 'text-slate-800'}`}>
+                                 {item?.account_name || ''}
+                              </div>
+                              {item && (
+                                 <div className={`text-[9px] font-bold italic truncate flex items-center gap-2 ${selected?.type === 'credit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
+                                    <ChevronRight size={10} className="text-emerald-500"/> {item?.particulars || 'No narrative provided'}
+                                 </div>
+                              )}
+                           </div>
+                           <div className="col-span-4 px-6 flex justify-between items-center group/item">
+                              <span className={`font-black font-mono text-sm tracking-tighter ${selected?.type === 'credit' && selected?.index === i ? 'text-white' : 'text-slate-700'}`}>
+                                 {item ? parseFloat(item.amount).toFixed(2) : ''}
+                              </span>
+                              {item && (
+                                 <button
+                                    onClick={(e) => { e.stopPropagation(); removeItem('credit', i); }}
+                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
+                                 >
+                                    <Trash2 size={14} />
+                                 </button>
+                              )}
+                           </div>
+                        </div>
+                     ))}
+                  </div>
 
-              {/* Credit Footer */}
-              <div className="flex bg-slate-100 border-t border-slate-900 h-10 items-center">
-                 <div className="flex-1 text-right font-black text-slate-500 uppercase tracking-widest px-3 text-[10px]">Total Credit</div>
-                 <div className="w-[120px] text-right font-black text-slate-900 bg-white border-l border-slate-900 h-full flex items-center justify-end px-3 font-mono text-sm">{totalCredit.toFixed(2)}</div>
-              </div>
-           </div>
+                  {/* Sector Footer */}
+                  <div className="p-4 px-8 bg-slate-50/50 flex justify-between items-center border-t border-slate-100">
+                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic tracking-[0.3em]">Sector Yield Total</span>
+                     <span className="font-black font-mono text-lg text-emerald-600 tracking-tighter italic">₹ {totalCredit.toFixed(2)}</span>
+                  </div>
+               </div>
 
-           {/* Debit Side */}
-           <div className="flex-1 flex flex-col">
-              <div className="bg-slate-50 p-1.5 border-b border-slate-200 flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-2">Debit (Udhar)</span>
-                <button onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }} className="text-[9px] bg-black text-white px-3 py-0.5 rounded font-black hover:bg-slate-800 transition-all uppercase tracking-widest tracking-tighter">+ Add Debit</button>
-              </div>
-              
-              <div className="grid grid-cols-12 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest border-b border-slate-900">
-                 <div className="col-span-8 p-1.5 border-r border-slate-800 text-left px-3">Particular Account</div>
-                 <div className="col-span-4 p-1.5 text-right px-3">Amount (₹)</div>
-              </div>
+               {/* Debit Vector */}
+               <div className="flex-1 flex flex-col">
+                  <div className="bg-blue-50/30 p-3 px-6 border-b border-blue-50 flex justify-between items-center">
+                     <div className="flex items-center gap-2.5">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"></div>
+                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] italic">Debit Stream (Udhar)</span>
+                     </div>
+                     <button 
+                        onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }} 
+                        className="bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                     >
+                        <Plus size={12} strokeWidth={4} /> Add Debit
+                     </button>
+                  </div>
 
-              <div className="flex-1 overflow-y-auto bg-white scrollbar-hide">
-                 {displayDebits.map((item, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => item && setSelected({ type: 'debit', index: i })}
-                      onDoubleClick={() => { if(item) { setEditIndex(i); setActiveSubModal('debit'); } }}
-                      className={`grid grid-cols-12 border-b transition-all min-h-[3.5rem] py-2 items-center group cursor-pointer ${
-                        selected?.type === 'debit' && selected?.index === i 
-                        ? 'bg-black text-white' 
-                        : 'text-slate-800 border-slate-50 hover:bg-slate-50'
-                     }`}
-                    >
-                       <div className={`col-span-8 p-1 border-r px-3 flex flex-col gap-0.5 ${selected?.type === 'debit' && selected?.index === i ? 'border-slate-800' : 'border-slate-50'}`}>
-                          <div className={`font-black uppercase text-xs tracking-tighter leading-tight ${selected?.type === 'debit' && selected?.index === i ? 'text-white' : 'text-slate-900'}`}>
-                             {item?.account_name || ''}
-                          </div>
-                          <div className={`text-[10px] font-bold italic truncate ${selected?.type === 'debit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
-                             {item?.particulars || ''}
-                          </div>
-                       </div>
-                       <div className="col-span-4 p-1 flex justify-between items-center px-3">
-                          <span className="font-black font-mono text-sm">{item ? parseFloat(item.amount).toFixed(2) : ''}</span>
-                          {item && (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); removeItem('debit', i); }}
-                              className={`p-1.5 rounded opacity-0 group-hover:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50'}`}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                       </div>
-                    </div>
-                 ))}
-              </div>
+                  <div className="grid grid-cols-12 bg-[#F8FAFC] text-slate-400 text-[9px] font-black uppercase tracking-widest py-2 border-b border-slate-50">
+                     <div className="col-span-8 px-6">Destination Particular</div>
+                     <div className="col-span-4 px-6 text-right">Value (₹)</div>
+                  </div>
 
-              {/* Debit Footer */}
-              <div className="flex bg-slate-100 border-t border-slate-900 h-10 items-center">
-                 <div className="flex-1 text-right font-black text-slate-500 uppercase tracking-widest px-3 text-[10px]">Total Debit</div>
-                 <div className="w-[120px] text-right font-black text-slate-900 bg-white border-l border-slate-900 h-full flex items-center justify-end px-3 font-mono text-sm">{totalDebit.toFixed(2)}</div>
-              </div>
-           </div>
-        </div>
+                  <div className="flex-1 overflow-y-auto scroller-airy">
+                     {displayDebits.map((item, i) => (
+                        <div
+                           key={i}
+                           onClick={() => item && setSelected({ type: 'debit', index: i })}
+                           onDoubleClick={() => { if (item) { setEditIndex(i); setActiveSubModal('debit'); } }}
+                           className={`grid grid-cols-12 transition-all min-h-[4rem] items-center border-b border-slate-50 group cursor-pointer ${selected?.type === 'debit' && selected?.index === i
+                                 ? 'bg-slate-900 text-white'
+                                 : 'hover:bg-slate-50'
+                              }`}
+                        >
+                           <div className="col-span-8 px-6 flex flex-col gap-1">
+                              <div className={`font-black uppercase text-xs tracking-tight italic ${selected?.type === 'debit' && selected?.index === i ? 'text-white' : 'text-slate-800'}`}>
+                                 {item?.account_name || ''}
+                              </div>
+                              {item && (
+                                 <div className={`text-[9px] font-bold italic truncate flex items-center gap-2 ${selected?.type === 'debit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
+                                    <ChevronRight size={10} className="text-blue-500"/> {item?.particulars || 'No narrative provided'}
+                                 </div>
+                              )}
+                           </div>
+                           <div className="col-span-4 px-6 flex justify-between items-center group/item">
+                              <span className={`font-black font-mono text-sm tracking-tighter ${selected?.type === 'debit' && selected?.index === i ? 'text-white' : 'text-slate-700'}`}>
+                                 {item ? parseFloat(item.amount).toFixed(2) : ''}
+                              </span>
+                              {item && (
+                                 <button
+                                    onClick={(e) => { e.stopPropagation(); removeItem('debit', i); }}
+                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
+                                 >
+                                    <Trash2 size={14} />
+                                 </button>
+                              )}
+                           </div>
+                        </div>
+                     ))}
+                  </div>
 
-        {/* Global Ok / Cancel - Monochrome Style */}
-        <div className="bg-slate-200 border-t border-slate-300 p-2.5 flex justify-end gap-3 shadow-inner">
-           {totalCredit !== totalDebit && (
-             <div className="mr-auto flex items-center text-red-600 font-black text-[10px] uppercase tracking-tighter self-center animate-pulse">
-               <AlertCircle size={14} className="mr-1" /> Difference: {(totalCredit - totalDebit).toFixed(2)}
-             </div>
-           )}
-           <button onClick={onClose} className="bg-white border border-slate-300 px-6 py-1.5 text-[11px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 shadow-sm rounded transition-all">Cancel</button>
-           <button 
-             onClick={handleSave} 
-             disabled={totalCredit === 0 || totalCredit !== totalDebit}
-             className="bg-black border border-black px-8 py-1.5 text-[11px] font-black text-white uppercase tracking-widest hover:bg-slate-800 shadow-lg rounded transition-all disabled:bg-slate-400 disabled:border-slate-400 active:scale-95"
-           >
-             Save Voucher
-           </button>
-        </div>
+                  {/* Sector Footer */}
+                  <div className="p-4 px-8 bg-slate-50/50 flex justify-between items-center border-t border-slate-100">
+                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic tracking-[0.3em]">Sector Yield Total</span>
+                     <span className="font-black font-mono text-lg text-blue-600 tracking-tighter italic">₹ {totalDebit.toFixed(2)}</span>
+                  </div>
+               </div>
+            </div>
 
-        {/* Sub Modals Overlays */}
-        {activeSubModal && (
-          <SubEntryModal 
-            type={activeSubModal}
-            date={voucherDate}
-            accounts={accounts}
-            initialData={editIndex !== null ? (activeSubModal === 'credit' ? credits[editIndex] : debits[editIndex]) : null}
-            onClose={() => { setActiveSubModal(null); setEditIndex(null); }}
-            onAdd={(item) => {
-              if (activeSubModal === 'credit') {
-                if (editIndex !== null) {
-                  const newC = [...credits];
-                  newC[editIndex] = item;
-                  setCredits(newC);
-                } else {
-                  setCredits(prev => [...prev, item]);
-                }
-              } else {
-                if (editIndex !== null) {
-                  const newD = [...debits];
-                  newD[editIndex] = item;
-                  setDebits(newD);
-                } else {
-                  setDebits(prev => [...prev, item]);
-                }
-              }
-              setActiveSubModal(null);
-              setEditIndex(null);
-            }}
-          />
-        )}
+            {/* Terminal Actions */}
+            <div className="bg-slate-50 border-t border-slate-100 p-6 px-10 flex justify-end gap-5">
+               <button onClick={onClose} className="px-8 py-3.5 bg-white border border-slate-200 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:text-slate-600 shadow-sm transition-all active:scale-95">Cancel Operation</button>
+               <button
+                  onClick={handleSave}
+                  disabled={totalCredit === 0 || totalCredit !== totalDebit}
+                  className="bg-indigo-600 text-white px-10 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-3"
+               >
+                  {totalCredit > 0 && totalCredit === totalDebit && <CheckCircle2 size={16} strokeWidth={3}/>}
+                  Commit Fiscal Voucher
+               </button>
+            </div>
 
+            {/* Sub Shard Overlay */}
+            {activeSubModal && (
+               <SubEntryModal
+                  type={activeSubModal}
+                  date={voucherDate}
+                  accounts={accounts}
+                  initialData={editIndex !== null ? (activeSubModal === 'credit' ? credits[editIndex] : debits[editIndex]) : null}
+                  onClose={() => { setActiveSubModal(null); setEditIndex(null); }}
+                  onAdd={(item) => {
+                     if (activeSubModal === 'credit') {
+                        if (editIndex !== null) {
+                           const newC = [...credits];
+                           newC[editIndex] = item;
+                           setCredits(newC);
+                        } else {
+                           setCredits(prev => [...prev, item]);
+                        }
+                     } else {
+                        if (editIndex !== null) {
+                           const newD = [...debits];
+                           newD[editIndex] = item;
+                           setDebits(newD);
+                        } else {
+                           setDebits(prev => [...prev, item]);
+                        }
+                     }
+                     setActiveSubModal(null);
+                     setEditIndex(null);
+                  }}
+               />
+            )}
+
+         </div>
+         
+         <style dangerouslySetInnerHTML={{ __html: `
+            .scroller-airy::-webkit-scrollbar { width: 4px; }
+            .scroller-airy::-webkit-scrollbar-track { background: transparent; }
+            .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+         `}} />
       </div>
-    </div>
-  );
+   );
 }
 
-// Inner sub modal component
+// Compact Sub Entry Modal with Identity Discovery Engine
 function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
-  const isCredit = type === 'credit';
-  const title = initialData ? (isCredit ? 'Update Credit' : 'Update Debit') : (isCredit ? 'Credit (Jama) Entry' : 'Debit (Udhar) Entry');
+   const isCredit = type === 'credit';
+   const themeColor = isCredit ? 'emerald' : 'blue';
+   const title = initialData ? 'Modify Node' : (isCredit ? 'Jama Allocation' : 'Udhar Allocation');
 
-  const [accountId, setAccountId] = useState(initialData?.account_id || '');
-  const [amount, setAmount] = useState(initialData?.amount || '');
-  const [refNo, setRefNo] = useState(initialData?.reference_no || '');
-  const [particulars, setParticulars] = useState(initialData?.particulars || '');
+   const [accountId, setAccountId] = useState(initialData?.account_id || '');
+   const [searchCode, setSearchCode] = useState(initialData?.account_id ? String(initialData.account_id) : '');
+   const [searchText, setSearchText] = useState(initialData?.account_name || '');
+   const [amount, setAmount] = useState(initialData?.amount || '');
+   const [refNo, setRefNo] = useState(initialData?.reference_no || '');
+   const [particulars, setParticulars] = useState(initialData?.particulars || '');
 
-  const handleSubmit = () => {
-    if (!accountId || !amount) return;
-    const acc = accounts.find(a => a.id === parseInt(accountId));
-    onAdd({
-      account_id: parseInt(accountId),
-      account_name: acc?.account_name || 'Accounts',
-      amount: parseFloat(amount),
-      reference_no: refNo,
-      particulars: particulars || acc?.account_name || ''
-    });
-  };
+   const [showDropdown, setShowDropdown] = useState(false);
+   const [selectedIndex, setSelectedIndex] = useState(0);
+   const dropdownRef = React.useRef(null);
+   const codeInputRef = React.useRef(null);
+   const nameInputRef = React.useRef(null);
 
-  return (
-    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
-      <div className="bg-slate-200 border-2 border-slate-900 shadow-2xl w-full max-w-lg rounded-lg overflow-hidden font-sans">
-         <div className="bg-black text-white px-5 py-2 flex justify-between items-center">
-            <span className="text-[11px] font-black uppercase tracking-[0.2em]">{title}</span>
-            <button onClick={onClose} className="hover:bg-red-600 rounded p-1 transition-all"><X size={16} strokeWidth={3} /></button>
-         </div>
+   const filteredAccounts = accounts.filter(a => {
+      const codeMatch = searchCode ? (String(a.id).includes(searchCode) || String(a.phone).includes(searchCode)) : true;
+      const nameMatch = searchText ? a.account_name.toLowerCase().includes(searchText.toLowerCase()) : true;
+      return codeMatch && nameMatch;
+   });
 
-         <div className="p-4 space-y-4 bg-white">
-            <div className="flex items-center justify-between bg-slate-50 p-2 border border-slate-200 rounded">
-               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Entry Date:</span>
-               <span className="font-mono font-black text-slate-900 text-xs px-2">{date}</span>
+   const handleAccountSelect = (acc) => {
+      setAccountId(acc.id);
+      setSearchCode(String(acc.id));
+      setSearchText(acc.account_name);
+      setShowDropdown(false);
+   };
+
+   // Auto-fetch by code logic
+   useEffect(() => {
+     if (searchCode && !accountId) {
+       const match = accounts.find(a => String(a.id) === searchCode || String(a.phone) === searchCode);
+       if (match) handleAccountSelect(match);
+     }
+   }, [searchCode, accounts]);
+
+   const handleSearchKeyDown = (e) => {
+      if (e.key === 'ArrowDown') {
+         e.preventDefault();
+         setSelectedIndex(prev => (prev < filteredAccounts.length - 1 ? prev + 1 : prev));
+      } else if (e.key === 'ArrowUp') {
+         e.preventDefault();
+         setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+      } else if (e.key === 'Enter') {
+         if (showDropdown && filteredAccounts.length > 0) {
+            e.preventDefault();
+            handleAccountSelect(filteredAccounts[selectedIndex]);
+         }
+      } else if (e.key === 'Escape') {
+         setShowDropdown(false);
+      }
+   };
+
+   const handleSubmit = () => {
+      if (!accountId || !amount) return;
+      onAdd({
+         account_id: parseInt(accountId),
+         account_name: searchText || 'Account Node',
+         amount: parseFloat(amount),
+         reference_no: refNo,
+         particulars: particulars || searchText || ''
+      });
+   };
+
+   return (
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
+         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-500">
+            <div className={`bg-${themeColor}-600 p-5 px-7 flex justify-between items-center`}>
+               <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center text-white">
+                     <Database size={18} strokeWidth={3} />
+                  </div>
+                  <span className="text-[11px] font-black uppercase text-white tracking-[0.2em] italic">{title}</span>
+               </div>
+               <button onClick={onClose} className="bg-white/10 hover:bg-white/20 text-white rounded-xl p-2 transition-all"><X size={16} strokeWidth={3} /></button>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select Account / Party :</span>
-               <select 
-                 value={accountId}
-                 onChange={e => setAccountId(e.target.value)}
-                 className="w-full border border-slate-300 h-9 px-3 rounded outline-none font-black uppercase text-slate-900 bg-white focus:border-black shadow-sm transition-all text-[11px]"
-               >
-                 <option value="">-- CHOOSE ACCOUNT --</option>
-                 {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name}</option>)}
-               </select>
-            </div>
+            <div className="p-7 space-y-5 bg-white relative">
+               <div className="flex items-center justify-between bg-[#F8FAFC] p-4 border border-slate-50 rounded-2xl">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Voucher Timeline :</span>
+                  <span className="font-mono font-black text-slate-800 text-[10px] tracking-widest">{date}</span>
+               </div>
 
-            <div className="grid grid-cols-2 gap-4">
-               <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Amount (₹):</span>
-                  <input 
-                    type="number" 
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    className="w-full border border-slate-300 h-10 px-4 rounded outline-none font-black text-right shadow-sm focus:border-black text-base italic text-slate-900 bg-yellow-50/30"
-                    placeholder="0.00"
+               {/* Discovery Shard */}
+               <div className="relative group">
+                  <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-xl border border-slate-50 group-focus-within:border-indigo-100 transition-all">
+                     <div className="p-2 bg-white rounded-lg shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14}/></div>
+                     <div className="flex-1 grid grid-cols-12 gap-3" ref={dropdownRef}>
+                        <div className="col-span-3 border-r border-slate-100 pr-3">
+                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic text-center">Node ID</p>
+                           <input
+                              ref={codeInputRef}
+                              type="text"
+                              placeholder="CODE"
+                              value={searchCode}
+                              onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); if (accountId) setAccountId(''); }}
+                              onFocus={() => setShowDropdown(true)}
+                              onKeyDown={handleSearchKeyDown}
+                              className="w-full bg-transparent border-none outline-none font-black text-slate-800 text-xs tracking-widest text-center"
+                           />
+                        </div>
+                        <div className="col-span-9">
+                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Nomenclature Search</p>
+                           <input
+                              ref={nameInputRef}
+                              type="text"
+                              placeholder="START TYPING..."
+                              value={searchText}
+                              onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); if (accountId) setAccountId(''); }}
+                              onFocus={() => setShowDropdown(true)}
+                              onKeyDown={handleSearchKeyDown}
+                              className="w-full bg-transparent border-none outline-none font-bold text-slate-800 text-xs italic"
+                           />
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Discovery Feed */}
+                  {showDropdown && (
+                     <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 shadow-2xl z-[1300] max-h-48 overflow-y-auto rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="bg-slate-900 text-white p-2.5 px-5 text-[7px] font-black uppercase tracking-[0.4em] flex justify-between items-center sticky top-0 italic">
+                           <span>Identity Cluster Feed</span>
+                           <X size={10} className="cursor-pointer" onClick={() => setShowDropdown(false)} />
+                        </div>
+                        {filteredAccounts.length === 0 ? (
+                           <div className="p-8 text-center text-slate-300 text-[8px] font-black uppercase tracking-widest italic">Identity Node Null</div>
+                        ) : (
+                           filteredAccounts.map((acc, idx) => (
+                              <div
+                                 key={acc.id}
+                                 onClick={() => handleAccountSelect(acc)}
+                                 className={`px-5 py-3 border-b border-slate-50 flex justify-between items-center cursor-pointer transition-all ${selectedIndex === idx ? `bg-${themeColor}-50` : 'hover:bg-slate-50'}`}
+                              >
+                                 <p className={`font-black text-[10px] uppercase italic tracking-tight ${selectedIndex === idx ? `text-${themeColor}-600` : 'text-slate-800'}`}>{acc.account_name}</p>
+                                 <div className={`px-2.5 py-1 rounded-md text-[7px] font-mono font-bold ${selectedIndex === idx ? `bg-${themeColor}-600 text-white` : 'bg-slate-50 text-slate-400'}`}>#{acc.id}</div>
+                              </div>
+                           ))
+                        )}
+                     </div>
+                  )}
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Value (₹)</span>
+                     <input
+                        type="number"
+                        value={amount}
+                        onChange={e => setAmount(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-xl outline-none font-black text-indigo-600 focus:border-indigo-100 text-lg font-mono tracking-tighter shadow-sm"
+                        placeholder="0.00"
+                     />
+                  </div>
+                  <div className="space-y-1.5">
+                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Reference Node</span>
+                     <input
+                        type="text"
+                        value={refNo}
+                        onChange={e => setRefNo(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-xl outline-none font-black text-slate-700 focus:border-indigo-100 text-[10px] shadow-sm tracking-widest uppercase italic"
+                        placeholder="REF_ID"
+                     />
+                  </div>
+               </div>
+
+               <div className="space-y-1.5">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Fiscal Narrative</span>
+                  <textarea
+                     value={particulars}
+                     onChange={e => setParticulars(e.target.value)}
+                     className="w-full bg-[#F8FAFC] border border-slate-50 px-5 py-3 rounded-xl outline-none uppercase font-bold text-slate-600 h-16 resize-none focus:border-indigo-100 shadow-sm italic text-[10px]"
+                     placeholder="AUTOGEN_IF_EMPTY..."
                   />
                </div>
-               <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{isCredit ? 'Receipt #' : 'Voucher #'}</span>
-                  <input 
-                    type="text"
-                    value={refNo}
-                    onChange={e => setRefNo(e.target.value)}
-                    className="w-full border border-slate-300 h-10 px-4 rounded outline-none font-black shadow-sm focus:border-black text-[11px] uppercase"
-                    placeholder="REFERENCE"
-                  />
-               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Particulars / Remarks:</span>
-               <textarea 
-                 value={particulars}
-                 onChange={e => setParticulars(e.target.value)}
-                 className="w-full border border-slate-300 px-4 py-2 rounded outline-none uppercase font-bold text-slate-900 h-20 resize-none focus:border-black shadow-sm italic text-[11px] bg-slate-50/50"
-                 placeholder="Auto-filled from account name if empty"
-               />
+            <div className="bg-[#F8FAFC] p-6 px-7 flex justify-end gap-3 border-t border-slate-50 shadow-inner">
+               <button onClick={onClose} className="px-6 py-3 text-[9px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">Cancel</button>
+               <button onClick={handleSubmit} className={`bg-${themeColor}-600 text-white px-8 py-3 text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95`}>
+                  {initialData ? 'Update Node' : 'Initialize Node'}
+               </button>
             </div>
-         </div>
-
-         <div className="bg-slate-200 p-3 flex justify-end gap-3 border-t border-slate-300 shadow-inner">
-            <button onClick={onClose} className="px-6 py-2 text-[10px] font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest transition-colors">Cancel</button>
-            <button onClick={handleSubmit} className="bg-black text-white px-8 py-2 text-[10px] font-black uppercase tracking-widest rounded shadow-xl hover:bg-slate-800 transition-all active:scale-95 border border-black">{initialData ? 'Update Entry' : 'Add To Voucher'}</button>
          </div>
       </div>
-    </div>
-  );
+   );
 }

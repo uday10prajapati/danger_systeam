@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { AlertCircle, CheckCircle, Loader, Eye, EyeOff } from 'lucide-react'
+import { 
+  AlertCircle, CheckCircle, Loader, 
+  Eye, EyeOff, Save, X, User, 
+  Mail, Lock, ShieldCheck, Settings,
+  Building2, Layout, Database, ShoppingCart,
+  Package, BarChart3, TrendingUp, RefreshCcw,
+  QrCode, BookOpen, FileText, PieChart, Activity
+} from 'lucide-react'
 
 const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   const { t } = useTranslation()
@@ -16,41 +23,37 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
     password: '',
     role: 'cashier',
     is_active: true,
-    module_access: {} // Store module access permissions
+    module_access: []
   })
 
-  // Available modules for role-based access
   const modules = [
-    { id: 'company', label: 'company', icon: '🏢' },
-    { id: 'users', label: 'userMaster', icon: '👥' },
-    { id: 'accounts', label: 'accountMaster', icon: '💳' },
-    { id: 'members', label: 'memberMaster', icon: '👤' },
-    { id: 'items', label: 'itemMaster', icon: '📦' },
-    { id: 'rates', label: 'itemRate', icon: '💰' },
-    { id: 'sales', label: 'sale', icon: '🛒' },
-    { id: 'sales-return', label: 'saleReturn', icon: '↩️' },
-    { id: 'purchase', label: 'purchase', icon: '📥' },
-    { id: 'purchase-return', label: 'purchaseReturn', icon: '↩️' },
-    { id: 'barcode', label: 'barcodeScanner', icon: '📱' },
-    { id: 'cashbook', label: 'cashBook', icon: '📖' },
-    { id: 'ledger', label: 'accountLedger', icon: '📋' },
-    { id: 'profit-loss', label: 'profitAndLoss', icon: '📊' },
-    { id: 'stock', label: 'stockReport', icon: '📈' },
+    { id: 'company', label: 'company', icon: <Building2 size={16}/>, color: 'blue' },
+    { id: 'users', label: 'userMaster', icon: <User size={16}/>, color: 'indigo' },
+    { id: 'accounts', label: 'accountMaster', icon: <Database size={16}/>, color: 'emerald' },
+    { id: 'members', label: 'memberMaster', icon: <ShieldCheck size={16}/>, color: 'violet' },
+    { id: 'items', label: 'itemMaster', icon: <Package size={16}/>, color: 'amber' },
+    { id: 'rates', label: 'itemRate', icon: <BarChart3 size={16}/>, color: 'orange' },
+    { id: 'sales', label: 'sale', icon: <ShoppingCart size={16}/>, color: 'pink' },
+    { id: 'sales-return', label: 'saleReturn', icon: <RefreshCcw size={16}/>, color: 'rose' },
+    { id: 'purchase', label: 'purchase', icon: <TrendingUp size={16}/>, color: 'cyan' },
+    { id: 'purchase-return', label: 'purchaseReturn', icon: <RefreshCcw size={16}/>, color: 'teal' },
+    { id: 'barcode', label: 'barcodeScanner', icon: <QrCode size={16}/>, color: 'slate' },
+    { id: 'cashbook', label: 'cashBook', icon: <BookOpen size={16}/>, color: 'sky' },
+    { id: 'ledger', label: 'accountLedger', icon: <FileText size={16}/>, color: 'blue' },
+    { id: 'profit-loss', label: 'profitAndLoss', icon: <PieChart size={16}/>, color: 'emerald' },
+    { id: 'stock', label: 'stockReport', icon: <Activity size={16}/>, color: 'amber' },
   ]
 
-  // Default module access for each role
   const defaultModuleAccess = {
     cashier: ['sales', 'sales-return', 'cashbook', 'ledger', 'barcode'],
     manager: ['company', 'members', 'items', 'rates', 'sales', 'sales-return', 'purchase', 'purchase-return', 'cashbook', 'ledger', 'profit-loss', 'stock'],
     hod: ['company', 'users', 'accounts', 'members', 'items', 'rates', 'sales', 'sales-return', 'purchase', 'purchase-return', 'barcode', 'cashbook', 'ledger', 'profit-loss', 'stock']
   }
 
-  // Load user data if editing
   useEffect(() => {
     if (userId) {
       loadUser()
     } else {
-      // Set default module access for new user
       setFormData(prev => ({
         ...prev,
         module_access: defaultModuleAccess[prev.role]
@@ -71,7 +74,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
           password: '',
           role: user.role,
           is_active: user.is_active,
-          module_access: user.module_access || defaultModuleAccess[user.role] || []
+          module_access: Array.isArray(user.module_access) ? user.module_access : []
         })
       }
     } catch (error) {
@@ -86,8 +89,6 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    
-    // When role changes, update module access to default
     if (name === 'role') {
       setFormData(prev => ({
         ...prev,
@@ -100,32 +101,17 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         [name]: type === 'checkbox' ? checked : value
       }))
     }
-    
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: null
-      }))
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
   }
 
-  // Handle module checkbox toggle
   const handleModuleToggle = (moduleId) => {
     setFormData(prev => {
-      const currentAccess = Array.isArray(prev.module_access) ? prev.module_access : Object.keys(prev.module_access || {}).filter(k => prev.module_access[k])
-      const isChecked = currentAccess.includes(moduleId)
-      
-      if (isChecked) {
-        return {
-          ...prev,
-          module_access: currentAccess.filter(id => id !== moduleId)
-        }
-      } else {
-        return {
-          ...prev,
-          module_access: [...currentAccess, moduleId]
-        }
+      const isChecked = prev.module_access.includes(moduleId)
+      return {
+        ...prev,
+        module_access: isChecked 
+          ? prev.module_access.filter(id => id !== moduleId)
+          : [...prev.module_access, moduleId]
       }
     })
   }
@@ -134,272 +120,190 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
     e.preventDefault()
     setMessage(null)
     setErrors({})
-
     try {
       setLoading(true)
-
       const endpoint = userId ? `/api/users/${userId}` : '/api/users'
       const method = userId ? 'put' : 'post'
-      
-      // Don't send empty password for updates
       const submitData = { ...formData }
-      if (userId && !submitData.password) {
-        delete submitData.password
-      }
+      if (userId && !submitData.password) delete submitData.password
 
-      const response = await axios({
-        method,
-        url: endpoint,
-        data: submitData
-      })
-
+      const response = await axios({ method, url: endpoint, data: submitData })
       if (response.data.success) {
-        setMessage({
-          type: 'success',
-          text: userId ? t('userMaster.userUpdatedSuccessfully') : t('userMaster.userCreatedSuccessfully')
-        })
-        setTimeout(() => {
-          onSuccess?.()
-        }, 1500)
+        setMessage({ type: 'success', text: userId ? t('userMaster.userUpdatedSuccessfully') : t('userMaster.userCreatedSuccessfully') })
+        setTimeout(() => onSuccess?.(), 1500)
       }
     } catch (error) {
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors)
-      } else {
-        setMessage({
-          type: 'error',
-          text: error.response?.data?.error || t('userMaster.failedToSaveUser')
-        })
-      }
+      if (error.response?.data?.errors) setErrors(error.response.data.errors)
+      else setMessage({ type: 'error', text: error.response?.data?.error || t('userMaster.failedToSaveUser') })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-8">
-      <h2 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tighter italic border-b-4 border-black pb-2 inline-block">
-        {userId ? t('userMaster.editUser') : t('userMaster.createUser')}
-      </h2>
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10 animate-in slide-in-from-bottom duration-500 overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/20 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+      
+      <div className="relative z-10">
+        <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-8">
+          {userId ? t('userMaster.editUser', 'Refine User Identity') : t('userMaster.createUser', 'Initialize New Identity')}
+        </h2>
 
-      {message && (
-        <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 shadow-sm border-l-4 ${
-          message.type === 'error' 
-            ? 'bg-white border-red-600 text-red-900' 
-            : 'bg-white border-slate-900 text-slate-900'
-        }`}>
-          {message.type === 'error' ? (
-            <AlertCircle className="w-5 h-5 text-red-600" />
-          ) : (
-            <CheckCircle className="w-5 h-5 text-slate-900" />
-          )}
-          <p className="font-bold uppercase text-xs tracking-widest leading-none">
-            {message.text}
-          </p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Company Info (Read-only if editing) */}
-        {userId ? (
-          <div className="bg-slate-50 p-4 rounded border border-slate-200">
-            <p className="text-sm text-slate-600">{t('userMaster.company')}</p>
-            <p className="text-lg font-semibold text-slate-900">{company_id}</p>
+        {message && (
+          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
+            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+          }`}>
+            {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+            <p className="text-sm font-bold">{message.text}</p>
           </div>
-        ) : null}
+        )}
 
-        {/* Username */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
-            {t('userMaster.username')} *
-          </label>
-          <input
-            type="text"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            placeholder={t('userMaster.enterUsername')}
-            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold ${
-              errors.username
-                ? 'border-red-500 bg-red-50'
-                : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
-            }`}
-            disabled={loading}
-          />
-          {errors.username && (
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.username}</p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
-            {t('userMaster.email')} *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder={t('userMaster.enterEmail')}
-            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold ${
-              errors.email
-                ? 'border-red-500 bg-red-50'
-                : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
-            }`}
-            disabled={loading}
-          />
-          {errors.email && (
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.email}</p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
-            {t('userMaster.password')} {!userId && '*'}
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder={userId ? t('userMaster.leaveBlankToKeepCurrent') : t('userMaster.enterPassword')}
-              className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold pr-12 ${
-                errors.password
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
-              }`}
-              disabled={loading}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-3.5 text-slate-400 hover:text-black transition-colors"
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-          {errors.password && (
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.password}</p>
-          )}
-          {userId && (
-            <p className="mt-2 text-[10px] font-bold text-slate-400 italic uppercase">{t('userMaster.leaveBlankToKeepCurrent')}</p>
-          )}
-        </div>
-
-        {/* Role */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
-            {t('userMaster.role')} *
-          </label>
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all font-bold appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236b7280%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.5em_1.5em] ${
-              errors.role
-                ? 'border-red-500 bg-red-50'
-                : 'border-slate-100 bg-slate-50 focus:border-black focus:bg-white'
-            }`}
-            disabled={loading}
-          >
-            <option value="cashier">{t('userMaster.cashier')}</option>
-            <option value="manager">{t('userMaster.manager')}</option>
-            <option value="hod">{t('userMaster.hod')}</option>
-          </select>
-          {errors.role && (
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-red-600">{errors.role}</p>
-          )}
-          <p className="mt-2 text-[10px] font-bold text-slate-400 italic uppercase">
-            {formData.role === 'hod' && t('userMaster.hodCanManageUsers')}
-            {formData.role === 'manager' && t('userMaster.managerCanViewReports')}
-            {formData.role === 'cashier' && t('userMaster.cashierCanProcessSales')}
-          </p>
-        </div>
-
-        {/* Module Access */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-end border-b-2 border-slate-100 pb-2">
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-900">
-              {t('userMaster.moduleAccess')} - {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
-            </label>
-            <p className="text-[10px] font-bold text-slate-400 uppercase italic leading-none">{t('userMaster.selectModulesForRole')}</p>
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-10">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {modules.map((module) => {
-              const currentAccess = Array.isArray(formData.module_access) ? formData.module_access : Object.keys(formData.module_access || {}).filter(k => formData.module_access[k])
-              const isChecked = currentAccess.includes(module.id)
-              
-              return (
-                <div
-                  key={module.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer group ${
-                    isChecked
-                      ? 'bg-slate-900 border-slate-900 shadow-lg'
-                      : 'bg-white border-slate-100 hover:border-slate-300 shadow-sm'
-                  }`}
-                  onClick={() => handleModuleToggle(module.id)}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg filter grayscale">{module.icon}</span>
-                      <span className={`text-xs font-black uppercase tracking-wider transition-colors ${
-                        isChecked ? 'text-white' : 'text-slate-700 group-hover:text-black'
-                      }`}>
-                        {t(`modules.${module.label}`)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                    isChecked ? 'bg-white border-white' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    {isChecked && <div className="w-2.5 h-2.5 bg-black rounded-[2px]" />}
-                  </div>
+          {/* Section 1: Identity Info */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <div className="w-6 h-0.5 bg-blue-600"></div> Profile Context
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">{t('userMaster.username', 'Public Name')} *</label>
+                <div className="relative group">
+                  <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="e.g. alex_stone"
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.username ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
+                  />
                 </div>
-              )
-            })}
+                {errors.username && <p className="text-[10px] text-rose-500 font-bold ml-1">{errors.username}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">{t('userMaster.email', 'Digital Handle')} *</label>
+                <div className="relative group">
+                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="alex@organization.com"
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.email ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
+                  />
+                </div>
+                {errors.email && <p className="text-[10px] text-rose-500 font-bold ml-1">{errors.email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">{t('userMaster.password', 'Secure Access')} {!userId && '*'}</label>
+                <div className="relative group">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder={userId ? t('userMaster.leaveBlankToKeepCurrent', 'Keep current key') : '********'}
+                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-50 border ${errors.password ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-[10px] text-rose-500 font-bold ml-1">{errors.password}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">{t('userMaster.role', 'Access Tier')} *</label>
+                <div className="relative group">
+                  <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="cashier">{t('userMaster.cashier', 'Cashier (Standard)')}</option>
+                    <option value="manager">{t('userMaster.manager', 'Manager (Analytic)')}</option>
+                    <option value="hod">{t('userMaster.hod', 'Admin (HOD)')}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Active Status */}
-        <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg border border-slate-100">
-          <input
-            type="checkbox"
-            id="is_active"
-            name="is_active"
-            checked={formData.is_active}
-            onChange={handleChange}
-            className="w-5 h-5 rounded border-slate-300 text-black focus:ring-black cursor-pointer"
-            disabled={loading}
-          />
-          <label htmlFor="is_active" className="text-xs font-black uppercase tracking-widest text-slate-900 cursor-pointer">
-            {t('userMaster.userActive')}
-          </label>
-        </div>
+          {/* Section 2: Module Access Grid */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 bg-emerald-500"></div> System Privileges
+              </div>
+              <span className="italic normal-case text-[10px] font-medium opacity-60">Tuned for {formData.role} role</span>
+            </h3>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {modules.map((module) => {
+                const isSelected = formData.module_access.includes(module.id)
+                return (
+                  <button
+                    key={module.id}
+                    type="button"
+                    onClick={() => handleModuleToggle(module.id)}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
+                      isSelected 
+                      ? `bg-${module.color}-50 border-${module.color}-200 shadow-sm ring-1 ring-${module.color}-100` 
+                      : 'bg-white border-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl border ${isSelected ? `bg-white text-${module.color}-600 border-${module.color}-100` : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                      {module.icon}
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-tight ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
+                      {t(`modules.${module.label}`)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-        {/* Buttons */}
-        <div className="flex gap-4 pt-6 border-t-2 border-slate-100">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 px-8 py-4 bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3"
-          >
-            {loading && <Loader className="w-5 h-5 animate-spin" />}
-            {userId ? t('userMaster.updateUser') : t('userMaster.createUser')}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="px-8 py-4 bg-white border-2 border-slate-100 hover:border-slate-300 text-slate-500 hover:text-black font-black uppercase tracking-widest rounded-xl transition-all"
-          >
-            {t('common.cancel')}
-          </button>
-        </div>
-      </form>
+          <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+             <input
+               type="checkbox"
+               id="is_active"
+               name="is_active"
+               checked={formData.is_active}
+               onChange={handleChange}
+               className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+             />
+             <label htmlFor="is_active" className="text-xs font-bold text-slate-600 cursor-pointer">
+               {t('userMaster.userActive', 'Identity is currently operational and authorized for system entry')}
+             </label>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+             <button
+               type="submit"
+               disabled={loading}
+               className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+             >
+               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={20} /> {userId ? 'Commit Changes' : 'Initialize Identity'}</>}
+             </button>
+             <button
+               type="button"
+               onClick={onCancel}
+               className="px-8 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 hover:text-slate-800 transition-all"
+             >
+               {t('common.cancel', 'Abort')}
+             </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

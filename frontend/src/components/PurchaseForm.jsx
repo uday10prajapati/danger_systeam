@@ -164,7 +164,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
     return { amount, cgstPercent, cgstAmt, sgstPercent, sgstAmt, igstPercent, igstAmt, totalAmount };
   };
-  
+
   // Auto-fetch supplier by code
   useEffect(() => {
     if (supplierCodeSearch) {
@@ -235,8 +235,8 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   };
 
   const handleItemSearchKeyDown = (e) => {
-    const filteredItems = availableItems.filter(i => 
-      String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || 
+    const filteredItems = availableItems.filter(i =>
+      String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) ||
       String(i.item_code).includes(itemSearchText)
     );
 
@@ -327,32 +327,32 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm">
-      <div className="bg-slate-200 w-full max-w-6xl max-h-[90vh] rounded-lg shadow-2xl flex flex-col border-2 border-slate-900 overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 sm:p-4 backdrop-blur-md">
+      <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
 
-        {/* Title Bar - Industrial Black */}
-        <div className="flex justify-between items-center bg-black text-white px-5 py-2">
+        {/* Title Bar - Modern Design */}
+        <div className="flex justify-between items-center bg-slate-900 text-white px-6 py-3">
           <div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest">
-            <div className="w-3 h-3 bg-white rounded-full"></div>
+            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></div>
             Purchase Entry
           </div>
-          <button onClick={onCancel} className="hover:bg-red-600 text-white rounded-lg p-1 transition-all active:scale-90">
+          <button onClick={onCancel} className="hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg p-1.5 transition-all active:scale-90">
             <X size={18} strokeWidth={3} />
           </button>
         </div>
 
         {/* Dynamic Alerts */}
-        {error && <div className="bg-red-500 text-white text-[10px] font-black px-6 py-1.5 animate-pulse uppercase tracking-widest">{error}</div>}
-        {success && <div className="bg-slate-900 text-white text-[10px] font-black px-6 py-1.5 uppercase tracking-widest border-l-4 border-l-white">{success}</div>}
+        {error && <div className="bg-red-500/90 text-white text-[10px] font-black px-6 py-2 animate-pulse uppercase tracking-widest">{error}</div>}
+        {success && <div className="bg-emerald-600 text-white text-[10px] font-black px-6 py-2 uppercase tracking-widest border-l-4 border-l-emerald-300">{success}</div>}
 
-        <div className="flex-1 overflow-auto bg-white flex flex-col">
+        <div className="flex-1 overflow-auto bg-[#F8FAFC] flex flex-col">
           {/* Top Form Section */}
-          <div className="bg-slate-50 p-3 border-b border-slate-200 shadow-sm font-semibold text-[12px] text-slate-800">
+          <div className="bg-white p-4 border-b border-slate-100 shadow-sm font-semibold text-[12px] text-slate-800">
 
             {/* Row 1: Party & Payment Type */}
             <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 items-center">
               <div className="flex items-center gap-3 relative z-30" ref={supplierDropdownRef}>
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Party :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px] w-12 text-right">Party :</span>
                 <input
                   type="text"
                   value={supplierCodeSearch}
@@ -361,7 +361,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     setShowSupplierDropdown(true);
                   }}
                   onFocus={() => setShowSupplierDropdown(true)}
-                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-50 w-24 outline-none rounded focus:border-black focus:bg-white transition-all uppercase font-black text-slate-900 shadow-sm text-center"
+                  className="border border-slate-200 px-4 py-2 text-[13px] bg-white w-24 outline-none rounded-xl focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all uppercase font-black text-slate-900 shadow-sm text-center"
                   placeholder="CODE"
                 />
                 <input
@@ -376,22 +376,22 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     }
                   }}
                   onFocus={() => setShowSupplierDropdown(true)}
-                  className="border border-slate-300 px-4 py-2 text-[13px] bg-slate-50 w-80 outline-none rounded focus:border-black focus:bg-white transition-all uppercase font-black text-slate-900 shadow-sm"
+                  className="border border-slate-200 px-4 py-2 text-[13px] bg-white w-80 outline-none rounded-xl focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all uppercase font-black text-slate-900 shadow-sm"
                   placeholder="SEARCH SUPPLIER NAME..."
                 />
 
                 {showSupplierDropdown && (
-                  <div className="absolute top-full left-16 bg-white border-2 border-black shadow-2xl w-[400px] max-h-64 overflow-y-auto z-40 rounded-lg mt-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0">
+                  <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-64 overflow-y-auto z-40 rounded-2xl mt-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0 rounded-t-2xl">
                       <span className="text-white text-[10px] font-black uppercase tracking-widest px-2">Suppliers</span>
-                      <X size={16} className="text-white cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowSupplierDropdown(false)} />
+                      <X size={16} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowSupplierDropdown(false)} />
                     </div>
                     {availableSuppliers.filter(s => {
                       const codeMatch = supplierCodeSearch ? (String(s.id).includes(supplierCodeSearch) || String(s.phone).includes(supplierCodeSearch)) : true;
                       const nameMatch = supplierNameSearch ? String(s.account_name).toLowerCase().includes(supplierNameSearch.toLowerCase()) : true;
                       return codeMatch && nameMatch;
                     }).map((m) => (
-                      <div key={m.id} onClick={() => handleSupplierSelect(m)} className="px-4 py-3 hover:bg-black hover:text-white cursor-pointer text-[13px] font-black border-b border-slate-100 last:border-0 transition-colors flex justify-between items-center group uppercase">
+                      <div key={m.id} onClick={() => handleSupplierSelect(m)} className="px-4 py-3 hover:bg-emerald-600 hover:text-white cursor-pointer text-[13px] font-black border-b border-slate-100 last:border-0 transition-colors flex justify-between items-center group uppercase">
                         <span>{m.account_name}</span>
                         <span className="text-[10px] text-slate-400 group-hover:text-slate-300">#{m.id}</span>
                       </div>
@@ -400,41 +400,41 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 ml-auto text-[11px] bg-slate-900 text-white p-1 rounded-lg border-2 border-slate-900 shadow-lg font-black uppercase tracking-widest">
-                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded transition-all ${paymentType === 'cash' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Cash</button>
-                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded transition-all ${paymentType === 'credit' ? 'bg-white text-black' : 'hover:bg-slate-800'}`}>Credit</button>
+              <div className="flex items-center gap-2 ml-auto text-[11px] bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm font-black uppercase tracking-widest">
+                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded-xl transition-all ${paymentType === 'cash' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Cash</button>
+                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded-xl transition-all ${paymentType === 'credit' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Credit</button>
               </div>
             </div>
 
             {/* Row 2: Bill No, Date, Vehicle */}
             <div className="flex flex-wrap gap-x-8 gap-y-4 px-2 mt-3">
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Bill No :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px] w-12 text-right">Bill No :</span>
                 <input
                   type="text"
                   value={billNo}
                   onChange={(e) => setBillNo(e.target.value)}
-                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-slate-900 text-white w-32 outline-none rounded font-mono font-black text-center shadow-lg focus:ring-2 focus:ring-slate-400"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-emerald-600 text-white w-32 outline-none rounded-xl font-mono font-black text-center shadow-sm focus:ring-2 focus:ring-emerald-400"
                 />
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Date :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px]">Date :</span>
                 <input
                   type="date"
                   value={invoiceDate}
                   onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="border border-slate-300 px-4 py-1.5 text-[12px] bg-white w-40 outline-none rounded font-bold shadow-sm focus:border-black transition-all"
+                  className="border border-slate-200 px-4 py-2 text-[12px] bg-white w-40 outline-none rounded-xl font-bold shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                 />
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Vehicle # :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px]">Vehicle # :</span>
                 <input
                   type="text"
                   value={gadiNumber}
                   onChange={(e) => setGadiNumber(e.target.value)}
-                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-white w-36 outline-none rounded font-black uppercase shadow-sm focus:border-black transition-all"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-36 outline-none rounded-xl font-black uppercase shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                   placeholder="GADI NO"
                 />
               </div>
@@ -442,23 +442,23 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
             {/* Row 3: Driver & Mobile */}
             <div className="flex flex-wrap gap-x-8 gap-y-3 px-2 mt-3 items-center">
-               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Driver :</span>
+              <div className="flex items-center gap-3">
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px] w-12 text-right">Driver :</span>
                 <input
                   type="text"
                   value={driverName}
                   onChange={(e) => setDriverName(e.target.value)}
-                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-white w-44 outline-none rounded font-black uppercase shadow-sm focus:border-black transition-all"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-44 outline-none rounded-xl font-black uppercase shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="DRIVER NAME"
                 />
               </div>
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">Mobile :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px]">Mobile :</span>
                 <input
                   type="text"
                   value={mobileNumber}
                   onChange={(e) => setMobileNumber(e.target.value)}
-                  className="border border-slate-300 px-4 py-1.5 text-[13px] bg-white w-40 outline-none rounded font-black uppercase shadow-sm focus:border-black transition-all"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-40 outline-none rounded-xl font-black uppercase shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="MOBILE NO"
                 />
               </div>
@@ -467,11 +467,11 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
             {/* Row 4: Tax Type & State */}
             <div className="flex flex-wrap gap-x-8 gap-y-3 px-2 mt-3 items-center">
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px] w-12 text-right">Tax :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px] w-12 text-right">Tax :</span>
                 <select
                   value={taxType}
                   onChange={(e) => setTaxType(e.target.value)}
-                  className="border border-slate-300 px-4 py-1.5 text-[12px] bg-white w-44 outline-none rounded font-black shadow-sm focus:border-black transition-all cursor-pointer"
+                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-white w-44 outline-none rounded-xl font-black shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer"
                 >
                   <option value="CGST/SGST">LOCAL (CGST/SGST)</option>
                   <option value="IGST">INTERSTATE (IGST)</option>
@@ -479,12 +479,12 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="font-black text-slate-500 uppercase tracking-widest text-[11px]">State :</span>
+                <span className="font-black text-slate-600 uppercase tracking-widest text-[11px]">State :</span>
                 <input
                   type="text"
                   value={company?.state_name ? `${company.state_name} (${company.state_code})` : 'GUJARAT (24)'}
                   readOnly
-                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-slate-100 w-44 outline-none rounded font-bold text-slate-500 shadow-inner"
+                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-slate-50 w-44 outline-none rounded-xl font-bold text-slate-600 shadow-sm"
                 />
               </div>
             </div>
@@ -493,7 +493,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           {/* DATA GRID TABLE */}
           <div className="flex-1 bg-white overflow-y-auto flex flex-col font-sans border-b border-slate-200 h-[40vh]">
             <table className="w-full text-[12px] border-collapse" style={{ tableLayout: 'fixed' }}>
-              <thead className="bg-slate-900 text-white font-black text-[10px] border-b border-slate-800 sticky top-0 z-10 shadow-md uppercase tracking-widest">
+              <thead className="bg-slate-900 text-white font-black text-[10px] border-b border-slate-200 sticky top-0 z-10 shadow-sm uppercase tracking-widest">
                 <tr>
                   <th className="p-3 w-10 text-center">No</th>
                   <th className="p-3 w-64 text-left px-4">Item Description</th>
@@ -533,8 +533,8 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                 ))}
 
                 {/* Live Input Row */}
-                <tr className="bg-slate-100 border-t-2 border-slate-900 sticky bottom-0 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-                  <td className="p-2 text-center text-[10px] font-black uppercase text-slate-500">New</td>
+                <tr className="bg-emerald-50/30 border-t-2 border-emerald-200 sticky bottom-0 z-20 shadow-[0_-10px_30px_rgba(16,185,129,0.05)]">
+                  <td className="p-2 text-center text-[10px] font-black uppercase text-slate-600">New</td>
                   <td className="p-0 relative">
                     <input
                       type="text"
@@ -551,7 +551,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                       placeholder="SEARCH ITEM BY NAME OR CODE..."
                     />
                   </td>
-                  <td className="p-0 bg-yellow-50">
+                  <td className="p-0 bg-emerald-100/20">
                     <input
                       type="number"
                       value={currentQty}
@@ -561,7 +561,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                       placeholder="0.000"
                     />
                   </td>
-                  <td className="p-0 bg-yellow-50 border-r border-slate-200">
+                  <td className="p-0 bg-emerald-100/20 border-r border-slate-200">
                     <input
                       type="number"
                       value={currentRate}
@@ -574,65 +574,63 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   {/* Live Computation display */}
                   {livePreview ? (
                     <>
-                      <td className="p-2 px-4 text-right font-black font-mono bg-slate-900 text-white shadow-inner">{livePreview.amount.toFixed(2)}</td>
-                      <td className="p-2 px-2 text-right font-mono text-slate-400 bg-slate-100 text-[10px]">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(2) : livePreview.cgstPercent.toFixed(2)}</td>
-                      <td className="p-2 px-2 text-right font-mono text-slate-900 bg-slate-100">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(1) : livePreview.cgstAmt.toFixed(1)}</td>
-                      <td className="p-2 px-2 text-right font-mono text-slate-400 bg-slate-100 text-[10px]">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(2)}</td>
-                      <td className="p-2 px-2 text-right font-mono text-slate-900 bg-slate-100">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(1)}</td>
-                      <td className="p-2 px-4 text-right font-black font-mono text-black bg-white border-r border-slate-300 shadow-xl">{livePreview.totalAmount.toFixed(2)}</td>
+                      <td className="p-2 px-4 text-right font-black font-mono bg-emerald-600 text-white shadow-sm">{livePreview.amount.toFixed(2)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-500 bg-white text-[10px]">{taxType === 'IGST' ? livePreview.igstPercent.toFixed(2) : livePreview.cgstPercent.toFixed(2)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-700 bg-white">{taxType === 'IGST' ? livePreview.igstAmt.toFixed(1) : livePreview.cgstAmt.toFixed(1)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-500 bg-white text-[10px]">{taxType === 'IGST' ? '' : livePreview.sgstPercent.toFixed(2)}</td>
+                      <td className="p-2 px-2 text-right font-mono text-slate-700 bg-white">{taxType === 'IGST' ? '' : livePreview.sgstAmt.toFixed(1)}</td>
+                      <td className="p-2 px-4 text-right font-black font-mono text-slate-900 bg-emerald-50 border-r border-emerald-200 shadow-sm">{livePreview.totalAmount.toFixed(2)}</td>
                     </>
                   ) : (
-                    <td colSpan={taxType === 'IGST' ? 4 : 6} className="bg-slate-100 p-2 text-[10px] text-slate-400 font-black text-center border-r border-slate-200 uppercase tracking-widest italic">
+                    <td colSpan={taxType === 'IGST' ? 4 : 6} className="bg-slate-50 p-2 text-[10px] text-slate-400 font-black text-center border-r border-slate-200 uppercase tracking-widest italic">
                       [ Enter Qty & Rate ]
                     </td>
                   )}
-                  <td className="bg-black">
-                    <button onClick={handleAddItem} className="w-full h-10 bg-black hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-tighter">Add</button>
+                  <td className="bg-emerald-600 hover:bg-emerald-700 transition-colors">
+                    <button onClick={handleAddItem} className="w-full h-10 text-white font-black text-[10px] uppercase tracking-tighter">Add</button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Absolute Item Dropdown - High Contrast Monochrome */}
+          {/* Absolute Item Dropdown - Modern Design */}
           {showItemDropdown && (
             <div
               ref={itemDropdownRef}
               style={{ position: 'fixed', top: `${dropdownPos.top + 5}px`, left: dropdownPos.left || 0, width: dropdownPos.width || 400 }}
-              className="bg-white border-2 border-black shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] max-h-80 overflow-y-auto z-[9999] rounded-lg animate-in fade-in zoom-in-95 duration-200"
+              className="bg-white border border-slate-200 shadow-lg max-h-80 overflow-y-auto z-[9999] rounded-2xl animate-in fade-in zoom-in-95 duration-200"
             >
               <div ref={dropdownListRef}>
-                <div className="p-2 border-b bg-slate-900 flex justify-between font-black text-white text-[10px] uppercase tracking-widest sticky top-0 items-center">
+                <div className="p-3 border-b bg-slate-900 flex justify-between font-black text-white text-[10px] uppercase tracking-widest sticky top-0 items-center rounded-t-2xl">
                   <span>Select Product From Inventory</span>
-                  <X size={16} className="cursor-pointer hover:bg-red-500 rounded p-0.5" onClick={() => setShowItemDropdown(false)} />
+                  <X size={16} className="cursor-pointer text-slate-400 hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowItemDropdown(false)} />
                 </div>
                 {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((item, idx) => (
-                  <div 
-                    key={item.id} 
-                    onClick={() => handleItemSelect(item)} 
-                    className={`px-4 py-3 border-b border-slate-100 transition-colors flex justify-between items-center group cursor-pointer ${
-                      itemSelectedIndex === idx ? 'bg-slate-900 text-white' : 'hover:bg-slate-50 text-slate-800'
-                    }`}
+                  <div
+                    key={item.id}
+                    onClick={() => handleItemSelect(item)}
+                    className={`px-4 py-3 border-b border-slate-100 transition-colors flex justify-between items-center group cursor-pointer ${itemSelectedIndex === idx ? 'bg-emerald-600 text-white' : 'hover:bg-slate-50 text-slate-800'
+                      }`}
                   >
-                    <div className="flex flex-col">
+                    <div>
                       <span className={`text-xs font-black uppercase transition-colors ${itemSelectedIndex === idx ? 'text-white' : 'text-slate-800'}`}>{item.item_name}</span>
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${itemSelectedIndex === idx ? 'text-slate-400' : 'text-slate-400'}`}>Code: {item.item_code} | PR: ₹{item.purchase_price}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${itemSelectedIndex === idx ? 'text-emerald-100' : 'text-slate-400'}`}>Code: {item.item_code} | PR: ₹{item.purchase_price}</span>
                     </div>
-                    <div className={`px-2 py-1 rounded border text-[10px] font-black transition-all ${
-                      itemSelectedIndex === idx ? 'bg-slate-800 text-white border-slate-700' : 'bg-slate-50 text-black border-slate-200'
-                    }`}>Stock: {item.current_stock || 0}</div>
+                    <div className={`px-2 py-1 rounded border text-[10px] font-black transition-all ${itemSelectedIndex === idx ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-emerald-50 text-black border-emerald-200'
+                      }`}>Stock: {item.current_stock || 0}</div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Bottom Summary - Impactful Monochrome */}
-          <div className="bg-slate-900 p-2.5 flex flex-col sm:flex-row justify-between items-start">
+          {/* Bottom Summary - Modern Design */}
+          <div className="bg-emerald-50 p-4 flex flex-col sm:flex-row justify-between items-start border-t border-emerald-100">
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-col gap-0.5">
                 <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">E-way Bill :</span>
-                <input type="text" className="bg-slate-800 border border-slate-700 px-3 py-1 rounded text-white w-56 outline-none focus:border-white transition-all font-mono text-[9px] h-6" placeholder="BILL NO." />
+                <input type="text" className="bg-emerald-600 border border-emerald-500 px-3 py-1 rounded text-white w-56 outline-none focus:border-emerald-300 transition-all font-mono text-[9px] h-6" placeholder="BILL NO." />
               </div>
               <div className="text-slate-500 text-[8px] font-mono leading-tight tracking-widest uppercase italic opacity-40">
                 * GST based on tax selection.
@@ -641,38 +639,38 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
             <div className="flex gap-4">
               {/* Calculation Breakdown */}
-              <div className="flex flex-col gap-0.5 pr-6 border-r border-slate-800">
+              <div className="flex flex-col gap-0.5 pr-6 border-r border-emerald-200">
                 <div className="flex justify-between items-center w-36 py-0.5">
-                  <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">Base :</span>
-                  <span className="font-mono font-black text-white text-[9px]">{totalBaseAmount.toFixed(2)}</span>
+                  <span className="font-black text-emerald-700 text-[8px] uppercase tracking-widest">Base :</span>
+                  <span className="font-mono font-black text-slate-900 text-[9px]">{totalBaseAmount.toFixed(2)}</span>
                 </div>
                 {taxType === 'CGST/SGST' ? (
                   <>
                     <div className="flex justify-between items-center w-36 py-0.5">
-                      <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">CGST :</span>
-                      <span className="font-mono font-black text-white text-[9px]">{totalCgst.toFixed(2)}</span>
+                      <span className="font-black text-emerald-700 text-[8px] uppercase tracking-widest">CGST :</span>
+                      <span className="font-mono font-black text-slate-900 text-[9px]">{totalCgst.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center w-36 py-0.5">
-                      <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">SGST :</span>
-                      <span className="font-mono font-black text-white text-[9px]">{totalSgst.toFixed(2)}</span>
+                      <span className="font-black text-emerald-700 text-[8px] uppercase tracking-widest">SGST :</span>
+                      <span className="font-mono font-black text-slate-900 text-[9px]">{totalSgst.toFixed(2)}</span>
                     </div>
                   </>
                 ) : (
                   <div className="flex justify-between items-center w-36 py-0.5">
-                    <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">IGST :</span>
-                    <span className="font-mono font-black text-white text-[9px]">{totalIgst.toFixed(2)}</span>
+                    <span className="font-black text-emerald-700 text-[8px] uppercase tracking-widest">IGST :</span>
+                    <span className="font-mono font-black text-slate-900 text-[9px]">{totalIgst.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center w-36 py-0.5 border-t border-slate-800 mt-0.5 pt-0.5">
-                  <span className="font-black text-slate-400 text-[8px] uppercase tracking-widest">Round :</span>
-                  <span className={`font-mono font-black text-[9px] ${rounding >= 0 ? 'text-green-400' : 'text-red-400'}`}>{rounding.toFixed(2)}</span>
+                <div className="flex justify-between items-center w-36 py-0.5 border-t border-emerald-200 mt-0.5 pt-0.5">
+                  <span className="font-black text-emerald-700 text-[8px] uppercase tracking-widest">Round :</span>
+                  <span className={`font-mono font-black text-[9px] ${rounding >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{rounding.toFixed(2)}</span>
                 </div>
               </div>
 
               {/* FINAL BIG TOTAL */}
               <div className="flex flex-col items-end gap-0 pl-4 justify-center">
-                <span className="font-black text-white text-[7px] uppercase tracking-[0.2em] opacity-30">Net Payable</span>
-                <div className="bg-white text-black px-4 py-1 rounded shadow-xl border border-slate-100 flex items-center h-8">
+                <span className="font-black text-emerald-700 text-[7px] uppercase tracking-[0.2em] opacity-70">Net Payable</span>
+                <div className="bg-emerald-600 text-white px-4 py-1 rounded-lg shadow-md border border-emerald-500 flex items-center h-8">
                   <span className="text-[18px] font-black font-mono tracking-tighter">₹{netAmount.toFixed(2)}</span>
                 </div>
               </div>
@@ -681,11 +679,11 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
         </div>
 
         {/* Action Bar */}
-        <div className="bg-slate-200 p-2 border-t border-slate-300 flex items-center justify-end gap-3 shadow-inner">
-          <button onClick={onCancel} className="px-5 py-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-600 font-black shadow rounded transition-all active:scale-95 text-[9px] uppercase tracking-widest h-7">
+        <div className="bg-emerald-50 p-4 border-t border-emerald-100 flex items-center justify-end gap-3 shadow-sm">
+          <button onClick={onCancel} className="px-6 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-black shadow-sm rounded-xl transition-all active:scale-95 text-[9px] uppercase tracking-widest">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={loading} className="px-8 py-1 bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-black shadow-lg rounded transition-all active:scale-95 text-[10px] uppercase tracking-widest h-7">
+          <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-black shadow-md rounded-xl transition-all active:scale-95 text-[10px] uppercase tracking-widest">
             {loading ? 'Processing...' : 'Confirm & Save'}
           </button>
         </div>

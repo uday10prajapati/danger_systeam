@@ -2,22 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { 
-  Plus, 
-  Search, 
-  RefreshCcw, 
-  Download,
-  Hash,
-  User,
-  ExternalLink,
-  Box,
-  FileText,
-  BarChart3,
-  LayoutGrid,
-  Package,
-  ChevronDown,
-  ChevronRight,
-  TrendingUp,
-  Store
+  Plus, Search, RefreshCcw, Download, Hash, User, 
+  ExternalLink, Box, FileText, BarChart3, LayoutGrid, 
+  Package, ChevronDown, ChevronRight, TrendingUp, Store,
+  Database, ShieldCheck, Layout, Layers, Box as BoxIcon,
+  Filter, Calendar, ArrowRight, CheckCircle2, History
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -62,7 +51,7 @@ export default function PurchaseReport() {
       const response = await axios.get('/api/company');
       setCompany(response.data.success ? response.data.data : null);
     } catch (error) {
-      setCompany(null);
+       console.error('Failed to load company', error);
     }
   };
 
@@ -97,7 +86,6 @@ export default function PurchaseReport() {
     String(p.supplier_id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Grouping logic for Report view
   const groupedReports = filteredReports.reduce((acc, p) => {
     const key = p.supplier_name || 'GENERIC SOURCE';
     if (!acc[key]) acc[key] = { name: key, invoices: [], total: 0 };
@@ -111,7 +99,6 @@ export default function PurchaseReport() {
     i.item_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Grouping logic for Summary (by Category)
   const groupedSummary = filteredSummary.reduce((acc, i) => {
     const key = i.category || 'GENERAL INVENTORY';
     if (!acc[key]) acc[key] = { name: key, items: [], total: 0 };
@@ -169,232 +156,270 @@ export default function PurchaseReport() {
     XLSX.writeFile(wb, `${groupData.name}_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  if (!company) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
+        <div className="text-center font-black uppercase tracking-widest text-slate-300">
+          <p className="text-xs mb-6 italic tracking-[0.4em]">Initialising Procurement Bridge...</p>
+          <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
+             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6 space-y-6 font-sans text-slate-900">
-      <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
+      <div className="max-w-[1600px] mx-auto px-8">
         
-        {/* Superior Header with Toggle */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-black pb-6 gap-6">
+        {/* Superior Header - Dashboard Style */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6 print:hidden">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-               <div className="bg-black text-white p-2 rounded-lg">
-                  {viewType === 'report' ? <FileText size={24} /> : <BarChart3 size={24} />}
-               </div>
-               <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">
-                 Purchase Audit
-               </h1>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+              <Database size={12} />
+              <span>Procurement Core / Purchase Audit registry</span>
             </div>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] italic">
-               {viewType === 'report' ? 'Grouped Manifest Audit' : 'Categorized Stock Valuation'} / {company?.company_name}
-            </p>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+               Audit Command Deck
+            </h1>
           </div>
 
-          <div className="flex items-center gap-4 bg-white p-1.5 rounded-2xl border-2 border-slate-200 shadow-xl self-end md:self-auto">
-             <button onClick={() => setViewType('report')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${viewType === 'report' ? 'bg-black text-white shadow-lg' : 'text-slate-400 hover:text-black'}`}>
-                <LayoutGrid size={14} /> Report (Grouped)
-             </button>
-             <button onClick={() => setViewType('summary')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${viewType === 'summary' ? 'bg-black text-white shadow-lg' : 'text-slate-400 hover:text-black'}`}>
-                <Package size={14} /> Summary (Categorized)
-             </button>
-          </div>
+          <div className="flex flex-wrap items-center gap-4">
+             <div className="flex gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <button onClick={() => setViewType('report')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}>
+                   <LayoutGrid size={14} /> Report
+                </button>
+                <button onClick={() => setViewType('summary')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'}`}>
+                   <Package size={14} /> Summary
+                </button>
+             </div>
 
-          <div className="flex gap-2">
-             <button 
-               onClick={exportToExcel} 
-               className="p-3 bg-slate-900 text-white hover:bg-black rounded-xl transition-all shadow-xl active:scale-95 border-2 border-black"
-             >
-                <Download size={20} strokeWidth={3} />
-             </button>
-             <button 
-               onClick={fetchData} 
-               className="flex items-center gap-2 px-8 py-3 bg-white text-black border-4 border-black rounded-xl hover:bg-slate-50 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-[10px]"
-             >
-              <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} strokeWidth={3} />
-              Re-Sync
-            </button>
+             <div className="flex gap-2">
+                <button onClick={exportToExcel} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-2xl transition-all shadow-sm active:scale-95">
+                   <Download size={18} />
+                </button>
+                <button onClick={fetchData} className="p-3.5 bg-blue-600 text-white rounded-2xl transition-all shadow-lg shadow-blue-100 active:scale-95">
+                   <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+                </button>
+             </div>
           </div>
         </div>
 
-        {/* Universal Audit Control Panel */}
-        <div className="bg-white p-5 rounded-2xl shadow-md border border-slate-200 flex flex-wrap gap-6 items-end">
-           <div className="flex-1 min-w-[300px]">
-              <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1 italic italic">Global Intelligence Filter</span>
+        {/* Audit Command Grid - Compact Metric Shards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 print:hidden">
+           {[
+              { label: 'Total Procurement Volume', val: formatCurrency(totalProcurementVolume), icon: <TrendingUp size={18}/>, color: 'blue' },
+              { label: 'Manifest Nodes', val: filteredReports.length, icon: <FileText size={18}/>, color: 'indigo' },
+              { label: 'SKU Intelligence', val: itemData.length, icon: <LayoutGrid size={18}/>, color: 'emerald' },
+              { label: 'Audit Status', val: 'SYMMETRICAL', icon: <ShieldCheck size={18}/>, color: 'slate' }
+           ].map((stat, i) => (
+             <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
+                <div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-1">{stat.label}</p>
+                   <h5 className="text-2xl font-bold tracking-tighter text-slate-800">{stat.val}</h5>
+                </div>
+                <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+             </div>
+           ))}
+        </div>
+
+        {/* Command Deck Toolbar */}
+        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+           <div className="flex-1 min-w-[350px]">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Cross-Entity Vector Search</span>
               <div className="relative group">
-                 <Search className="absolute left-4 top-3.5 text-slate-300 group-focus-within:text-black transition-colors" size={18} strokeWidth={3} />
-                 <input
-                   type="text"
-                   placeholder="SEARCH ACROSS ALL ENTITIES & INVENTORY..."
-                   value={searchTerm}
-                   onChange={(e) => setSearchTerm(e.target.value)}
-                   className="w-full pl-12 pr-4 py-3 border-2 border-slate-50 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-[11px] h-12 italic shadow-inner"
+                 <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                 <input 
+                    type="text" 
+                    placeholder="SEARCH ACROSS ALL ENTITIES & INVENTORY..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
                  />
               </div>
            </div>
 
-           <div className="flex gap-4">
-              <div className="w-44">
-                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1 italic italic">Timeline Logic Start</span>
-                 <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-50 rounded-2xl focus:outline-none focus:border-black transition-all bg-white font-black text-xs h-12" />
-              </div>
-              <div className="w-44">
-                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1 italic italic">Timeline Logic End</span>
-                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-50 rounded-2xl focus:outline-none focus:border-black transition-all bg-white font-black text-xs h-12" />
-              </div>
+           <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm h-full">
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+              <ArrowRight size={14} className="text-slate-200" />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
            </div>
+
+           <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Isolate window</button>
         </div>
 
-        {/* Dynamic Data Content */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-           <div className="overflow-x-auto">
-              {loading ? (
-                <div className="px-8 py-32 text-center">
-                   <RefreshCcw className="w-12 h-12 text-slate-100 animate-spin mx-auto mb-4" strokeWidth={3} />
-                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic tracking-[0.3em]">Building Multi-Level Audit...</p>
-                </div>
-              ) : (
-                <table className="w-full">
-                   <thead className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest italic">
-                      {viewType === 'report' ? (
-                         <tr>
-                            <th className="px-10 py-6 text-left w-1/3 italic">Source Identity / Timeline</th>
-                            <th className="px-8 py-6 text-left italic">Reference</th>
-                            <th className="px-8 py-6 text-center italic">Payload</th>
-                            <th className="px-8 py-6 text-right bg-black italic">Gross Liquidity</th>
-                            <th className="px-4 py-6 text-center italic">Profile</th>
-                         </tr>
-                      ) : (
-                         <tr>
-                            <th className="px-10 py-6 text-left w-1/3 italic">Catalog / Item Identity</th>
-                            <th className="px-8 py-6 text-center italic">Unit</th>
-                            <th className="px-8 py-6 text-right italic">Inward Volume</th>
-                            <th className="px-8 py-6 text-right bg-black italic">Net Valuation</th>
-                         </tr>
-                      )}
-                   </thead>
-                   <tbody className="divide-y divide-slate-100 italic">
-                      {viewType === 'report' ? (
-                         Object.values(groupedReports).length === 0 ? (
-                            <tr><td colSpan="5" className="py-24 text-center font-black text-slate-200 uppercase tracking-widest italic">Zero Entities Found</td></tr>
-                         ) : (
+        {/* Audit Manifest Canvas */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[700px] relative">
+           
+           <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-50">
+              <div className="flex items-center gap-3">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic">Consolidated Manifest Audit</p>
+              </div>
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">View: {viewType === 'report' ? 'Grouped Identity' : 'Categorized Inventory'}</p>
+           </div>
+
+           <div className="flex-1 overflow-x-auto px-4 pb-12 scroller-airy">
+              <table className="w-full text-left">
+                 <thead className="bg-[#F8FAFC]">
+                    {viewType === 'report' ? (
+                      <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
+                         <th className="px-10 py-5 w-1/3">Source Identity / Timeline</th>
+                         <th className="px-8 py-5">Manifest ID</th>
+                         <th className="px-8 py-5 text-center">Payload Count</th>
+                         <th className="px-8 py-5 text-right">Gross Valuation</th>
+                         <th className="px-8 py-5 text-center">Profile</th>
+                      </tr>
+                    ) : (
+                      <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
+                         <th className="px-10 py-5 w-1/3">Catalog / Inventory Node</th>
+                         <th className="px-8 py-5 text-center">Unit</th>
+                         <th className="px-8 py-5 text-right">Inward Volume</th>
+                         <th className="px-8 py-5 text-right">Net Value</th>
+                         <th className="px-8 py-5 text-center">Status</th>
+                      </tr>
+                    )}
+                 </thead>
+                 <tbody className="divide-y divide-slate-50">
+                    {loading ? (
+                      <tr>
+                        <td colSpan="5" className="py-32 text-center">
+                           <RefreshCcw className="animate-spin text-blue-100 mx-auto" size={50} />
+                           <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Building Secure Audit Matrix...</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      <>
+                        {viewType === 'report' ? (
+                          Object.values(groupedReports).length === 0 ? (
+                            <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-xs">Zero Manifests Isolated</td></tr>
+                          ) : (
                             Object.values(groupedReports).map((group, gIdx) => (
-                               <React.Fragment key={gIdx}>
-                                  {/* Group Header */}
-                                  <tr 
-                                    onClick={() => toggleGroup(group.name)}
-                                    className="bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all border-l-8 border-black select-none"
-                                  >
-                                     <td className="px-10 py-5">
-                                        <div className="flex items-center gap-4">
-                                           {expandedGroups[group.name] ? <ChevronDown size={20} strokeWidth={3} /> : <ChevronRight size={20} strokeWidth={3} />}
-                                           <div>
-                                              <p className="font-black text-slate-900 uppercase text-sm tracking-tight">{group.name}</p>
-                                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{group.invoices.length} ACTIVE MANIFESTS</p>
-                                           </div>
-                                        </div>
-                                     </td>
-                                     <td colSpan="2" className="px-8 py-5 text-center">
-                                         <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest">CONSOLIDATED BATCH</span>
-                                     </td>
-                                     <td className="px-8 py-5 text-right font-black text-sm bg-slate-900 text-white italic tracking-tighter">
-                                        {formatCurrency(group.total)}
-                                     </td>
-                                     <td className="px-4 py-5 text-center">
-                                         <button 
-                                           onClick={(e) => exportGroupToExcel(e, group, 'report')}
-                                           className="p-2.5 bg-slate-900 hover:bg-black text-white rounded-lg transition-all shadow-lg active:scale-90"
-                                           title="Download Group Data"
-                                         >
-                                            <Download size={14} strokeWidth={3} />
-                                         </button>
-                                     </td>
-                                  </tr>
-                                  {/* Group Invoices (Rows) */}
-                                  {expandedGroups[group.name] && group.invoices.map((p, pIdx) => (
-                                     <tr key={pIdx} className="bg-white hover:bg-slate-50 transition-colors animate-in slide-in-from-top-2 duration-150">
-                                        <td className="px-10 py-4 pl-20 font-mono font-bold text-slate-400 text-xs italic">
-                                           {new Date(p.invoice_date).toLocaleDateString('en-GB')}
-                                        </td>
-                                        <td className="px-8 py-4 font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 text-xs">
-                                           <Hash size={12} className="text-slate-300" /> {p.invoice_no}
-                                        </td>
-                                        <td className="px-8 py-4 text-center font-black text-slate-500 text-[10px] uppercase">
-                                           {p.item_count} SKU RECORDED
-                                        </td>
-                                        <td className="px-8 py-4 text-right font-black text-xs text-slate-900 opacity-60">
-                                           {formatCurrency(p.total_amount)}
-                                        </td>
-                                        <td className="px-4 py-4 text-center">
-                                           <button className="p-2 text-slate-400 hover:text-black transition-colors border border-slate-100 rounded hover:border-black"><ExternalLink size={14} strokeWidth={3} /></button>
-                                        </td>
-                                     </tr>
-                                  ))}
-                               </React.Fragment>
+                              <React.Fragment key={gIdx}>
+                                 <tr onClick={() => toggleGroup(group.name)} className="bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all border-l-[6px] border-blue-600 group">
+                                    <td className="px-10 py-6">
+                                       <div className="flex items-center gap-4">
+                                          <div className={`p-2 rounded-xl transition-all ${expandedGroups[group.name] ? 'bg-blue-600 text-white' : 'bg-white text-slate-300 group-hover:text-blue-600 shadow-sm'}`}>
+                                            {expandedGroups[group.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                          </div>
+                                          <div>
+                                             <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{group.name}</p>
+                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{group.invoices.length} ACTIVE MANIFESTS</p>
+                                          </div>
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-[10px] font-bold text-slate-300 uppercase italic">CONSOLIDATED_BATCH</td>
+                                    <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
+                                    <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(group.total)}</td>
+                                    <td className="px-8 py-6 text-center">
+                                       <button onClick={(e) => exportGroupToExcel(e, group, 'report')} className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm mx-auto active:scale-95">
+                                          <Download size={18}/>
+                                       </button>
+                                    </td>
+                                 </tr>
+                                 {expandedGroups[group.name] && group.invoices.map((p, pIdx) => (
+                                   <tr key={pIdx} className="group hover:bg-[#F8FAFC]/50 transition-colors">
+                                      <td className="px-10 py-5 pl-24 text-[11px] font-bold text-slate-400 font-mono italic">
+                                         {new Date(p.invoice_date).toLocaleDateString('en-GB')}
+                                      </td>
+                                      <td className="px-8 py-5">
+                                         <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase italic tracking-tight">
+                                            <Hash size={14} className="text-slate-200" /> {p.invoice_no}
+                                         </div>
+                                      </td>
+                                      <td className="px-8 py-5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                         {p.item_count} SKU RECORDED
+                                      </td>
+                                      <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm opacity-60 italic">
+                                         {formatCurrency(p.total_amount)}
+                                      </td>
+                                      <td className="px-8 py-5 text-center">
+                                         <button className="text-slate-300 hover:text-blue-600 transition-colors"><ExternalLink size={16}/></button>
+                                      </td>
+                                   </tr>
+                                 ))}
+                              </React.Fragment>
                             ))
-                         )
-                      ) : (
-                         Object.values(groupedSummary).length === 0 ? (
-                            <tr><td colSpan="4" className="py-24 text-center font-black text-slate-200 uppercase tracking-widest italic">Zero Catalog Data Found</td></tr>
-                         ) : (
+                          )
+                        ) : (
+                          Object.values(groupedSummary).length === 0 ? (
+                            <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-xs">Zero Catalog Data Isolated</td></tr>
+                          ) : (
                             Object.values(groupedSummary).map((cat, cIdx) => (
-                               <React.Fragment key={cIdx}>
-                                  {/* Category Header */}
-                                  <tr 
-                                    onClick={() => toggleGroup(cat.name)}
-                                    className="bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all border-l-8 border-blue-500 select-none"
-                                  >
-                                     <td className="px-10 py-5">
-                                        <div className="flex items-center gap-4">
-                                           {expandedGroups[cat.name] ? <ChevronDown size={20} className="text-blue-500" strokeWidth={3} /> : <ChevronRight size={20} className="text-blue-500" strokeWidth={3} />}
-                                           <div>
-                                              <p className="font-black text-slate-900 uppercase text-sm tracking-tight">{cat.name}</p>
-                                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{cat.items.length} TRACKED SKUs</p>
-                                           </div>
-                                        </div>
-                                     </td>
-                                     <td colSpan="2"></td>
-                                     <td className="px-8 py-5 text-right font-black text-sm bg-slate-900 text-white italic tracking-tighter border-b-2 border-blue-500">
-                                        <div className="flex items-center justify-end gap-4">
-                                           <span>{formatCurrency(cat.total)}</span>
-                                           <button 
-                                             onClick={(e) => exportGroupToExcel(e, cat, 'summary')}
-                                             className="p-2 bg-slate-900 hover:bg-black text-white rounded-lg transition-all shadow-lg active:scale-90"
-                                             title="Download Category Data"
-                                           >
-                                              <Download size={14} strokeWidth={3} />
-                                           </button>
-                                        </div>
-                                     </td>
-                                  </tr>
-                                  {/* Category Items */}
-                                  {expandedGroups[cat.name] && cat.items.map((item, iIdx) => (
-                                     <tr key={iIdx} className="bg-white transition-colors">
-                                        <td className="px-10 py-4 pl-20">
-                                           <div className="flex items-center gap-3">
-                                              <Box size={16} className="text-slate-200" strokeWidth={3} />
-                                              <div>
-                                                 <p className="font-black text-slate-900 uppercase text-xs tracking-tight leading-none mb-1">{item.item_name}</p>
-                                                 <p className="text-[8px] font-bold text-slate-300 uppercase tracking-[0.2em]">{item.item_code}</p>
-                                              </div>
-                                           </div>
-                                        </td>
-                                        <td className="px-8 py-4 text-center font-black text-slate-400 text-[10px] uppercase">{item.unit || 'NOS'}</td>
-                                        <td className="px-8 py-4 text-right font-mono font-bold text-slate-900 text-xs italic">{formatQty(item.inward)}</td>
-                                        <td className="px-8 py-4 text-right font-black text-xs text-slate-900 opacity-60">
-                                           {formatCurrency(parseFloat(item.inward || 0) * parseFloat(item.purchase_price || 0))}
-                                        </td>
-                                     </tr>
-                                  ))}
-                               </React.Fragment>
+                              <React.Fragment key={cIdx}>
+                                 <tr onClick={() => toggleGroup(cat.name)} className="bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all border-l-[6px] border-indigo-600 group">
+                                    <td className="px-10 py-6">
+                                       <div className="flex items-center gap-4">
+                                          <div className={`p-2 rounded-xl transition-all ${expandedGroups[cat.name] ? 'bg-indigo-600 text-white' : 'bg-white text-slate-300 group-hover:text-indigo-600 shadow-sm'}`}>
+                                            {expandedGroups[cat.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                          </div>
+                                          <div>
+                                             <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{cat.name}</p>
+                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cat.items.length} TRACKED SKUs</p>
+                                          </div>
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
+                                    <td className="px-8 py-6 text-right text-slate-300 font-bold text-xs">—</td>
+                                    <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(cat.total)}</td>
+                                    <td className="px-8 py-6 text-center">
+                                       <button onClick={(e) => exportGroupToExcel(e, cat, 'summary')} className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm mx-auto active:scale-95">
+                                          <Download size={18}/>
+                                       </button>
+                                    </td>
+                                 </tr>
+                                 {expandedGroups[cat.name] && cat.items.map((item, iIdx) => (
+                                   <tr key={iIdx} className="group hover:bg-[#F8FAFC]/50 transition-colors">
+                                      <td className="px-10 py-5 pl-24">
+                                         <div className="flex items-center gap-3">
+                                            <Box size={16} className="text-slate-100" />
+                                            <div>
+                                               <p className="text-xs font-bold text-slate-800 uppercase italic tracking-tight leading-none mb-1">{item.item_name}</p>
+                                               <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] font-mono">#{item.item_code}</p>
+                                            </div>
+                                         </div>
+                                      </td>
+                                      <td className="px-8 py-5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">{item.unit || 'NOS'}</td>
+                                      <td className="px-8 py-5 text-right font-bold text-slate-400 font-mono text-sm leading-none italic">{formatQty(item.inward)}</td>
+                                      <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm leading-none opacity-60">
+                                         {formatCurrency(parseFloat(item.inward || 0) * parseFloat(item.purchase_price || 0))}
+                                      </td>
+                                      <td className="px-8 py-5 text-center">
+                                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block"></span>
+                                      </td>
+                                   </tr>
+                                 ))}
+                              </React.Fragment>
                             ))
-                         )
-                      )}
-                   </tbody>
-                </table>
-              )}
+                          )
+                        )}
+                      </>
+                    )}
+                 </tbody>
+              </table>
+           </div>
+
+           {/* Dashboard Insight Footer */}
+           <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
+              <div className="flex items-center gap-6">
+                 <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Protocol: Symmetric</span>
+                 <span className="flex items-center gap-2"><Layout size={12}/> Repository Status: Validated</span>
+              </div>
+              <div className="flex items-center gap-3 font-mono">
+                 <span>CHRONO_HASH: {new Date().getTime().toString(16).toUpperCase()}</span>
+                 <div className="w-px h-3 bg-slate-200"></div>
+                 <span>REF: {company.id}</span>
+              </div>
            </div>
         </div>
-
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .scroller-airy::-webkit-scrollbar { width: 4px; }
+        .scroller-airy::-webkit-scrollbar-track { background: transparent; }
+        .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      `}} />
     </div>
   );
 }

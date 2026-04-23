@@ -5,7 +5,9 @@ import {
   TrendingUp, TrendingDown, DollarSign, PieChart, 
   ArrowUpRight, ArrowDownLeft, Calendar, FileText,
   Briefcase, ShoppingBag, CreditCard, ChevronRight,
-  Info, RefreshCw, Printer, Download, Activity, Database, CheckCircle
+  Info, RefreshCw, Printer, Download, Activity, Database, 
+  CheckCircle, ShieldCheck, Layout, Layers, RefreshCcw,
+  Activity as ActivityIcon, CheckCircle2, X, ArrowRight
 } from 'lucide-react';
 
 export default function ProfitLoss() {
@@ -27,15 +29,12 @@ export default function ProfitLoss() {
       const response = await axios.get('/api/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
-      } else {
-        setCompany(null);
       }
     } catch (error) {
-      setCompany(null);
+      console.error('Failed to load company', error);
     }
   };
 
-  // Set default dates (current month)
   useEffect(() => {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -47,7 +46,7 @@ export default function ProfitLoss() {
 
   useEffect(() => {
     if (!company?.id) {
-      setLoading(false);
+      if (!loading) setLoading(false);
       return;
     }
     if (startDate && endDate) {
@@ -65,12 +64,9 @@ export default function ProfitLoss() {
 
       if (response.data.success) {
         setPlData(response.data.data);
-      } else {
-        setPlData(null);
       }
     } catch (error) {
       console.error('Error fetching P&L:', error);
-      setPlData(null);
     } finally {
       setLoading(false);
     }
@@ -101,447 +97,347 @@ export default function ProfitLoss() {
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  if (loading) {
-     return (
-      <div className="flex justify-center items-center h-screen bg-slate-50">
-        <div className="text-center font-black uppercase tracking-widest text-slate-400">
-          <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-pulse" />
-          <p className="text-lg mb-4 italic">Aggregating Fiscal Results...</p>
-          <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden rounded-full">
-             <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!company?.id) {
+  if (!company) {
     return (
-      <div className="flex justify-center items-center h-screen bg-slate-50 font-sans">
-        <div className="text-center p-12 bg-white rounded-2xl shadow-2xl max-w-md border-4 border-black">
-           <div className="bg-slate-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Database className="text-white" size={32} />
-           </div>
-           <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter italic">Registry Error</h2>
-           <p className="text-slate-500 mb-8 font-bold uppercase tracking-widest text-[10px]">Active company context not detected in secure session buffer.</p>
-           <button onClick={() => window.location.reload()} className="bg-black text-white px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all flex items-center gap-3 mx-auto shadow-xl active:scale-95">
-              <RefreshCw size={18} strokeWidth={3} /> Re-Initialize Session
-           </button>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
+        <div className="text-center font-black uppercase tracking-widest text-slate-300">
+          <p className="text-xs mb-6 italic tracking-[0.4em]">Establishing Fiscal Bridge...</p>
+          <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
+             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 min-h-screen font-sans text-slate-900">
-      <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
+      <div className="max-w-[1600px] mx-auto px-8">
         
-        {/* Header - Industrial Monochrome */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 border-b-4 border-black pb-4 print:hidden">
+        {/* Superior Header - Dashboard Style */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-8 gap-6 print:hidden">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic flex items-center gap-3">
-               Profit & Loss Audit
-            </h1>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-1">{company.company_name} / FISCAL PERFORMANCE DOSSIER</p>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+              <PieChart size={12} />
+              <span>Fiscal Intelligence / Profit & Loss Audit</span>
+            </div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Performance Dossier</h1>
           </div>
-
-          <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-             <div className="flex bg-slate-100 p-1.5 rounded-xl border-2 border-slate-200">
+          
+          <div className="flex flex-wrap items-center gap-4">
+             <div className="flex gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm">
                 <button 
                   onClick={() => setViewMode('summary')}
-                  className={`px-6 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-all ${
-                    viewMode === 'summary' 
-                      ? 'bg-black text-white shadow-xl' 
-                      : 'text-slate-400 hover:text-black'
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    viewMode === 'summary' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
                   }`}
-                >Global Summary</button>
+                >Summary</button>
                 <button 
                   onClick={() => { setViewMode('monthly'); fetchMonthlyData(); }}
-                  className={`px-6 py-2 rounded-lg font-black uppercase tracking-widest text-[10px] transition-all ${
-                    viewMode === 'monthly' 
-                      ? 'bg-black text-white shadow-xl' 
-                      : 'text-slate-400 hover:text-black'
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    viewMode === 'monthly' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
                   }`}
-                >Monthly Heatmap</button>
+                >Heatmap</button>
              </div>
-             
-             <div className="flex items-center gap-2 bg-white p-1 rounded-xl border-2 border-slate-100 shadow-sm">
-                <input 
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border-2 border-transparent focus:border-black outline-none font-black text-[10px] uppercase text-slate-600 transition-all cursor-pointer"
-                />
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
-                <input 
-                   type="date"
-                   value={endDate}
-                   onChange={(e) => setEndDate(e.target.value)}
-                   className="px-3 py-1.5 rounded-lg border-2 border-transparent focus:border-black outline-none font-black text-[10px] uppercase text-slate-600 transition-all cursor-pointer"
-                />
+
+             <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm h-full">
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+                <ArrowRight size={14} className="text-slate-200" />
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
              </div>
-             
+
              <div className="flex gap-2">
-                <button className="p-2.5 bg-white hover:bg-slate-100 text-slate-400 hover:text-black rounded-xl transition-all border-2 border-slate-100 shadow-sm active:scale-90">
-                   <Printer size={18} strokeWidth={2.5} />
+                <button className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-2xl transition-all shadow-sm active:scale-95">
+                   <Printer size={18} />
                 </button>
-                <button className="p-2.5 bg-white hover:bg-slate-100 text-slate-400 hover:text-black rounded-xl transition-all border-2 border-slate-100 shadow-sm active:scale-90">
-                   <Download size={18} strokeWidth={2.5} />
+                <button onClick={fetchProfitLoss} className="p-3.5 bg-blue-600 text-white rounded-2xl transition-all shadow-lg shadow-blue-100 active:scale-95">
+                   <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
              </div>
           </div>
         </div>
 
-        {viewMode === 'summary' && !plData && (
-           <div className="bg-white rounded-[2.5rem] p-32 text-center border-4 border-dashed border-slate-100 animate-pulse">
-              <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-                 <FileText className="text-slate-200" size={48} strokeWidth={1} />
-              </div>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] max-w-sm mx-auto mt-4 leading-relaxed">System buffer contains no financial descriptors for the isolated chronological window.</p>
-            </div>
-        )}
-
-        {viewMode === 'summary' && plData && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-6">
+             <ActivityIcon className="animate-spin text-blue-100" size={60} />
+             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Synthesizing Fiscal Stream...</p>
+          </div>
+        ) : (
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom duration-700">
             
-            {/* High-Impact Result Card */}
-            <div className={`relative overflow-hidden p-10 rounded-[2.5rem] shadow-2xl border-l-[1.5rem] transition-all group ${
-              plData.netProfit >= 0 ? 'bg-white border-green-600' : 'bg-slate-900 border-red-600'
-            }`}>
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                <div className="text-center md:text-left">
-                  <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] mb-4 border-2 ${
-                    plData.netProfit >= 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-900/30 text-red-400 border-red-900'
-                  }`}>
-                    {plData.netProfit >= 0 ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
-                    AUDIT OUTCOME: {plData.netProfit >= 0 ? 'SURPLUS' : 'DEFICIT'}
-                  </span>
-                  <h2 className={`text-7xl font-black tracking-tighter italic ${plData.netProfit >= 0 ? 'text-black' : 'text-white'}`}>
-                    <span className="text-2xl not-italic opacity-30 mr-2">₹</span>
-                    {formatCurrency(plData.netProfit)}
-                  </h2>
-                  <div className="flex items-center gap-4 mt-6">
-                    <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${plData.netProfit >= 0 ? 'text-slate-400' : 'text-slate-500'}`}>
-                      Return Efficiency:
-                    </p>
-                    <span className={`px-4 py-1 rounded-lg text-xs font-black italic tracking-tighter ${
-                      plData.netProfit >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                    }`}>
-                      {plData.profitMargin}% Yield
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center md:items-end gap-2">
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center border-4 ${
-                    plData.netProfit >= 0 ? 'border-green-100 text-green-600' : 'border-red-900/30 text-red-600'
-                  }`}>
-                    {plData.netProfit >= 0 ? <TrendingUp size={48} strokeWidth={2.5} /> : <TrendingDown size={48} strokeWidth={2.5} />}
-                  </div>
-                  <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${plData.netProfit >= 0 ? 'text-green-600/50' : 'text-red-600/50'}`}>
-                    {plData.netProfit >= 0 ? 'Consolidated Profit' : 'Consolidated Loss'}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Abstract decorative background */}
-              <div className={`absolute -right-20 -bottom-20 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-1000 ${
-                plData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+            {/* High-Performance Outcome Shard */}
+            {plData && (
+              <div className={`relative overflow-hidden p-8 rounded-[2rem] shadow-sm border border-slate-100 group transition-all ${
+                plData.netProfit >= 0 ? 'bg-white' : 'bg-slate-900 border-slate-800'
               }`}>
-                {plData.netProfit >= 0 ? <TrendingUp size={400} /> : <TrendingDown size={400} />}
-              </div>
-            </div>
-
-            {/* Two-Column Profit & Loss Account */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-4 border-black rounded-[3rem] overflow-hidden shadow-2xl bg-white">
-              
-              {/* LEFT SIDE: EXPENSES / DEBIT */}
-              <div className="border-b-4 lg:border-b-0 lg:border-r-4 border-black flex flex-col bg-slate-50/30">
-                <div className="bg-slate-900 p-8 border-b-4 border-black text-center relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
-                  <h3 className="text-white font-black uppercase tracking-[0.6em] italic text-sm">Expenditure Registry</h3>
-                  <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Debit Allocations (ઉધાર બાજુ)</p>
-                </div>
-
-                <div className="flex-1 divide-y-2 divide-slate-100">
-                  {/* Purchase Header */}
-                  <div className="p-8 flex justify-between items-center hover:bg-white transition-colors group">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-2xl bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                        <ShoppingBag size={20} />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50/20 rounded-full -mr-48 -mt-48 blur-3xl opacity-50 group-hover:scale-110 transition-transform duration-1000"></div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                   <div className="text-center md:text-left space-y-3">
+                      <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 border ${
+                        plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-900/40 text-rose-400 border-rose-800'
+                      }`}>
+                         {plData.netProfit >= 0 ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
+                         System Audit: {plData.netProfit >= 0 ? 'Surplus' : 'Deficit'}
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">Net Purchases</h4>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Inventory Inflow Value</p>
+                         <span className={`text-lg font-bold italic mr-1 ${plData.netProfit >= 0 ? 'text-slate-200' : 'text-slate-600'}`}>₹</span>
+                         <h2 className={`text-5xl font-bold tracking-tighter italic inline-block ${plData.netProfit >= 0 ? 'text-slate-800' : 'text-white'}`}>
+                           {formatCurrency(plData.netProfit)}
+                         </h2>
                       </div>
-                    </div>
-                    <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(plData.costOfGoodsSold.netCostOfGoodsSold)}</span>
-                  </div>
-
-                  {/* Individual Expense Accounts */}
-                  {plData.expenseAccounts && plData.expenseAccounts.length > 0 ? (
-                    plData.expenseAccounts.map((acc, idx) => (
-                      <div key={idx} className="p-8 flex justify-between items-center hover:bg-white transition-colors group">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 rounded-2xl bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                            <CreditCard size={20} />
-                          </div>
-                          <div>
-                            <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{acc.account_name}</h4>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Operational Overhead</p>
-                          </div>
-                        </div>
-                        <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(acc.amount)}</span>
+                      <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest italic text-slate-400">
+                         Return Efficiency: <span className={`px-2 py-0.5 rounded-md ${plData.netProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-600 text-white'}`}>{plData.profitMargin}% Yield</span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-12 text-center opacity-20 italic font-black text-slate-300 uppercase tracking-widest text-xs">
-                      No Additional Overheads Detected
-                    </div>
-                  )}
+                   </div>
 
-                  {/* Spacer to push balanced items to bottom */}
-                  <div className="flex-grow min-h-[100px]"></div>
-
-                  {/* Balancing Item: NET PROFIT (If positive, it balances the expense side) */}
-                  {plData.netProfit > 0 && (
-                     <div className="p-10 bg-green-600 text-white flex justify-between items-end relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
-                        <div className="relative z-10">
-                           <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-2 text-green-200">System Surplus</p>
-                           <h4 className="text-4xl font-black uppercase italic tracking-tighter">Net Profit</h4>
-                        </div>
-                        <div className="relative z-10 text-right">
-                           <p className="text-[9px] font-bold uppercase tracking-widest text-green-200 mb-1">C/O to Balance Sheet</p>
-                           <span className="text-4xl font-black font-mono tracking-tighter">₹{formatCurrency(plData.netProfit)}</span>
-                        </div>
-                     </div>
-                  )}
+                   <div className="text-center md:text-right space-y-1.5">
+                       <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto md:ml-auto border border-white/10 ${
+                         plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600 border-slate-100' : 'bg-rose-600 text-white border-rose-500'
+                       }`}>
+                          {plData.netProfit >= 0 ? <CheckCircle2 size={28}/> : <TrendingDown size={28}/>}
+                       </div>
+                       <p className={`text-[9px] font-black uppercase tracking-[0.4em] ${plData.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-400 opacity-60'}`}>Consolidated Equity Impact</p>
+                   </div>
                 </div>
               </div>
+            )}
 
-              {/* RIGHT SIDE: INCOME / CREDIT */}
-              <div className="flex flex-col bg-white">
-                <div className="bg-slate-900 p-8 border-b-4 border-black text-center relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
-                  <h3 className="text-white font-black uppercase tracking-[0.6em] italic text-sm">Income Registry</h3>
-                  <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mt-1">Credit Allocations (જમા બાજુ)</p>
+            {/* Core Operational Matrix */}
+            {viewMode === 'summary' && plData && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Expenditure Deck */}
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
+                   <div className="bg-slate-900 p-6 flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute inset-0 bg-linear-to-r from-rose-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                      <div className="relative z-10">
+                         <h3 className="text-white font-bold uppercase tracking-[0.5em] text-[10px] italic">Expenditure Registry</h3>
+                         <p className="text-slate-500 text-[7px] font-bold uppercase tracking-widest mt-1">Debit Allocations (ઉધાર)</p>
+                      </div>
+                      <TrendingDown size={20} className="text-rose-600/40 relative z-10"/>
+                   </div>
+
+                   <div className="flex-1 divide-y divide-slate-50">
+                      <div className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
+                         <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><ShoppingBag size={16}/></div>
+                            <div>
+                               <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">Net Purchases</p>
+                               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inventory Values</p>
+                            </div>
+                         </div>
+                         <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData.costOfGoodsSold.netCostOfGoodsSold)}</p>
+                      </div>
+
+                      {plData.expenseAccounts?.map((acc, i) => (
+                        <div key={i} className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
+                           <div className="flex items-center gap-3">
+                              <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><CreditCard size={16}/></div>
+                              <div>
+                                 <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{acc.account_name}</p>
+                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Indirect Overheads</p>
+                              </div>
+                           </div>
+                           <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(acc.amount)}</p>
+                        </div>
+                      ))}
+
+                      {plData.netProfit > 0 && (
+                        <div className="mt-auto p-8 bg-emerald-600 text-white relative group/surplus overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
+                           <div className="relative z-10 flex justify-between items-end">
+                              <div>
+                                 <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1.5 block italic text-emerald-300">Surplus Provision</span>
+                                 <h4 className="text-2xl font-bold italic tracking-tighter uppercase">Net Profit</h4>
+                              </div>
+                              <p className="text-2xl font-bold italic tracking-tighter">₹{formatCurrency(plData.netProfit)}</p>
+                           </div>
+                        </div>
+                      )}
+                   </div>
                 </div>
 
-                <div className="flex-1 divide-y-2 divide-slate-100 flex flex-col">
-                  {/* Sales Header */}
-                  <div className="p-8 flex justify-between items-center hover:bg-slate-50 transition-colors group">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-2xl bg-slate-900 text-white group-hover:bg-black transition-all">
-                        <TrendingUp size={20} />
+                {/* Income Deck */}
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
+                   <div className="bg-slate-900 p-6 flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute inset-0 bg-linear-to-r from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                      <div className="relative z-10">
+                         <h3 className="text-white font-bold uppercase tracking-[0.5em] text-[10px] italic">Revenue Registry</h3>
+                         <p className="text-slate-500 text-[7px] font-bold uppercase tracking-widest mt-1">Credit Allocations (જમા)</p>
                       </div>
-                      <div>
-                        <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">Net Sales</h4>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Revenue Outflow Value</p>
+                      <TrendingUp size={20} className="text-emerald-600/40 relative z-10"/>
+                   </div>
+
+                   <div className="flex-1 divide-y divide-slate-50">
+                      <div className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
+                         <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><TrendingUp size={16}/></div>
+                            <div>
+                               <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">Net Sales</p>
+                               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inwards Revenue</p>
+                            </div>
+                         </div>
+                         <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData.revenue.netSales)}</p>
                       </div>
-                    </div>
-                    <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(plData.revenue.netSales)}</span>
-                  </div>
 
-                  {/* Individual Revenue Accounts */}
-                  {plData.incomeAccounts && plData.incomeAccounts.length > 0 ? (
-                    plData.incomeAccounts.map((acc, idx) => (
-                      <div key={idx} className="p-8 flex justify-between items-center hover:bg-slate-50 transition-colors group">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 rounded-2xl bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                            <DollarSign size={20} />
-                          </div>
-                          <div>
-                            <h4 className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{acc.account_name}</h4>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Indirect Revenue</p>
-                          </div>
+                      {plData.incomeAccounts?.map((acc, i) => (
+                        <div key={i} className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
+                           <div className="flex items-center gap-3">
+                              <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><DollarSign size={16}/></div>
+                              <div>
+                                 <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{acc.account_name}</p>
+                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Secondary Inflow</p>
+                              </div>
+                           </div>
+                           <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(acc.amount)}</p>
                         </div>
-                        <span className="text-2xl font-black font-mono tracking-tighter">₹{formatCurrency(acc.amount)}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-12 text-center opacity-20 italic font-black text-slate-300 uppercase tracking-widest text-xs">
-                      No Secondary Revenue Streams
-                    </div>
-                  )}
+                      ))}
 
-                  {/* Spacer to push balanced items to bottom */}
-                  <div className="flex-grow min-h-[100px]"></div>
-
-                  {/* Balancing Item: NET LOSS (If negative, it balances the income side) */}
-                  {plData.netProfit < 0 && (
-                     <div className="p-10 bg-red-600 text-white flex justify-between items-end relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
-                        <div className="relative z-10">
-                           <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-2 text-red-200">System Deficit</p>
-                           <h4 className="text-4xl font-black uppercase italic tracking-tighter">Net Loss</h4>
+                      {plData.netProfit < 0 && (
+                        <div className="mt-auto p-8 bg-rose-600 text-white relative group/deficit overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
+                           <div className="relative z-10 flex justify-between items-end">
+                              <div>
+                                 <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1.5 block italic text-rose-300">Equity Deficit</span>
+                                 <h4 className="text-2xl font-bold italic tracking-tighter uppercase">Net Loss</h4>
+                              </div>
+                              <p className="text-2xl font-bold italic tracking-tighter">₹{formatCurrency(Math.abs(plData.netProfit))}</p>
+                           </div>
                         </div>
-                        <div className="relative z-10 text-right">
-                           <p className="text-[9px] font-bold uppercase tracking-widest text-red-200 mb-1">Impact on Capital</p>
-                           <span className="text-4xl font-black font-mono tracking-tighter">₹{formatCurrency(Math.abs(plData.netProfit))}</span>
-                        </div>
-                     </div>
-                  )}
+                      )}
+                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Verification Line - Industrial Totals */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-x-4 border-b-4 border-black rounded-b-[3rem] overflow-hidden -mt-8 bg-black group">
-               <div className="p-6 border-r-2 border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
-                  <span className="text-white font-black uppercase tracking-[0.5em] text-[10px]">TOTAL EXPENDITURE</span>
-                  <span className="text-white text-3xl font-black font-mono italic tracking-tighter">
-                     ₹{formatCurrency(Math.max(
-                        plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-                        plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
-                     ))}
-                  </span>
-               </div>
-               <div className="p-6 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
-                  <span className="text-white font-black uppercase tracking-[0.5em] text-[10px]">TOTAL REVENUE</span>
-                  <span className="text-white text-3xl font-black font-mono italic tracking-tighter">
-                  ₹{formatCurrency(Math.max(
-                        plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-                        plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
-                     ))}
-                  </span>
-               </div>
-            </div>
+            {/* Verification Deck */}
+            {plData && (
+              <div className="bg-slate-900 p-3 rounded-[1.5rem] flex flex-col md:flex-row shadow-2xl relative overflow-hidden">
+                 <div className="absolute inset-0 bg-linear-to-r from-blue-600/5 to-transparent"></div>
+                 <div className="flex-1 p-6 md:border-r border-white/5 flex justify-between items-center group">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Expenditure</span>
+                    <p className="text-2xl font-bold text-white italic tracking-tighter">
+                       ₹{formatCurrency(Math.max(
+                          plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                          plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                       ))}
+                    </p>
+                 </div>
+                 <div className="flex-1 p-6 flex justify-between items-center group">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Revenue</span>
+                    <p className="text-2xl font-bold text-white italic tracking-tighter">
+                    ₹{formatCurrency(Math.max(
+                          plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                          plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                       ))}
+                    </p>
+                 </div>
+              </div>
+            )}
+
+            {/* Timeline Matrix */}
+            {viewMode === 'monthly' && (
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-700">
+                 <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-50/50 rounded-full -mr-48 -mt-48 blur-3xl opacity-50"></div>
+                    <div className="relative z-10">
+                       <h2 className="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">Fiscal Timeline Heatmap</h2>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-1 italic">Chronological Efficiency Mapping</p>
+                    </div>
+                 </div>
+
+                 <div className="p-10 overflow-x-auto scroller-airy min-h-[500px]">
+                    <table className="w-full text-left">
+                       <thead className="bg-[#F8FAFC]">
+                          <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
+                             <th className="px-10 py-5">Temporal Vector</th>
+                             <th className="px-10 py-5 text-right">Revenue Shard</th>
+                             <th className="px-10 py-5 text-right">Cost Exposure</th>
+                             <th className="px-10 py-5 text-right">Resultant Yield</th>
+                             <th className="px-10 py-5 text-right">Intensity</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                          {monthlyData.length > 0 ? (
+                            monthlyData.map((m, i) => {
+                               const yieldRate = m.netSales > 0 ? ((m.grossProfit / m.netSales) * 100).toFixed(1) : '0.0';
+                               return (
+                                 <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-10 py-6">
+                                       <div className="flex items-center gap-6">
+                                          <span className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[11px] font-bold text-white shadow-lg">{(i + 1).toString().padStart(2, '0')}</span>
+                                          <p className="text-lg font-bold text-slate-800 uppercase italic tracking-tighter">{monthNames[m.month - 1]}</p>
+                                       </div>
+                                    </td>
+                                    <td className="px-10 py-6 text-right font-bold text-slate-500 font-mono italic">₹{formatCurrency(m.netSales)}</td>
+                                    <td className="px-10 py-6 text-right font-bold text-slate-300 font-mono italic">₹{formatCurrency(m.netCOGS)}</td>
+                                    <td className="px-10 py-6 text-right">
+                                       <span className={`px-5 py-2.5 rounded-2xl italic font-bold text-lg tracking-tighter ${m.grossProfit >= 0 ? 'bg-white text-slate-800 border-2 border-slate-800 shadow-sm' : 'bg-rose-50 text-rose-600 border border-rose-100 italic'}`}>
+                                          ₹{formatCurrency(m.grossProfit)}
+                                       </span>
+                                    </td>
+                                    <td className="px-10 py-6 text-right">
+                                       <div className="flex flex-col items-end gap-2">
+                                          <span className="text-[10px] font-bold text-slate-400 italic">{yieldRate}% Yield</span>
+                                          <div className="w-32 h-1.5 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                                             <div className={`h-full transition-all duration-1000 ${parseFloat(yieldRate) > 15 ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-slate-300'}`} style={{ width: `${Math.min(100, Math.max(0, parseFloat(yieldRate) * 3))}%` }}></div>
+                                          </div>
+                                       </div>
+                                    </td>
+                                 </tr>
+                               )
+                            })
+                          ) : (
+                            <tr>
+                               <td colSpan="5" className="py-32 text-center opacity-10">
+                                  <Layers size={80} strokeWidth={1} className="mx-auto mb-6" />
+                                  <p className="text-sm font-bold uppercase tracking-[0.4em] italic">No Timeline Vectors Detected</p>
+                               </td>
+                            </tr>
+                          )}
+                       </tbody>
+                    </table>
+                 </div>
+              </div>
+            )}
 
             {/* Performance Indicators Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-               <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-xl group hover:border-black transition-all">
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-[9px] mb-2">Operating Margin</p>
-                  <div className="flex items-end justify-between">
-                     <h5 className="text-4xl font-black italic tracking-tighter">{plData.profitMargin}%</h5>
-                     <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-black" style={{ width: `${Math.min(100, Math.max(0, plData.profitMargin))}%` }}></div>
-                     </div>
-                  </div>
-               </div>
-               <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-xl group hover:border-black transition-all">
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-[9px] mb-2">Expense Absorption</p>
-                  <div className="flex items-end justify-between">
-                     <h5 className="text-4xl font-black italic tracking-tighter">{((plData.operatingExpenses / (plData.revenue.netSales || 1)) * 100).toFixed(1)}%</h5>
-                     <CreditCard className="text-slate-200 group-hover:text-black transition-colors" size={32} />
-                  </div>
-               </div>
-               <div className={`p-8 rounded-3xl border-2 shadow-xl flex items-center justify-between transition-all ${
-                  plData.netProfit >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'
-               }`}>
-                  <div>
-                     <p className="text-slate-400 font-black uppercase tracking-widest text-[9px] mb-1">Fiscal Health</p>
-                     <h5 className={`text-2xl font-black italic tracking-tighter ${plData.netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        {plData.netProfit >= 0 ? 'Optimal Surplus' : 'Deficit Risk'}
-                     </h5>
-                  </div>
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${plData.netProfit >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                     <CheckCircle size={24} />
-                  </div>
-               </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
+               {[
+                 { label: 'Operating Margin', val: `${plData?.profitMargin}%`, icon: <ActivityIcon size={20}/>, color: 'blue' },
+                 { label: 'Expense Absorption', val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={20}/>, color: 'indigo' },
+                 { label: 'Fiscal Health Index', val: plData?.netProfit >= 0 ? 'Optimal Surplus' : 'Risk Warning', icon: <ShieldCheck size={20}/>, color: plData?.netProfit >= 0 ? 'emerald' : 'rose' }
+               ].map((stat, i) => (
+                 <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">{stat.label}</p>
+                       <h5 className={`text-3xl font-bold tracking-tighter italic ${stat.color === 'rose' ? 'text-rose-600 animate-pulse' : 'text-slate-800'}`}>{stat.val}</h5>
+                    </div>
+                    <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                 </div>
+               ))}
             </div>
+
           </div>
         )}
 
-        {viewMode === 'monthly' && (
-          <div className="bg-white rounded-[2.5rem] shadow-2xl border-4 border-black overflow-hidden">
-            <div className="bg-slate-900 p-8 border-b-4 border-black flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-              <div>
-                <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Fiscal Timeline Intensity</h2>
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1 italic">Chronological Performance Distribution Mapping</p>
-              </div>
-              <button 
-                onClick={fetchMonthlyData}
-                className="flex items-center gap-3 bg-white text-black px-8 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-100 transition-all shadow-xl active:scale-95"
-                >
-                <RefreshCw size={18} strokeWidth={3} /> Sync Time Vector
-              </button>
-            </div>
+        {/* Global Registry Footer */}
+        <div className="max-w-[1600px] mx-auto mt-12 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.5em] italic">
+           <div className="flex items-center gap-6">
+              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Mode: Active</span>
+              <span className="flex items-center gap-2"><Layout size={12}/> Repository: Synchronized</span>
+           </div>
+           <div>System Chrono: {new Date().toISOString()}</div>
+        </div>
 
-            <div className="p-10 pt-6">
-              {monthlyData.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b-2 border-slate-200">
-                        <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Time Segment</th>
-                        <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 text-right">Net Revenue (+)</th>
-                        <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 text-right">Direct Costs (-)</th>
-                        <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 text-right">Resultant Balance</th>
-                        <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 text-right">Efficiency Gradient</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm">
-                      {monthlyData.map((month, idx) => {
-                        const margin = month.netSales > 0 ? ((month.grossProfit / month.netSales) * 100).toFixed(1) : '0.0';
-                        return (
-                        <tr key={idx} className="group hover:bg-slate-50 transition-all border-b border-slate-100 last:border-0 font-black">
-                          <td className="py-6 px-8 text-slate-900 italic text-lg tracking-tighter">
-                             <div className="flex items-center gap-6">
-                                <span className="w-10 h-10 rounded-xl bg-black border-2 border-slate-800 flex items-center justify-center text-xs text-white font-mono group-hover:scale-110 transition-transform">
-                                   {(idx + 1).toString().padStart(2, '0')}
-                                </span>
-                                {monthNames[month.month - 1]}
-                             </div>
-                          </td>
-                          <td className="py-6 px-8 text-right text-slate-500 font-mono text-base italic">₹{formatCurrency(month.netSales)}</td>
-                          <td className="py-6 px-8 text-right text-slate-300 font-mono text-base italic">₹{formatCurrency(month.netCOGS)}</td>
-                          <td className="py-6 px-8 text-right">
-                             <span className={`px-4 py-2 rounded-xl italic tracking-tighter text-lg ${month.grossProfit >= 0 ? 'bg-white text-black border-2 border-black shadow-lg font-black' : 'bg-red-900/10 text-red-900 border-2 border-red-900 shadow-sm'}`}>
-                                ₹{formatCurrency(month.grossProfit)}
-                             </span>
-                          </td>
-                          <td className="py-6 px-8 text-right min-w-[200px]">
-                             <div className="flex flex-col items-end gap-2">
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{margin}% Yield</div>
-                                <div className="w-32 h-2.5 bg-slate-100 rounded-full overflow-hidden border-2 border-slate-200">
-                                   <div 
-                                     className={`h-full rounded-full transition-all duration-1000 ${parseFloat(margin) > 20 ? 'bg-black shadow-[0_0_10px_rgba(0,0,0,0.5)]' : parseFloat(margin) > 0 ? 'bg-slate-400' : 'bg-red-500'}`} 
-                                     style={{ width: `${Math.min(100, parseFloat(margin) * 2)}%` }} 
-                                   />
-                                </div>
-                             </div>
-                          </td>
-                        </tr>
-                      )})}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="bg-white border-4 border-dashed border-slate-100 rounded-[2.5rem] p-32 text-center opacity-40">
-                   <p className="text-slate-300 font-black uppercase tracking-[0.4em] italic">No Timeline Data Synchronized</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
-       {/* Global Footer Descriptors */}
-       <div className="max-w-[1600px] mx-auto mt-12 pb-10 flex justify-between items-center text-slate-300 font-black uppercase tracking-[0.5em] text-[8px] italic">
-          <div className="flex items-center gap-4">
-             <span>AUDIT_MODE: INDUSTRIAL_MONOCHROME</span>
-             <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
-             <span>SECURE_ENCRYPTION_ACTIVE</span>
-          </div>
-          <div>TIMESTAMP_SYSLOG: {new Date().toISOString()}</div>
-       </div>
-
+      <style dangerouslySetInnerHTML={{ __html: `
+          .scroller-airy::-webkit-scrollbar { width: 4px; }
+          .scroller-airy::-webkit-scrollbar-track { background: transparent; }
+          .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      `}} />
     </div>
   );
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatShortCurrency(value) {
-  if (!value) return '0';
-  const val = parseFloat(value);
-  if (val >= 10000000) return (val / 10000000).toFixed(2) + ' Cr';
-  if (val >= 100000) return (val / 100000).toFixed(2) + ' L';
-  if (val >= 1000) return (val / 1000).toFixed(1) + ' K';
-  return val.toFixed(0);
 }

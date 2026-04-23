@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, Building2, Phone, Mail, MapPin, Calendar, ShoppingCart, Database, Activity, ChevronRight, X } from 'lucide-react'
+import { 
+  Building2, Phone, Mail, MapPin, 
+  Calendar, Database, Activity, CheckCircle, 
+  AlertCircle, Edit3, ArrowLeft, ChevronRight, 
+  Globe, Shield, Save, X, Trash2, RefreshCw
+} from 'lucide-react'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -9,6 +14,7 @@ const API_URL = `${import.meta.env.VITE_API_URL}/api`
 function CompanySetup() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  
   const [formData, setFormData] = useState({
     company_name: '',
     address: '',
@@ -27,13 +33,13 @@ function CompanySetup() {
   const [company, setCompany] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
 
-  // Fetch existing company on load
   useEffect(() => {
     fetchCompany()
   }, [])
 
   const fetchCompany = async () => {
     try {
+      setLoading(true)
       const response = await axios.get(`${API_URL}/company`)
       const companyData = response.data.data
       
@@ -51,36 +57,25 @@ function CompanySetup() {
       setFormData(formattedData)
       setIsEditing(false)
     } catch (error) {
-      console.log(t('company.companyNotFound'))
+      console.log('Company not found')
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    if (errors.length > 0) {
-      setErrors([])
-    }
+    setFormData(prev => ({ ...prev, [name]: value }))
+    if (errors.length > 0) setErrors([])
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setErrors([])
-    setSuccess(false)
 
     try {
       let response
-      
-      if (company && !isEditing) {
-        setIsEditing(true)
-        setLoading(false)
-        return
-      }
-
       if (company && isEditing) {
         response = await axios.put(`${API_URL}/company/${company.id}`, formData)
       } else {
@@ -92,372 +87,375 @@ function CompanySetup() {
         setCompany(response.data.data)
         setIsEditing(false)
         setTimeout(() => setSuccess(false), 3000)
-        setTimeout(fetchCompany, 1000)
-      } else {
-        setErrors([response.data.error || 'Failed to save company'])
+        fetchCompany()
       }
     } catch (error) {
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors)
-      } else if (error.response?.data?.error) {
-        setErrors([error.response.data.error])
-      } else {
-        setErrors([t('company.failedToSaveCompany')])
-      }
+      setErrors(error.response?.data?.errors || [error.response?.data?.error || 'Failed to save settings'])
     } finally {
       setLoading(false)
     }
   }
 
-  const currencyOptions = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD']
+  const currencyOptions = ['INR', 'USD', 'EUR', 'GBP', 'JPY']
 
   if (loading && !company) {
     return (
-      <div className="flex justify-center items-center h-screen bg-slate-50">
-        <div className="text-center font-black uppercase tracking-widest text-slate-400">
-          <Database className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-pulse" />
-          <p className="text-lg mb-4 italic">Initializing Enterprise Context...</p>
-          <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden rounded-full">
-             <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-screen bg-[#F8FAFC]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12 font-sans text-slate-900">
-      <div className="max-w-[1000px] mx-auto space-y-8">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
+      <div className="max-w-[1200px] mx-auto px-8">
         
-        {/* Header - Industrial Monochrome */}
-        <div className="flex justify-between items-end border-b-4 border-black pb-4">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('company.companySetup', 'Enterprise Profile')}</h1>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-1">CORE ORGANIZATION ARCHITECTURE REGISTRY</p>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">
+              <Building2 size={12} />
+              <span>{t('company.settingsOrganization', 'Settings / Organization')}</span>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{t('company.organizationProfile', 'Organization Profile')}</h1>
           </div>
-          <Building2 size={32} className="text-slate-200" strokeWidth={1} />
+          <div className="flex items-center gap-3">
+             {!isEditing && company ? (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                >
+                  <Edit3 size={18} /> {t('company.editProfile', 'Edit Profile')}
+                </button>
+             ) : (
+                <button 
+                  onClick={() => company ? setIsEditing(false) : navigate('/dashboard')}
+                  className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                >
+                  <X size={18} /> {t('common.cancel', 'Cancel')}
+                </button>
+             )}
+          </div>
         </div>
 
-        {/* Success / Error Banners - High Contrast */}
+        {/* Status Alerts */}
         {success && (
-          <div className="bg-black text-white p-6 rounded-2xl shadow-2xl border-l-8 border-white animate-in slide-in-from-top duration-300">
-            <div className="flex items-center gap-4">
-               <div className="bg-white p-2 rounded-full text-black">
-                  <CheckCircle size={20} strokeWidth={3} />
-               </div>
-               <div>
-                  <p className="font-black uppercase tracking-widest text-xs">{t('company.success', 'Transaction Verified')}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Enterprise parameters successfully rewritten to secure buffer.</p>
-               </div>
-            </div>
+          <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-700 animate-in slide-in-from-top duration-300">
+            <CheckCircle size={20} />
+            <p className="text-sm font-bold text-emerald-800">{t('company.saveSuccess', 'Changes saved successfully!')}</p>
           </div>
         )}
 
         {errors.length > 0 && (
-          <div className="bg-red-50 border-2 border-red-200 text-red-900 p-6 rounded-2xl shadow-lg border-l-8 border-red-900">
-            <div className="flex items-start gap-4">
-              <AlertCircle className="w-6 h-6 text-red-900 shrink-0 mt-0.5" strokeWidth={3} />
-              <div className="flex-1">
-                <p className="font-black uppercase tracking-widest text-xs mb-3 italic">Critical Integration Fault Detected</p>
-                <ul className="text-[10px] font-bold uppercase tracking-widest space-y-1 opacity-80">
-                  {errors.map((error, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                       <div className="w-1.5 h-1.5 bg-red-900 rounded-full"></div> {error}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-700 animate-in slide-in-from-top duration-300">
+            <AlertCircle size={20} className="mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-rose-800 mb-1">{t('company.pleaseFixErrors', 'Please fix the following errors:')}</p>
+              <ul className="text-xs space-y-1 list-disc list-inside opacity-90 font-medium">
+                {errors.map((err, i) => <li key={i}>{err}</li>)}
+              </ul>
             </div>
           </div>
         )}
 
-        {/* Main Interface Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-          
-          {/* Active Company Status Card - Professional Dossier Style */}
-          {company && !isEditing && (
-            <div className="bg-white rounded-[2.5rem] shadow-2xl border-4 border-black overflow-hidden group">
-              <div className="bg-slate-900 p-8 border-b-2 border-black flex justify-between items-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-full bg-white/5 skew-x-12 translate-x-10"></div>
-                <div className="relative z-10">
-                  <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] italic mb-1">Authenticated Entity</h2>
-                  <h3 className="text-3xl font-black text-white tracking-tighter uppercase italic">{company.company_name}</h3>
-                </div>
-                <div className="bg-slate-800 p-3 rounded-2xl border border-slate-700 relative z-10">
-                   <Activity size={24} className="text-white animate-pulse" strokeWidth={2} />
-                </div>
-              </div>
-              
-              <div className="p-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Electronic Correspondence</p>
-                      <p className="text-lg font-black text-slate-900 tracking-tight font-mono">{company.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Telecommunications Vector</p>
-                      <p className="text-lg font-black text-slate-900 tracking-tight font-mono">{company.phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Tax Identity Manifest</p>
-                      <p className="text-lg font-black text-slate-900 tracking-tighter uppercase">{company.gst_number || 'NOT_DECLARED'}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Base Functional Currency</p>
-                      <p className="text-lg font-black text-slate-900 tracking-widest uppercase italic underline decoration-slate-100 underline-offset-8">{company.currency}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Primary Location Protocol</p>
-                      <p className="text-xs font-bold text-slate-600 leading-relaxed uppercase pr-8">{company.address || 'LOC_UNDETERMINED'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-black uppercase text-[9px] tracking-widest mb-1 italic">Active Fiscal Cycle</p>
-                      <p className="text-lg font-black text-black font-mono tracking-tighter">
-                        {new Date(company.financial_year_start).toLocaleDateString('en-GB')} — {new Date(company.financial_year_end).toLocaleDateString('en-GB')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-12 flex gap-4 border-t-2 border-slate-50 pt-10">
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex-1 px-8 py-4 bg-black text-white rounded-2xl hover:bg-slate-800 transition-all font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95"
-                  >
-                    Modify Parameters
-                  </button>
-                  <button
-                    onClick={() => navigate('/items')}
-                    className="flex-3 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl hover:bg-slate-200 transition-all font-black uppercase tracking-widest text-[10px] border-2 border-slate-200 flex items-center justify-center gap-3 active:scale-95"
-                  >
-                    <ShoppingCart className="w-4 h-4" strokeWidth={3} />
-                    Item Master Access
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Setup / Configuration Form - Heavy Industrial Design */}
-          {(!company || isEditing) && (
-            <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-              <div className="bg-slate-900 p-8 border-b-2 border-black flex justify-between items-center">
-                 <div>
-                    <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] italic mb-1">Configuration Required</h2>
-                    <h3 className="text-3xl font-black text-white tracking-tighter uppercase italic">{company && isEditing ? 'Update Manifest' : 'Initialize Entity'}</h3>
-                 </div>
-                 {isEditing && (
-                    <button 
-                       onClick={() => setIsEditing(false)} 
-                       className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-xl transition-all"
-                    >
-                       <X size={20} strokeWidth={3} />
-                    </button>
-                 )}
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-12 space-y-10">
+        {/* View Mode */}
+        {company && !isEditing ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Main Info Card */}
+            <div className="lg:col-span-2 space-y-8">
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 group overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/20 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
                 
-                {/* Section: Core Identity */}
-                <div className="space-y-6">
-                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
-                      <div className="w-8 h-0.5 bg-slate-100"></div> LEGAL NOMENCLATURE
-                   </h4>
-                   <div className="grid grid-cols-1 gap-6">
-                      <div className="relative group">
-                        <Building2 className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
-                        <input
-                          type="text"
-                          name="company_name"
-                          value={formData.company_name}
-                          onChange={handleChange}
-                          placeholder="ENTER FULL LEGAL BUSINESS REGISTERED NAME..."
-                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs h-14"
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="relative group">
-                        <MapPin className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
-                        <textarea
-                          name="address"
-                          value={formData.address}
-                          onChange={handleChange}
-                          placeholder="CORE PHYSICAL DISPATCH ADDRESS..."
-                          rows="3"
-                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-bold uppercase text-[11px] h-28 resize-none"
-                          disabled={loading}
-                        />
-                      </div>
-                   </div>
-                </div>
-
-                {/* Section: Communications */}
-                <div className="space-y-6">
-                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
-                      <div className="w-8 h-0.5 bg-slate-100"></div> COMMUNICATION VECTOR
-                   </h4>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="relative group">
-                        <Phone className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="TELECOM VECTOR ID"
-                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs h-14 font-mono"
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="relative group">
-                        <Mail className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="SYSTEM MAIL GATEWAY"
-                          className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs h-14"
-                          disabled={loading}
-                        />
-                      </div>
-                   </div>
-                </div>
-
-                {/* Section: Fiscal Parameters */}
-                <div className="space-y-6">
-                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
-                      <div className="w-8 h-0.5 bg-slate-100"></div> FISCAL & CURRENCY LOGIC
-                   </h4>
-                   <div className="grid grid-cols-1 gap-6">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                         <div className="md:col-span-8 relative group">
-                            <Database className="absolute left-4 top-4 text-slate-200 group-focus-within:text-black transition-colors" size={20} strokeWidth={3} />
-                            <input
-                              type="text"
-                              name="gst_number"
-                              value={formData.gst_number}
-                              onChange={handleChange}
-                              placeholder="GST SYSTEM UNIQUE IDENTIFIER..."
-                              className="w-full pl-14 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs h-14"
-                              disabled={loading}
-                            />
-                         </div>
-                         <div className="md:col-span-4">
-                            <select
-                                name="currency"
-                                value={formData.currency}
-                                onChange={handleChange}
-                                className="w-full px-4 py-4 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-white font-black uppercase text-xs h-14 cursor-pointer"
-                                disabled={loading}
-                              >
-                                {currencyOptions.map(curr => (
-                                  <option key={curr} value={curr}>{curr} (ISO-4217)</option>
-                                ))}
-                              </select>
-                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 border-dashed">
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">FISCAL CYCLE ALPHA</p>
-                          <div className="relative">
-                             <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
-                             <input
-                              type="date"
-                              name="financial_year_start"
-                              value={formData.financial_year_start}
-                              onChange={handleChange}
-                              className="w-full pl-10 pr-4 py-3 border-2 border-white rounded-xl focus:outline-none focus:border-black transition-all bg-white font-black text-xs uppercase h-12"
-                              disabled={loading}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">FISCAL CYCLE OMEGA</p>
-                          <div className="relative">
-                             <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
-                             <input
-                              type="date"
-                              name="financial_year_end"
-                              value={formData.financial_year_end}
-                              onChange={handleChange}
-                              className="w-full pl-10 pr-4 py-3 border-2 border-white rounded-xl focus:outline-none focus:border-black transition-all bg-white font-black text-xs uppercase h-12"
-                              disabled={loading}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                   </div>
-                </div>
-
-                {/* Final Submission Block */}
-                <div className="pt-10 flex flex-col gap-4">
-                   <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] text-xs transition-all shadow-2xl scale-100 active:scale-95 ${
-                      loading
-                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-4 border-slate-100'
-                        : 'bg-black text-white hover:bg-slate-800 border-4 border-black'
-                    }`}
-                  >
-                    {loading ? 'SYNCHRONIZING RELEASES...' : company && isEditing ? 'COMMIT UPDATED MANIFEST' : 'INITIALIZE ENTERPRISE DOMAIN'}
-                  </button>
-
-                  {company && isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false)
-                        setFormData(company)
-                      }}
-                      className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[9px] text-slate-300 bg-slate-50 hover:bg-slate-100 hover:text-red-700 transition-all border-2 border-slate-100"
-                    >
-                      ABORT REDEPLOYMENT
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Automated System Manifesto */}
-          <div className="bg-slate-900 border-4 border-black rounded-[2.5rem] p-10 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-            <div className="relative z-10">
-               <h4 className="text-white font-black uppercase tracking-[0.3em] text-xs mb-6 flex items-center gap-4 italic font-bold leading-relaxed">
-                  <div className="w-6 h-1 bg-white"></div> SYSTEM ARCHITECTURE NOTE
-               </h4>
-               <p className="text-slate-500 font-bold uppercase tracking-[0.1em] text-[10px] space-y-4 max-w-2xl leading-loose">
-                 Synchronizing this registry will define the global context for all financial transacts, invoice header data, and tax accumulation logic. Ensure the fiscal cycle boundaries are calibrated precisely to avoid ledger fragmentation. Base currency parameters are immutable after the first verified transaction block is committed to the main ledger.
-               </p>
-               <div className="mt-8 flex gap-6">
-                  <div className="flex flex-col">
-                     <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Protocol</span>
-                     <span className="text-[10px] font-black text-white uppercase italic">Industrial Monochrome V2.1</span>
+                <div className="flex flex-col md:flex-row items-center gap-8 mb-10 relative z-10 text-center md:text-left">
+                  <div className="w-24 h-24 bg-slate-50 border-2 border-slate-100 rounded-3xl flex items-center justify-center text-slate-400">
+                    {company.logo_url ? (
+                      <img src={company.logo_url} alt="Logo" className="w-full h-full object-contain p-4" />
+                    ) : (
+                      <Building2 size={40} strokeWidth={1.5} />
+                    )}
                   </div>
-                  <div className="flex flex-col border-l border-slate-800 pl-6">
-                     <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Security</span>
-                     <span className="text-[10px] font-black text-white uppercase italic">Active AES-256 Buffer</span>
+                  <div>
+                    <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{company.company_name}</h2>
+                    <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-3">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                        <Shield size={14} className="text-blue-500" /> {company.gst_number || t('company.noGst', 'No GST Number')}
+                      </span>
+                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                        <Globe size={14} className="text-emerald-500" /> {company.currency} ({t('company.operationalCurrency', 'Operational Currency')})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 relative z-10">
+                  <div className="space-y-6">
+                    <div className="flex gap-4">
+                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                        <MapPin size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.headquarters', 'Headquarters')}</p>
+                        <p className="text-sm font-bold text-slate-600 leading-relaxed max-w-xs">{company.address || t('company.addressNotListed', 'Address not listed')}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                        <Mail size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.emailGateway', 'Email Gateway')}</p>
+                        <p className="text-sm font-bold text-slate-600">{company.email}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex gap-4">
+                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                        <Phone size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.directContact', 'Direct Contact')}</p>
+                        <p className="text-sm font-bold text-slate-600">{company.phone}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                        <Calendar size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.fiscalYear', 'Fiscal Year')}</p>
+                        <p className="text-sm font-bold text-slate-600">
+                          {new Date(company.financial_year_start).toLocaleDateString()} — {new Date(company.financial_year_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-bold text-slate-800">{t('company.quickNavigation', 'Quick Navigation')}</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center justify-between p-5 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 rounded-[1.5rem] transition-all group/it shadow-none hover:shadow-sm"
+                  >
+                    <div className="flex items-center gap-4 text-left">
+                       <div className="p-3 bg-white text-slate-400 group-hover/it:text-blue-600 rounded-xl shadow-sm transition-colors"><Activity size={18}/></div>
+                       <div>
+                          <p className="text-sm font-bold text-slate-800">{t('company.overviewDashboard', 'Overview Dashboard')}</p>
+                          <p className="text-xs text-slate-400 font-medium mt-0.5">{t('company.controlCenter', 'Control center and insights')}</p>
+                       </div>
+                    </div>
+                    <ChevronRight size={18} className="text-slate-300 group-hover/it:translate-x-1 transition-all" />
+                  </button>
+                  <button 
+                    onClick={() => navigate('/items')}
+                    className="flex items-center justify-between p-5 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 rounded-[1.5rem] transition-all group/it shadow-none hover:shadow-sm"
+                  >
+                    <div className="flex items-center gap-4 text-left">
+                       <div className="p-3 bg-white text-slate-400 group-hover/it:text-emerald-600 rounded-xl shadow-sm transition-colors"><Database size={18}/></div>
+                       <div>
+                          <p className="text-sm font-bold text-slate-800">{t('modules.itemMaster', 'Item Master')}</p>
+                          <p className="text-xs text-slate-400 font-medium mt-0.5">{t('company.manageProducts', 'Manage products and stock')}</p>
+                       </div>
+                    </div>
+                    <ChevronRight size={18} className="text-slate-300 group-hover/it:translate-x-1 transition-all" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Details */}
+            <div className="space-y-8">
+               <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                  <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3 italic">
+                    <div className="w-4 h-0.5 bg-blue-500"></div> {t('company.systemStatus', 'System Status')}
+                  </h4>
+                  <div className="space-y-6 relative z-10">
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-300">{t('company.registryId', 'Registry ID')}</span>
+                        <span className="text-xs font-mono font-bold bg-white/10 px-2 py-1 rounded tracking-tighter">#{company.id}</span>
+                     </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-300">{t('company.encryption', 'Encryption')}</span>
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><Shield size={12}/> {t('company.active', 'Active')}</span>
+                     </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-300">{t('company.lastSync', 'Last Sync')}</span>
+                        <span className="text-xs font-bold text-white uppercase">{new Date().toLocaleDateString('en-GB')}</span>
+                     </div>
+                  </div>
+                  <div className="mt-10 pt-8 border-t border-white/5">
+                     <p className="text-[11px] font-medium text-slate-400 leading-relaxed italic">
+                       {t('company.syncGlobal', 'Enterprise settings are synchronized globaly across all connected terminals including POS and Inventory nodes.')}
+                     </p>
                   </div>
                </div>
             </div>
           </div>
-        </div>
+        ) : (
+          /* Edit / Creation Form */
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 animate-in slide-in-from-bottom duration-500">
+             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* Core Identity */}
+                <div className="md:col-span-2">
+                  <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div> {t('company.coreIdentity', 'Core Identity')}
+                  </h3>
+                </div>
 
-        {/* Professional Registry Summary Footer */}
-        <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[8px] italic pt-12 pb-10 border-t border-slate-200">
-           <div className="flex items-center gap-4">
-              <span>MANIFEST_ID: {company?.id || 'NULL_SET'}</span>
-              <div className="w-1 h-1 bg-slate-100 rounded-full"></div>
-              <span>REGISTRY_AUTH: VERIFIED_CORE</span>
-           </div>
-           <div>SYSTEM_CHRONO: {new Date().toISOString()}</div>
-        </div>
+                <div className="space-y-2">
+                   <label className="text-xs font-bold text-slate-500 ml-1">{t('company.companyLegalName', 'Company legal Name')}</label>
+                   <div className="relative group">
+                     <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                     <input
+                       type="text"
+                       name="company_name"
+                       value={formData.company_name}
+                       onChange={handleChange}
+                       placeholder="e.g. Super Store Pvt Ltd"
+                       className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                     />
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-xs font-bold text-slate-500 ml-1">{t('company.gstRegistrationNumber', 'GST Registration Number')}</label>
+                   <div className="relative group">
+                     <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                     <input
+                       type="text"
+                       name="gst_number"
+                       value={formData.gst_number}
+                       onChange={handleChange}
+                       placeholder="GSTIN Number"
+                       className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                     />
+                   </div>
+                </div>
+
+                {/* Contact Interface */}
+                <div className="md:col-span-2 pt-4">
+                  <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div> {t('company.contactInterface', 'Contact Interface')}
+                  </h3>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-xs font-bold text-slate-500 ml-1">{t('company.email', 'Email Address')}</label>
+                   <div className="relative group">
+                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                     <input
+                       type="email"
+                       name="email"
+                       value={formData.email}
+                       onChange={handleChange}
+                       placeholder="billing@superstore.com"
+                       className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                     />
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-xs font-bold text-slate-500 ml-1">{t('company.phone', 'Phone Number')}</label>
+                   <div className="relative group">
+                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                     <input
+                       type="tel"
+                       name="phone"
+                       value={formData.phone}
+                       onChange={handleChange}
+                       placeholder="+91 00000 00000"
+                       className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                     />
+                   </div>
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                   <label className="text-xs font-bold text-slate-500 ml-1">{t('company.physicalOfficeAddress', 'Physical Office Address')}</label>
+                   <div className="relative group">
+                     <MapPin className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                     <textarea
+                       name="address"
+                       value={formData.address}
+                       onChange={handleChange}
+                       placeholder="Street address, City, Pincode"
+                       rows="3"
+                       className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm resize-none"
+                     ></textarea>
+                   </div>
+                </div>
+
+                {/* Fiscal Settings */}
+                <div className="md:col-span-2 pt-4">
+                  <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div> {t('company.fiscalSettings', 'Fiscal Settings')}
+                  </h3>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 ml-1">{t('company.operationalCurrency', 'Operational Currency')}</label>
+                  <select
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleChange}
+                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                  >
+                    {currencyOptions.map(curr => <option key={curr} value={curr}>{curr} - International Standard</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 md:col-span-1">
+                   <div className="space-y-2 text-left">
+                      <label className="text-xs font-bold text-slate-500 ml-1">{t('company.fiscalStart', 'Fiscal Start')}</label>
+                      <input
+                        type="date"
+                        name="financial_year_start"
+                        value={formData.financial_year_start}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm"
+                      />
+                   </div>
+                   <div className="space-y-2 text-left">
+                      <label className="text-xs font-bold text-slate-500 ml-1">{t('company.fiscalEnd', 'Fiscal End')}</label>
+                      <input
+                        type="date"
+                        name="financial_year_end"
+                        value={formData.financial_year_end}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm"
+                      />
+                   </div>
+                </div>
+
+                {/* Form Progress Action */}
+                <div className="md:col-span-2 pt-8 flex gap-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-[2rem] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+                  >
+                    {loading ? (
+                       <RefreshCw className="animate-spin" size={20} />
+                    ) : (
+                       <>
+                         <Save size={20} /> 
+                         {company ? t('company.updateOrganization', 'Update Organization') : t('company.saveAndContinue', 'Save & Continue')}
+                       </>
+                    )}
+                  </button>
+                </div>
+             </form>
+          </div>
+        )}
+
       </div>
     </div>
   )

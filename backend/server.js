@@ -87,29 +87,108 @@ async function startServer() {
     app.get('/api/dashboard/stats', async (req, res) => {
       try {
         const stats = {
-          totalModules: 15,
-          activeUsers: 0,
-          todaysSales: 0,
           totalItems: 0,
-          todaysTransactions: 0,
-          lowStockItems: [],
-          bestSellingItems: [],
-          totalStockValue: 0,
-          recentSalesData: []
+          lowStockCount: 0,
+          belowThreshold: 0,
+          reorders: 0,
+          todaysSales: 0,
+          todaysPurchases: 0,
+          activeUsers: 0,
+          inventoryItems: []
         };
 
+        const today = new Date().toISOString().split('T')[0];
+
         try {
-          const usersResult = await query('SELECT COUNT(*) as count FROM users WHERE is_active = 1');
-          stats.activeUsers = usersResult[0]?.count || 0;
+          // 1. Core Inventory Stats
+          const itemsResult = await query(`
+            SELECT 
+              COUNT(*) as total,
+              SUM(CASE WHEN COALESCE((SELECT current_stock FROM purchase_stock_ledger psl WHERE psl.item_id = im.id ORDER BY psl.id DESC LIMIT 1), im.opening_stock) < COALESCE(im.minimum_stock, 0) THEN 1 ELSE 0 END) as low_stock,
+              SUM(CASE WHEN COALESCE((SELECT current_stock FROM purchase_stock_ledger psl WHERE psl.item_id = im.id ORDER BY psl.id DESC LIMIT 1), im.opening_stock) < COALESCE(im.reorder_level, 0) THEN 1 ELSE 0 END) as below_threshold
+            FROM item_master im 
+            WHERE im.is_active = 1
+          `);
+          
+          stats.totalItems = itemsResult[0]?.total || 0;
+          stats.lowStockCount = itemsResult[0]?.low_stock || 0;
+          stats.belowThreshold = itemsResult[0]?.below_threshold || 0;
+          stats.reorders = stats.belowThreshold;
         } catch (e) {
-          console.warn('Could not fetch users:', e.message);
+          console.warn('Inventory stats failed:', e.message);
         }
 
         try {
-          const itemsResult = await query('SELECT COUNT(*) as count FROM item_master WHERE is_active = 1');
-          stats.totalItems = itemsResult[0]?.count || 0;
+          // 2. Financial Pulse (Today)
+          const salesResult = await query('SELECT SUM(net_amount) as total FROM sales WHERE DATE(invoice_date) = ?', [today]);
+          stats.todaysSales = salesResult[0]?.total || 0;
+
+          const purchaseResult = await query('SELECT SUM(net_amount) as total FROM purchases WHERE DATE(invoice_date) = ?', [today]);
+          stats.todaysPurchases = purchaseResult[0]?.total || 0;
         } catch (e) {
-          console.warn('Could not fetch items:', e.message);
+          console.warn('Financial stats failed:', e.message);
+        }
+
+        try {
+          // 3. User Activity
+          const usersResult = await query('SELECT COUNT(*) as count FROM users WHERE is_active = 1');
+          stats.activeUsers = usersResult[0]?.count || 0;
+        } catch (e) {
+          console.warn('User stats failed:', e.message);
+        }
+
+        try {
+          // 4. Low Stock Items Matrix
+          const lowStockList = await query(`
+            SELECT 
+              im.item_name as name,
+              COALESCE((SELECT current_stock FROM purchase_stock_ledger psl WHERE psl.item_id = im.id ORDER BY psl.id DESC LIMIT 1), im.opening_stock) as stock,
+              COALESCE(im.reorder_level, 0) as threshold,
+              im.minimum_stock as min_stock,
+              im.updated_at as date
+            FROM item_master im
+            WHERE im.is_active = 1
+            ORDER BY stock ASC
+            LIMIT 5
+          `);
+
+          stats.inventoryItems = lowStockList.map(item => ({
+            name: item.name,
+            stock: parseFloat(item.stock || 0),
+            threshold: parseFloat(item.threshold || 0),
+            status: item.stock < item.min_stock ? 'Low Stock' : (item.stock < item.threshold ? 'Below Threshold' : 'Stable'),
+            date: new Date(item.date).toLocaleDateString('en-GB'),
+            daysLeft: item.stock < item.threshold ? 'Critical' : 'N/A',
+            statusColor: item.stock < item.min_stock ? 'rose' : (item.stock < item.threshold ? 'amber' : 'emerald')
+          }));
+        } catch (e) {
+          console.warn('Inventory list failed:', e.message);
+        }
+
+        try {
+          // 5. Supplier Intelligence Feed
+          const suppliersList = await query(`
+            SELECT 
+              a.account_name as name,
+              a.phone as contact,
+              (SELECT MAX(invoice_date) FROM purchases p WHERE p.supplier_account_id = a.id) as last_shipment,
+              (SELECT COUNT(*) FROM purchases p WHERE p.supplier_account_id = a.id) as total_purchases
+            FROM accounts a
+            WHERE a.account_type = 'supplier' AND a.is_active = 1
+            ORDER BY last_shipment DESC
+            LIMIT 5
+          `);
+
+          stats.supplierInfo = suppliersList.map(sup => ({
+            name: sup.name,
+            products: 'General Inventory', // We'd need to join purchase_items to know exactly, keeping it simple for now
+            lastShipment: sup.last_shipment ? new Date(sup.last_shipment).toLocaleDateString('en-GB') : 'No History',
+            nextShipment: 'As Per Routine',
+            contact: sup.contact || 'N/A',
+            rating: Math.min(5, Math.max(3, sup.total_purchases > 10 ? 5 : (sup.total_purchases > 2 ? 4 : 3)))
+          }));
+        } catch (e) {
+          console.warn('Supplier list failed:', e.message);
         }
 
         res.json(stats);

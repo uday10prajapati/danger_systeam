@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, AlertCircle } from 'lucide-react';
+import { 
+  X, AlertCircle, Calendar, Users, Calculator, 
+  FileText, ArrowDownLeft, ArrowUpRight, Search,
+  Database, ShieldCheck, Activity, Database as DatabaseIcon
+} from 'lucide-react';
 
 export default function CashEntryModal({ company, type = 'credit', onSubmit, onClose }) {
   // type: 'credit' = Jama (Cash In), 'debit' = Udhar (Cash Out)
   const isCredit = type === 'credit';
   const title = isCredit ? 'Credit Entry (Cash In)' : 'Debit Entry (Cash Out)';
+  const themeColor = isCredit ? 'emerald' : 'blue';
 
   const [accounts, setAccounts] = useState([]);
   const [formData, setFormData] = useState({
@@ -15,7 +20,7 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
     reference_no: '',
     description: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,7 +44,6 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`, {
         headers: { 'x-company-id': company.id }
       });
-      // Optionally filter out 'Bank' or 'Cash' itself, but usually all parties are valid
       setAccounts(res.data.success ? res.data.data : []);
     } catch (err) {
       console.error('Fetch accounts error', err);
@@ -118,7 +122,7 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
 
   const handleSave = async () => {
     if (!formData.account_id || !formData.amount || formData.amount <= 0) {
-      setError('Please fill required fields (Account and Amount).');
+      setError('Required nomenclature missing: Account & Verified Amount.');
       return;
     }
 
@@ -143,10 +147,6 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
       );
 
       if (response.data.success) {
-        // Also manually add an entry to account_ledger to update the party balance
-        // If Cash IN (Credit Entry): Party gives us cash, so Party A/c is CREDITED
-        // If Cash OUT (Debit Entry): We pay Party cash, so Party A/c is DEBITED
-        
         await axios.post(
           `${import.meta.env.VITE_API_URL}/api/account-ledger`,
           {
@@ -155,7 +155,7 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
             transaction_date: formData.transaction_date,
             transaction_type: isCredit ? 'CASH_RECEIPT' : 'CASH_PAYMENT',
             reference_type: 'cash_book',
-            reference_id: response.data.entryId || 0, // Fallback if backend doesn't return
+            reference_id: response.data.entryId || 0,
             reference_no: formData.reference_no,
             debit_amount: isCredit ? 0 : parseFloat(formData.amount),
             credit_amount: isCredit ? parseFloat(formData.amount) : 0,
@@ -163,169 +163,190 @@ export default function CashEntryModal({ company, type = 'credit', onSubmit, onC
             created_by: 1
           },
           { headers: { 'x-company-id': company.id } }
-        ).catch(err => {
-          console.warn('Silent ledger warning (route might not exist):', err.message);
-        });
+        ).catch(err => console.warn('Ledger sync warning:', err.message));
 
         onSubmit();
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save entry');
+      setError(err.response?.data?.error || 'Fiscal Node Initialization Failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans print:hidden">
-      <div className="bg-slate-200 rounded-lg border-2 border-slate-900 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-2xl overflow-hidden flex flex-col">
-        {/* Header Ribbon - High Contrast Monochrome */}
-        <div className="bg-black text-white py-1.5 px-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
-            <h2 className="font-black text-xs uppercase tracking-widest">{title}</h2>
-          </div>
-          <button onClick={onClose} className="hover:bg-red-600 text-white rounded-lg p-0.5 transition-all">
-            <X size={16} strokeWidth={3} />
-          </button>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 font-sans animate-in fade-in duration-300">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
+        
+        {/* Header Shard */}
+        <div className="bg-slate-900 p-5 px-7 flex justify-between items-center relative overflow-hidden">
+           <div className={`absolute top-0 right-0 w-24 h-24 bg-${themeColor}-600/10 rounded-full -mr-12 -mt-12`}></div>
+           <div className="relative z-10 flex items-center gap-4">
+              <div className={`w-11 h-11 bg-${themeColor}-600/10 rounded-xl flex items-center justify-center text-${themeColor}-500`}>
+                {isCredit ? <ArrowUpRight size={22} strokeWidth={3}/> : <ArrowDownLeft size={22} strokeWidth={3}/>}
+              </div>
+              <div>
+                 <h2 className="text-base font-bold text-white tracking-tight italic uppercase">{title}</h2>
+                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 italic">Fiscal Entry Node</p>
+              </div>
+           </div>
+           <button onClick={onClose} className="relative z-10 bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-xl transition-all active:scale-95">
+             <X size={18} strokeWidth={3} />
+           </button>
         </div>
 
-        <div className="p-4 flex-1 space-y-3 bg-white">
+        <div className="p-7 flex-1 space-y-6 bg-white scroller-airy overflow-y-auto">
           {error && (
-            <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] italic font-bold flex items-center gap-2 animate-pulse">
-               <AlertCircle size={14} /> {error}
+            <div className="bg-red-50 text-red-600 px-5 py-3 rounded-xl border border-red-100 text-[9px] uppercase font-black tracking-widest italic flex items-center gap-3 animate-pulse">
+              <AlertCircle size={12} /> {error}
             </div>
           )}
 
-          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest w-20">Date :</label>
-            <input 
-              type="date"
-              name="transaction_date"
-              value={formData.transaction_date}
-              onChange={handleChange}
-              className="border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-bold h-8 text-xs transition-all bg-white shadow-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-12 gap-3 items-center px-1 relative">
-             <label className="col-span-2 text-[9px] text-slate-500 font-black uppercase tracking-widest">Account :</label>
-             <div className="col-span-10 flex gap-2" ref={dropdownRef}>
-               <input
-                 ref={codeInputRef}
-                 type="text"
-                 placeholder="CODE"
-                 value={searchCode}
-                 onChange={(e) => {
-                   setSearchCode(e.target.value);
-                   setShowDropdown(true);
-                   if (formData.account_id) {
-                     setFormData(prev => ({ ...prev, account_id: '' }));
-                   }
-                 }}
-                 onFocus={() => setShowDropdown(true)}
-                 onKeyDown={handleSearchKeyDown}
-                 className="w-20 border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-white shadow-sm text-center"
-               />
-               <input
-                 ref={nameInputRef}
-                 type="text"
-                 placeholder="SEARCH ACCOUNT NAME..."
-                 value={searchText}
-                 onChange={(e) => {
-                   setSearchText(e.target.value);
-                   setShowDropdown(true);
-                   if (formData.account_id) {
-                     setFormData(prev => ({ ...prev, account_id: '' }));
-                   }
-                 }}
-                 onFocus={() => setShowDropdown(true)}
-                 onKeyDown={handleSearchKeyDown}
-                 className="flex-1 border border-slate-300 px-4 py-1.5 rounded outline-none focus:border-black font-black uppercase text-slate-900 h-8 text-[11px] transition-all bg-white shadow-sm"
-               />
-
-               {showDropdown && (
-                 <div className="absolute top-full left-24 mt-1 w-[400px] bg-white border-2 border-black shadow-2xl z-[100] max-h-60 overflow-y-auto rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                    <div className="bg-slate-900 text-white p-2 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0">
-                      <span>Accounts</span>
-                      <X size={12} className="cursor-pointer hover:bg-red-500 rounded" onClick={() => setShowDropdown(false)} />
-                    </div>
-                    {filteredAccounts.length === 0 ? (
-                      <div className="p-4 text-center text-slate-400 text-[10px] font-bold italic uppercase">No accounts found</div>
-                    ) : (
-                      filteredAccounts.map((acc, idx) => (
-                        <div 
-                          key={acc.id}
-                          onClick={() => handleAccountSelect(acc)}
-                          className={`px-4 py-2.5 border-b border-slate-50 flex justify-between items-center cursor-pointer transition-colors ${
-                            selectedIndex === idx ? 'bg-slate-900 text-white' : 'hover:bg-slate-50 text-slate-800'
-                          }`}
-                        >
-                          <span className="font-black text-[11px] uppercase">{acc.account_name}</span>
-                          <span className={`text-[9px] font-bold ${selectedIndex === idx ? 'text-slate-400' : 'text-slate-300'}`}>#{acc.id}</span>
-                        </div>
-                      ))
-                    )}
-                 </div>
-               )}
+          {/* Date Shard */}
+          <div className="flex items-center gap-5 bg-[#F8FAFC] p-4 rounded-2xl border border-slate-50">
+             <div className="p-2.5 bg-white rounded-lg shadow-sm text-slate-400"><Calendar size={16}/></div>
+             <div className="flex-1">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Node Date</p>
+                <input
+                  type="date"
+                  name="transaction_date"
+                  value={formData.transaction_date}
+                  onChange={handleChange}
+                  className="w-full bg-transparent border-none outline-none font-bold text-slate-700 text-xs italic h-7"
+                />
              </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-4 items-center px-1">
-             <div className="col-span-6 flex flex-col gap-1">
-               <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Amount (₹) :</label>
-               <input 
-                 type="number"
-                 name="amount"
-                 value={formData.amount}
-                 onChange={handleChange}
-                 className="w-full border border-slate-300 px-3 py-1.5 rounded outline-none text-right font-black text-base focus:border-black transition-all bg-white shadow flex items-center h-10"
-                 placeholder="0.00"
-               />
+          {/* Identity Shard (Account) */}
+          <div className="relative">
+             <div className="flex items-center gap-5 bg-[#F8FAFC] p-4 rounded-2xl border border-slate-50 group hover:border-slate-200 transition-all">
+                <div className="p-2.5 bg-white rounded-lg shadow-sm text-slate-400 group-focus-within:text-blue-500 transition-colors"><Search size={16}/></div>
+                <div className="flex-1 grid grid-cols-12 gap-3" ref={dropdownRef}>
+                   <div className="col-span-3 border-r border-slate-100 pr-3">
+                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Code</p>
+                      <input
+                        ref={codeInputRef}
+                        type="text"
+                        placeholder="ID"
+                        value={searchCode}
+                        onChange={(e) => {
+                          setSearchCode(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        onKeyDown={handleSearchKeyDown}
+                        className="w-full bg-transparent border-none outline-none font-black text-slate-800 text-xs tracking-widest"
+                      />
+                   </div>
+                   <div className="col-span-9">
+                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Entity Search</p>
+                      <input
+                        ref={nameInputRef}
+                        type="text"
+                        placeholder="SEARCH..."
+                        value={searchText}
+                        onChange={(e) => {
+                          setSearchText(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        onKeyDown={handleSearchKeyDown}
+                        className="w-full bg-transparent border-none outline-none font-bold text-slate-800 text-xs italic"
+                      />
+                   </div>
+                </div>
              </div>
-             <div className="col-span-6 flex flex-col gap-1">
-               <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Reference No :</label>
-               <input 
-                 type="text"
-                 name="reference_no"
-                 value={formData.reference_no}
-                 onChange={handleChange}
-                 className="w-full border border-slate-300 px-3 py-1.5 rounded outline-none font-bold focus:border-black h-10 text-[11px] transition-all bg-white text-slate-900 shadow-sm"
-                 placeholder="Optional"
-               />
+
+             {/* Dynamic Suggestion Engine */}
+             {showDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 shadow-2xl z-[100] max-h-52 overflow-y-auto rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                   <div className="bg-slate-900 text-white p-3 px-5 text-[8px] font-black uppercase tracking-[0.4em] flex justify-between items-center sticky top-0 italic">
+                      <span>Identity Feed</span>
+                      <X size={12} className="cursor-pointer hover:text-red-400" onClick={() => setShowDropdown(false)} />
+                   </div>
+                   {filteredAccounts.length === 0 ? (
+                     <div className="p-8 text-center text-slate-300 text-[9px] font-black uppercase tracking-widest italic">Node Not Found</div>
+                   ) : (
+                     filteredAccounts.map((acc, idx) => (
+                       <div
+                         key={acc.id}
+                         onClick={() => handleAccountSelect(acc)}
+                         className={`px-6 py-3 border-b border-slate-50 flex justify-between items-center cursor-pointer transition-all ${selectedIndex === idx ? `bg-${themeColor}-50` : 'hover:bg-slate-50'}`}
+                       >
+                         <div>
+                            <p className={`font-black text-[11px] uppercase italic tracking-tight ${selectedIndex === idx ? `text-${themeColor}-600` : 'text-slate-800'}`}>{acc.account_name}</p>
+                         </div>
+                         <div className={`px-3 py-1 rounded-md text-[8px] font-mono font-bold ${selectedIndex === idx ? `bg-${themeColor}-600 text-white` : 'bg-slate-50 text-slate-400'}`}>#{acc.id}</div>
+                       </div>
+                     ))
+                   )}
+                </div>
+             )}
+          </div>
+
+          {/* Value Shard */}
+          <div className="grid grid-cols-2 gap-5">
+             <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-50 group hover:border-slate-200 transition-all">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Verified Amount (₹)</p>
+                <input
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  className="w-full bg-transparent border-none outline-none font-black text-2xl text-slate-900 font-mono tracking-tighter"
+                />
+             </div>
+             <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-50">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Ref Vector</p>
+                <input
+                  type="text"
+                  name="reference_no"
+                  value={formData.reference_no}
+                  onChange={handleChange}
+                  placeholder="OPTIONAL"
+                  className="w-full bg-transparent border-none outline-none font-black text-xs text-slate-700 tracking-widest uppercase italic"
+                />
              </div>
           </div>
 
-          <div className="flex flex-col gap-1 px-1 pb-4">
-             <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Description :</label>
-             <input 
+          {/* Description Shard */}
+          <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-50">
+             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Note Narrative</p>
+             <input
                type="text"
                name="description"
                value={formData.description}
                onChange={handleChange}
-               className="w-full border border-slate-300 px-3 py-1.5 rounded outline-none focus:border-black font-medium text-[11px] transition-all bg-white italic shadow-sm"
-               placeholder="Optional remarks"
+               placeholder="TRANSACTION NARRATIVE..."
+               className="w-full bg-transparent border-none outline-none font-bold text-xs text-slate-600 italic"
              />
           </div>
         </div>
 
-        {/* Footer actions - High Balance Monochrome */}
-        <div className="bg-slate-100 p-3 border-t border-slate-300 flex justify-end gap-3">
-           <button 
+        {/* Action Shard */}
+        <div className="bg-[#F8FAFC] p-7 px-8 flex justify-end gap-4 border-t border-slate-50">
+           <button
              onClick={onClose}
-             className="min-w-[120px] px-6 py-2.5 border border-slate-300 bg-white rounded-xl shadow-sm hover:bg-slate-50 text-slate-600 font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+             className="px-6 py-3 bg-white border border-slate-100 text-slate-400 rounded-xl font-black uppercase text-[9px] tracking-widest hover:text-slate-600 hover:bg-slate-50 shadow-sm transition-all active:scale-95"
            >
              Cancel
            </button>
-           <button 
+           <button
              onClick={handleSave}
              disabled={loading}
-             className="min-w-[140px] px-6 py-2.5 bg-black border border-black text-white rounded-xl shadow-lg hover:bg-slate-800 font-black uppercase tracking-widest text-xs transition-all active:scale-95 disabled:bg-slate-400"
+             className={`px-8 py-3 bg-${themeColor}-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95 disabled:grayscale disabled:opacity-50`}
            >
-             {loading ? 'Processing...' : 'Confirm Entry'}
+             {loading ? 'Posting...' : 'Confirm Fiscal Posting'}
            </button>
         </div>
       </div>
+      
+      <style dangerouslySetInnerHTML={{ __html: `
+        .scroller-airy::-webkit-scrollbar { width: 4px; }
+        .scroller-airy::-webkit-scrollbar-track { background: transparent; }
+        .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      `}} />
     </div>
   );
 }

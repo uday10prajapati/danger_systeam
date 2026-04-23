@@ -81,7 +81,7 @@ function AppContent() {
           className="flex-1 overflow-y-auto w-full h-full pb-10 flex flex-col"
           style={{
             marginLeft: isAuth && location.pathname !== '/' && location.pathname !== '/login' && isDesktop
-              ? `${sidebarOpen ? 256 : 80}px` 
+              ? '256px' 
               : '0px',
             transition: 'margin-left 300ms ease-in-out',
           }}

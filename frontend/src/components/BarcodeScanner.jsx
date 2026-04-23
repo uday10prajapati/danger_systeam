@@ -188,7 +188,7 @@ export default function BarcodeScanner({
   };
 
   return (
-    <div className={`barcode-scanner ${className}`}>
+    <div className={`relative ${className}`}>
       <input
         ref={inputRef}
         type="text"
@@ -198,15 +198,14 @@ export default function BarcodeScanner({
         disabled={isScanning}
         placeholder={placeholder}
         autoComplete="off"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 transition"
-        style={{
-          fontSize: '16px', // Prevent iOS zoom on focus
-          height: '44px' // Touch-friendly size
-        }}
+        className="w-full h-full bg-transparent outline-none disabled:opacity-50 transition-all font-inherit text-inherit placeholder:text-slate-200"
         aria-label="Barcode Scanner Input"
       />
       {isScanning && (
-        <div className="text-xs text-gray-500 mt-1">Scanning...</div>
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+           <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+           <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic animate-pulse">Syncing...</span>
+        </div>
       )}
     </div>
   );

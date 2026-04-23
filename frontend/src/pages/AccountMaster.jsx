@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { Plus, AlertCircle, Edit2, Trash2, CheckCircle, XCircle, Eye, X, Download } from 'lucide-react';
+import { 
+  Plus, AlertCircle, Edit2, Trash2, CheckCircle, 
+  XCircle, Eye, X, Download, Database, Shield,
+  Search, Filter, Users, Scale, TrendingUp,
+  Activity, ArrowRight, Loader, FileText, IndianRupee,
+  MoreVertical, Power, QrCode
+} from 'lucide-react';
 import AccountForm from '../components/AccountForm';
+import { useNavigate } from 'react-router-dom';
 
 export default function AccountMaster() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [company, setCompany] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
@@ -14,6 +22,7 @@ export default function AccountMaster() {
   const [message, setMessage] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Balance Modal state
   const [balanceModal, setBalanceModal] = useState({
@@ -26,25 +35,23 @@ export default function AccountMaster() {
 
   const accountTypes = [
     { value: 'all', label: t('accountMaster.allTypes') },
+    { value: 'customer', label: t('accountMaster.customer') },
+    { value: 'supplier', label: t('accountMaster.supplier') },
+    { value: 'bank', label: t('accountMaster.bank') },
+    { value: 'cash', label: t('accountMaster.cash') },
     { value: 'assets', label: t('accountMaster.assets') },
     { value: 'liabilities', label: t('accountMaster.liabilities') },
     { value: 'capital', label: t('accountMaster.capital') },
-    { value: 'revenue', label: t('accountMaster.revenue') },
+    { value: ' revenue', label: t('accountMaster.revenue') },
     { value: 'expense', label: t('accountMaster.expense') },
-    { value: 'customer', label: t('accountMaster.customer') },
-    { value: 'supplier', label: t('accountMaster.supplier') },
     { value: 'purchase', label: t('accountMaster.purchase', 'Purchase') },
-    { value: 'sales', label: t('accountMaster.sales', 'Sales') },
-    { value: 'cash', label: t('accountMaster.cash') },
-    { value: 'bank', label: t('accountMaster.bank') }
+    { value: 'sales', label: t('accountMaster.sales', 'Sales') }
   ];
 
-  // Load company
   useEffect(() => {
     loadCompany();
   }, []);
 
-  // Load accounts when company changes
   useEffect(() => {
     if (company) {
       loadAccounts();
@@ -56,8 +63,6 @@ export default function AccountMaster() {
       const response = await axios.get('/api/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
-      } else {
-        setMessage({ type: 'error', text: t('accountMaster.noCompanyFound') });
       }
     } catch (error) {
       setMessage({ type: 'error', text: t('accountMaster.failedToLoadCompany') });
@@ -82,11 +87,17 @@ export default function AccountMaster() {
     }
   };
 
-  const handleTypeChange = (type) => {
-    setSelectedType(type);
+  const handleEdit = (account) => {
+    setEditingAccount(account);
+    setShowForm(true);
   };
 
-  const handleCreateSuccess = () => {
+  const handleCreateNew = () => {
+    setEditingAccount(null);
+    setShowForm(true);
+  };
+
+  const handleFormSuccess = () => {
     setShowForm(false);
     setEditingAccount(null);
     loadAccounts();
@@ -94,455 +105,348 @@ export default function AccountMaster() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleEdit = (account) => {
-    setEditingAccount(account);
-    setShowForm(true);
-  };
-
-  const handleDeactivate = async (accountId) => {
-    if (!window.confirm(t('accountMaster.confirmDeactivate'))) return;
-
+  const handleStatusToggle = async (account) => {
     try {
-      await axios.post(`/api/accounts/${accountId}/deactivate`);
-      setMessage({ type: 'success', text: t('accountMaster.accountDeactivated') });
+      const endpoint = account.is_active ? 'deactivate' : 'activate';
+      await axios.post(`/api/accounts/${account.id}/${endpoint}`);
+      setMessage({ type: 'success', text: t(`accountMaster.account${account.is_active ? 'Deactivated' : 'Activated'}`) });
       loadAccounts();
+      setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || t('accountMaster.failedToDeactivate') });
-    }
-  };
-
-  const handleActivate = async (accountId) => {
-    try {
-      await axios.post(`/api/accounts/${accountId}/activate`);
-      setMessage({ type: 'success', text: t('accountMaster.accountActivated') });
-      loadAccounts();
-    } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || t('accountMaster.failedToActivate') });
+      setMessage({ type: 'error', text: t('accountMaster.failedToUpdateStatus') });
     }
   };
 
   const handleShowBalance = async (account) => {
     setBalanceModal({ isOpen: true, account, data: null, loading: true, error: null });
-    
     try {
       const response = await axios.get(`/api/accounts/${account.id}/balance`);
       if (response.data.success) {
-        setBalanceModal({ 
-          isOpen: true, 
-          account, 
-          data: response.data.data, 
-          loading: false, 
-          error: null 
-        });
+        setBalanceModal({ isOpen: true, account, data: response.data.data, loading: false, error: null });
       }
     } catch (error) {
-      setBalanceModal({
-        isOpen: true,
-        account,
-        data: null,
-        loading: false,
-        error: error.response?.data?.error || t('accountMaster.failedToLoadAccounts')
-      });
+      setBalanceModal({ isOpen: true, account, data: null, loading: false, error: t('accountMaster.failedToLoadAccounts') });
     }
   };
 
-  const accountsArray = Array.isArray(accounts) ? accounts : [];
-  
-  const filteredAccounts = accountsArray.filter(acc => {
-    if (balanceTypeFilter === 'all') return true;
-    return acc.balance_type === balanceTypeFilter;
+  const filteredAccounts = (Array.isArray(accounts) ? accounts : []).filter(acc => {
+    const matchesSearch = acc.account_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesBalanceType = balanceTypeFilter === 'all' || acc.balance_type === balanceTypeFilter;
+    return matchesSearch && matchesBalanceType;
   });
 
   const handleDownloadCSV = () => {
-    const headers = [
-      t('accountMaster.accountName') || 'Account Name',
-      t('accountMaster.type') || 'Type',
-      t('accountMaster.status') || 'Status',
-      t('accountMaster.closingBalance') || 'Closing Balance',
-      'Balance Type (Cr/Dr)'
-    ];
-    
+    const headers = [t('accountMaster.accountName'), t('accountMaster.type'), t('accountMaster.status'), t('accountMaster.closingBalance'), 'Balance Type'];
     const rows = filteredAccounts.map(acc => [
-      `"${acc.account_name.replace(/"/g, '""')}"`,
-      `"${t(`accountMaster.${acc.account_type}`)}"`,
-      `"${acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}"`,
+      `"${acc.account_name}"`,
+      `"${acc.account_type}"`,
+      `"${acc.is_active ? 'Active' : 'Inactive'}"`,
       parseFloat(acc.closing_balance || 0).toFixed(2),
-      acc.balance_type === 'credit' ? t('accountMaster.jama') : acc.balance_type === 'debit' ? t('accountMaster.udhar') : 'Zero'
+      acc.balance_type
     ]);
-
     const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Accounts_${balanceTypeFilter}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Accounts_Export_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    URL.revokeObjectURL(url);
   };
 
-  // If no company, show error
-  if (!company) {
+  if (!company && !loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-slate-100 p-6 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-md border border-slate-200 p-8 text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">{t('accountMaster.noCompanyFound')}</h2>
-          <p className="text-slate-600 mb-6">{t('accountMaster.createCompanyFirst')}</p>
-          
-          <div className="flex gap-3">
-            <button
-              onClick={() => window.location.href = '/company'}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-            >
-              {t('accountMaster.goToCompanySetup')}
-            </button>
-            <button
-              onClick={loadCompany}
-              className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors"
-            >
-              {t('accountMaster.refresh')}
-            </button>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertCircle size={40} /></div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('accountMaster.noCompanyFound', 'System Lock')}</h2>
+          <p className="text-slate-500 font-medium mb-8 leading-relaxed">Financial identity registry is offline. Please initialize company profile context first.</p>
+          <div className="flex flex-col gap-3">
+             <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">Go to Company Setup</button>
+             <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-slate-100 transition-all">Retry Synchronization</button>
           </div>
         </div>
       </div>
     );
   }
 
-  const totalAccounts = accountsArray.length;
-  const activeAccounts = accountsArray.filter(a => a.is_active).length;
-  const inactiveAccounts = accountsArray.filter(a => !a.is_active).length;
-  const totalBalance = accountsArray.reduce((sum, a) => sum + (parseFloat(a.opening_balance) || 0), 0);
+  if (showForm) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] py-12 px-8">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => { setShowForm(false); setEditingAccount(null); }}
+            className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
+          >
+            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
+            Back to Registry List
+          </button>
+          <AccountForm
+            companyId={company.id}
+            initialData={editingAccount}
+            onSuccess={handleFormSuccess}
+            onCancel={() => { setShowForm(false); setEditingAccount(null); }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 text-slate-900">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - Monochrome Style */}
-        <div className="flex justify-between items-end">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
+      <div className="max-w-[1600px] mx-auto px-8">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">{t('accountMaster.accountMaster')}</h1>
-            <p className="text-slate-500 font-medium">{t('accountMaster.manageAccounts')}</p>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+              <Shield size={12} />
+              <span>{t('modules.management', 'Management')} / Account Master</span>
+            </div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Ledger Repository</h1>
           </div>
-          <button
-            onClick={() => {
-              setEditingAccount(null);
-              setShowForm(!showForm);
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-bold shadow-lg transition-all active:scale-95"
-          >
-            <Plus className="w-5 h-5" />
-            {t('accountMaster.addNewAccount')}
-          </button>
+          <div className="flex items-center gap-4">
+             <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+                <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Seach by entity name or ID..." 
+                  className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium" 
+                />
+             </div>
+             <button
+               onClick={handleDownloadCSV}
+               className="hidden lg:flex items-center gap-2 bg-white px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 shadow-sm"
+             >
+               <Download size={18} />
+               Export
+             </button>
+             <button
+               onClick={handleCreateNew}
+               className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+             >
+               <Plus size={20} />
+               Initialize Ledger
+             </button>
+          </div>
         </div>
 
-        {/* Message */}
+        {/* Global Messages */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex gap-3 ${
-            message.type === 'error'
-              ? 'bg-red-50 text-red-700 border border-red-200'
-              : 'bg-green-50 text-green-700 border border-green-200'
+          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
+            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
           }`}>
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <span>{message.text}</span>
+            {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+            <p className="text-sm font-bold">{message.text}</p>
           </div>
         )}
 
-        {/* Statistics Cards - Sleek Grayscale */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-900">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.company')}</p>
-            <p className="text-lg font-black text-slate-900 truncate">{company.company_name}</p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Accounts</p>
+              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Users size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{accounts.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-600">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.totalAccounts')}</p>
-            <p className="text-2xl font-black text-slate-900">{totalAccounts}</p>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Online Nodes</p>
+              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><Activity size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-emerald-600">{accounts.filter(a => a.is_active).length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-500">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.active')}</p>
-            <p className="text-2xl font-black text-slate-900">{activeAccounts}</p>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fiscal Assets</p>
+              <div className="p-2 bg-violet-50 rounded-xl text-violet-600"><Scale size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{accounts.filter(a => a.account_type === 'assets').length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-400">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.inactive')}</p>
-            <p className="text-2xl font-black text-slate-700">{inactiveAccounts}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-slate-300">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">{t('accountMaster.totalBalance')}</p>
-            <p className="text-2xl font-black text-slate-900 italic">₹{totalBalance.toFixed(0)}</p>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-amber-200 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Revenue Streams</p>
+              <div className="p-2 bg-amber-50 rounded-xl text-amber-600"><TrendingUp size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{accounts.filter(a => a.account_type === 'revenue').length}</p>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form Section */}
-          {showForm && (
-            <div className="lg:col-span-1">
-              <AccountForm
-                companyId={company.id}
-                initialData={editingAccount}
-                onSuccess={handleCreateSuccess}
-                onCancel={() => {
-                  setShowForm(false);
-                  setEditingAccount(null);
-                }}
-              />
-            </div>
-          )}
-
-          {/* Accounts List Section */}
-          <div className={showForm ? 'lg:col-span-2' : 'lg:col-span-3'}>
-            {/* Toolbar - Monochrome Tabs */}
-            <div className="bg-white p-4 rounded-xl shadow-md border border-slate-100 space-y-4 mb-6">
-              <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
-                <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                  {/* Account Type Filter */}
-                  <select
-                    value={selectedType}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    className="px-4 py-2 border-2 border-slate-50 bg-slate-50 rounded-lg text-slate-700 font-black text-xs uppercase tracking-widest focus:outline-none focus:border-black transition-all shadow-sm"
-                  >
-                    {accountTypes.map(type => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Balance Type Filter */}
-                  <select
+        {/* Table View */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+           <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Database size={18} /></div>
+                 <h2 className="text-lg font-bold text-slate-800">Operational Registry</h2>
+              </div>
+              <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-2xl">
+                 {accountTypes.slice(0, 4).map(type => (
+                   <button
+                     key={type.value}
+                     onClick={() => setSelectedType(type.value)}
+                     className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                       selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                     }`}
+                   >
+                     {type.label}
+                   </button>
+                 ))}
+                 <div className="w-px h-4 bg-slate-200 ml-2 mr-2"></div>
+                 <select 
                     value={balanceTypeFilter}
                     onChange={(e) => setBalanceTypeFilter(e.target.value)}
-                    className="px-4 py-2 border-2 border-slate-900 bg-black rounded-lg text-white font-black text-xs uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-lg"
-                  >
-                    <option value="all">All Balances (બધા)</option>
-                    <option value="credit">Credit Balance / Jama (જમા)</option>
-                    <option value="debit">Debit Balance / Udhar (ઉધાર)</option>
-                    <option value="zero">Zero Balance (શૂન્ય)</option>
-                  </select>
-                  
-                  <button
-                    onClick={handleDownloadCSV}
-                    className="px-4 py-2 bg-white border-2 border-slate-200 hover:border-slate-400 text-slate-900 font-black text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all"
-                    title="Download CSV"
-                  >
-                    <Download className="w-4 h-4" />
-                    CSV
-                  </button>
-                </div>
+                    className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-400 px-3 cursor-pointer uppercase tracking-widest"
+                 >
+                    <option value="all">Balance (All)</option>
+                    <option value="credit">Credit (Jama)</option>
+                    <option value="debit">Debit (Udhar)</option>
+                 </select>
               </div>
-            </div>
+           </div>
 
-            {/* Accounts Table - High Contrast Monochrome */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-              {loading ? (
-                <div className="p-24 text-center">
-                  <div className="w-12 h-12 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-                  <p className="text-slate-600 font-black uppercase tracking-widest text-xs uppercase">{t('common.loading')}</p>
-                </div>
-              ) : filteredAccounts.length === 0 ? (
-                <div className="p-24 text-center">
-                  <AlertCircle className="w-16 h-16 mx-auto text-slate-300 mb-6" />
-                  <p className="text-slate-500 font-black uppercase tracking-widest text-xs">{t('accountMaster.noAccountsFound')}</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-slate-900 text-white text-left">
-                      <tr>
-                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.accountName')}</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.type')}</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.closingBalance') || 'Closing Balance'}</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs">{t('accountMaster.status')}</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-wider text-xs text-right">{t('accountMaster.actions')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-900">
-                      {filteredAccounts.map(account => (
-                        <tr key={account.id} className="hover:bg-slate-50 transition-colors group">
-                          <td className="px-6 py-4 font-black tracking-tight text-sm uppercase">{account.account_name}</td>
-                          <td className="px-6 py-4">
-                            <span className="px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200">
-                              {t(`accountMaster.${account.account_type}`)}
+           {loading ? (
+             <div className="flex-1 flex flex-col items-center justify-center p-24">
+                <Loader className="w-12 h-12 text-blue-100 animate-spin mb-4" />
+                <p className="text-slate-300 font-bold uppercase tracking-[0.2em] text-[10px]">Synchronizing Financial Shards...</p>
+             </div>
+           ) : filteredAccounts.length === 0 ? (
+             <div className="flex-1 flex flex-col items-center justify-center p-24 text-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-6"><FileText size={40} /></div>
+                <h3 className="text-lg font-bold text-slate-400 mb-2">No matched accounts found</h3>
+                <p className="text-slate-300 text-sm max-w-xs mx-auto mb-8 font-medium">Try adjusting your filters or initialize a new financial entity.</p>
+                <button onClick={handleCreateNew} className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl hover:bg-black transition-all">Initialize First Ledger</button>
+             </div>
+           ) : (
+             <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                 <thead>
+                   <tr className="bg-[#F8FAFC]">
+                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Entity Nomenclature</th>
+                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Classification</th>
+                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Closing Balance</th>
+                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Status</th>
+                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Audit</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-50">
+                   {filteredAccounts.map(acc => (
+                     <tr key={acc.id} className="group hover:bg-blue-50/30 transition-all duration-300">
+                       <td className="px-10 py-6">
+                         <div className="flex items-center gap-4">
+                           <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg transition-transform group-hover:scale-110 ${
+                             ['customer', 'supplier'].includes(acc.account_type) ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                           }`}>
+                             {acc.account_name.charAt(0).toUpperCase()}
+                           </div>
+                           <div>
+                             <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase">{acc.account_name}</p>
+                             <p className="text-[10px] font-medium text-slate-400 mt-0.5">{acc.email || 'NO_DIGITAL_HANDLE'}</p>
+                           </div>
+                         </div>
+                       </td>
+                       <td className="px-10 py-6">
+                         <span className={`inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                           ['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                         }`}>
+                           {acc.account_type}
+                         </span>
+                       </td>
+                       <td className="px-10 py-6">
+                         <div className="flex flex-col">
+                            <span className="text-sm font-black text-slate-800 flex items-center gap-1 leading-none italic">
+                              <IndianRupee size={12} className="text-slate-400" />
+                              {(parseFloat(acc.closing_balance) || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="font-black text-sm italic">₹{(parseFloat(account.closing_balance) || 0).toFixed(2)}</span>
-                              <span className={`text-[9px] font-black uppercase tracking-widest leading-none mt-1 ${account.balance_type === 'credit' ? 'text-slate-900' : account.balance_type === 'debit' ? 'text-slate-500 line-through decoration-slate-300' : 'text-slate-300'}`}>
-                                {account.balance_type === 'credit' ? `${t('accountMaster.jama')} (Cr)` : account.balance_type === 'debit' ? `${t('accountMaster.udhar')} (Dr)` : 'Zero'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
-                              account.is_active
-                                ? 'bg-slate-900 text-white border-slate-900'
-                                : 'bg-white text-slate-400 border-slate-200 line-through'
+                            <span className={`text-[9px] font-bold uppercase tracking-widest mt-1.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : 'text-rose-600'}`}>
+                              {acc.balance_type === 'credit' ? 'Jama (Cr)' : 'Udhar (Dr)'}
+                            </span>
+                         </div>
+                       </td>
+                       <td className="px-10 py-6">
+                         <div className="flex justify-center">
+                            <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                              acc.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
                             }`}>
-                              {account.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
+                              <div className={`w-1.5 h-1.5 rounded-full ${acc.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                              {acc.is_active ? 'Online' : 'Offline'}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
-                              <button
-                                onClick={() => handleShowBalance(account)}
-                                className="p-2 text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-lg transition-all"
-                                title={t('accountMaster.balanceDetails')}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleEdit(account)}
-                                className="p-2 text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-lg transition-all"
-                                title={t('accountMaster.edit')}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              {account.is_active ? (
-                                <button
-                                  onClick={() => handleDeactivate(account.id)}
-                                  className="p-2 text-zinc-400 hover:text-black hover:bg-zinc-100 hover:border-zinc-200 border border-transparent rounded-lg transition-all"
-                                  title={t('accountMaster.deactivate')}
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleActivate(account.id)}
-                                  className="p-2 text-zinc-900 hover:bg-zinc-900 hover:text-white border border-transparent rounded-lg transition-all"
-                                  title={t('accountMaster.activate')}
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Tip Section - Monochrome Style */}
-        <div className="bg-white p-6 rounded-xl border-l-4 border-slate-900 shadow-md">
-          <div className="flex gap-4 items-start">
-            <div className="bg-slate-900 text-white p-2 rounded-lg">💡</div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-900 mb-1">{t('accountMaster.tip')}</p>
-              <p className="text-sm text-slate-600 font-medium">
-                {t('accountMaster.accountTip')}
-              </p>
-            </div>
-          </div>
+                         </div>
+                       </td>
+                       <td className="px-10 py-6 text-right">
+                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                           <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><Eye size={16} /></button>
+                           <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
+                           <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-xl transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
+                         </div>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           )}
         </div>
       </div>
-      {/* Balance Details Modal - Industrial Design */}
-      {balanceModal.isOpen && balanceModal.account && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-white">
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter italic flex items-center gap-2">
-                <Eye className="w-5 h-5" />
-                {t('accountMaster.balanceDetails')}
-              </h3>
-              <button 
-                onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false, error: null })}
-                className="text-slate-400 hover:text-black transition-colors"
-              >
-                <X className="w-8 h-8" />
-              </button>
-            </div>
-            
-            <div className="p-8">
-              <div className="mb-6 pb-4 border-b border-slate-100">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t('accountMaster.accountName')}</p>
-                <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{balanceModal.account.account_name}</p>
+
+      {/* Balance Modal - Airy SaaS Style */}
+      {balanceModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                   <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg ring-4 ring-blue-500/5"><Eye size={20} /></div>
+                   <div>
+                      <h3 className="text-xl font-bold text-slate-800">Financial Insights</h3>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Balance Audit</p>
+                   </div>
+                </div>
+                <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
               </div>
 
-              {balanceModal.loading ? (
-                <div className="flex justify-center items-center py-8">
-                  <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                </div>
-              ) : balanceModal.error ? (
-                <div className="p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p>{balanceModal.error}</p>
-                </div>
-              ) : balanceModal.data ? (
-                <div className="space-y-4">
-                  
-                  {/* Opening Balance */}
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.openingBalance')} :</span>
-                    <div className="flex-1">
-                       <input
-                         type="text"
-                         readOnly
-                         value={balanceModal.data.openingBalance.toFixed(2)}
-                         className="w-full px-4 py-3 outline-none text-right bg-slate-50 border-2 border-slate-100 rounded-lg text-slate-900 font-black italic shadow-inner"
-                       />
-                    </div>
-                  </div>
+              <div className="p-10 space-y-8">
+                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Entity Nomenclature</p>
+                    <p className="text-xl font-black text-slate-800 uppercase tracking-tight italic">{balanceModal.account?.account_name}</p>
+                 </div>
 
-                  {/* Total Debit */}
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.totalDebit')} :</span>
-                    <div className="flex-1">
-                       <input
-                         type="text"
-                         readOnly
-                         value={balanceModal.data.totalDebit.toFixed(2)}
-                         className="w-full px-4 py-3 outline-none text-right bg-slate-50 border-2 border-slate-100 rounded-lg text-slate-600 font-black shadow-inner"
-                       />
+                 {balanceModal.loading ? (
+                    <div className="py-12 flex flex-col items-center gap-4">
+                       <Loader className="w-10 h-10 text-blue-500 animate-spin" />
+                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aggregating Fiscal Data...</p>
                     </div>
-                  </div>
-
-                  {/* Total Credit */}
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest w-36">{t('accountMaster.totalCredit')} :</span>
-                    <div className="flex-1">
-                       <input
-                         type="text"
-                         readOnly
-                         value={balanceModal.data.totalCredit.toFixed(2)}
-                         className="w-full px-4 py-3 outline-none text-right bg-slate-50 border-2 border-slate-100 rounded-lg text-slate-600 font-black shadow-inner"
-                       />
+                 ) : balanceModal.data ? (
+                    <div className="space-y-4">
+                       <div className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Opening Context</span>
+                          <span className="font-mono font-bold text-slate-700">₹{balanceModal.data.openingBalance.toFixed(2)}</span>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-rose-50/30 border border-rose-100 rounded-2xl">
+                             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 italic">Total Udhar</p>
+                             <p className="text-lg font-black text-rose-600">₹{balanceModal.data.totalDebit.toFixed(2)}</p>
+                          </div>
+                          <div className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl">
+                             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1 italic">Total Jama</p>
+                             <p className="text-lg font-black text-emerald-600">₹{balanceModal.data.totalCredit.toFixed(2)}</p>
+                          </div>
+                       </div>
+                       <div className="p-6 bg-slate-900 rounded-3xl shadow-xl shadow-slate-200 flex flex-col gap-1 mt-4">
+                          <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Current Synchronized Balance</span>
+                          <span className="text-3xl font-black text-white italic">
+                            ₹{(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                          </span>
+                       </div>
                     </div>
-                  </div>
-
-                  {/* Closing Balance */}
-                  <div className="flex items-center justify-between gap-4 pt-6 border-t border-slate-100">
-                    <span className="text-xs font-black text-slate-900 uppercase tracking-widest w-36">{t('accountMaster.closingBalance')} :</span>
-                    <div className="flex-1">
-                       <input
-                         type="text"
-                         readOnly
-                         value={(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toFixed(2)}
-                         className="w-full px-4 py-3 outline-none text-right bg-black border-2 border-black rounded-lg text-white font-black text-lg italic shadow-xl"
-                       />
-                    </div>
-                  </div>
-
-                </div>
-              ) : null}
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-              <button
-                onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false, error: null })}
-                className="px-8 py-3 bg-black hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-lg transition-all active:scale-95 shadow-md"
-               >
-                Close
-              </button>
-            </div>
-          </div>
+                 ) : null}
+              </div>
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
+                 <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="px-10 py-3.5 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-all uppercase text-[10px] tracking-widest">Close Audit</button>
+              </div>
+           </div>
         </div>
       )}
-
     </div>
   );
 }

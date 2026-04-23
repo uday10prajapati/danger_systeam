@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Search, Printer, X } from 'lucide-react';
+import { 
+  Plus, Eye, Search, Printer, X, RefreshCcw, 
+  Calendar, User, FileText, ArrowRight, 
+  ShieldCheck, TrendingUp, ShoppingBag,
+  Filter, ChevronRight, Layout, Activity,
+  Database, Package, ShoppingCart
+} from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SaleReturnForm from '../components/SaleReturnForm';
@@ -17,6 +23,7 @@ export default function SaleReturn() {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadCompany();
@@ -26,22 +33,22 @@ export default function SaleReturn() {
     if (company?.id) {
       fetchReturns();
     }
-  }, [company]);
+  }, [company, dateRange]);
 
   const loadCompany = async () => {
     try {
       const response = await axios.get('/api/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
-      } else {
-        setCompany(null);
       }
     } catch (error) {
-      setCompany(null);
+      console.error('Failed to load company', error);
     }
   };
 
   const fetchReturns = async () => {
+    if (!company?.id) return;
+    setLoading(true);
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/sale-returns?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
@@ -53,6 +60,8 @@ export default function SaleReturn() {
       }
     } catch (error) {
       console.error('Fetch returns error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,7 +88,7 @@ export default function SaleReturn() {
     }
   };
 
-  const handleFormSubmit = () => {
+  const handleFormSuccess = () => {
     setShowForm(false);
     fetchReturns();
   };
@@ -99,264 +108,290 @@ export default function SaleReturn() {
     applyFilters();
   }, [searchTerm]);
 
-  if (!company || !company.id) {
+  if (!company) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center font-black uppercase tracking-widest text-slate-400">
-          <p className="text-lg mb-4 italic">Establishing secure connection...</p>
-          <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden">
-             <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
+        <div className="text-center font-black uppercase tracking-widest text-slate-300">
+          <p className="text-xs mb-6 italic tracking-[0.4em]">Initializing Core Ledger...</p>
+          <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
+             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
           </div>
         </div>
       </div>
     );
   }
 
+  if (showForm) {
+      return (
+          <div className="min-h-screen bg-[#F8FAFC] py-12 px-8 animate-in fade-in duration-500">
+              <div className="max-w-4xl mx-auto">
+                  <button
+                      onClick={() => setShowForm(false)}
+                      className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
+                  >
+                      <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all">
+                          <X size={16} />
+                      </div>
+                      Back to Ledger Master
+                  </button>
+                  <SaleReturnForm 
+                      onClose={() => setShowForm(false)} 
+                      onSuccess={handleFormSuccess}
+                      company={company}
+                  />
+              </div>
+          </div>
+      );
+  }
+
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900 font-sans">
-      {/* Header - Industrial Monochrome */}
-      <div className="flex justify-between items-end border-b-4 border-black pb-4">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('saleReturn.title', 'Sale Returns')}</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px]">{company.company_name} / INVENTORY REVERSAL</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
-        >
-          <Plus size={18} strokeWidth={3} />
-          {t('saleReturn.create', 'Issue Credit Note')}
-        </button>
-      </div>
-
-      {/* Stats Cards - Sleek Grayscale */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-900 group hover:bg-slate-900 transition-all duration-300">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">{t('saleReturn.totalReturns', 'Total Returns')}</p>
-          <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">{stats.totalReturns}</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-500 group hover:bg-slate-800 transition-all duration-300">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">{t('saleReturn.totalAmount', 'Return Value')}</p>
-          <p className="text-3xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">₹{stats.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-400 group hover:bg-slate-700 transition-all duration-300">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">{t('saleReturn.totalItems', 'Returned Qty')}</p>
-          <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">{stats.totalItems}</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-300 group hover:bg-slate-600 transition-all duration-300">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">{t('saleReturn.uniqueCustomers', 'Parties')}</p>
-          <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">{stats.uniqueCustomers}</p>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="bg-white p-4 rounded-xl shadow-md border border-slate-100 flex flex-wrap gap-4 items-end">
-        <div className="flex-1 min-w-[250px]">
-          <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Filter Records</span>
-          <div className="relative group">
-            <Search className="absolute left-4 top-3 text-slate-300 group-focus-within:text-black transition-colors" size={18} />
-            <input
-              type="text"
-              placeholder="SEARCH BY RETURN NO OR PARTY..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs"
-            />
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
+      <div className="max-w-[1600px] mx-auto px-8">
+        
+        {/* Header Section - Same as UserMaster */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
           <div>
-            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">From</span>
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
-            />
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+              <RefreshCcw size={12} />
+              <span>{t('modules.inventory', 'Stock Control')} / Sale Return Registry</span>
+            </div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Reversal Audit Ledger</h1>
           </div>
-          <div>
-            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">To</span>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
-            />
+          <div className="flex items-center gap-4">
+             <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+                <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Identify Return Shard..." 
+                  className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium" 
+                />
+             </div>
+             <button
+               onClick={() => setShowForm(true)}
+               className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+             >
+               <Plus size={20} />
+               Issue Credit Note
+             </button>
           </div>
-          <button
-            onClick={fetchReturns}
-            className="px-6 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-black font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg h-[41px]"
-          >
-            {t('common.filter', 'Execute')}
-          </button>
         </div>
-      </div>
 
-      {/* Returns Table - High Contrast Industrial */}
-      <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-900 text-white">
-              <tr>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Doc #</th>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Party Name</th>
-                <th className="px-6 py-4 text-center font-black uppercase tracking-widest text-[10px]">Items</th>
-                <th className="px-6 py-4 text-right font-black uppercase tracking-widest text-[10px]">Total Value</th>
-                <th className="px-6 py-4 text-center font-black uppercase tracking-widest text-[10px]">Mechanism</th>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Post Date</th>
-                <th className="px-6 py-4 text-center font-black uppercase tracking-widest text-[10px]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredReturns.length === 0 ? (
+        {/* Stats Grid - Same as UserMaster */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Shards</p>
+              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><FileText size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{stats.totalReturns}</p>
+          </div>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aggregate Value</p>
+              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><TrendingUp size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-slate-800">₹{stats.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+          </div>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Units Reverted</p>
+              <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600"><Package size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-indigo-600">{stats.totalItems}</p>
+          </div>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Entities Effected</p>
+              <div className="p-2 bg-violet-50 rounded-xl text-violet-600"><User size={16} /></div>
+            </div>
+            <p className="text-2xl font-bold text-violet-600">{stats.uniqueCustomers}</p>
+          </div>
+        </div>
+
+        {/* Action Bar / Filtering */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+          <div className="p-8 pb-4 flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+               <div className="flex flex-col">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Temporal Start</label>
+                  <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all" />
+               </div>
+               <div className="flex flex-col">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Temporal End</label>
+                  <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all" />
+               </div>
+               <button onClick={fetchReturns} className="p-2.5 mt-4 bg-slate-900 text-white rounded-xl hover:bg-black transition-all active:scale-90 shadow-lg"><RefreshCcw size={16} /></button>
+            </div>
+            <div className="flex gap-1.5 p-1 bg-slate-50 rounded-2xl border border-slate-100">
+                <button className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-white text-blue-600 shadow-sm">All Records</button>
+                <button className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Pending Review</button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-[#F8FAFC]">
                 <tr>
-                  <td colSpan="7" className="px-6 py-16 text-center text-slate-400 font-black uppercase tracking-[0.3em] text-xs italic">
-                    NO RETURN ENTRIES DETECTED
-                  </td>
+                  {[
+                    'Document ID', 'Party Identity', 'SKU Load', 'Reversal Value', 'Settlement', 'Audit Date', 'Action'
+                  ].map((head) => (
+                    <th key={head} className="px-10 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
+                  ))}
                 </tr>
-              ) : (
-                filteredReturns.map((ret) => (
-                  <tr key={ret.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4 font-black text-slate-900 text-sm tracking-tighter">{ret.return_no}</td>
-                    <td className="px-6 py-4 text-slate-700 font-bold uppercase text-xs">{ret.customer_name || 'WALK-IN'}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-slate-100 text-slate-900 px-3 py-1 rounded-full text-[10px] font-black border border-slate-200 uppercase">
-                        {ret.item_count} SKU
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right font-black text-slate-900 text-sm italic">
-                      ₹{parseFloat(ret.total_return_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-4 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest border-2 ${
-                        ret.refund_type === 'cash' 
-                          ? 'bg-white text-slate-900 border-slate-900' 
-                          : 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                      }`}>
-                        {ret.refund_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 font-mono text-[11px] font-bold">
-                      {new Date(ret.return_date).toLocaleDateString('en-GB')}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => viewReturnDetails(ret.id)}
-                        className="p-2.5 text-slate-900 hover:bg-black hover:text-white rounded-lg transition-all border border-slate-200 group-hover:border-black active:scale-90"
-                      >
-                        <Eye size={18} strokeWidth={2.5} />
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="px-10 py-24 text-center">
+                       <Loader className="animate-spin text-blue-100 mx-auto" size={40} />
+                       <p className="mt-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest italic">Syncing Ledger Shards...</p>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : filteredReturns.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-10 py-24 text-center">
+                       <Database className="text-slate-100 mx-auto" size={48} strokeWidth={1} />
+                       <p className="mt-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest italic">No Reversal Records Logged</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReturns.map((ret) => (
+                    <tr key={ret.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="px-10 py-6">
+                        <span className="font-bold text-slate-800 text-sm">{ret.return_no}</span>
+                      </td>
+                      <td className="px-10 py-6">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[10px] uppercase">
+                              {ret.customer_name ? ret.customer_name.charAt(0) : 'W'}
+                           </div>
+                           <span className="text-sm font-bold text-slate-600">{ret.customer_name || 'WALK-IN_ENTITY'}</span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6 text-center">
+                        <span className="text-[10px] font-bold bg-slate-50 text-slate-400 px-3 py-1 rounded-lg border border-slate-100">
+                          {ret.item_count} SKU
+                        </span>
+                      </td>
+                      <td className="px-10 py-6 text-right">
+                        <span className="text-sm font-black text-slate-800 italic">
+                          ₹{parseFloat(ret.total_return_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="px-10 py-6 text-center">
+                        <span className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border ${
+                          ret.refund_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                        }`}>
+                          {ret.refund_type}
+                        </span>
+                      </td>
+                      <td className="px-10 py-6 text-[11px] font-bold text-slate-400 italic">
+                        {new Date(ret.return_date).toLocaleDateString('en-GB')}
+                      </td>
+                      <td className="px-10 py-6">
+                        <button
+                          onClick={() => viewReturnDetails(ret.id)}
+                          className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-xl transition-all shadow-sm opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Detailed View Modal */}
+      {/* Details View Modal - Refined Airy Design */}
       {showDetails && selectedReturn && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
-            {/* Modal Header */}
-            <div className="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-black tracking-tighter uppercase italic">Credit Note: {selectedReturn.return_no}</h2>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Inventory Reversal Detail</p>
-              </div>
-              <button
-                onClick={() => setShowDetails(false)}
-                className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-xl transition-all active:scale-90"
-              >
-                <X size={20} strokeWidth={3} />
-              </button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[150] p-8 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-linear-to-r from-white to-blue-50/30">
+               <div>
+                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                     Reversal Manifest 
+                     <span className="bg-blue-600 text-white text-[10px] px-3 py-1 rounded-full font-black tracking-widest shadow-lg shadow-blue-100">{selectedReturn.return_no}</span>
+                  </h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Audit Log Shard Inspection</p>
+               </div>
+               <button onClick={() => setShowDetails(false)} className="w-12 h-12 bg-white border border-slate-100 text-slate-300 hover:text-rose-500 rounded-2xl flex items-center justify-center transition-all hover:shadow-xl"><X size={24} /></button>
             </div>
+            
+            <div className="flex-1 overflow-y-auto p-10 space-y-10">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {[
+                    { label: 'Audit Date', val: new Date(selectedReturn.return_date).toLocaleDateString('en-IN'), icon: <Calendar size={14} />, color: 'blue' },
+                    { label: 'Settlement', val: selectedReturn.refund_type, icon: <Layout size={14} />, color: 'emerald' },
+                    { label: 'Source Sale', val: `#${selectedReturn.sale_id}`, icon: <ShoppingCart size={14} />, color: 'amber' },
+                    { label: 'Log Authority', val: selectedReturn.created_by_user || 'SYSTEM', icon: <User size={14} />, color: 'indigo' }
+                  ].map((item, i) => (
+                    <div key={i} className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 group hover:bg-white transition-all">
+                       <div className={`p-2 bg-white text-${item.color}-600 rounded-xl mb-3 border border-slate-50 shadow-sm w-fit group-hover:scale-110 transition-transform`}>{item.icon}</div>
+                       <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">{item.label}</p>
+                       <p className="text-sm font-bold text-slate-700 uppercase italic truncate">{item.val}</p>
+                    </div>
+                  ))}
+               </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-8">
-              <div className="grid grid-cols-2 gap-8 py-6 px-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
-                <div>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Return Date</p>
-                  <p className="font-black text-slate-900 text-sm">{new Date(selectedReturn.return_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Entity / Party</p>
-                  <p className="font-black text-slate-900 text-sm uppercase">{selectedReturn.customer_name || 'WALK-IN CUSTOMER'}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Settlement</p>
-                  <p className="font-black text-slate-900 text-sm uppercase italic">{selectedReturn.refund_type} REVERSAL</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Audit / User</p>
-                  <p className="font-black text-slate-900 text-sm uppercase">{selectedReturn.created_by_user || 'SYSTEM_AUTH'}</p>
-                </div>
-              </div>
-
-              {selectedReturn.notes && (
-                <div className="bg-slate-100 p-4 border-l-4 border-slate-900 rounded-r-xl group">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-black transition-colors">Manifesto / Notes</p>
-                  <p className="text-slate-800 font-bold uppercase text-[11px] leading-relaxed italic">{selectedReturn.notes}</p>
-                </div>
-              )}
-
-              {/* Items Detail */}
-              <div>
-                <h3 className="font-black text-xs uppercase tracking-[0.2em] mb-4 text-slate-900 flex items-center gap-2">
-                   <div className="w-4 h-1 bg-black"></div>
-                   Returned Items Pipeline
-                </h3>
-                <div className="rounded-xl border-2 border-slate-100 overflow-hidden shadow-sm">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-black uppercase tracking-widest text-[9px] text-slate-500">Nomenclature</th>
-                        <th className="px-4 py-3 text-center font-black uppercase tracking-widest text-[9px] text-slate-500">Qty</th>
-                        <th className="px-4 py-3 text-right font-black uppercase tracking-widest text-[9px] text-slate-500">Rate</th>
-                        <th className="px-4 py-3 text-right font-black uppercase tracking-widest text-[9px] text-slate-500">Value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-50">
-                      {selectedReturn.items?.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3 font-black text-slate-900 uppercase">{item.item_name}</td>
-                          <td className="px-4 py-3 text-center font-mono font-black">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-slate-500">₹{parseFloat(item.sale_rate || 0).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-right font-mono font-black text-slate-900 h-10 flex items-center justify-end">
-                             <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 shadow-sm">₹{parseFloat(item.amount || 0).toFixed(2)}</span>
-                          </td>
+               <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <div className="w-6 h-0.5 bg-blue-600"></div> Component Breakdown
+                  </h3>
+                  <div className="rounded-[2.5rem] border border-slate-50 overflow-hidden shadow-inner">
+                    <table className="w-full text-xs">
+                      <thead className="bg-[#F8FAFC]">
+                        <tr>
+                          <th className="px-8 py-4 text-left font-bold text-slate-400 uppercase">Item Description</th>
+                          <th className="px-8 py-4 text-center font-bold text-slate-400 uppercase">Qty</th>
+                          <th className="px-8 py-4 text-right font-bold text-slate-400 uppercase">Total Shard</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {selectedReturn.items?.map(item => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-8 py-3 font-bold text-slate-700 uppercase">{item.item_name}</td>
+                            <td className="px-8 py-3 text-center"><span className="bg-slate-50 px-2 py-1 rounded-lg font-mono font-bold">{item.quantity}</span></td>
+                            <td className="px-8 py-3 text-right font-black text-slate-800 italic">₹{parseFloat(item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+               </div>
 
-              {/* High Contrast Totals */}
-              <div className="space-y-3 bg-slate-900 p-8 rounded-2xl text-white shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
-                <div className="flex justify-between items-center opacity-60 text-[10px] font-black uppercase tracking-widest">
-                  <span>Gross Reversal Value</span>
-                  <span className="font-mono">₹{parseFloat(selectedReturn.total_return_amount || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between item-center text-3xl font-black border-t border-slate-800 pt-6 mt-4 tracking-tighter">
-                  <span className="uppercase italic tracking-tight italic">Net Refund</span>
-                  <span className="text-white drop-shadow-lg">₹{parseFloat(selectedReturn.refund_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest mt-4">
-                   <span>Mechanism: {selectedReturn.refund_type}</span>
-                   <span className="italic opacity-30 italic">Certified Transaction</span>
-                </div>
-              </div>
+               {selectedReturn.notes && (
+                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 relative group">
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2 italic">Notes / Manifesto</p>
+                    <p className="text-sm font-bold text-slate-600 leading-relaxed italic">{selectedReturn.notes}</p>
+                 </div>
+               )}
+
+               <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:rotate-12 transition-transform duration-700"><TrendingUp size={150} /></div>
+                  <div className="flex justify-between items-end relative z-10">
+                    <div>
+                       <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.4em] italic mb-2 block">Refund Integrity Validated</span>
+                       <p className="text-4xl font-bold tracking-tighter italic shadow-white/10 shadow-sm">₹{parseFloat(selectedReturn.refund_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 italic">Total Reversal Shard</p>
+                       <p className="text-xl font-bold opacity-60 italic">₹{parseFloat(selectedReturn.total_return_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Form Modal */}
-      {showForm && (
-        <SaleReturnForm onClose={() => setShowForm(false)} onSuccess={handleFormSubmit} />
       )}
     </div>
   );
 }
+
+const Loader = ({ className, size }) => (
+  <RefreshCcw className={`animate-spin ${className}`} size={size} />
+);

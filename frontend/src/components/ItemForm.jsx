@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check } from 'lucide-react';
+import { 
+  X, Check, Activity, Package, QrCode, 
+  Building2, TrendingUp, IndianRupee, ShieldAlert,
+  Tag, Layers, FileText, Briefcase, Calendar,
+  ShieldCheck, Percent, HelpCircle, Save, RefreshCcw,
+  Box, ArrowUpRight, ArrowDownLeft
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
-// Traditional Layout Label Component
-const FormLabel = ({ children, className = "" }) => (
-  <label className={`text-[11px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap text-right pr-2 select-none ${className}`}>
-    {children}
-  </label>
+// Airy Label Component - Premium Typography with Icon support
+const FormLabel = ({ children, icon: Icon, className = "" }) => (
+  <div className={`flex items-center justify-end gap-2 pr-3 select-none ${className}`}>
+    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] whitespace-nowrap text-right uppercase">
+      {children}
+    </label>
+    {Icon && <Icon size={12} className="text-slate-300" />}
+  </div>
 );
 
-// Traditional Input field
+// Airy Input Component - Ultra Soft Style
 const FormInput = ({ className = "", ...props }) => (
-  <input 
-    className={`w-full h-8 px-3 text-[11px] border border-slate-300 focus:border-black focus:outline-none bg-white disabled:bg-slate-100 text-slate-900 disabled:text-slate-400 font-bold transition-all rounded ${className}`} 
-    {...props} 
+  <input
+    className={`w-full h-10 px-4 text-[11px] border border-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none bg-slate-50/50 hover:bg-slate-50 disabled:bg-slate-100/50 text-slate-800 disabled:text-slate-400 font-bold transition-all rounded-2xl ${className}`}
+    {...props}
   />
 );
 
@@ -44,15 +53,15 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
     opening_stock_value: item?.opening_stock_value || 0.00,
     minimum_stock: item?.minimum_stock || 0.000,
     loss_per_kg: item?.loss_per_kg || 0.000,
-    effective_date: item?.effective_date || new Date().toISOString().split('T')[0],
+    effective_date: item?.effective_date ? item.effective_date.split('T')[0] : new Date().toISOString().split('T')[0],
     sgst_percent: item?.sgst_percent !== undefined && item?.sgst_percent !== null ? parseFloat(item.sgst_percent) : 2.50,
     cgst_percent: item?.cgst_percent !== undefined && item?.cgst_percent !== null ? parseFloat(item.cgst_percent) : 2.50,
     igst_percent: item?.igst_percent !== undefined && item?.igst_percent !== null ? parseFloat(item.igst_percent) : 0.00,
     cess_percent: item?.cess_percent !== undefined && item?.cess_percent !== null ? parseFloat(item.cess_percent) : 0.00,
     hsn_code: item?.hsn_code || '21069099',
-    tax_percentage: item?.tax_percentage || 0,
+    tax_percentage: item?.tax_percentage || 5.00,
     reorder_level: item?.reorder_level || 0,
-    purchase_price: item?.purchase_price || 0, 
+    purchase_price: item?.purchase_price || 0,
     sale_price: item?.sale_price || 0,
   });
 
@@ -92,7 +101,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     let finalValue = value;
-    
+
     if (name === 'item_code' || name === 'barcode') {
       finalValue = value.toUpperCase();
     }
@@ -101,9 +110,8 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
       const existingItem = itemsList.find(i => i.item_code.toUpperCase() === finalValue);
       if (existingItem) {
         setCurrentItem(existingItem);
-        // Use existing barcode or generate if missing for existing item
         const finalBarcode = existingItem.barcode || Math.floor(100000 + Math.random() * 900000).toString();
-        
+
         setFormData({
           item_code: existingItem.item_code || '',
           consider_in_autostock: existingItem.consider_in_autostock || 0,
@@ -139,7 +147,6 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
         });
         return;
       } else {
-        // If it's a NEW code being typed, auto-generate a barcode if currently empty
         setCurrentItem(null);
         if (finalValue && !formData.barcode) {
           const autoBarcode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -148,14 +155,14 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
         }
       }
     }
-    
+
     setFormData(prev => {
       const newData = {
         ...prev,
-        [name]: type === 'checkbox' ? (checked ? 1 : 0) : 
-                ['opening_stock', 'opening_stock_value', 'minimum_stock', 'loss_per_kg', 'sgst_percent', 'cgst_percent', 'igst_percent', 'cess_percent', 'purchase_price', 'sale_price', 'tax_percentage'].includes(name) 
-                ? (value === '' ? '' : parseFloat(value)) 
-                : finalValue
+        [name]: type === 'checkbox' ? (checked ? 1 : 0) :
+          ['opening_stock', 'opening_stock_value', 'minimum_stock', 'loss_per_kg', 'sgst_percent', 'cgst_percent', 'igst_percent', 'cess_percent', 'purchase_price', 'sale_price', 'tax_percentage'].includes(name)
+            ? (value === '' ? '' : parseFloat(value))
+            : finalValue
       };
 
       if (name === 'opening_stock' || name === 'purchase_price') {
@@ -168,12 +175,15 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
         newData.cgst_percent = newData.sgst_percent;
       }
 
+      if (name === 'sgst_percent' || name === 'cgst_percent' || name === 'igst_percent') {
+        newData.tax_percentage = (parseFloat(newData.sgst_percent || 0) + parseFloat(newData.cgst_percent || 0) + parseFloat(newData.igst_percent || 0)).toFixed(2);
+      }
+
       return newData;
     });
   };
 
   const handleGenerateBarcode = () => {
-    // Generate a 6-digit random code
     const newCode = Math.floor(100000 + Math.random() * 900000).toString();
     setFormData(prev => ({ ...prev, barcode: newCode }));
   };
@@ -208,279 +218,311 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[130] p-4 select-none">
-      <div className="bg-slate-200 border-2 border-slate-900 w-full max-w-4xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col font-sans relative rounded-lg overflow-hidden max-h-[95vh]">
-        
-        {/* Title Bar Ribbon */}
-        <div className="bg-black text-white px-4 py-2.5 flex justify-between items-center cursor-move">
-          <div className="font-black text-[12px] uppercase tracking-[0.2em] flex items-center gap-2">
-            <div className="w-3.5 h-3.5 bg-white rounded-sm rotate-45"></div>
-            {currentItem ? t('itemMaster.editItem') || 'Edit Item Master' : t('itemMaster.createItem') || 'Add Item Master'}
+    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+      
+      <div className="relative z-10">
+        <div className="flex justify-between items-center mb-10">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-100">
+              <Package size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+                {currentItem ? t('itemMaster.editItem', 'Refine Nomenclature') : t('itemMaster.createItem', 'Initialize Object')}
+              </h2>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Inventory Registry node</p>
+            </div>
           </div>
-          <button onClick={onClose} className="hover:bg-red-600 p-1 rounded transition-all active:scale-90">
-            <X size={16} strokeWidth={3} />
+          <button onClick={onClose} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-800 rounded-2xl transition-all active:scale-90 border border-slate-100">
+            <X size={20} />
           </button>
         </div>
 
         {error && (
-          <div className="px-5 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest animate-pulse">
+          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 text-rose-600 text-[11px] font-black uppercase tracking-widest rounded-2xl animate-pulse flex items-center gap-3">
+            <ShieldAlert size={16} />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 py-6 bg-white">
-          
-          {/* Main Form Fields */}
-          <div className="grid grid-cols-[160px_1fr_160px_1fr] items-center gap-x-4 gap-y-[12px] mb-8">
-            
-             {/* ROW: Item Code & AutoStock */}
-             <FormLabel>{t('itemMaster.itemCode') || 'Item Code'} :</FormLabel>
-             <div className="col-span-1 flex gap-2">
-               <FormInput 
-                 name="item_code" 
-                 value={formData.item_code} 
-                 onChange={handleChange} 
-                 required 
-                 disabled={!!item}
-                 className="flex-1 font-black bg-slate-50 border-slate-900 border-2" 
-               />
-               {!item && (
-                  <button 
+        <form onSubmit={handleSubmit} className="space-y-12">
+
+          {/* Section 1: Registry Profile */}
+          <div className="space-y-8">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
+              <div className="w-6 h-0.5 bg-blue-600"></div> Registry Context
+            </h3>
+
+            <div className="grid grid-cols-[160px_1fr_160px_1fr] items-center gap-x-4 gap-y-[20px]">
+              {/* ITEM CODE */}
+              <FormLabel icon={QrCode}>{t('itemMaster.itemCode') || 'Item Code'} :</FormLabel>
+              <div className="flex gap-2">
+                <FormInput
+                  name="item_code"
+                  value={formData.item_code}
+                  onChange={handleChange}
+                  required
+                  disabled={!!item}
+                  className="bg-blue-50/30 border-blue-100 text-blue-700 italic flex-1"
+                />
+                {!item && (
+                  <button
                     type="button"
                     onClick={() => {
                       const nextCode = itemsList.length > 0 ? (Math.max(...itemsList.map(i => parseInt(i.item_code) || 0)) + 1).toString() : "1";
                       const nextBarcode = Math.floor(100000 + Math.random() * 900000).toString();
                       setFormData(prev => ({ ...prev, item_code: nextCode, barcode: nextBarcode }));
                     }}
-                    className="px-2 h-8 bg-slate-900 text-white text-[9px] font-black uppercase rounded hover:bg-black transition-all shadow-sm"
+                    className="px-4 h-10 bg-slate-900 text-white text-[9px] font-black uppercase rounded-2xl hover:bg-blue-600 transition-all shadow-md active:scale-95"
                   >
                     Auto
                   </button>
-               )}
-             </div>
-             <div className="col-span-2 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="checkbox" 
-                    name="consider_in_autostock" 
-                    checked={formData.consider_in_autostock === 1} 
-                    onChange={handleChange} 
-                    className="w-4 h-4 border-2 border-slate-900 rounded accent-black"
+                )}
+              </div>
+
+              {/* AUTOSTOCK & BARCODE */}
+              <div className="col-span-2 flex items-center justify-between pl-6 h-10">
+                <div className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="consider_in_autostock"
+                    id="consider_in_autostock"
+                    checked={formData.consider_in_autostock === 1}
+                    onChange={handleChange}
+                    className="w-5 h-5 border-2 border-slate-200 rounded-lg accent-blue-600 cursor-pointer"
                   />
-                  <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">AutoStock Process ?</span>
+                  <label htmlFor="consider_in_autostock" className="text-[10px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-widest cursor-pointer transition-colors">AutoStock Process?</label>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <FormLabel icon={Tag} className="!pr-0">Barcode :</FormLabel>
+                  <div className="flex bg-slate-50 border border-slate-100 p-0.5 rounded-2xl">
+                    <input
+                      name="barcode"
+                      value={formData.barcode}
+                      onChange={handleChange}
+                      placeholder="6-DIGIT"
+                      className="w-24 h-8 px-4 text-[11px] bg-transparent outline-none font-mono font-black text-slate-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateBarcode}
+                      className="h-8 px-3 bg-white text-slate-600 text-[9px] font-black uppercase rounded-xl border border-slate-100 hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+                    >
+                      Gen
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ITEM NAME */}
+              <FormLabel icon={Package}>{t('itemMaster.itemName') || 'Item Name'} :</FormLabel>
+              <div className="col-span-3">
+                <FormInput
+                  name={fieldKeys.itemName}
+                  value={formData[fieldKeys.itemName]}
+                  onChange={handleChange}
+                  required
+                  placeholder="Object Nomenclature"
+                />
+              </div>
+
+              {/* DESCRIPTION */}
+              <FormLabel icon={FileText}>{t('itemMaster.description') || 'Description'} :</FormLabel>
+              <div className="col-span-3">
+                <FormInput
+                  name={fieldKeys.desc}
+                  value={formData[fieldKeys.desc]}
+                  onChange={handleChange}
+                  className="italic font-medium border-dashed bg-transparent"
+                  placeholder="Additional metadata..."
+                />
+              </div>
+
+              {/* UNIT */}
+              <FormLabel icon={Layers}>{t('itemMaster.unit') || 'Unit'} :</FormLabel>
+              <div className="col-span-1 flex h-10">
+                <input
+                  name={fieldKeys.unit}
+                  value={formData[fieldKeys.unit]}
+                  onChange={handleChange}
+                  className="flex-1 px-4 text-[11px] border border-slate-100 border-r-0 rounded-l-2xl outline-none font-black uppercase bg-slate-50/50 text-slate-700"
+                />
+                <select
+                  onChange={(e) => setFormData(p => ({ ...p, [fieldKeys.unit]: e.target.value }))}
+                  value={formData[fieldKeys.unit]}
+                  className="w-12 border border-slate-100 border-l-0 bg-slate-50/50 rounded-r-2xl outline-none p-1 text-xs cursor-pointer hover:bg-white transition-all"
+                >
+                  <option value="Nos">Nos</option>
+                  <option value="નંગ">નંગ</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Pcs">Pcs</option>
+                  <option value="Ltr">Ltr</option>
+                </select>
+              </div>
+              <div className="col-span-2"></div>
+
+              {/* PURCHASE BOOK */}
+              <FormLabel icon={Briefcase}>Purchase Book :</FormLabel>
+              <div className="col-span-3 flex gap-2">
+                <FormInput
+                  type="text"
+                  value={formData.purchase_account_id}
+                  onChange={(e) => setFormData(p => ({ ...p, purchase_account_id: e.target.value }))}
+                  className="w-24 text-center bg-violet-50/50 border-violet-100 text-violet-700 font-black"
+                  placeholder="ID"
+                />
+                <select
+                  name="purchase_account_id"
+                  value={formData.purchase_account_id}
+                  onChange={handleChange}
+                  className="flex-1 h-10 border border-slate-100 rounded-2xl px-4 text-[11px] font-bold uppercase outline-none focus:border-blue-500 bg-slate-50/50 hover:bg-white"
+                >
+                  <option value="">-- SELECT PURCHASE ACCOUNT --</option>
+                  {accounts.filter(a => a.account_type === 'purchase').map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.account_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* SALES BOOK */}
+              <FormLabel icon={TrendingUp}>Sales Book :</FormLabel>
+              <div className="col-span-3 flex gap-2">
+                <FormInput
+                  type="text"
+                  value={formData.sales_account_id}
+                  onChange={(e) => setFormData(p => ({ ...p, sales_account_id: e.target.value }))}
+                  className="w-24 text-center bg-emerald-50/50 border-emerald-100 text-emerald-700 font-black"
+                  placeholder="ID"
+                />
+                <select
+                  name="sales_account_id"
+                  value={formData.sales_account_id}
+                  onChange={handleChange}
+                  className="flex-1 h-10 border border-slate-100 rounded-2xl px-4 text-[11px] font-bold uppercase outline-none focus:border-blue-500 bg-slate-50/50 hover:bg-white"
+                >
+                  <option value="">-- SELECT SALES ACCOUNT --</option>
+                  {accounts.filter(a => a.account_type === 'sales').map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.account_name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Stock Orchestration */}
+          <div className="space-y-8">
+             <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
+                  <div className="w-6 h-0.5 bg-amber-500"></div> Stock Ledger control
+                </h3>
+                <label className="flex items-center gap-2 cursor-pointer group pr-4">
+                  <input
+                    type="checkbox"
+                    name="do_auto_stock_in_sales"
+                    id="do_auto_stock_in_sales"
+                    checked={formData.do_auto_stock_in_sales === 1}
+                    onChange={handleChange}
+                    className="w-4 h-4 rounded border-slate-200 accent-amber-500 cursor-pointer"
+                  />
+                  <span className="text-[10px] font-black text-slate-400 group-hover:text-amber-600 uppercase tracking-widest transition-colors">Auto-Stock Registry</span>
+                </label>
+             </div>
+
+             <div className="p-10 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 relative group overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03] scale-[4] text-slate-900 group-hover:opacity-[0.05] transition-all duration-700">
+                   <Activity />
                 </div>
                 
-                {/* Barcode Field */}
-                <div className="flex items-center gap-2">
-                   <FormLabel className="!pr-0">Barcode :</FormLabel>
-                   <div className="flex">
-                      <input 
-                        name="barcode"
-                        value={formData.barcode}
-                        onChange={handleChange}
-                        placeholder="6-DIGIT"
-                        className="w-24 h-8 px-3 text-[11px] border border-slate-300 rounded-l font-mono font-black"
-                      />
-                      <button 
-                        type="button"
-                        onClick={handleGenerateBarcode}
-                        className="h-8 px-2 bg-slate-900 text-white text-[9px] font-black uppercase rounded-r hover:bg-black transition-all"
-                      >
-                        Gen
-                      </button>
-                   </div>
+                <div className="grid grid-cols-[160px_120px_160px_120px] gap-x-12 gap-y-[20px] items-center justify-center relative z-10">
+                  <FormLabel icon={Box}>Opening Stock :</FormLabel>
+                  <FormInput type="number" step="0.001" name="opening_stock" value={formData.opening_stock} onChange={handleChange} className="text-right font-mono" />
+
+                  <FormLabel icon={IndianRupee}>Purchase Rate :</FormLabel>
+                  <FormInput type="number" step="0.01" name="purchase_price" value={formData.purchase_price} onChange={handleChange} className="text-right font-mono text-blue-600" />
+
+                  <FormLabel icon={TrendingUp} className="text-slate-800">Standard Sale :</FormLabel>
+                  <FormInput type="number" step="0.01" name="sale_price" value={formData.sale_price} onChange={handleChange} className="text-right font-mono bg-white border-blue-500/20 text-rose-600 shadow-lg shadow-rose-100/20 ring-4 ring-rose-500/5" />
+
+                  <FormLabel icon={ArrowDownLeft}>Inward (Total) :</FormLabel>
+                  <div className="relative">
+                    <FormInput
+                      disabled
+                      value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0)).toFixed(3)}
+                      className="text-right bg-blue-50/50 border-blue-100 text-blue-800"
+                    />
+                    <span className="absolute -top-3 right-0 text-[7px] font-black text-blue-400 uppercase tracking-tighter">Gross Inflow</span>
+                  </div>
+
+                  <FormLabel icon={IndianRupee}>Op Stock Val :</FormLabel>
+                  <FormInput disabled value={formData.opening_stock_value} className="text-right bg-slate-100/50 text-slate-400" />
+
+                  <FormLabel icon={ArrowUpRight}>Outward (Total) :</FormLabel>
+                  <div className="relative">
+                    <FormInput
+                      disabled
+                      value={parseFloat(formData.outward || 0).toFixed(3)}
+                      className="text-right bg-slate-200/30 text-slate-400"
+                    />
+                    <span className="absolute -top-3 right-0 text-[7px] font-black text-slate-400 uppercase tracking-tighter">Total Dispatch</span>
+                  </div>
+
+                  <FormLabel icon={ShieldAlert}>Critical Min :</FormLabel>
+                  <FormInput type="number" step="0.001" name="minimum_stock" value={formData.minimum_stock} onChange={handleChange} className="text-right font-mono text-amber-600" />
+
+                  <FormLabel icon={Activity}>Closing Bal :</FormLabel>
+                  <FormInput disabled value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0) - parseFloat(formData.outward || 0)).toFixed(3)} className="text-right bg-slate-900 text-white border-none shadow-xl shadow-slate-200 ring-4 ring-slate-900/10" />
                 </div>
              </div>
-
-            {/* ROW: Item Name */}
-            <FormLabel>{t('itemMaster.itemName') || 'Item Name'} :</FormLabel>
-            <div className="col-span-3">
-              <FormInput 
-                name={fieldKeys.itemName} 
-                value={formData[fieldKeys.itemName]} 
-                onChange={handleChange} 
-                required 
-                className="font-black"
-              />
-            </div>
-
-            {/* ROW: Description */}
-            <FormLabel>{t('itemMaster.description') || 'Description'} :</FormLabel>
-            <div className="col-span-3">
-              <FormInput 
-                name={fieldKeys.desc} 
-                value={formData[fieldKeys.desc]} 
-                onChange={handleChange} 
-                className="italic font-medium"
-              />
-            </div>
-
-            {/* ROW: Unit */}
-            <FormLabel>{t('itemMaster.unit') || 'Unit'} :</FormLabel>
-            <div className="col-span-1 flex h-8">
-              <input 
-                name={fieldKeys.unit} 
-                value={formData[fieldKeys.unit]} 
-                onChange={handleChange} 
-                className="flex-1 px-3 text-[11px] border border-slate-300 rounded-l outline-none font-black uppercase bg-white border-r-0"
-              />
-              <select 
-                onChange={(e) => setFormData(p => ({ ...p, [fieldKeys.unit]: e.target.value }))}
-                value={formData[fieldKeys.unit]} 
-                className="w-8 border border-slate-300 bg-slate-100 rounded-r border-l-0 outline-none p-1 text-xs cursor-pointer hover:bg-slate-200"
-              >
-                <option value="Nos">Nos</option>
-                <option value="નંગ">નંગ</option>
-                <option value="Kg">Kg</option>
-                <option value="Pcs">Pcs</option>
-                <option value="Ltr">Ltr</option>
-              </select>
-            </div>
-            <div className="col-span-2 h-8"></div>
-
-            {/* ROW: Accounts */}
-            <FormLabel>Purchase Book :</FormLabel>
-            <div className="col-span-3 flex gap-2">
-              <FormInput 
-                type="text" 
-                value={formData.purchase_account_id}
-                onChange={(e) => setFormData(p => ({ ...p, purchase_account_id: e.target.value }))}
-                className="w-16 text-center bg-slate-50 font-black"
-              />
-              <select 
-                name="purchase_account_id" 
-                value={formData.purchase_account_id} 
-                onChange={handleChange}
-                className="flex-1 h-8 border border-slate-300 rounded px-3 text-[11px] font-black uppercase outline-none focus:border-black transition-all"
-              >
-                <option value="">-- SELECT PURCHASE ACCOUNT --</option>
-                {accounts.filter(a => a.account_type === 'purchase').map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.account_name}</option>
-                ))}
-              </select>
-            </div>
-
-            <FormLabel>Sales Book :</FormLabel>
-            <div className="col-span-3 flex gap-2">
-              <FormInput 
-                type="text" 
-                value={formData.sales_account_id}
-                onChange={(e) => setFormData(p => ({ ...p, sales_account_id: e.target.value }))}
-                className="w-16 text-center bg-slate-50 font-black"
-              />
-              <select 
-                name="sales_account_id" 
-                value={formData.sales_account_id} 
-                onChange={handleChange}
-                className="flex-1 h-8 border border-slate-300 rounded px-3 text-[11px] font-black uppercase outline-none focus:border-black transition-all"
-              >
-                <option value="">-- SELECT SALES ACCOUNT --</option>
-                {accounts.filter(a => a.account_type === 'sales').map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.account_name}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
-          {/* Group: Stock Information */}
-          <div className="relative border-2 border-slate-900 p-6 pt-8 rounded-lg mt-10">
-            <div className="absolute -top-4 left-4 bg-white px-4 flex items-center gap-6">
-              <span className="text-[11px] font-black text-black uppercase tracking-[0.2em] italic">Stock Ledger Control</span>
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  name="do_auto_stock_in_sales" 
-                  checked={formData.do_auto_stock_in_sales === 1}
-                  onChange={handleChange}
-                  className="w-4 h-4 accent-black"
-                /> 
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-black">Auto-Stock Registry</span>
-              </label>
-            </div>
+          {/* Section 3: Statutory Compliance */}
+          <div className="space-y-8">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
+              <div className="w-6 h-0.5 bg-emerald-500"></div> Statutory Protocol
+            </h3>
 
-            <div className="grid grid-cols-[160px_100px_160px_100px] gap-x-8 gap-y-[14px] items-center justify-center">
-              <FormLabel>Opening Stock :</FormLabel>
-              <FormInput type="number" step="0.001" name="opening_stock" value={formData.opening_stock} onChange={handleChange} className="text-right font-mono text-xs" />
-              
-              <FormLabel>Purchase Rate :</FormLabel>
-              <FormInput type="number" step="0.01" name="purchase_price" value={formData.purchase_price} onChange={handleChange} className="text-right font-mono text-xs" />
+            <div className="grid grid-cols-[160px_120px_160px_120px] gap-x-12 gap-y-[20px] items-center justify-center">
+              <FormLabel icon={Calendar}>Effective At :</FormLabel>
+              <FormInput type="date" name="effective_date" value={formData.effective_date} onChange={handleChange} className="text-slate-500 font-mono text-[10px]" />
 
-              <FormLabel className="text-black">Standard Sale :</FormLabel>
-              <FormInput type="number" step="0.01" name="sale_price" value={formData.sale_price} onChange={handleChange} className="text-right font-mono bg-yellow-50/50 border-slate-900 border-2 text-xs" />
+              <FormLabel icon={ShieldAlert}>HSN / SAC :</FormLabel>
+              <FormInput name="hsn_code" value={formData.hsn_code} onChange={handleChange} className="text-center font-black bg-emerald-50/20 border-emerald-100" />
 
-              <FormLabel>Inward (Total) :</FormLabel>
-              <div className="relative">
-                <FormInput 
-                  disabled 
-                  value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0)).toFixed(3)} 
-                  className="text-right bg-blue-50 font-mono text-xs border-blue-200" 
-                />
-                <span className="absolute -top-3 right-0 text-[7px] font-black text-blue-400 uppercase tracking-tighter">Gross Inflow</span>
-              </div>
-              
-              <FormLabel>Op Stock Val :</FormLabel>
-              <FormInput disabled value={formData.opening_stock_value} className="text-right bg-slate-50 font-mono text-xs" />
-              
-              <FormLabel>Outward (Total) :</FormLabel>
-              <div className="relative">
-                <FormInput 
-                  disabled 
-                  value={parseFloat(formData.outward || 0).toFixed(3)} 
-                  className="text-right bg-slate-100 font-mono text-xs" 
-                />
-                <span className="absolute -top-3 right-0 text-[7px] font-black text-slate-400 uppercase tracking-tighter">Total Dispatch</span>
-              </div>
-              
-              <FormLabel>Critical Min :</FormLabel>
-              <FormInput type="number" step="0.001" name="minimum_stock" value={formData.minimum_stock} onChange={handleChange} className="text-right font-mono text-xs" />
-              
-              <FormLabel>Closing Bal :</FormLabel>
-              <FormInput disabled value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0) - parseFloat(formData.outward || 0)).toFixed(3)} className="text-right bg-slate-900 text-white font-mono text-xs shadow-xl" />
-            </div>
-
-            {/* Statutory Details */}
-            <div className="grid grid-cols-[160px_100px_160px_100px] gap-x-8 gap-y-[14px] items-center justify-center mt-8 pt-6 border-t border-slate-200">
-              <FormLabel>Effective At :</FormLabel>
-              <FormInput type="date" name="effective_date" value={formData.effective_date} onChange={handleChange} className="font-mono text-[10px]" />
-
-              <FormLabel>HSN / SAC :</FormLabel>
-              <FormInput name="hsn_code" value={formData.hsn_code} onChange={handleChange} className="font-black text-center" />
-
-              <FormLabel>SGST % :</FormLabel>
+              <FormLabel icon={Percent}>SGST % :</FormLabel>
               <FormInput type="number" step="0.01" name="sgst_percent" value={formData.sgst_percent} onChange={handleChange} className="text-right font-mono" />
 
-              <FormLabel>CGST % :</FormLabel>
+              <FormLabel icon={Percent}>CGST % :</FormLabel>
               <FormInput type="number" step="0.01" name="cgst_percent" value={formData.cgst_percent} onChange={handleChange} className="text-right font-mono" />
 
-              <FormLabel>IGST % :</FormLabel>
+              <FormLabel icon={Percent}>IGST % :</FormLabel>
               <FormInput type="number" step="0.01" name="igst_percent" value={formData.igst_percent} onChange={handleChange} className="text-right font-mono" />
 
-              <FormLabel>Cess Amount :</FormLabel>
-              <FormInput type="number" step="0.01" name="cess_percent" value={formData.cess_percent} onChange={handleChange} className="text-right font-mono" />
+              <FormLabel icon={Percent}>Cess Amount :</FormLabel>
+              <FormInput type="number" step="0.01" name="cess_percent" value={formData.cess_percent} onChange={handleChange} className="text-right font-mono text-slate-300" />
             </div>
           </div>
+
+          {/* Footer Actions */}
+          <div className="pt-6 flex gap-5 border-t border-slate-50">
+             <button
+               type="submit"
+               disabled={loading}
+               className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] py-5 rounded-[2rem] hover:bg-blue-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+             >
+               {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> {currentItem ? 'Commit Changes' : 'Initialize Object'}</>}
+             </button>
+             <button
+               type="button"
+               onClick={onClose}
+               className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
+             >
+               Abort
+             </button>
+          </div>
+
         </form>
-
-        {/* Action Footer */}
-        <div className="bg-slate-200 border-t border-slate-300 px-6 py-4 flex justify-end gap-4 shadow-inner">
-          <button 
-            type="button" 
-            onClick={onClose}
-            className="px-8 h-10 border border-slate-300 bg-white text-slate-600 text-[11px] font-black uppercase tracking-widest rounded hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-10 h-10 bg-black text-white text-[11px] font-black uppercase tracking-widest rounded hover:bg-slate-800 transition-all active:scale-95 shadow-lg flex items-center gap-2"
-          >
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Check size={14} />}
-            Confirm & Save Item
-          </button>
-        </div>
-
       </div>
     </div>
   );
