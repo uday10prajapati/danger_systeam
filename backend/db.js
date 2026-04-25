@@ -288,7 +288,9 @@ export async function initializeDatabase() {
           branch_name VARCHAR(255),
           account_type VARCHAR(50),
           address_no VARCHAR(255),
-          nominal_member VARCHAR(100),
+          nominal_member VARCHAR(255),
+          ifsc_code VARCHAR(50),
+          bardan_opening DECIMAL(15, 2) DEFAULT 0,
           is_active INT DEFAULT 1,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -300,14 +302,28 @@ export async function initializeDatabase() {
 
       // Migration for existing tables (ensure column names match new system)
       try {
-         const cols = [
-            'village_code', 'village_name', 'full_ac_number', 
-            'bank_name', 'branch_name', 'account_type', 
-            'address_no', 'eng_name', 'nominal_member'
-         ];
-         for (const col of cols) {
-            try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} VARCHAR(255)`); } catch(e) {}
-         }
+          // 0. Pre-shrink some columns to avoid Row Size Too Large error
+          try { await connection.query("ALTER TABLE member_master MODIFY COLUMN address_no TEXT"); } catch(e) {}
+          try { await connection.query("ALTER TABLE member_master MODIFY COLUMN eng_name TEXT"); } catch(e) {}
+          try { await connection.query("ALTER TABLE member_master MODIFY COLUMN nominal_member TEXT"); } catch(e) {}
+          try { await connection.query("ALTER TABLE member_master MODIFY COLUMN branch_name VARCHAR(155)"); } catch(e) {}
+          try { await connection.query("ALTER TABLE member_master MODIFY COLUMN village_name VARCHAR(155)"); } catch(e) {}
+
+          const cols = [
+             'village_code', 'village_name', 'full_ac_number', 
+             'bank_name', 'branch_name', 'account_type', 
+             'address_no', 'eng_name', 'nominal_member',
+             'bardan_opening', 'ifsc_code'
+          ];
+          for (const col of cols) {
+             if (col === 'bardan_opening') {
+               try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} DECIMAL(15, 2) DEFAULT 0`); } catch(e) {}
+             } else if (col === 'ifsc_code') {
+               try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} VARCHAR(20)`); } catch(e) {}
+             } else {
+               try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} VARCHAR(255)`); } catch(e) {}
+             }
+          }
          // Clean up old columns if they exist
          try { await connection.query("ALTER TABLE member_master DROP COLUMN email"); } catch(e) {}
          try { await connection.query("ALTER TABLE member_master DROP COLUMN discount_percentage"); } catch(e) {}
@@ -860,10 +876,7 @@ export async function initializeDatabase() {
         }
       }
 
-      // Add IFSC Code to member_master
-      try {
-        await connection.query("ALTER TABLE member_master ADD COLUMN ifsc_code VARCHAR(50)");
-      } catch (e) {}
+      // IFSC Code handled in the migration block above
 
       await connection.commit();
       console.log('✅ MySQL Database tables created/verified/upgraded');
@@ -908,6 +921,7 @@ export async function queryOne(sql, params = []) {
 export async function execute(sql, params = []) {
   try {
     const [result] = await pool.execute(sql, params);
+    console.log(`✅ SQL Executed: ${result.affectedRows} row(s) affected`);
     return { lastID: result.insertId, changes: result.affectedRows };
   } catch (error) {
     if (error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {

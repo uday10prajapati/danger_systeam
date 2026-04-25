@@ -27,7 +27,8 @@ import {
   MapPin,
   ChevronDown,
   ChevronRight,
-  Database
+  Database,
+  ArrowLeftRight
 } from 'lucide-react'
 
 function Sidebar() {
@@ -54,8 +55,7 @@ function Sidebar() {
         { id: 'items', title: t('modules.itemMaster'), icon: Package, path: '/items' },
         { id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
         { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
-        { id: 'bardan-entry', title: 'Khali Bardan Entry', icon: Package, path: '/bardan-entry' },
-        { id: 'jama-bardan-entry', title: 'Jama Bardan Entry', icon: Package, path: '/jama-bardan-entry' },
+        { id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
       ]
     },
     { id: 'sales', title: t('modules.sale'), icon: ShoppingCart, path: '/sales' },

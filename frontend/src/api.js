@@ -103,6 +103,8 @@ export const bardanEntryApi = {
   createEntry: (data) => api.post('/bardan-entry', data),
   updateEntry: (id, data) => api.put(`/bardan-entry/${id}`, data),
   deleteEntry: (id) => api.delete(`/bardan-entry/${id}`),
+  getBalance: (code) => api.get(`/bardan-entry/balance/${code}`),
+  getLedger: (code) => api.get(`/bardan-entry/ledger/${code}`),
 };
 
 // Jama Bardan Entry

@@ -35,6 +35,7 @@ export default function MemberForm({
     engName: '',
     nominalMember: '',
     ifscCode: '',
+    bardanOpening: 0,
     is_active: true
   })
 
@@ -85,6 +86,7 @@ export default function MemberForm({
         engName: editingMember.eng_name || '',
         nominalMember: editingMember.nominal_member || '',
         ifscCode: editingMember.ifsc_code || '',
+        bardanOpening: editingMember.bardan_opening || 0,
         is_active: editingMember.is_active === 1
       })
     } else {
@@ -115,6 +117,7 @@ export default function MemberForm({
           engName: member.eng_name || '',
           nominalMember: member.nominal_member || '',
           ifscCode: member.ifsc_code || '',
+          bardanOpening: member.bardan_opening || 0,
           is_active: member.is_active === 1
         });
         setMessage({ type: 'success', text: 'Member found! Switched to edit mode.' });
@@ -431,6 +434,21 @@ export default function MemberForm({
                    <option value="Current">Current</option>
                    <option value="Nominal">Nominal Member</option>
                  </select>
+              </div>
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Bardan Opening Balance</label>
+                 <div className="relative group">
+                    <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="bardanOpening"
+                      value={formData.bardanOpening}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      className="w-full pl-12 pr-4 py-3 bg-blue-50/30 border border-blue-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
+                    />
+                 </div>
               </div>
             </div>
           </div>

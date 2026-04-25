@@ -89,6 +89,7 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [balanceData, setBalanceData] = useState({ taken: 0, returned: 0, balance: 0 });
 
   // Fetch data when modal opens
   useEffect(() => {
@@ -115,9 +116,25 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
   const fetchMembers = async () => {
     try {
       const res = await sabhasadMasterApi.getAllSabhasad();
-      setMembers(res.data || []);
+      const memberList = res.data.success ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+      setMembers(memberList);
     } catch (err) {
       console.error('Failed to load members:', err);
+    }
+  };
+
+  const fetchBalance = async (code) => {
+    if (!code) {
+      setBalanceData({ taken: 0, returned: 0, balance: 0 });
+      return;
+    }
+    try {
+      const res = await bardanEntryApi.getBalance(code);
+      if (res.data.success) {
+        setBalanceData(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
     }
   };
 
@@ -130,6 +147,9 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
       const member = members.find(m => m.member_code === value);
       if (member) {
         setForm(prev => ({ ...prev, name: member.member_name }));
+        fetchBalance(value);
+      } else {
+        setBalanceData({ taken: 0, returned: 0, balance: 0 });
       }
     }
     // Auto-fill code if name is changed
@@ -137,6 +157,9 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
       const member = members.find(m => m.member_name === value);
       if (member) {
         setForm(prev => ({ ...prev, code: member.member_code }));
+        fetchBalance(member.member_code);
+      } else {
+        setBalanceData({ taken: 0, returned: 0, balance: 0 });
       }
     }
   };
@@ -301,6 +324,22 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col p-6 gap-6 bg-gray-50">
+          {/* Balance Metrics Card */}
+          <div className="grid grid-cols-3 gap-4">
+             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 italic">Total Bags Taken</p>
+                <p className="text-2xl font-black text-slate-800 italic">{balanceData.taken}</p>
+             </div>
+             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-emerald-500">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 italic">Total Returned</p>
+                <p className="text-2xl font-black text-emerald-500 italic">{balanceData.returned}</p>
+             </div>
+             <div className="bg-slate-900 p-4 rounded-xl shadow-lg border-l-4 border-l-rose-500">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 italic">Current Remaining</p>
+                <p className="text-2xl font-black text-white italic">{balanceData.balance}</p>
+             </div>
+          </div>
+
           {error && <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg animate-pulse">{error}</div>}
           {success && <div className="p-3 bg-green-100 border border-green-200 text-green-700 rounded-lg">{success}</div>}
           

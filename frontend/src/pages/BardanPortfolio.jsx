@@ -4,15 +4,17 @@ import {
   Search, X, RefreshCcw, Calendar, 
   AlertCircle, CheckCircle, History, 
   Package, User, FileText, ChevronRight,
-  Database, Info, Layout
+  Database, Info, Layout, ArrowLeftRight,
+  TrendingDown, TrendingUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { jamaBardanEntryApi, sabhasadMasterApi } from '../api';
+import { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
 
-const JamaBardanEntry = () => {
+const BardanPortfolio = () => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     id: null,
+    type: 'GIVEN', // GIVEN or RETURNED
     bookType: 'Combo1',
     pavtiNo: '',
     date: new Date().toISOString().split('T')[0],
@@ -31,8 +33,17 @@ const JamaBardanEntry = () => {
   const [message, setMessage] = useState(null);
   const [members, setMembers] = useState([]);
   const [history, setHistory] = useState([]);
+  const [ledgerData, setLedgerData] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [balanceData, setBalanceData] = useState({ taken: 0, returned: 0, balance: 0 });
+
+  useEffect(() => {
+    const total = gridRows.reduce((acc, row) => {
+      const sum = (parseFloat(row.col1) || 0) + (parseFloat(row.col2) || 0) + (parseFloat(row.col3) || 0);
+      return acc + sum;
+    }, 0);
+    setFormData(prev => ({ ...prev, qty: total > 0 ? total.toFixed(2) : '' }));
+  }, [gridRows]);
 
   useEffect(() => {
     loadData();
@@ -41,15 +52,21 @@ const JamaBardanEntry = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [membersRes, historyRes] = await Promise.all([
+      const [membersRes, givenRes, returnedRes] = await Promise.all([
         sabhasadMasterApi.getAllSabhasad(),
+        bardanEntryApi.getAllEntries(),
         jamaBardanEntryApi.getAllEntries()
       ]);
 
       if (membersRes.data.success) setMembers(membersRes.data.data || membersRes.data);
       else if (Array.isArray(membersRes.data)) setMembers(membersRes.data);
 
-      if (historyRes.data.success) setHistory(historyRes.data.data);
+      const combinedHistory = [
+        ...(givenRes.data.success ? givenRes.data.data.map(item => ({ ...item, type: 'GIVEN' })) : []),
+        ...(returnedRes.data.success ? returnedRes.data.data.map(item => ({ ...item, type: 'RETURNED' })) : [])
+      ].sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+
+      setHistory(combinedHistory);
     } catch (error) {
       console.error('Failed to load initial data:', error);
       setMessage({ type: 'error', text: 'Synchronization failure' });
@@ -61,15 +78,26 @@ const JamaBardanEntry = () => {
   const fetchBalance = async (code) => {
     if (!code) {
       setBalanceData({ taken: 0, returned: 0, balance: 0 });
+      setLedgerData([]);
       return;
     }
     try {
-      const res = await bardanEntryApi.getBalance(code);
-      if (res.data.success) {
-        setBalanceData(res.data.data);
+      setLoading(true);
+      const [balRes, ledRes] = await Promise.all([
+        bardanEntryApi.getBalance(code),
+        bardanEntryApi.getLedger(code)
+      ]);
+      
+      if (balRes.data.success) {
+        setBalanceData(balRes.data.data);
+      }
+      if (ledRes.data.success) {
+        setLedgerData(ledRes.data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch balance:', err);
+      console.error('Failed to fetch balance/ledger:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,48 +133,69 @@ const JamaBardanEntry = () => {
 
     try {
       setLoading(true);
-      const res = formData.id 
-        ? await jamaBardanEntryApi.updateEntry(formData.id, { ...formData, gridRows })
-        : await jamaBardanEntryApi.createEntry({ ...formData, gridRows });
+      console.log('🚀 Dispatching Bardan Transaction:', { formData, gridRows });
+      let res;
+      if (formData.id) {
+        res = formData.type === 'GIVEN'
+          ? await bardanEntryApi.updateEntry(formData.id, { ...formData, gridRows })
+          : await jamaBardanEntryApi.updateEntry(formData.id, { ...formData, gridRows });
+      } else {
+        res = formData.type === 'GIVEN'
+          ? await bardanEntryApi.createEntry({ ...formData, gridRows })
+          : await jamaBardanEntryApi.createEntry({ ...formData, gridRows });
+      }
 
       if (res.data.success) {
-        setMessage({ type: 'success', text: formData.id ? 'Entry updated successfully' : 'Entry committed to registry' });
+        setMessage({ type: 'success', text: formData.id ? 'Transaction updated' : 'Transaction committed' });
+        console.log('✅ Commit Success:', res.data);
         if (!formData.id) resetForm();
         loadData();
+        if (formData.code) fetchBalance(formData.code);
         setTimeout(() => setMessage(null), 5000);
+      } else {
+        console.error('❌ Commit Failure:', res.data);
+        setMessage({ type: 'error', text: res.data.error || 'Operational failure' });
       }
-    } catch (error) {
-       console.error('Save error:', error);
-       setMessage({ type: 'error', text: 'Operational failure during commit' });
+    } catch (err) {
+      console.error('🚀 Dispatching Error:', err);
+      setMessage({ type: 'error', text: 'Network or server error during commit' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Decommission this transaction node?')) return;
+  const handleDelete = async (id, type) => {
+    if (!window.confirm('Delete this transaction node?')) return;
     try {
       setLoading(true);
-      const res = await jamaBardanEntryApi.deleteEntry(id);
+      const res = type === 'GIVEN' 
+        ? await bardanEntryApi.deleteEntry(id)
+        : await jamaBardanEntryApi.deleteEntry(id);
+        
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Node decommissioned' });
+        setMessage({ type: 'success', text: 'Node deleted successfully' });
         loadData();
+        if (formData.code) fetchBalance(formData.code);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Decommission failed' });
+      setMessage({ type: 'error', text: 'Deletion failed' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = async (entryId) => {
+  const handleEdit = async (item) => {
     try {
       setLoading(true);
-      const res = await jamaBardanEntryApi.getEntryById(entryId);
+      const res = item.type === 'GIVEN'
+        ? await bardanEntryApi.getEntryById(item.id)
+        : await jamaBardanEntryApi.getEntryById(item.id);
+
       if (res.data.success) {
         const entry = res.data.data;
         setFormData({
           id: entry.id,
+          type: item.type,
           bookType: entry.book_type,
           pavtiNo: entry.pavti_no,
           date: entry.entry_date ? new Date(entry.entry_date).toISOString().split('T')[0] : '',
@@ -161,9 +210,10 @@ const JamaBardanEntry = () => {
         });
         setGridRows(entry.gridRows || Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
         setShowHistory(false);
+        fetchBalance(entry.code);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load manifest details' });
+      setMessage({ type: 'error', text: 'Failed to load transaction details' });
     } finally {
       setLoading(false);
     }
@@ -172,6 +222,7 @@ const JamaBardanEntry = () => {
   const resetForm = () => {
     setFormData({
       id: null,
+      type: 'GIVEN',
       bookType: 'Combo1',
       pavtiNo: '',
       date: new Date().toISOString().split('T')[0],
@@ -188,9 +239,7 @@ const JamaBardanEntry = () => {
     setBalanceData({ taken: 0, returned: 0, balance: 0 });
   };
 
-  const handlePrint = () => {
-     window.print();
-  };
+  const handlePrint = () => { window.print(); };
 
   if (showHistory) {
     return (
@@ -198,8 +247,8 @@ const JamaBardanEntry = () => {
         <div className="max-w-[1500px] mx-auto px-8">
            <div className="flex justify-between items-center py-10">
               <div>
-                 <h1 className="text-3xl font-black text-emerald-500 tracking-tight italic uppercase">Jama Bardan History</h1>
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Jama Gunny Bag Registry Manifest</p>
+                 <h1 className="text-3xl font-black text-slate-800 tracking-tight italic uppercase">Unified Bardan Registry</h1>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Combined Logistics & Return Manifest</p>
               </div>
               <button 
                 onClick={() => setShowHistory(false)}
@@ -213,31 +262,46 @@ const JamaBardanEntry = () => {
               <table className="w-full text-left">
                  <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                       <th className="px-10 py-6">Identity</th>
-                       <th className="px-10 py-6">Date & Pavti</th>
-                       <th className="px-10 py-6 text-right">Quantity</th>
+                       <th className="px-10 py-6">Date</th>
+                       <th className="px-10 py-6">Particulars</th>
+                       <th className="px-10 py-6 text-right">Debit (Taken)</th>
+                       <th className="px-10 py-6 text-right">Credit (Jama)</th>
+                       <th className="px-10 py-6 text-right">Balance</th>
                        <th className="px-10 py-6 text-right">Operations</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
-                    {history.map((row) => (
-                      <tr key={row.id} className="group hover:bg-white transition-all">
+                    {(formData.code ? ledgerData : history).map((row, i) => (
+                      <tr key={row.id || i} className="group hover:bg-white transition-all">
                          <td className="px-10 py-6">
-                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight italic">{row.name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 tracking-widest">CODE: {row.code}</p>
+                            <p className="text-sm font-bold text-slate-600 font-mono italic">
+                               {row.date ? new Date(row.date).toLocaleDateString() : 'INITIAL'}
+                            </p>
                          </td>
                          <td className="px-10 py-6">
-                            <p className="text-sm font-bold text-slate-600 font-mono italic">{new Date(row.entry_date).toLocaleDateString()}</p>
-                            <p className="text-[10px] font-bold text-emerald-500 uppercase italic"># {row.pavti_no || 'N/A'}</p>
+                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight italic">{row.particulars || row.name || (row.type === 'GIVEN' ? 'Given' : 'Returned')}</p>
+                            {row.pavti_no && <p className="text-[10px] font-bold text-blue-500 tracking-widest uppercase">PVT: {row.pavti_no}</p>}
                          </td>
                          <td className="px-10 py-6 text-right">
-                             <p className="text-2xl font-black text-slate-800 italic">{row.qty}</p>
-                             <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Bags Recorded</p>
+                             <p className="text-lg font-black text-slate-800 italic">{row.debit || (row.type === 'GIVEN' ? row.qty : 0)}</p>
+                         </td>
+                         <td className="px-10 py-6 text-right">
+                             <p className="text-lg font-black text-emerald-600 italic">{row.credit || (row.type === 'RETURNED' ? row.qty : 0)}</p>
+                         </td>
+                         <td className="px-10 py-6 text-right">
+                             <p className={`text-xl font-black italic ${
+                                row.balance > 0 ? 'text-rose-500' : 'text-slate-900'
+                             }`}>{row.balance ?? 'N/A'}</p>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Running Total</p>
                          </td>
                          <td className="px-10 py-6">
                             <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                               <button onClick={() => handleEdit(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"><ChevronRight size={16}/></button>
-                               <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16}/></button>
+                               {row.id !== 'OP' && (
+                                 <>
+                                   <button onClick={() => handleEdit(row)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"><ChevronRight size={16}/></button>
+                                   <button onClick={() => handleDelete(row.id, row.type)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16}/></button>
+                                 </>
+                               )}
                             </div>
                          </td>
                       </tr>
@@ -257,57 +321,57 @@ const JamaBardanEntry = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-3 text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1 italic">
-              <Package size={12} />
-              <span>Asset Management / Jama Vector</span>
+            <div className="flex items-center gap-3 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1 italic">
+              <ArrowLeftRight size={12} />
+              <span>Unified Asset Protocol / Bardan Ledger</span>
             </div>
             <h1 className="text-4xl font-black text-slate-800 tracking-tighter leading-none italic uppercase">
-              {t('jamaBardanEntry.title', 'Jama Bardan Entry')}
+               Gunny Bag Portfolio
             </h1>
           </div>
           
           <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white shadow-sm">
-             <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500">
+             <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">
                 <History size={20} />
              </div>
              <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-emerald-500 transition-colors">{t('dangarEntry.dataShow')}</p>
-                <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-emerald-500/30">View Registry Logs</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-blue-600 transition-colors">Audit Console</p>
+                <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-blue-500/30">Review Unified History</p>
              </div>
           </div>
         </div>
 
         {/* Balance Metrics Strip */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-           <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-xl group hover:bg-white/80 transition-all">
+           <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-xl group hover:bg-white/80 transition-all border-l-8 border-l-rose-500">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
-                    <Package size={20} />
+                 <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
+                    <TrendingUp size={20} />
                  </div>
                  <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Asset Load</p>
-                    <p className="text-2xl font-black text-slate-800 italic">#{balanceData.taken} <span className="text-xs">Uthar</span></p>
+                    <p className="text-2xl font-black text-slate-800 italic">#{balanceData.taken} <span className="text-[10px] uppercase">GIVEN</span></p>
                  </div>
               </div>
            </div>
            <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-xl group hover:bg-white/80 transition-all border-l-8 border-l-emerald-500">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
-                    <History size={20} />
+                 <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
+                    <TrendingDown size={20} />
                  </div>
                  <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Return Registry</p>
-                    <p className="text-2xl font-black text-emerald-600 italic">#{balanceData.returned} <span className="text-xs">Jama</span></p>
+                    <p className="text-2xl font-black text-emerald-600 italic">#{balanceData.returned} <span className="text-[10px] uppercase">JAMMA</span></p>
                  </div>
               </div>
            </div>
-           <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group border-l-8 border-l-rose-500">
+           <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group border-l-8 border-l-blue-500">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                  <Database size={80} />
               </div>
               <div className="relative z-10">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Outstanding Debt</p>
-                 <p className="text-2xl font-black text-white italic">#{balanceData.balance} <span className="text-[10px] text-rose-400 font-bold ml-1 uppercase">Remains</span></p>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Net Position</p>
+                 <p className="text-2xl font-black text-white italic">#{balanceData.balance} <span className="text-[10px] text-blue-400 font-bold ml-1 uppercase">Outstanding</span></p>
               </div>
            </div>
         </div>
@@ -331,12 +395,40 @@ const JamaBardanEntry = () => {
                   <Package size={240} />
                </div>
 
+               {/* Transaction Type Toggle */}
+               <div className="flex gap-4 p-2 bg-slate-100/50 rounded-[2rem] border border-slate-100">
+                   <button 
+                     onClick={() => setFormData({...formData, type: 'GIVEN'})}
+                     disabled={!!formData.id} // Disable type change on edit
+                     className={`flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-all ${
+                        formData.type === 'GIVEN' 
+                        ? 'bg-rose-500 text-white shadow-xl shadow-rose-100 scale-[1.02]' 
+                        : 'text-slate-400 hover:text-slate-600'
+                     } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   >
+                      <TrendingUp size={18} />
+                      <span className="text-xs font-black uppercase tracking-widest">Give Bags (Uthar)</span>
+                   </button>
+                   <button 
+                     onClick={() => setFormData({...formData, type: 'RETURNED'})}
+                     disabled={!!formData.id} // Disable type change on edit
+                     className={`flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-all ${
+                        formData.type === 'RETURNED' 
+                        ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-100 scale-[1.02]' 
+                        : 'text-slate-400 hover:text-slate-600'
+                     } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   >
+                      <TrendingDown size={18} />
+                      <span className="text-xs font-black uppercase tracking-widest">Return Bags (Jama)</span>
+                   </button>
+               </div>
+
                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.book_type')}</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Registry Prototype</label>
                     <select 
                       name="bookType"
-                      className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase"
+                      className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase"
                       value={formData.bookType}
                       onChange={handleChange}
                     >
@@ -349,7 +441,7 @@ const JamaBardanEntry = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.pavti_no')}</label>
                     <input 
                       name="pavtiNo"
-                      className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                      className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
                       placeholder="ENTER PVT NO."
                       value={formData.pavtiNo}
                       onChange={handleChange}
@@ -361,7 +453,7 @@ const JamaBardanEntry = () => {
                     <input 
                       type="date"
                       name="date"
-                      className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner"
+                      className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner"
                       value={formData.date}
                       onChange={handleChange}
                     />
@@ -370,12 +462,12 @@ const JamaBardanEntry = () => {
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.code')}</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identity Node</label>
                     <div className="relative group">
-                       <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                       <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
                        <select 
                          name="code"
-                         className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
+                         className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
                          value={formData.code}
                          onChange={handleChange}
                        >
@@ -386,12 +478,12 @@ const JamaBardanEntry = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.name')}</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Alias Pointer</label>
                     <div className="relative group">
-                       <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                       <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
                        <select 
                          name="name"
-                         className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
+                         className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
                          value={formData.name}
                          onChange={handleChange}
                        >
@@ -404,13 +496,13 @@ const JamaBardanEntry = () => {
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.qty')}</label>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Transaction Volume</label>
                      <div className="relative group">
-                        <Package className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                        <Package className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
                         <input 
                           type="number"
                           name="qty"
-                          className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                          className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
                           placeholder="0.00"
                           value={formData.qty}
                           onChange={handleChange}
@@ -419,27 +511,29 @@ const JamaBardanEntry = () => {
                   </div>
 
                   <div className="space-y-3">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.mem_nominal')}</label>
-                     <select 
-                       name="memNominal"
-                       className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner appearance-none uppercase"
-                       value={formData.memNominal}
-                       onChange={handleChange}
-                     >
-                       <option value="">SELECT...</option>
-                       <option value="Member">Sabhasad</option>
-                       <option value="Nominal">Nominal</option>
-                     </select>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Membership Vector</label>
+                     <div className="flex items-center gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        <input 
+                           type="checkbox" 
+                           id="memNominalCheck"
+                           className="w-6 h-6 rounded-lg text-blue-600 border-slate-300 focus:ring-blue-500 transition-all cursor-pointer"
+                           checked={formData.memNominal === 'Member'}
+                           onChange={(e) => setFormData({...formData, memNominal: e.target.checked ? 'Member' : 'Nominal'})}
+                        />
+                        <label htmlFor="memNominalCheck" className="text-xs font-black uppercase tracking-widest text-slate-700 cursor-pointer select-none italic">
+                           {formData.memNominal === 'Member' ? 'Sabhasad (Active Member)' : 'Nominal Member'}
+                        </label>
+                     </div>
                   </div>
                </div>
 
                <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.remark')}</label>
                   <div className="relative group">
-                     <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                     <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
                      <textarea 
                        name="remark"
-                       className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
+                       className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
                        placeholder="ADDITIONAL CONTEXT..."
                        value={formData.remark}
                        onChange={handleChange}
@@ -453,12 +547,12 @@ const JamaBardanEntry = () => {
           <div className="lg:col-span-4 space-y-8">
              <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col h-[600px]">
                 <div className="flex items-center gap-4 mb-6">
-                   <div className="p-3 bg-emerald-50 text-emerald-500 rounded-2xl shadow-inner">
+                   <div className="p-3 bg-blue-50 text-blue-500 rounded-2xl shadow-inner">
                       <Layout size={20} />
                    </div>
                    <div>
                       <h3 className="text-base font-black text-slate-800 leading-none italic uppercase">{t('bardanEntry.item_details')}</h3>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Multi-vector Matrix</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Matrix Vector Array</p>
                    </div>
                 </div>
 
@@ -467,9 +561,9 @@ const JamaBardanEntry = () => {
                       <thead>
                         <tr className="italic text-[9px] font-black text-slate-400 uppercase tracking-widest">
                            <th className="py-3 text-center w-8">#</th>
-                           <th className="py-3 px-2 text-left">COL 1</th>
-                           <th className="py-3 px-2 text-left">COL 2</th>
-                           <th className="py-3 px-2 text-left">COL 3</th>
+                           <th className="py-3 px-2 text-left">POS 1</th>
+                           <th className="py-3 px-2 text-left">POS 2</th>
+                           <th className="py-3 px-2 text-left">POS 3</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -478,7 +572,7 @@ const JamaBardanEntry = () => {
                              <td className="text-center font-black text-slate-200 italic">{i + 1}</td>
                              <td className="px-1 py-1">
                                 <input 
-                                  className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                                  className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
                                   value={row.col1}
                                   onChange={(e) => {
                                     const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
@@ -487,7 +581,7 @@ const JamaBardanEntry = () => {
                              </td>
                              <td className="px-1 py-1">
                                 <input 
-                                  className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                                  className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
                                   value={row.col2}
                                   onChange={(e) => {
                                     const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
@@ -496,7 +590,7 @@ const JamaBardanEntry = () => {
                              </td>
                              <td className="px-1 py-1">
                                 <input 
-                                  className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                                  className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
                                   value={row.col3}
                                   onChange={(e) => {
                                     const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
@@ -510,24 +604,13 @@ const JamaBardanEntry = () => {
                 </div>
 
                 <div className="space-y-4 pt-6 border-t border-slate-100">
-                   <div className="flex justify-between items-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase italic">{t('bardanEntry.day_qty')}</p>
+                   <div className="flex justify-between items-center text-blue-600">
+                      <p className="text-[10px] font-black uppercase italic">Current Node Total</p>
                       <input 
                         type="number"
-                        name="dayQty"
-                        className="w-24 text-right bg-slate-50 rounded-xl px-3 py-2 font-black text-slate-700"
-                        value={formData.dayQty}
-                        onChange={handleChange}
-                      />
-                   </div>
-                   <div className="flex justify-between items-center text-emerald-500">
-                      <p className="text-[10px] font-black uppercase italic">{t('bardanEntry.total_qty')}</p>
-                      <input 
-                        type="number"
-                        name="totalQty"
-                        className="w-32 text-right bg-emerald-50/50 border border-emerald-100 rounded-xl px-3 py-3 text-2xl font-black italic tracking-tighter"
-                        value={formData.totalQty}
-                        onChange={handleChange}
+                        className="w-32 text-right bg-blue-50/50 border border-blue-100 rounded-xl px-3 py-3 text-2xl font-black italic tracking-tighter"
+                        value={formData.qty}
+                        readOnly
                       />
                    </div>
                 </div>
@@ -538,16 +621,17 @@ const JamaBardanEntry = () => {
         {/* Commands */}
         <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-[3rem] border border-white shadow-xl flex flex-wrap justify-center gap-5">
            {[
-             { label: 'Display History', icon: History, color: 'slate', action: () => setShowHistory(true), sub: 'Registry logs' },
-             { label: 'Initialize New', icon: Plus, color: 'blue', action: resetForm, sub: 'Reset command' },
-             { label: 'Commit Entry', icon: Save, color: 'emerald', action: handleSave, sub: 'Commit to DB' },
-             { label: 'Physical Print', icon: Printer, color: 'slate', action: handlePrint, sub: 'Generate slip' },
-             { label: 'Abort State', icon: X, color: 'slate', action: resetForm, sub: 'Clear form' },
+             { label: 'View Portfolio History', icon: History, color: 'slate', action: () => setShowHistory(true), sub: 'Registry logs' },
+             { label: 'Initial State', icon: Plus, color: 'blue', action: resetForm, sub: 'Reset command' },
+             { label: 'Commit Transaction', icon: Save, color: formData.type === 'GIVEN' ? 'rose' : 'emerald', action: handleSave, sub: 'Commit to DB' },
+             { label: 'Physical Slip', icon: Printer, color: 'slate', action: handlePrint, sub: 'Generate slip' },
+             { label: 'Clear Active', icon: X, color: 'slate', action: resetForm, sub: 'Clear form' },
            ].map((btn, i) => (
              <button
                key={i}
                onClick={btn.action}
                className={`flex items-center gap-4 px-10 py-5 rounded-[1.5rem] tracking-widest transition-all shadow-xl active:scale-95 border-b-4 relative group overflow-hidden ${
+                 btn.color === 'rose' ? 'bg-rose-500 text-white border-rose-700 hover:bg-rose-600' :
                  btn.color === 'emerald' ? 'bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-600' :
                  btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
                  'bg-white text-slate-800 border-slate-100 hover:bg-slate-50'
@@ -558,7 +642,7 @@ const JamaBardanEntry = () => {
                 <div className="text-left relative z-10">
                    <p className="text-[10px] font-black uppercase leading-none">{btn.label}</p>
                    <p className="text-[8px] font-black uppercase opacity-60 mt-1">{btn.sub}</p>
-                </div>
+                 </div>
              </button>
            ))}
         </div>
@@ -567,11 +651,11 @@ const JamaBardanEntry = () => {
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scroller::-webkit-scrollbar { width: 4px; }
         .custom-scroller::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroller::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 10px; }
-        .custom-scroller:hover::-webkit-scrollbar-thumb { background: #10b981; }
+        .custom-scroller::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scroller:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
       `}} />
     </div>
   );
 };
 
-export default JamaBardanEntry;
+export default BardanPortfolio;

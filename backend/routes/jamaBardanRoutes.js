@@ -66,10 +66,13 @@ router.post('/', async (req, res) => {
     const companyId = req.headers['x-company-id'] || req.body.company_id;
     const financialYear = req.headers['x-financial-year'] || req.body.financial_year || '2026-27';
     
+    console.log('📝 Jama Bardan POST Body:', req.body);
+
     const { 
       bookType, pavtiNo, date, memNominal, code, name, qty, option, remark, dayQty, totalQty, gridRows 
     } = req.body;
 
+    console.log('📦 Committing Jama Bardan Entry:', { companyId, financialYear, code, qty });
     const result = await execute(`
       INSERT INTO jama_bardan_entry (
         company_id, financial_year, book_type, pavti_no, entry_date, 
@@ -110,6 +113,7 @@ router.put('/:id', async (req, res) => {
       bookType, pavtiNo, date, memNominal, code, name, qty, option, remark, dayQty, totalQty, gridRows 
     } = req.body;
 
+    console.log('🔄 Updating Jama Bardan Entry:', { id: req.params.id, code, qty });
     await execute(`
       UPDATE jama_bardan_entry SET 
         book_type = ?, pavti_no = ?, entry_date = ?, 
