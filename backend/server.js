@@ -31,6 +31,7 @@ import dangarRoutes from './routes/dangarRoutes.js';
 import dangarRateRoutes from './routes/dangarRateRoutes.js';
 import bardanRoutes from './routes/bardanRoutes.js';
 import jamaBardanRoutes from './routes/jamaBardanRoutes.js';
+import bankRoutes from './routes/bankRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -83,6 +84,7 @@ async function startServer() {
     app.use('/api/dangar-rates', dangarRateRoutes);
     app.use('/api/bardan-entry', bardanRoutes);
     app.use('/api/jama-bardan-entry', jamaBardanRoutes);
+    app.use('/api/banks', bankRoutes);
 
     console.log('🔄 Initializing database...');
     await initializeDatabase();

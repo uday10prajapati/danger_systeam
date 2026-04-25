@@ -81,18 +81,17 @@ export default function SaleForm({ onSubmit, onCancel }) {
     }
   }, [itemSelectedIndex, showItemDropdown]);
 
-  // Auto-fetch member by code
+  // Auto-fetch member by code (Account ID for suppliers)
   useEffect(() => {
     if (memberSearchText) {
-      const match = availableMembers.find(m => String(m.member_code) === memberSearchText);
+      const match = availableMembers.find(m => String(m.id) === memberSearchText);
       if (match) {
         setSelectedMember(match);
         setMemberId(match.id);
-        setMemberNameSearch(match.member_name);
-        setShowMemberDropdown(false); // Auto-close on exact code match
+        setMemberNameSearch(match.account_name);
+        setShowMemberDropdown(false);
       } else {
-        // Only clear if we were previously matched
-        if (selectedMember && String(selectedMember.member_code) !== memberSearchText) {
+        if (selectedMember && String(selectedMember.id) !== memberSearchText) {
           setSelectedMember(null);
           setMemberId('');
         }
@@ -145,9 +144,11 @@ export default function SaleForm({ onSubmit, onCancel }) {
         const comp = compRes.data.data;
         setCompany(comp);
 
-        const memRes = await axios.get(`/api/members/company/${comp.id}`, { headers: { 'x-company-id': comp.id } });
-        if (memRes.data.success) {
-          setAvailableMembers(memRes.data.data || []);
+        // Fetch Accounts (Suppliers only)
+        const accRes = await axios.get(`/api/accounts/company/${comp.id}`, { headers: { 'x-company-id': comp.id } });
+        if (accRes.data.success) {
+          const supplierList = (accRes.data.data || []).filter(acc => acc.account_type === 'supplier');
+          setAvailableMembers(supplierList);
         }
 
         const itemRes = await axios.get(`/api/items/company/${comp.id}?active=true`, { headers: { 'x-company-id': comp.id } });
@@ -235,8 +236,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const handleMemberSelect = (member) => {
     setSelectedMember(member);
     setMemberId(member.id);
-    setMemberSearchText(member.member_code ? String(member.member_code) : '');
-    setMemberNameSearch(member.member_name);
+    setMemberSearchText(String(member.id));
+    setMemberNameSearch(member.account_name);
     setShowMemberDropdown(false);
   };
 
@@ -290,8 +291,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
     setError(null);
     try {
       const payload = {
-        customer_account_id: selectedMember ? selectedMember.account_id : null,
-        member_id: selectedMember ? selectedMember.id : null,
+        customer_account_id: selectedMember ? selectedMember.id : null,
+        member_id: null, // Selling directly to account
         invoice_no: billNo,
         invoice_date: invoiceDate,
         is_intra_state: taxType === 'CGST/SGST',
@@ -385,19 +386,20 @@ export default function SaleForm({ onSubmit, onCancel }) {
                 {showMemberDropdown && (
                   <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-56 overflow-y-auto z-50 rounded-2xl mt-1 animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0 rounded-t-2xl">
-                       <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Members</span>
+                       <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Accounts (Suppliers)</span>
                        <X size={14} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowMemberDropdown(false)}/>
                     </div>
                     {availableMembers.filter(m => {
-                      const codeMatch = memberSearchText ? String(m.member_code).includes(memberSearchText) : true;
-                      const nameMatch = memberNameSearch ? String(m.member_name).toLowerCase().includes(memberNameSearch.toLowerCase()) : true;
-                      return codeMatch && nameMatch;
+                      const idMatch = memberSearchText ? String(m.id).includes(memberSearchText) : true;
+                      const nameMatch = memberNameSearch ? String(m.account_name).toLowerCase().includes(memberNameSearch.toLowerCase()) : true;
+                      return idMatch && nameMatch;
                     }).map(m => (
                       <div key={m.id} onClick={() => handleMemberSelect(m)} className="px-4 py-2 hover:bg-violet-600 hover:text-white cursor-pointer text-xs font-black border-b border-slate-100 last:border-0 transition-colors uppercase tracking-tight flex justify-between items-center group">
-                        <span>{m.member_name}</span>
-                        <span className="text-[9px] text-slate-400 group-hover:text-slate-300">#{m.member_code}</span>
+                        <span>{m.account_name}</span>
+                        <span className="text-[9px] text-slate-400 group-hover:text-slate-300">#{m.id}</span>
                       </div>
-                    ))}\n                  </div>
+                    ))}
+                  </div>
                 )}
               </div>
 

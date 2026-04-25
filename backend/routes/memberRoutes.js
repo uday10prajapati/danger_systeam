@@ -59,18 +59,18 @@ router.post('/', async (req, res) => {
     const {
       sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
-      engName, nominalMember
+      engName, nominalMember, ifscCode
     } = req.body;
 
     const result = await execute(
       `INSERT INTO member_master 
       (company_id, financial_year, member_code, member_name, phone, village_code, village_name, 
-       full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member, ifsc_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company_id, financial_year, sabhasadCode, sabhasadName, phoneNo || null, 
         villageCode || null, villageName || null, fullAcNumber || null, bankName || null, 
-        branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null
+        branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null, ifscCode || null
       ]
     );
 
@@ -91,7 +91,7 @@ router.put('/:id', async (req, res) => {
     const {
       sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
-      engName, nominalMember
+      engName, nominalMember, ifscCode
     } = req.body;
 
     await execute(
@@ -99,12 +99,12 @@ router.put('/:id', async (req, res) => {
         member_code = ?, member_name = ?, phone = ?, village_code = ?, 
         village_name = ?, full_ac_number = ?, bank_name = ?, branch_name = ?, 
         account_type = ?, address_no = ?, eng_name = ?, nominal_member = ?,
-        updated_at = CURRENT_TIMESTAMP
+        ifsc_code = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND company_id = ?`,
       [
         sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
         fullAcNumber, bankName, branchName, accountType, addressNo,
-        engName, nominalMember, req.params.id, company_id
+        engName, nominalMember, ifscCode, req.params.id, company_id
       ]
     );
 

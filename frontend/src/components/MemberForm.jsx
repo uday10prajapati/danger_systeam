@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { 
   X, User, MapPin, Phone, 
   CreditCard, Save, AlertCircle, 
@@ -13,10 +14,12 @@ export default function MemberForm({
   editingMember = null, 
   onClose 
 }) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const [errors, setErrors] = useState({})
   const [villageList, setVillageList] = useState([])
+  const [bankList, setBankList] = useState([])
   
   const [formData, setFormData] = useState({
     sabhasadCode: '',
@@ -31,6 +34,7 @@ export default function MemberForm({
     addressNo: '',
     engName: '',
     nominalMember: '',
+    ifscCode: '',
     is_active: true
   })
 
@@ -38,13 +42,17 @@ export default function MemberForm({
   const [localEditId, setLocalEditId] = useState(null)
   const [isFetchingCode, setIsFetchingCode] = useState(false)
 
-  // Load villages for the dropdown
-  const loadVillages = useCallback(async () => {
+  // Load banks and villages
+  const loadMasterData = useCallback(async () => {
     try {
-      const res = await sabhasadMasterApi.getAllVillages()
-      setVillageList(res.data || [])
+      const [villagesRes, banksRes] = await Promise.all([
+        sabhasadMasterApi.getAllVillages(),
+        api.get('/banks') // Link to the new bank master
+      ])
+      setVillageList(villagesRes.data || [])
+      if (banksRes.data.success) setBankList(banksRes.data.data)
     } catch (err) {
-      console.error('Failed to load villages', err)
+      console.error('Failed to load master data', err)
     }
   }, [])
 
@@ -60,7 +68,7 @@ export default function MemberForm({
   }, []);
 
   useEffect(() => {
-    loadVillages()
+    loadMasterData()
     if (editingMember) {
       setLocalEditId(editingMember.id)
       setFormData({
@@ -76,12 +84,13 @@ export default function MemberForm({
         addressNo: editingMember.address_no || '',
         engName: editingMember.eng_name || '',
         nominalMember: editingMember.nominal_member || '',
+        ifscCode: editingMember.ifsc_code || '',
         is_active: editingMember.is_active === 1
       })
     } else {
       initNewForm()
     }
-  }, [editingMember, loadVillages, initNewForm])
+  }, [editingMember, loadMasterData, initNewForm])
 
   // New: Fetch by Code logic
   const handleCodeFetch = async (code) => {
@@ -105,6 +114,7 @@ export default function MemberForm({
           addressNo: member.address_no || '',
           engName: member.eng_name || '',
           nominalMember: member.nominal_member || '',
+          ifscCode: member.ifsc_code || '',
           is_active: member.is_active === 1
         });
         setMessage({ type: 'success', text: 'Member found! Switched to edit mode.' });
@@ -316,16 +326,35 @@ export default function MemberForm({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Bank Institution</label>
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.bankInstitution')}</label>
                  <div className="relative group">
                    <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                   <input
-                     type="text"
+                   <select
                      name="bankName"
                      value={formData.bankName}
                      onChange={handleChange}
-                     placeholder="Name of Bank"
-                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                   >
+                     <option value="">{t('memberMaster.selectBankMaster')}</option>
+                     {bankList.map(b => (
+                       <option key={b.id} value={b.bank_name}>{b.bank_name}</option>
+                     ))}
+                   </select>
+                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
+                 </div>
+               </div>
+
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.ifscCode')}</label>
+                 <div className="relative group">
+                   <Hash size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                   <input
+                     type="text"
+                     name="ifscCode"
+                     value={formData.ifscCode}
+                     onChange={handleChange}
+                     placeholder="IFSC0000XXX"
+                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold uppercase"
                    />
                  </div>
                </div>

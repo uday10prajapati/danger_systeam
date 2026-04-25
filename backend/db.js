@@ -814,6 +814,18 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Create Banks Master table
+       await connection.query(`
+        CREATE TABLE IF NOT EXISTS banks (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          bank_name VARCHAR(255) NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          UNIQUE KEY uidx_company_bank (company_id, bank_name)
+        )
+      `);
+
       // Create Financial Years table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS financial_years (
@@ -845,6 +857,11 @@ export async function initializeDatabase() {
           // Column might already exist
         }
       }
+
+      // Add IFSC Code to member_master
+      try {
+        await connection.query("ALTER TABLE member_master ADD COLUMN ifsc_code VARCHAR(50)");
+      } catch (e) {}
 
       await connection.commit();
       console.log('✅ MySQL Database tables created/verified/upgraded');
@@ -1420,6 +1437,7 @@ export async function getSalesByCompany(companyId, startDate, endDate, financial
       s.invoice_no,
       s.invoice_date,
       COALESCE(a.account_name, m.member_name, 'Walk-in') as customer_name,
+      COALESCE(m.member_code, CAST(a.id AS CHAR)) as member_code,
       s.payment_type,
       s.total_amount,
       s.net_amount,
@@ -1443,9 +1461,10 @@ export async function getSaleDetails(saleId) {
       s.invoice_no,
       s.invoice_date,
       s.customer_account_id,
-      COALESCE(a.account_name, 'Walk-in') as customer_name,
+      COALESCE(a.account_name, m.member_name, 'Walk-in') as customer_name,
       s.member_id,
-      COALESCE(m.member_name, '') as member_name,
+      COALESCE(m.member_code, CAST(a.id AS CHAR)) as member_code,
+      COALESCE(m.member_name, a.account_name, '') as member_name,
       s.total_amount,
       s.discount_amount,
       s.net_amount,

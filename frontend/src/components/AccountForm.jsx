@@ -92,6 +92,18 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
 
     try {
       const submitData = { company_id: companyId, ...formData };
+      
+      // Save bank to master if provided
+      if (formData.account_type === 'bank' && formData.bank_name_master) {
+         try {
+           await axios.post('/api/banks', { name: formData.bank_name_master }, {
+              headers: { 'x-company-id': companyId }
+           });
+         } catch (bankErr) {
+           console.error('Master bank save skipped/failed:', bankErr);
+         }
+      }
+
       if (initialData?.id) {
         await axios.put(`/api/accounts/${initialData.id}`, formData);
         setMessage({ type: 'success', text: 'Financial entity refined' });
@@ -163,6 +175,20 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
                 </div>
               </div>
+
+              {formData.account_type === 'bank' && (
+                <div className="animate-in zoom-in-95 duration-300">
+                  <FormLabel icon={Database}>{t('accountMaster.bankNameMaster')}</FormLabel>
+                  <FormInput
+                    name="bank_name_master"
+                    value={formData.bank_name_master || ''}
+                    onChange={handleChange}
+                    placeholder="e.g. STATE BANK OF INDIA"
+                    className="border-sky-100 bg-sky-50/20 uppercase"
+                  />
+                  <p className="text-[8px] font-bold text-sky-500 uppercase mt-2 ml-2 tracking-widest">{t('accountMaster.linkedToGlobalRegistry')}</p>
+                </div>
+              )}
 
               <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 self-end h-12">
                  <input

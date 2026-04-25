@@ -114,6 +114,13 @@ export const jamaBardanEntryApi = {
   deleteEntry: (id) => api.delete(`/jama-bardan-entry/${id}`),
 };
 
+// Bank Master
+export const bankApi = {
+  getAll: () => api.get('/banks'),
+  create: (data) => api.post('/banks', data),
+  delete: (id) => api.delete(`/banks/${id}`),
+};
+
 // Health check
 export const healthCheck = () => api.get('/health');
 
