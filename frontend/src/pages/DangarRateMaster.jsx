@@ -21,6 +21,8 @@ export default function DangarRateMaster() {
   // Edit states
   const [editingItemId, setEditingItemId] = useState(null);
   const [editRate, setEditRate] = useState('');
+  const [editWinterRate, setEditWinterRate] = useState('');
+  const [editSummerRate, setEditSummerRate] = useState('');
   const [editBardan, setEditBardan] = useState('');
 
   useEffect(() => {
@@ -60,6 +62,8 @@ export default function DangarRateMaster() {
   const handleEdit = (item, rateObj) => {
     setEditingItemId(item.id);
     setEditRate(rateObj ? rateObj.rate : '');
+    setEditWinterRate(rateObj ? rateObj.winter_rate : '');
+    setEditSummerRate(rateObj ? rateObj.summer_rate : '');
     setEditBardan(rateObj ? rateObj.bardan_deduction_rate : '');
   };
 
@@ -71,6 +75,8 @@ export default function DangarRateMaster() {
         financial_year: financialYear,
         item_id: itemId,
         rate: parseFloat(editRate) || 0,
+        winter_rate: parseFloat(editWinterRate) || 0,
+        summer_rate: parseFloat(editSummerRate) || 0,
         bardan_deduction_rate: parseFloat(editBardan) || 0
       });
 
@@ -160,11 +166,13 @@ export default function DangarRateMaster() {
               <table className="w-full text-left">
                  <thead>
                     <tr className="bg-[#F8FAFC]">
-                       <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Commodity Identity</th>
-                       <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">System SKU</th>
-                       <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Standard Rate (₹)</th>
-                       <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Bardan Deduction (₹)</th>
-                       <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Commit</th>
+                       <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Commodity</th>
+                       <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">SKU</th>
+                       <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Std Rate (₹)</th>
+                       <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30">Winter (₹)</th>
+                       <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30">Summer (₹)</th>
+                       <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Bardan (₹)</th>
+                       <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Ops</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-50">
@@ -188,29 +196,59 @@ export default function DangarRateMaster() {
                              <td className="px-10 py-6 text-center font-mono text-[10px] font-black text-slate-400">
                                 {item.item_code}
                              </td>
-                             <td className="px-10 py-6 text-right">
+                             <td className="px-6 py-6 text-right">
                                 {isEditing ? (
                                    <input 
                                      type="number"
                                      value={editRate}
                                      onChange={(e) => setEditRate(e.target.value)}
                                      placeholder="0.00"
-                                     className="w-32 h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl text-right font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                     className="w-24 h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-right font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
                                    />
                                 ) : (
                                    <span className="text-sm font-black text-slate-800">
-                                      {rateObj ? `₹${parseFloat(rateObj.rate).toFixed(2)}` : 'NOT_SET'}
+                                      {rateObj ? `₹${parseFloat(rateObj.rate).toFixed(2)}` : '0.00'}
                                    </span>
                                 )}
                              </td>
-                             <td className="px-10 py-6 text-right">
+                             <td className="px-6 py-6 text-right bg-blue-50/10">
+                                {isEditing ? (
+                                   <input 
+                                     type="number"
+                                     value={editWinterRate}
+                                     onChange={(e) => setEditWinterRate(e.target.value)}
+                                     placeholder="0.00"
+                                     className="w-24 h-10 px-3 bg-white border border-blue-200 rounded-xl text-right font-bold text-blue-700 outline-none focus:border-blue-500 transition-all shadow-sm"
+                                   />
+                                ) : (
+                                   <span className="text-sm font-black text-blue-600">
+                                      {rateObj ? `₹${parseFloat(rateObj.winter_rate || 0).toFixed(2)}` : '0.00'}
+                                   </span>
+                                )}
+                             </td>
+                             <td className="px-6 py-6 text-right bg-emerald-50/10">
+                                {isEditing ? (
+                                   <input 
+                                     type="number"
+                                     value={editSummerRate}
+                                     onChange={(e) => setEditSummerRate(e.target.value)}
+                                     placeholder="0.00"
+                                     className="w-24 h-10 px-3 bg-white border border-emerald-200 rounded-xl text-right font-bold text-emerald-700 outline-none focus:border-emerald-500 transition-all shadow-sm"
+                                   />
+                                ) : (
+                                   <span className="text-sm font-black text-emerald-600">
+                                      {rateObj ? `₹${parseFloat(rateObj.summer_rate || 0).toFixed(2)}` : '0.00'}
+                                   </span>
+                                )}
+                             </td>
+                             <td className="px-6 py-6 text-right">
                                 {isEditing ? (
                                    <input 
                                      type="number"
                                      value={editBardan}
                                      onChange={(e) => setEditBardan(e.target.value)}
                                      placeholder="0.00"
-                                     className="w-32 h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl text-right font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                     className="w-24 h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-right font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
                                    />
                                 ) : (
                                    <span className="text-sm font-bold text-slate-400 italic">

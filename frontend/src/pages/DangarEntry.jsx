@@ -27,7 +27,8 @@ const DangarEntry = () => {
     net_quintal: 0,
     rate: 0,
     bardan_rate: 0,
-    amount: 0
+    amount: 0,
+    season: new Date().getMonth() >= 3 && new Date().getMonth() <= 8 ? 'summer' : 'winter'
   });
 
   const [weightRows, setWeightRows] = useState([{ id: 1, wgt: '' }]);
@@ -93,10 +94,12 @@ const DangarEntry = () => {
           const year = user.financial_year || '2026-27';
           const res = await api.get(`/dangar-rates/item/${formData.item_id}?year=${year}`);
           if (res.data.success && res.data.data) {
+            const data = res.data.data;
+            const selectedRate = formData.season === 'summer' ? (data.summer_rate || data.rate) : (data.winter_rate || data.rate);
             setFormData(prev => ({
               ...prev,
-              rate: res.data.data.rate,
-              bardan_rate: res.data.data.bardan_deduction_rate
+              rate: selectedRate,
+              bardan_rate: data.bardan_deduction_rate
             }));
           } else {
             // Reset rates if not found
@@ -108,7 +111,7 @@ const DangarEntry = () => {
       };
       fetchItemRate();
     }
-  }, [formData.item_id, company]);
+  }, [formData.item_id, formData.season, company]);
 
   const handleAddRow = () => {
     setWeightRows([...weightRows, { id: Date.now(), wgt: '' }]);
@@ -348,15 +351,41 @@ const DangarEntry = () => {
                          type="date"
                          className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700"
                          value={formData.date}
-                         onChange={(e) => setFormData({...formData, date: e.target.value})}
+                         onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            const month = date.getMonth();
+                            const newSeason = (month >= 3 && month <= 8) ? 'summer' : 'winter';
+                            setFormData({...formData, date: e.target.value, season: newSeason});
+                         }}
                        />
                     </div>
                   </div>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                  {/* Season Selection */}
+                  <div className="md:col-span-4 space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Protocol Season</label>
+                    <div className="flex gap-2 p-1.5 bg-slate-50/50 border border-slate-100 rounded-2xl">
+                       {['winter', 'summer'].map(s => (
+                          <button 
+                             key={s}
+                             type="button"
+                             onClick={() => setFormData({...formData, season: s})}
+                             className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                formData.season === s 
+                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200' 
+                                : 'text-slate-400 hover:text-slate-600 hover:bg-white'
+                             }`}
+                          >
+                             {s}
+                          </button>
+                       ))}
+                    </div>
+                  </div>
+
                   {/* Member Selection */}
-                  <div className="space-y-3">
+                  <div className="md:col-span-8 space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Sabhasad Identity Vector</label>
                     <div className="relative group">
                        <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
@@ -372,7 +401,9 @@ const DangarEntry = () => {
                        </select>
                     </div>
                   </div>
+               </div>
 
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Item Selection */}
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Item Schema Vector</label>
@@ -390,6 +421,21 @@ const DangarEntry = () => {
                        </select>
                     </div>
                   </div>
+
+                  {/* Vehicle No */}
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.vehicleNo')}</label>
+                     <div className="relative group">
+                        <Truck className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                        <input 
+                          type="text"
+                          className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                          placeholder="E.G. GJ-01-XX-1234"
+                          value={formData.vehicleNo}
+                          onChange={(e) => setFormData({...formData, vehicleNo: e.target.value.toUpperCase()})}
+                        />
+                     </div>
+                  </div>
                </div>
 
                {/* Remark */}
@@ -402,21 +448,6 @@ const DangarEntry = () => {
                        placeholder="ADDITIONAL TRANSACTION CONTEXT..."
                        value={formData.remark}
                        onChange={(e) => setFormData({...formData, remark: e.target.value})}
-                     />
-                  </div>
-               </div>
-
-               {/* Vehicle No */}
-               <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.vehicleNo')}</label>
-                  <div className="relative group md:w-1/2">
-                     <Truck className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                     <input 
-                       type="text"
-                       className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
-                       placeholder="E.G. GJ-01-XX-1234"
-                       value={formData.vehicleNo}
-                       onChange={(e) => setFormData({...formData, vehicleNo: e.target.value.toUpperCase()})}
                      />
                   </div>
                </div>

@@ -171,6 +171,8 @@ export async function initializeDatabase() {
           financial_year VARCHAR(20) NOT NULL,
           item_id INT NOT NULL,
           rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          winter_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          summer_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
           bardan_deduction_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
