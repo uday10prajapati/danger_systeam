@@ -29,6 +29,7 @@ import Village from './pages/Village'
 import DangarEntry from './pages/DangarEntry'
 import DangarRateMaster from './pages/DangarRateMaster'
 import BardanEntry from './pages/BardanEntry'
+import JamaBardanEntry from './pages/JamaBardanEntry'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 
@@ -110,6 +111,7 @@ function AppContent() {
               <Route path="/dangar-entry" element={<DangarEntry />} />
               <Route path="/dangar-rates" element={<DangarRateMaster />} />
               <Route path="/bardan-entry" element={<BardanEntry />} />
+              <Route path="/jama-bardan-entry" element={<JamaBardanEntry />} />
               
               {/* Transactions */}
               <Route path="/sales" element={<Sale />} />

@@ -105,6 +105,15 @@ export const bardanEntryApi = {
   deleteEntry: (id) => api.delete(`/bardan-entry/${id}`),
 };
 
+// Jama Bardan Entry
+export const jamaBardanEntryApi = {
+  getAllEntries: () => api.get('/jama-bardan-entry'),
+  getEntryById: (id) => api.get(`/jama-bardan-entry/${id}`),
+  createEntry: (data) => api.post('/jama-bardan-entry', data),
+  updateEntry: (id, data) => api.put(`/jama-bardan-entry/${id}`, data),
+  deleteEntry: (id) => api.delete(`/jama-bardan-entry/${id}`),
+};
+
 // Health check
 export const healthCheck = () => api.get('/health');
 

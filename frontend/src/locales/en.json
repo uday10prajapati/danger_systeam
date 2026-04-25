@@ -705,6 +705,9 @@
     "item_details": "Item Details",
     "day_qty": "Day Qty",
     "total_qty": "Total Qty"
+  },
+  "jamaBardanEntry": {
+    "title": "Jama Bardan Entry"
   }
 }
 

@@ -55,6 +55,7 @@ function Sidebar() {
         { id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
         { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
         { id: 'bardan-entry', title: 'Khali Bardan Entry', icon: Package, path: '/bardan-entry' },
+        { id: 'jama-bardan-entry', title: 'Jama Bardan Entry', icon: Package, path: '/jama-bardan-entry' },
       ]
     },
     { id: 'sales', title: t('modules.sale'), icon: ShoppingCart, path: '/sales' },

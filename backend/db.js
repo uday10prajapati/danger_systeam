@@ -777,6 +777,43 @@ export async function initializeDatabase() {
         )
       `);
 
+       // Create Jama Bardan Entry table
+       await connection.query(`
+        CREATE TABLE IF NOT EXISTS jama_bardan_entry (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          financial_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
+          book_type VARCHAR(50),
+          pavti_no VARCHAR(100),
+          entry_date DATE NOT NULL,
+          mem_nominal VARCHAR(100),
+          code VARCHAR(100),
+          name VARCHAR(255),
+          qty DECIMAL(15, 2) DEFAULT 0,
+          option_type VARCHAR(100),
+          remark TEXT,
+          day_qty DECIMAL(15, 2) DEFAULT 0,
+          total_qty DECIMAL(15, 2) DEFAULT 0,
+          created_by INT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Jama Bardan Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS jama_bardan_items (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          entry_id INT NOT NULL,
+          col1 VARCHAR(255),
+          col2 VARCHAR(255),
+          col3 VARCHAR(255),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (entry_id) REFERENCES jama_bardan_entry(id) ON DELETE CASCADE
+        )
+      `);
+
       // Create Financial Years table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS financial_years (
