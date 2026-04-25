@@ -26,6 +26,7 @@ router.get('/balance/:code', async (req, res) => {
     res.json({ 
       success: true, 
       data: { 
+        opening,
         taken, 
         returned, 
         balance 
@@ -43,44 +44,68 @@ router.get('/ledger/:code', async (req, res) => {
     const companyId = req.headers['x-company-id'];
     const { code } = req.params;
 
-    if (!companyId) {
-      console.warn('X-Company-Id missing in ledger request');
-    }
-
     // 1. Get Opening Balance from member_master
-    const member = await queryOne(`SELECT bardan_opening FROM member_master WHERE member_code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
+    const member = await queryOne(`SELECT bardan_opening, member_name FROM member_master WHERE member_code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
     const openingBal = parseFloat(member?.bardan_opening || 0);
 
     // 2. Get All Given (Debit)
-    const given = await query(`SELECT id, entry_date as date, 'GIVEN' as type, qty as debit, 0 as credit, remark, pavti_no FROM bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
+    const given = await query(`SELECT id, entry_date as date, 'GIVEN' as type, qty as debit, 0 as credit, remark, pavti_no, name FROM bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
     
     // 3. Get All Returned (Credit)
-    const returned = await query(`SELECT id, entry_date as date, 'RETURNED' as type, 0 as debit, qty as credit, remark, pavti_no FROM jama_bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
+    const returned = await query(`SELECT id, entry_date as date, 'RETURNED' as type, 0 as debit, qty as credit, remark, pavti_no, name FROM jama_bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
 
-    // 4. Combine and Sort
-    let ledger = [...given, ...returned].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // 4. Combine and Group by Pavti/Date
+    let combined = [...given, ...returned];
+    let grouped = {};
+    
+    combined.forEach(item => {
+      // Group by Pavti No and Date. If Pavti is empty, keep separate by ID.
+      const key = item.pavti_no ? `${item.pavti_no}_${item.date}` : `ID_${item.id}_${item.type}`;
+      if (!grouped[key]) {
+        grouped[key] = { 
+          id: item.id,
+          date: item.date, 
+          pavti_no: item.pavti_no, 
+          debit: 0, 
+          credit: 0, 
+          remark: item.remark, 
+          name: item.name,
+          particulars: ''
+        };
+      }
+      grouped[key].debit += parseFloat(item.debit || 0);
+      grouped[key].credit += parseFloat(item.credit || 0);
+      if (item.remark && !grouped[key].remark.includes(item.remark)) {
+        grouped[key].remark = grouped[key].remark ? `${grouped[key].remark}; ${item.remark}` : item.remark;
+      }
+    });
+
+    let ledger = Object.values(grouped).sort((a, b) => {
+      const dateA = a.date ? new Date(a.date) : new Date(0);
+      const dateB = b.date ? new Date(b.date) : new Date(0);
+      return dateA - dateB;
+    });
 
     // 5. Calculate Running Balance
-    let runningBalance = parseFloat(openingBal);
+    let runningBalance = openingBal;
     
     // Initial opening row
     const result = [{
       id: 'OP',
       date: null,
       type: 'OPENING',
-      particulars: 'Opening Balance',
-      debit: openingBal > 0 ? openingBal : 0,
-      credit: openingBal < 0 ? Math.abs(openingBal) : 0,
-      balance: runningBalance
+      particulars: 'Opening Balance (Initial)',
+      debit: openingBal,
+      credit: 0,
+      balance: openingBal,
+      name: member?.member_name || ''
     }];
 
     ledger.forEach(item => {
-      runningBalance += (parseFloat(item.debit) - parseFloat(item.credit));
-      result.push({
-        ...item,
-        particulars: item.type === 'GIVEN' ? `Bardan Given (#${item.pavti_no})` : `Bardan Returned (#${item.pavti_no})`,
-        balance: runningBalance
-      });
+      runningBalance += (item.debit - item.credit);
+      item.balance = runningBalance;
+      item.particulars = `Trans (#${item.pavti_no || 'NA'})`;
+      result.push(item);
     });
 
     res.json({ success: true, data: result });

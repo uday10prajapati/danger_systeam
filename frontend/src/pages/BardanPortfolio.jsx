@@ -58,15 +58,52 @@ const BardanPortfolio = () => {
         jamaBardanEntryApi.getAllEntries()
       ]);
 
-      if (membersRes.data.success) setMembers(membersRes.data.data || membersRes.data);
-      else if (Array.isArray(membersRes.data)) setMembers(membersRes.data);
+      const membersArr = membersRes.data.success ? (membersRes.data.data || membersRes.data) : (Array.isArray(membersRes.data) ? membersRes.data : []);
+      setMembers(membersArr);
 
-      const combinedHistory = [
-        ...(givenRes.data.success ? givenRes.data.data.map(item => ({ ...item, type: 'GIVEN' })) : []),
-        ...(returnedRes.data.success ? returnedRes.data.data.map(item => ({ ...item, type: 'RETURNED' })) : [])
-      ].sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+      const combined = [
+        ...(givenRes.data.success ? givenRes.data.data.map(item => ({ ...item, debit: item.qty, credit: 0, type: 'GIVEN' })) : []),
+        ...(returnedRes.data.success ? returnedRes.data.data.map(item => ({ ...item, debit: 0, credit: item.qty, type: 'RETURNED' })) : []),
+        ...membersArr.map(m => ({ 
+          code: m.member_code, 
+          name: m.member_name, 
+          debit: parseFloat(m.bardan_opening || 0), 
+          credit: 0, 
+          entry_date: null, 
+          pavti_no: 'OPENING',
+          type: 'OPENING' 
+        }))
+      ];
 
-      setHistory(combinedHistory);
+      // Group history by Member only for a "summed up" view
+      const memberGroups = {};
+      combined.forEach(item => {
+        const key = item.code;
+        if (!memberGroups[key]) {
+          memberGroups[key] = { 
+            code: item.code,
+            name: item.name,
+            date: item.entry_date, 
+            debit: 0, 
+            credit: 0, 
+            details: [] 
+          };
+        }
+        memberGroups[key].debit += parseFloat(item.debit || 0);
+        memberGroups[key].credit += parseFloat(item.credit || 0);
+        if (item.pavti_no && item.pavti_no !== 'OPENING') memberGroups[key].details.push(item.pavti_no);
+      });
+
+      const processedHistory = Object.values(memberGroups)
+        .filter(m => m.debit !== 0 || m.credit !== 0) // Only show members with activity or opening
+        .map(m => ({
+          ...m,
+          pavti_no: m.details.length > 0 ? [...new Set(m.details)].join(', ') : 'INITIAL',
+          balance: m.debit - m.credit
+        }))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      setHistory(processedHistory);
     } catch (error) {
       console.error('Failed to load initial data:', error);
       setMessage({ type: 'error', text: 'Synchronization failure' });
@@ -77,7 +114,7 @@ const BardanPortfolio = () => {
 
   const fetchBalance = async (code) => {
     if (!code) {
-      setBalanceData({ taken: 0, returned: 0, balance: 0 });
+      setBalanceData({ opening: 0, taken: 0, returned: 0, balance: 0 });
       setLedgerData([]);
       return;
     }
@@ -290,8 +327,10 @@ const BardanPortfolio = () => {
                          </td>
                          <td className="px-10 py-6 text-right">
                              <p className={`text-xl font-black italic ${
-                                row.balance > 0 ? 'text-rose-500' : 'text-slate-900'
-                             }`}>{row.balance ?? 'N/A'}</p>
+                                (row.balance ?? 0) > 0 ? 'text-rose-500' : 'text-slate-900'
+                             }`}>
+                                {typeof row.balance === 'number' ? row.balance.toFixed(2) : 'N/A'}
+                             </p>
                              <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Running Total</p>
                          </td>
                          <td className="px-10 py-6">
@@ -349,8 +388,8 @@ const BardanPortfolio = () => {
                     <TrendingUp size={20} />
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Asset Load</p>
-                    <p className="text-2xl font-black text-slate-800 italic">#{balanceData.taken} <span className="text-[10px] uppercase">GIVEN</span></p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Asset Load (Inc. Open)</p>
+                    <p className="text-2xl font-black text-slate-800 italic">#{((balanceData.opening || 0) + (balanceData.taken || 0)).toFixed(2)}</p>
                  </div>
               </div>
            </div>
@@ -489,7 +528,7 @@ const BardanPortfolio = () => {
                        >
                          <option value="">NAME REFERENCE...</option>
                          {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
-                       </select>
+                         </select>
                     </div>
                   </div>
                </div>
@@ -500,19 +539,25 @@ const BardanPortfolio = () => {
                      <div className="relative group">
                         <Package className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
                         <input 
-                          type="number"
-                          name="qty"
-                          className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
-                          placeholder="0.00"
-                          value={formData.qty}
-                          onChange={handleChange}
+                           type="number"
+                           name="qty"
+                           className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                           placeholder="0.00"
+                           value={formData.qty}
+                           onChange={handleChange}
                         />
+                        {formData.type === 'RETURNED' && (
+                           <div className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+                              <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-0.5">Stock Debt</p>
+                              <p className="text-xs font-black text-emerald-700 leading-none">#{balanceData.balance || 0}</p>
+                           </div>
+                        )}
                      </div>
                   </div>
 
                   <div className="space-y-3">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Membership Vector</label>
-                     <div className="flex items-center gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                     <div className="flex items-center gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 h-[58px]">
                         <input 
                            type="checkbox" 
                            id="memNominalCheck"
@@ -622,8 +667,7 @@ const BardanPortfolio = () => {
         <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-[3rem] border border-white shadow-xl flex flex-wrap justify-center gap-5">
            {[
              { label: 'View Portfolio History', icon: History, color: 'slate', action: () => setShowHistory(true), sub: 'Registry logs' },
-             { label: 'Initial State', icon: Plus, color: 'blue', action: resetForm, sub: 'Reset command' },
-             { label: 'Commit Transaction', icon: Save, color: formData.type === 'GIVEN' ? 'rose' : 'emerald', action: handleSave, sub: 'Commit to DB' },
+             { label: 'Commit Transaction', icon: Save, color: 'blue', action: handleSave, sub: 'Commit to DB' },
              { label: 'Physical Slip', icon: Printer, color: 'slate', action: handlePrint, sub: 'Generate slip' },
              { label: 'Clear Active', icon: X, color: 'slate', action: resetForm, sub: 'Clear form' },
            ].map((btn, i) => (
