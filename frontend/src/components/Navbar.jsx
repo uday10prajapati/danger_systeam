@@ -42,6 +42,11 @@ function Navbar({ backendStatus }) {
       {/* Action Bar */}
       <div className="flex items-center gap-6 ml-6">
         
+        {/* Financial Year Badge */}
+        <div className="flex bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
+           <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest italic">{currentUser.financial_year || '2026-27'}</span>
+        </div>
+
         {/* Language Selector */}
         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
            <button 

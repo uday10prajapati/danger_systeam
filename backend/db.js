@@ -7,13 +7,13 @@ dotenv.config();
 console.log('🔧 Database Configuration:');
 console.log('  Host:', process.env.DB_HOST || 'localhost');
 console.log('  User:', process.env.DB_USER || 'root');
-console.log('  Database:', process.env.DB_NAME || 'superstore');
+console.log('  Database:', process.env.DB_NAME || 'danger_systeam');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'superstore',
+  database: process.env.DB_NAME || 'danger_systeam',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -124,6 +124,62 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Create Item Master table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS item_master (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          item_code VARCHAR(50) NOT NULL,
+          item_name VARCHAR(255) NOT NULL,
+          item_name_gu VARCHAR(255),
+          desc_en TEXT,
+          desc_gu TEXT,
+          barcode VARCHAR(100),
+          category VARCHAR(100),
+          unit VARCHAR(20) DEFAULT 'PCS',
+          unit_gu VARCHAR(50),
+          purchase_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          sale_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          purchase_account_id INT,
+          sales_account_id INT,
+          tax_percentage DECIMAL(5, 2) DEFAULT 0,
+          reorder_level INT DEFAULT 0,
+          consider_in_autostock INT DEFAULT 0,
+          do_auto_stock_in_sales INT DEFAULT 0,
+          opening_stock DECIMAL(10, 3) DEFAULT 0.000,
+          opening_stock_value DECIMAL(10, 2) DEFAULT 0.00,
+          minimum_stock DECIMAL(10, 3) DEFAULT 0.000,
+          loss_per_kg DECIMAL(10, 3) DEFAULT 0.000,
+          effective_date DATE,
+          sgst_percent DECIMAL(5, 2) DEFAULT 0.00,
+          cgst_percent DECIMAL(5, 2) DEFAULT 0.00,
+          igst_percent DECIMAL(5, 2) DEFAULT 0.00,
+          cess_percent DECIMAL(5, 2) DEFAULT 0.00,
+          hsn_code VARCHAR(50),
+          is_active INT DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Dangar Rates table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS dangar_rates (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          financial_year VARCHAR(20) NOT NULL,
+          item_id INT NOT NULL,
+          rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          bardan_deduction_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id),
+          FOREIGN KEY (item_id) REFERENCES item_master(id),
+          UNIQUE KEY idx_company_year_item (company_id, financial_year, item_id)
+        )
+      `);
+
       // Create Products table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS products (
@@ -173,44 +229,7 @@ export async function initializeDatabase() {
         )
       `);
 
-      // Create Item Master table
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS item_master (
-          id INT PRIMARY KEY AUTO_INCREMENT,
-          company_id INT NOT NULL,
-          item_code VARCHAR(50) NOT NULL,
-          item_name VARCHAR(255) NOT NULL,
-          item_name_gu VARCHAR(255),
-          desc_en TEXT,
-          desc_gu TEXT,
-          barcode VARCHAR(100),
-          category VARCHAR(100),
-          unit VARCHAR(20) DEFAULT 'PCS',
-          unit_gu VARCHAR(50),
-          purchase_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
-          sale_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
-          purchase_account_id INT,
-          sales_account_id INT,
-          tax_percentage DECIMAL(5, 2) DEFAULT 0,
-          reorder_level INT DEFAULT 0,
-          consider_in_autostock INT DEFAULT 0,
-          do_auto_stock_in_sales INT DEFAULT 0,
-          opening_stock DECIMAL(10, 3) DEFAULT 0.000,
-          opening_stock_value DECIMAL(10, 2) DEFAULT 0.00,
-          minimum_stock DECIMAL(10, 3) DEFAULT 0.000,
-          loss_per_kg DECIMAL(10, 3) DEFAULT 0.000,
-          effective_date DATE,
-          sgst_percent DECIMAL(5, 2) DEFAULT 0.00,
-          cgst_percent DECIMAL(5, 2) DEFAULT 0.00,
-          igst_percent DECIMAL(5, 2) DEFAULT 0.00,
-          cess_percent DECIMAL(5, 2) DEFAULT 0.00,
-          hsn_code VARCHAR(50),
-          is_active INT DEFAULT 1,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
-        )
-      `);
+
 
       // Create Sale Items table
       await connection.query(`
@@ -250,27 +269,54 @@ export async function initializeDatabase() {
         )
       `);
 
-      // Create Member Master table
+      // Create Member Master table (Sabhasad)
       await connection.query(`
         CREATE TABLE IF NOT EXISTS member_master (
           id INT PRIMARY KEY AUTO_INCREMENT,
           company_id INT NOT NULL,
-          account_id INT,
+          financial_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
+          member_code VARCHAR(50) NOT NULL,
           member_name VARCHAR(255) NOT NULL,
-          member_code VARCHAR(50),
+          eng_name VARCHAR(255),
           phone VARCHAR(20),
-          email VARCHAR(100),
-          address TEXT,
-          discount_percentage DECIMAL(5, 2) DEFAULT 0,
-          loyalty_points INT DEFAULT 0,
-          total_purchases DECIMAL(10, 2) DEFAULT 0,
+          village_code VARCHAR(50),
+          village_name VARCHAR(255),
+          full_ac_number VARCHAR(100),
+          bank_name VARCHAR(255),
+          branch_name VARCHAR(255),
+          account_type VARCHAR(50),
+          address_no VARCHAR(255),
+          nominal_member VARCHAR(100),
           is_active INT DEFAULT 1,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
-          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT
+          INDEX (member_code),
+          INDEX (company_id)
         )
       `);
+
+      // Migration for existing tables (ensure column names match new system)
+      try {
+         const cols = [
+            'village_code', 'village_name', 'full_ac_number', 
+            'bank_name', 'branch_name', 'account_type', 
+            'address_no', 'eng_name', 'nominal_member'
+         ];
+         for (const col of cols) {
+            try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} VARCHAR(255)`); } catch(e) {}
+         }
+         // Clean up old columns if they exist
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN email"); } catch(e) {}
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN discount_percentage"); } catch(e) {}
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN loyalty_points"); } catch(e) {}
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN total_purchases"); } catch(e) {}
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN member_gst_no"); } catch(e) {}
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN member_address"); } catch(e) {}
+         try { await connection.query("ALTER TABLE member_master DROP COLUMN address"); } catch(e) {}
+      } catch(e) {
+         console.warn("Member master migration warning:", e.message);
+      }
 
       // Create Inventory Log table
       await connection.query(`
@@ -637,6 +683,131 @@ export async function initializeDatabase() {
       try { await connection.query("ALTER TABLE account_ledger ADD COLUMN debit_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
       try { await connection.query("ALTER TABLE account_ledger ADD COLUMN credit_amount DECIMAL(10, 2) DEFAULT 0"); } catch (e) {}
 
+
+      // Create Village table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS village (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          village_code VARCHAR(50),
+          village_name VARCHAR(255),
+          taluka_name VARCHAR(255),
+          district_name VARCHAR(255),
+          no_of_villages INT DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Dangar Entry table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS dangar_entry (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          financial_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
+          book_type VARCHAR(50) NOT NULL,
+          sr_no VARCHAR(100),
+          entry_date DATE NOT NULL,
+          member_id INT,
+          item_id INT,
+          remark TEXT,
+          vehicle_no VARCHAR(100),
+          total_kg DECIMAL(15, 2) DEFAULT 0,
+          bardan INT DEFAULT 0,
+          gun DECIMAL(10, 2) DEFAULT 0,
+          gross_quintal DECIMAL(15, 2) DEFAULT 0,
+          less_bardan DECIMAL(15, 2) DEFAULT 0,
+          net_quintal DECIMAL(15, 2) DEFAULT 0,
+          rate DECIMAL(12, 2) DEFAULT 0,
+          amount DECIMAL(15, 2) DEFAULT 0,
+          created_by INT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (member_id) REFERENCES member_master(id) ON DELETE SET NULL,
+          FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Create Dangar Weights table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS dangar_weights (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          entry_id INT NOT NULL,
+          sr_no INT,
+          weight DECIMAL(15, 2) NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (entry_id) REFERENCES dangar_entry(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Bardan Entry table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS bardan_entry (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          financial_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
+          book_type VARCHAR(50),
+          pavti_no VARCHAR(100),
+          entry_date DATE NOT NULL,
+          mem_nominal VARCHAR(100),
+          code VARCHAR(100),
+          name VARCHAR(255),
+          qty DECIMAL(15, 2) DEFAULT 0,
+          option_type VARCHAR(100),
+          remark TEXT,
+          day_qty DECIMAL(15, 2) DEFAULT 0,
+          total_qty DECIMAL(15, 2) DEFAULT 0,
+          created_by INT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Bardan Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS bardan_items (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          entry_id INT NOT NULL,
+          col1 VARCHAR(255),
+          col2 VARCHAR(255),
+          col3 VARCHAR(255),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (entry_id) REFERENCES bardan_entry(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Financial Years table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS financial_years (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          year_label VARCHAR(20) NOT NULL,
+          start_date DATE,
+          end_date DATE,
+          is_active INT DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          UNIQUE(company_id, year_label)
+        )
+      `);
+
+      // Modify existing tables to add financial_year column
+      const tablesToUpdate = [
+        'accounts', 'sales', 'item_master', 'customer_ledger', 'member_master', 
+        'purchases', 'purchase_stock_ledger', 'supplier_ledger', 'sale_returns', 
+        'purchase_returns', 'cash_book', 'account_ledger', 'journal_vouchers',
+        'item_rate', 'gst'
+      ];
+
+      for (const table of tablesToUpdate) {
+        try {
+          await connection.query(`ALTER TABLE ${table} ADD COLUMN financial_year VARCHAR(20) NOT NULL DEFAULT '2026-27'`);
+          await connection.query(`CREATE INDEX idx_${table}_fy ON ${table}(financial_year)`);
+        } catch (e) {
+          // Column might already exist
+        }
+      }
 
       await connection.commit();
       console.log('✅ MySQL Database tables created/verified/upgraded');
@@ -1062,7 +1233,7 @@ export async function getPurchaseItemsWithStock(purchaseId) {
 
 // ==================== SALE FUNCTIONS ====================
 
-export async function createSale(companyId, invoiceNo, invoiceDate, customerId, memberId, items, discountAmount, paymentType, notes, userId) {
+export async function createSale(companyId, invoiceNo, invoiceDate, customerId, memberId, items, discountAmount, paymentType, notes, userId, financialYear = '2026-27') {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -1070,9 +1241,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
     // 1. INSERT sale header
     const saleResult = await connection.query(
       `INSERT INTO sales 
-       (company_id, invoice_no, invoice_date, customer_account_id, member_id, discount_amount, payment_type, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [companyId, invoiceNo, invoiceDate, customerId || null, memberId || null, discountAmount || 0, paymentType, notes, userId]
+       (company_id, invoice_no, invoice_date, customer_account_id, member_id, discount_amount, payment_type, notes, created_by, financial_year)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [companyId, invoiceNo, invoiceDate, customerId || null, memberId || null, discountAmount || 0, paymentType, notes, userId, financialYear]
     );
 
     const saleId = saleResult[0].insertId;
@@ -1103,9 +1274,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
       // Insert stock ledger entry (STOCK OUT for sale)
       await connection.query(
         `INSERT INTO purchase_stock_ledger 
-         (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by)
-         VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?)`,
-        [companyId, item.item_id, item.quantity, newStock, `SALE-${saleId}`, userId]
+         (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by, financial_year)
+         VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?, ?)`,
+        [companyId, item.item_id, item.quantity, newStock, `SALE-${saleId}`, userId, financialYear]
       );
     }
 
@@ -1127,9 +1298,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
       try {
         await connection.query(
           `INSERT INTO account_ledger 
-           (account_id, company_id, transaction_date, reference_type, reference_id, reference_no, description, debit, credit)
-           VALUES (?, ?, ?, 'SALE', ?, ?, ?, ?, 0)`,
-          [accountIdForLedger, companyId, invoiceDate, saleId, `SALE-${saleId}`, `Sale to customer - ${invoiceNo}`, netAmount]
+           (account_id, company_id, transaction_date, reference_type, reference_id, reference_no, description, debit, credit, financial_year)
+           VALUES (?, ?, ?, 'SALE', ?, ?, ?, ?, 0, ?)`,
+          [accountIdForLedger, companyId, invoiceDate, saleId, `SALE-${saleId}`, `Sale to customer - ${invoiceNo}`, netAmount, financialYear]
         );
       } catch (err) {
         console.error('Error creating debit ledger entry:', err);
@@ -1162,9 +1333,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
         if (salesAccountId) {
           await connection.query(
             `INSERT INTO account_ledger 
-             (account_id, company_id, transaction_date, reference_type, reference_id, reference_no, description, debit, credit)
-             VALUES (?, ?, ?, 'SALE', ?, ?, ?, 0, ?)`,
-            [salesAccountId, companyId, invoiceDate, saleId, `SALE-${saleId}`, `Sale - ${invoiceNo}`, netAmount]
+             (account_id, company_id, transaction_date, reference_type, reference_id, reference_no, description, debit, credit, financial_year)
+             VALUES (?, ?, ?, 'SALE', ?, ?, ?, 0, ?, ?)`,
+            [salesAccountId, companyId, invoiceDate, saleId, `SALE-${saleId}`, `Sale - ${invoiceNo}`, netAmount, financialYear]
           );
         }
       } catch (err) {
@@ -1188,9 +1359,9 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
 
       await connection.query(
         `INSERT INTO customer_ledger 
-         (company_id, customer_account_id, debit_amount, balance, transaction_type, reference_no, created_by)
-         VALUES (?, ?, ?, ?, 'SALE', ?, ?)`,
-        [companyId, customerId, netAmount, newBalance, `SALE-${saleId}`, userId]
+         (company_id, customer_account_id, debit_amount, balance, transaction_type, reference_no, created_by, financial_year)
+         VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?)`,
+        [companyId, customerId, netAmount, newBalance, `SALE-${saleId}`, userId, financialYear]
       );
     }
 
@@ -1205,7 +1376,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
   }
 }
 
-export async function getSalesByCompany(companyId, startDate, endDate) {
+export async function getSalesByCompany(companyId, startDate, endDate, financialYear = '2026-27') {
   const sql = `
     SELECT 
       s.id,
@@ -1221,11 +1392,11 @@ export async function getSalesByCompany(companyId, startDate, endDate) {
     LEFT JOIN accounts a ON s.customer_account_id = a.id
     LEFT JOIN member_master m ON s.member_id = m.id
     LEFT JOIN sale_items si ON s.id = si.sale_id
-    WHERE s.company_id = ? AND s.invoice_date BETWEEN ? AND ?
+    WHERE s.company_id = ? AND s.invoice_date BETWEEN ? AND ? AND s.financial_year = ?
     GROUP BY s.id
     ORDER BY s.invoice_date DESC, s.created_at DESC
   `;
-  return await query(sql, [companyId, startDate, endDate]);
+  return await query(sql, [companyId, startDate, endDate, financialYear]);
 }
 
 export async function getSaleDetails(saleId) {
@@ -1580,13 +1751,14 @@ export async function insertCashBookEntry(
   cashIn,
   cashOut,
   userId,
-  notes = ''
+  notes = '',
+  financialYear = '2026-27'
 ) {
   const sql = `
     INSERT INTO cash_book 
     (company_id, transaction_date, reference_type, reference_id, reference_no, 
-     description, cash_in, cash_out, created_by, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     description, cash_in, cash_out, created_by, notes, financial_year)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const result = await query(sql, [
@@ -1599,7 +1771,8 @@ export async function insertCashBookEntry(
     parseFloat(cashIn) || 0,
     parseFloat(cashOut) || 0,
     userId,
-    notes
+    notes,
+    financialYear
   ]);
 
   return { insertId: result.insertId };

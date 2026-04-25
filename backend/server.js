@@ -1,5 +1,5 @@
-// admin@superstore.com and store@gmail.com
-// 123456
+// admin@danger.com
+// admin123
 import express from 'express';
 import cors from 'cors';
 import db, { initializeDatabase, query, queryOne, execute } from './db.js';
@@ -26,6 +26,10 @@ import sabhasadReportRoutes from './routes/sabhasadReportRoutes.js';
 import ledgerReportRoutes from './routes/ledgerReportRoutes.js';
 import rojmelRoutes from './routes/rojmelRoutes.js';
 import jvRoutes from './routes/jvRoutes.js';
+import villageRoutes from './routes/villageRoute.js';
+import dangarRoutes from './routes/dangarRoutes.js';
+import dangarRateRoutes from './routes/dangarRateRoutes.js';
+import bardanRoutes from './routes/bardanRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -36,13 +40,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
-// VPS Nginx Resilience Middleware: 
-// If Nginx strips the '/api' prefix (via proxy_pass trailing slash), this adds it back 
-// so the hardcoded Express routes still flawlessly trigger.
+// Log all requests for debugging
 app.use((req, res, next) => {
-  if (!req.url.startsWith('/api')) {
-    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
-  }
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
@@ -54,16 +54,11 @@ app.get('/api/health', (req, res) => {
 // Initialize database and start server
 async function startServer() {
   try {
-    console.log('🔄 Initializing database...');
-    await initializeDatabase();
-    console.log('✅ Database initialized successfully');
-
-    // Register all routes
+    // Register all routes immediately
     console.log('📝 Registering routes...');
     registerCompanyRoutes(app);
     registerUserRoutes(app);
-    app.use(accountRoutes);
-    app.use('/api/members', memberCodeRoutes);
+    app.use('/api/accounts', accountRoutes);
     app.use('/api/members', memberRoutes);
     app.use('/api/items', itemRoutes);
     app.use('/api/item-rates', itemRateRoutes);
@@ -82,6 +77,72 @@ async function startServer() {
     app.use('/api/ledger-report', ledgerReportRoutes);
     app.use('/api/rojmel', rojmelRoutes);
     app.use('/api/jv', jvRoutes);
+    app.use('/api/village', villageRoutes);
+    app.use('/api/dangar-entry', dangarRoutes);
+    app.use('/api/dangar-rates', dangarRateRoutes);
+    app.use('/api/bardan-entry', bardanRoutes);
+
+    console.log('🔄 Initializing database...');
+    await initializeDatabase();
+    console.log('✅ Database initialized successfully');
+
+    // Financial Years Routes
+    app.get('/api/financial-years/:companyId', async (req, res) => {
+        try {
+            const rows = await query('SELECT * FROM financial_years WHERE company_id = ? ORDER BY year_label DESC', [req.params.companyId]);
+            res.json(rows);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // 404 Catch-All (Finally)
+    app.use((req, res) => {
+      if (req.url.startsWith('/api')) {
+        console.warn(`[404] No route found for: ${req.method} ${req.url}`);
+        return res.status(404).json({ 
+          success: false, 
+          error: `Route not found: ${req.method} ${req.url}`
+        });
+      }
+    });
+
+
+
+    app.post('/api/financial-years', async (req, res) => {
+        try {
+            const { companyId, yearLabel, startDate, endDate } = req.body;
+            // Convert empty strings to null for DATE columns
+            const finalStart = startDate || null;
+            const finalEnd = endDate || null;
+            
+            await query(
+                'INSERT INTO financial_years (company_id, year_label, start_date, end_date) VALUES (?, ?, ?, ?)',
+                [companyId, yearLabel, finalStart, finalEnd]
+            );
+            res.json({ success: true });
+        } catch (err) {
+            console.error('Fiscal Year Post Error:', err);
+            res.status(500).json({ error: err.code === 'ER_DUP_ENTRY' ? 'This year label already exists.' : err.message });
+        }
+    });
+
+    app.put('/api/financial-years/:id', async (req, res) => {
+        try {
+            const { yearLabel, startDate, endDate, is_active } = req.body;
+            const finalStart = startDate || null;
+            const finalEnd = endDate || null;
+
+            await query(
+                'UPDATE financial_years SET year_label = ?, start_date = ?, end_date = ?, is_active = ? WHERE id = ?',
+                [yearLabel, finalStart, finalEnd, is_active !== undefined ? is_active : 1, req.params.id]
+            );
+            res.json({ success: true });
+        } catch (err) {
+            console.error('Fiscal Year Put Error:', err);
+            res.status(500).json({ error: err.message });
+        }
+    });
 
     // Dashboard stats endpoint
     app.get('/api/dashboard/stats', async (req, res) => {

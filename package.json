@@ -1,5 +1,5 @@
 {
-  "name": "superstore-desktop",
+  "name": "danger-systeam-desktop",
   "version": "1.0.0",
   "description": "Desktop supermarket management application",
   "private": true,
@@ -37,8 +37,8 @@
   },
   "build": {
     "asar": false,
-    "appId": "com.superstore.desktop",
-    "productName": "SuperStore",
+    "appId": "com.danger-systeam.desktop",
+    "productName": "Danger Systeam",
     "files": [
       "electron/**/*",
       "backend/**/*",

@@ -25,6 +25,10 @@ import PurchaseReport from './pages/PurchaseReport'
 import SaleReport from './pages/SaleReport'
 import BarcodeScannerPage from './pages/BarcodeScannerPage'
 import ModulePage from './pages/ModulePage'
+import Village from './pages/Village'
+import DangarEntry from './pages/DangarEntry'
+import DangarRateMaster from './pages/DangarRateMaster'
+import BardanEntry from './pages/BardanEntry'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 
@@ -102,6 +106,10 @@ function AppContent() {
               <Route path="/members" element={<MemberMaster />} />
               <Route path="/items" element={<ItemMaster />} />
               <Route path="/rates" element={<ItemRate />} />
+              <Route path="/village" element={<Village />} />
+              <Route path="/dangar-entry" element={<DangarEntry />} />
+              <Route path="/dangar-rates" element={<DangarRateMaster />} />
+              <Route path="/bardan-entry" element={<BardanEntry />} />
               
               {/* Transactions */}
               <Route path="/sales" element={<Sale />} />

@@ -59,7 +59,8 @@ router.post('/', async (req, res) => {
       discount_amount || 0,
       payment_type || 'cash',
       notes,
-      userId
+      userId,
+      req.financialYear
     );
 
     // Auto-insert cash book entry if payment is cash
@@ -75,7 +76,8 @@ router.post('/', async (req, res) => {
           result.net_amount,
           0,
           userId,
-          ''
+          '',
+          req.financialYear
         );
       } catch (cashErr) {
         console.error('Failed to insert cash book entry:', cashErr);
@@ -107,7 +109,7 @@ router.get('/', async (req, res) => {
       startDate = start.toISOString().split('T')[0];
     }
 
-    const sales = await getSalesByCompany(companyId, startDate, endDate);
+    const sales = await getSalesByCompany(companyId, startDate, endDate, req.financialYear);
     return res.json({ success: true, data: sales });
   } catch (error) {
     console.error('Get sales error:', error);

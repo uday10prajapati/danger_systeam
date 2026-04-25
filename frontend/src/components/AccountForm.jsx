@@ -54,7 +54,9 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
     { value: 'assets', label: t('accountMaster.assets'), icon: <TrendingUp size={14}/>, color: 'emerald' },
     { value: 'liabilities', label: t('accountMaster.liabilities'), icon: <ShieldAlert size={14}/>, color: 'rose' },
     { value: 'revenue', label: t('accountMaster.revenue'), icon: <Activity size={14}/>, color: 'amber' },
-    { value: 'expense', label: t('accountMaster.expense'), icon: <ShieldAlert size={14}/>, color: 'orange' }
+    { value: 'expense', label: t('accountMaster.expense'), icon: <ShieldAlert size={14}/>, color: 'orange' },
+    { value: 'purchase', label: t('accountMaster.purchase', 'Purchase'), icon: <Briefcase size={14}/>, color: 'indigo' },
+    { value: 'sales', label: t('accountMaster.sales', 'Sales'), icon: <TrendingUp size={14}/>, color: 'emerald' }
   ];
 
   const handleChange = (e) => {

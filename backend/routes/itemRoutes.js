@@ -85,6 +85,22 @@ router.post('/', validateCreateItem, handleValidationErrors, async (req, res) =>
 });
 
 /**
+ * GET ALL ITEMS
+ */
+router.get('/', async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'];
+    const results = await query(
+      `SELECT * FROM item_master WHERE company_id = ? AND is_active = 1 ORDER BY item_name ASC`,
+      [companyId]
+    );
+    res.json({ success: true, data: results || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * LIST ITEMS BY COMPANY
  * GET /api/items/company/:companyId
  * Query: ?active=true|false (optional), ?category=X (optional), ?search=X (optional)

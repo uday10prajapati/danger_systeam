@@ -1,6 +1,6 @@
 {
   "navbar": {
-    "superstore": "SuperStore",
+    "danger_systeam": "Danger Systeam",
     "managementSystem": "Management System",
     "backToDashboard": "Back to Dashboard",
     "connected": "Connected",
@@ -8,7 +8,7 @@
     "language": "Language"
   },
   "dashboard": {
-    "superstore": "SuperStore",
+    "danger_systeam": "Danger Systeam",
     "completeBusinessManagement": "Complete Business Management System",
     "dashboard": "Dashboard",
     "enterpriseOverview": "Enterprise Overview",
@@ -207,6 +207,7 @@
   "modules": {
     "home": "Home",
     "dashboard": "Dashboard",
+    "master": "Master",
     "management": "Management",
     "company": "Company",
     "manageCompanyDetails": "Manage Company Details",
@@ -233,6 +234,10 @@
     "purchaseReturn": "Purchase Return",
     "managePurchaseReturns": "Manage Purchase Returns",
     "barcodeScanner": "Barcodes",
+    "villageMaster": "Village Master",
+    "manageVillages": "Manage Village Nodes",
+    "dangarEntry": "Dangar Entry",
+    "manageDangarEntry": "Manage Dangar/Tuver/Divela Entries",
     "scanAndManageBarcodes": "Scan and Manage Barcodes",
     "financials": "Financials",
     "ledgerAudit": "Ledger Audit",
@@ -660,6 +665,46 @@
     "transactions": "Transactions",
     "noTransactionData": "No transaction data available for the selected period",
     "less": "Less"
+  },
+  "dangarEntry": {
+    "title": "Tuver/Dangar/Divela Entry",
+    "bookType": "Book Type",
+    "srNo": "Sr No",
+    "date": "Date",
+    "code": "Code",
+    "itemCode": "Item Code",
+    "remark": "Remark",
+    "vehicleNo": "Vehicle No",
+    "sabhasadDetails": "Sabhasad Details",
+    "totalDanger": "Total Dangar",
+    "itemDetails": "Item Details",
+    "no": "No.",
+    "wgtKg": "Wgt(Kg)",
+    "addRow": "Add Row",
+    "totKg": "Tot KG",
+    "bardan": "Bardan",
+    "gun": "Gun",
+    "grossQuintal": "Gross Quintal",
+    "lessBardan": "Less Bardan",
+    "netQuintal": "Net Quintal",
+    "dataShow": "Data Show",
+    "nameUpdate": "Name Update",
+    "temporary": "Temporary"
+  },
+  "bardanEntry": {
+    "title": "Khali Bardan Entry",
+    "book_type": "Book Type",
+    "pavti_no": "Pavti No",
+    "date": "Date",
+    "mem_nominal": "Mem/Nominal",
+    "code": "Code",
+    "name": "Name",
+    "qty": "Qty",
+    "option": "Option",
+    "remark": "Remark",
+    "item_details": "Item Details",
+    "day_qty": "Day Qty",
+    "total_qty": "Total Qty"
   }
 }
 

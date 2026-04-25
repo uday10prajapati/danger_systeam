@@ -1,6 +1,6 @@
 {
   "navbar": {
-    "superstore": "સુપરસ્ટોર",
+    "danger_systeam": "ડેન્જર સિસ્ટમ",
     "managementSystem": "મેનેજમેન્ટ સિસ્ટમ",
     "backToDashboard": "ડેશબોર્ડ પર પાછા ફરો",
     "connected": "જોડાયેલ",
@@ -8,7 +8,7 @@
     "language": "ભાષા"
   },
   "dashboard": {
-    "superstore": "સુપરસ્ટોર",
+    "danger_systeam": "ડેન્જર સિસ્ટમ",
     "completeBusinessManagement": "સંપૂર્ણ વ્યવસાય વ્યવસ્થાપન સિસ્ટમ",
     "dashboard": "ડેશબોર્ડ",
     "enterpriseOverview": "એન્ટરપ્રાઇઝ ",
@@ -207,6 +207,7 @@
   "modules": {
     "home": "હોમ",
     "dashboard": "ડેશબોર્ડ",
+    "master": "માસ્ટર",
     "management": "વ્યવસ્થાપન",
     "company": "કંપની",
     "manageCompanyDetails": "કંપનીની વિગતો સંચાલિત કરો",
@@ -233,6 +234,10 @@
     "purchaseReturn": "ખરીદી વળતર",
     "managePurchaseReturns": "ખરીદી વળતર સંચાલિત કરો",
     "barcodeScanner": "બારકોડ્સ",
+    "villageMaster": "ગામ માસ્ટર",
+    "manageVillages": "ગામ નોડ્સ સંચાલિત કરો",
+    "dangarEntry": "ડાંગર એન્ટ્રી",
+    "manageDangarEntry": "ડાંગર/તુવેર/દિવેલા એન્ટ્રી મેનેજ કરો",
     "scanAndManageBarcodes": "બારકોડ સ્કેન અને સંચાલિત કરો",
     "financials": "નાણાકીય",
     "ledgerAudit": "લેજર ઓડિટ",
@@ -630,5 +635,45 @@
     "view": "જુઓ",
     "invoiceDate": "ઇનવોઇસ તારીખ",
     "createdBy": "દ્વારા બનાવવામાં આવી"
+  },
+  "dangarEntry": {
+    "title": "તુવેર/ડાંગર/દિવેલા એન્ટ્રી",
+    "bookType": "બુક પ્રકાર",
+    "srNo": "ક્રમ નં.",
+    "date": "તારીખ",
+    "code": "કોડ",
+    "itemCode": "આઇટમ કોડ",
+    "remark": "રિમાર્ક",
+    "vehicleNo": "વાહન નં.",
+    "sabhasadDetails": "સભાભાસદ વિગતો",
+    "totalDanger": "કુલ ડાંગર",
+    "itemDetails": "આઇટમ વિગતો",
+    "no": "નંબર",
+    "wgtKg": "વજન(કિલો)",
+    "addRow": "રો ઉમેરો",
+    "totKg": "કુલ કિલો",
+    "bardan": "બારદાન",
+    "gun": "ગુણ",
+    "grossQuintal": "ગ્રોસ ક્વિન્ટલ",
+    "lessBardan": "લેસ બારદાન",
+    "netQuintal": "નેટ ક્વિન્ટલ",
+    "dataShow": "ડેટા શો",
+    "nameUpdate": "નામ અપડેટ",
+    "temporary": "ટેમ્પરરી"
+  },
+  "bardanEntry": {
+    "title": "ખાલી બારદાન જમા-ઉઠાર",
+    "book_type": "બુક ટાઈપ",
+    "pavti_no": "પાવતી નં",
+    "date": "તારીખ",
+    "mem_nominal": "મેમ/નોમિનલ",
+    "code": "કોડ",
+    "name": "નામ",
+    "qty": "ક્વાન્ટી",
+    "option": "ઓપ્શન",
+    "remark": "રીમાર્ક",
+    "item_details": "આઈટમ વિગત",
+    "day_qty": "દિન Qty",
+    "total_qty": "કુલ Qty"
   }
 }

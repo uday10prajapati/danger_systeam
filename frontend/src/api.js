@@ -27,13 +27,29 @@ const api = axios.create({
   },
 });
 
-// Products
+// Add a request interceptor to include the financial year and company headers
+api.interceptors.request.use((config) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (user) {
+    if (user.financial_year) {
+      config.headers['X-Financial-Year'] = user.financial_year;
+    }
+    if (user.company_id) {
+      config.headers['X-Company-Id'] = user.company_id;
+    }
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Products (Items)
 export const productAPI = {
-  getAll: () => api.get('/products'),
-  getById: (id) => api.get(`/products/${id}`),
-  create: (data) => api.post('/products', data),
-  update: (id, data) => api.put(`/products/${id}`, data),
-  delete: (id) => api.delete(`/products/${id}`),
+  getAll: () => api.get('/items'),
+  getById: (id) => api.get(`/items/${id}`),
+  create: (data) => api.post('/items', data),
+  update: (id, data) => api.put(`/items/${id}`, data),
+  delete: (id) => api.delete(`/items/${id}`),
 };
 
 // Sales
@@ -58,6 +74,35 @@ export const usersAPI = {
 export const reportsAPI = {
   getDailySales: (date) => api.get(`/reports/daily-sales?date=${date}`),
   getInventory: () => api.get('/reports/inventory'),
+};
+
+// Sabhasad Master (Members)
+export const sabhasadMasterApi = {
+  getAllSabhasad: () => api.get('/members'),
+  getSabhasadById: (id) => api.get(`/members/${id}`),
+  getSabhasadByCode: (code) => api.get(`/members/code/${code}`),
+  getLastCode: () => api.get('/members/last-code'),
+  createSabhasad: (data) => api.post('/members', data),
+  updateSabhasad: (id, data) => api.put(`/members/${id}`, data),
+  deleteSabhasad: (id) => api.delete(`/members/${id}`),
+  getAllVillages: () => api.get('/village'),
+};
+
+// Dangar Entry
+export const dangarEntryApi = {
+  getAll: (companyId, startDate, endDate) => api.get('/dangar-entry', { params: { companyId, startDate, endDate } }),
+  getById: (id) => api.get(`/dangar-entry/${id}`),
+  create: (data) => api.post('/dangar-entry', data),
+  delete: (id) => api.delete(`/dangar-entry/${id}`),
+};
+
+// Bardan Entry
+export const bardanEntryApi = {
+  getAllEntries: () => api.get('/bardan-entry'),
+  getEntryById: (id) => api.get(`/bardan-entry/${id}`),
+  createEntry: (data) => api.post('/bardan-entry', data),
+  updateEntry: (id, data) => api.put(`/bardan-entry/${id}`, data),
+  deleteEntry: (id) => api.delete(`/bardan-entry/${id}`),
 };
 
 // Health check

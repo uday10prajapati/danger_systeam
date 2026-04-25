@@ -12,8 +12,11 @@ function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [financialYears, setFinancialYears] = useState([])
+  const [selectedYear, setSelectedYear] = useState('2026-27')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [yearsLoading, setYearsLoading] = useState(false)
   const [error, setError] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [focusedField, setFocusedField] = useState('')
@@ -25,13 +28,37 @@ function Login() {
     }
   }, [navigate]);
 
+  // Fetch years when user types email
+  const fetchYears = async (emailVal) => {
+    if (!emailVal || !emailVal.includes('@')) return;
+    try {
+      setYearsLoading(true);
+      const res = await api.get(`/auth/years?email=${emailVal}`);
+      if (Array.isArray(res.data)) {
+        setFinancialYears(res.data);
+        if (res.data.length > 0) {
+          setSelectedYear(res.data[0].year_label);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch years', e);
+    } finally {
+      setYearsLoading(false);
+    }
+  };
+
+  const handleEmailBlur = () => {
+    fetchYears(email);
+    setFocusedField('');
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      if (!email || !password) {
+      if (!email || !password || !selectedYear) {
         setError('Verification parameters required')
         setLoading(false)
         return
@@ -39,7 +66,8 @@ function Login() {
 
       const response = await api.post('/login', {
         email: email.toLowerCase().trim(),
-        password: password
+        password: password,
+        financial_year: selectedYear
       })
 
       if (response.data.success) {
@@ -85,7 +113,7 @@ function Login() {
                      <ShoppingBag size={24} strokeWidth={2.5} />
                   </div>
                   <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-[1.1]">
-                     SuperStore<br/>
+                     Danger Systeam<br/>
                      <span className="text-blue-600 italic text-2xl">Management.</span>
                   </h1>
                   <p className="text-slate-400 text-[11px] font-bold max-w-[220px] leading-relaxed">
@@ -133,11 +161,36 @@ function Login() {
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               onFocus={() => setFocusedField('email')}
-                              onBlur={() => setFocusedField('')}
+                              onBlur={handleEmailBlur}
                               className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-xl outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
-                              placeholder="admin@superstore.com"
+                              placeholder="admin@danger-systeam.com"
                               required
                            />
+                        </div>
+                     </div>
+
+                     <div className="space-y-1">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Fiscal Cycle</label>
+                        <div className={`relative transition-all duration-300 ${focusedField === 'year' ? 'translate-x-1' : ''}`}>
+                           <select
+                              value={selectedYear}
+                              onChange={(e) => setSelectedYear(e.target.value)}
+                              onFocus={() => setFocusedField('year')}
+                              onBlur={() => setFocusedField('')}
+                              className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-xl outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner appearance-none cursor-pointer"
+                              required
+                           >
+                              {financialYears.length > 0 ? (
+                                 financialYears.map(y => (
+                                    <option key={y.id} value={y.year_label}>{y.year_label}</option>
+                                 ))
+                              ) : (
+                                 <option value="2026-27">2026-27 (Default)</option>
+                              )}
+                           </select>
+                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                              {yearsLoading ? <Loader size={12} className="animate-spin text-blue-500" /> : <TrendingUp size={12} className="text-slate-300" />}
+                           </div>
                         </div>
                      </div>
 

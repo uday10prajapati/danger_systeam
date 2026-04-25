@@ -3,7 +3,7 @@ import {
   Building2, Phone, Mail, MapPin, 
   Calendar, Database, Activity, CheckCircle, 
   AlertCircle, Edit3, ArrowLeft, ChevronRight, 
-  Globe, Shield, Save, X, Trash2, RefreshCw
+  Globe, Shield, Save, X, Trash2, RefreshCw, Plus
 } from 'lucide-react'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
@@ -32,6 +32,11 @@ function CompanySetup() {
   const [success, setSuccess] = useState(false)
   const [company, setCompany] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [financialYears, setFinancialYears] = useState([])
+  const [showYearForm, setShowYearForm] = useState(false)
+  const [newYear, setNewYear] = useState({ label: '', start: '', end: '' })
+  const [editingYear, setEditingYear] = useState(null)
+  const [yearsLoading, setYearsLoading] = useState(false)
 
   useEffect(() => {
     fetchCompany()
@@ -62,6 +67,73 @@ function CompanySetup() {
       setLoading(false)
     }
   }
+
+  const handleAddYear = async (e) => {
+     e.preventDefault();
+     try {
+        if (editingYear) {
+           await axios.put(`${API_URL}/financial-years/${editingYear.id}`, {
+              yearLabel: newYear.label,
+              startDate: newYear.start,
+              endDate: newYear.end,
+              is_active: editingYear.is_active
+           });
+        } else {
+           await axios.post(`${API_URL}/financial-years`, {
+              companyId: company.id,
+              yearLabel: newYear.label,
+              startDate: newYear.start,
+              endDate: newYear.end
+           });
+        }
+        setSuccess(true);
+        setShowYearForm(false);
+        setNewYear({ label: '', start: '', end: '' });
+        setEditingYear(null);
+        fetchFinancialYears(company.id);
+        setTimeout(() => setSuccess(false), 3000);
+     } catch (e) {
+        console.error('Fiscal Cycle Error:', e);
+        setErrors([e.response?.data?.error || e.message || 'Failed to register fiscal cycle']);
+     }
+  }
+
+  const startEditYear = (fy) => {
+     // Safeguard against null dates from DB
+     const formattedStart = fy.start_date ? new Date(fy.start_date).toISOString().split('T')[0] : '';
+     const formattedEnd = fy.end_date ? new Date(fy.end_date).toISOString().split('T')[0] : '';
+     
+     setNewYear({
+        label: fy.year_label || '',
+        start: formattedStart,
+        end: formattedEnd
+     });
+     setEditingYear(fy);
+     setShowYearForm(true);
+  }
+
+  const fetchFinancialYears = async (companyId) => {
+     try {
+        setYearsLoading(true);
+        const res = await axios.get(`${API_URL}/financial-years/${companyId}`);
+        // Ensure we only set state if the response is an array
+        if (Array.isArray(res.data)) {
+           setFinancialYears(res.data);
+        } else {
+           console.warn('API returned non-array data:', res.data);
+           setFinancialYears([]);
+        }
+     } catch (e) {
+        console.error('Failed to fetch years', e);
+        setFinancialYears([]);
+     } finally {
+        setYearsLoading(false);
+     }
+  }
+
+  useEffect(() => {
+     if (company) fetchFinancialYears(company.id);
+  }, [company]);
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -224,8 +296,16 @@ function CompanySetup() {
                       <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
                         <Calendar size={20} />
                       </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.fiscalYear', 'Fiscal Year')}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.fiscalYear', 'Fiscal Year')}</p>
+                           <button 
+                             onClick={() => setShowYearForm(true)} 
+                             className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-2 py-0.5 rounded-lg transition-all"
+                           >
+                              Manage
+                           </button>
+                        </div>
                         <p className="text-sm font-bold text-slate-600">
                           {new Date(company.financial_year_start).toLocaleDateString()} — {new Date(company.financial_year_end).toLocaleDateString()}
                         </p>
@@ -272,32 +352,122 @@ function CompanySetup() {
 
             {/* Sidebar Details */}
             <div className="space-y-8">
+               {/* Fiscal Registry Card */}
+               <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+                  <div className="flex items-center justify-between mb-8">
+                     <h3 className="text-lg font-bold text-slate-800 italic">Fiscal Registry</h3>
+                     <button 
+                        onClick={() => setShowYearForm(true)}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                     >
+                        <Plus size={16} />
+                     </button>
+                  </div>
+                  <div className="space-y-4">
+                     {yearsLoading ? (
+                        <div className="py-10 flex flex-col items-center gap-3">
+                           <RefreshCw size={24} className="animate-spin text-blue-200" />
+                           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Querying Nodes...</p>
+                        </div>
+                     ) : financialYears.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-6 font-medium italic">No fiscal cycles registered.</p>
+                     ) : (
+                        financialYears.map(fy => (
+                           <div key={fy.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all group">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-300 group-hover:text-blue-500 shadow-sm transition-all"><Calendar size={14} /></div>
+                                 <span className="text-sm font-black text-slate-700 tracking-tight">{fy.year_label}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                 <button 
+                                   onClick={() => startEditYear(fy)}
+                                   className="p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                 >
+                                    <Edit3 size={12} />
+                                 </button>
+                                 <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg ${fy.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                    {fy.is_active ? 'Active' : 'Archived'}
+                                 </span>
+                              </div>
+                           </div>
+                        ))
+                     )}
+                  </div>
+               </div>
+
+               {/* System Status Card */}
                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                   <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3 italic">
-                    <div className="w-4 h-0.5 bg-blue-500"></div> {t('company.systemStatus', 'System Status')}
+                    <div className="w-4 h-0.5 bg-blue-500"></div> {t('company.systemStatus')}
                   </h4>
                   <div className="space-y-6 relative z-10">
                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-300">{t('company.registryId', 'Registry ID')}</span>
+                        <span className="text-sm font-semibold text-slate-300">Registry ID</span>
                         <span className="text-xs font-mono font-bold bg-white/10 px-2 py-1 rounded tracking-tighter">#{company.id}</span>
                      </div>
                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-300">{t('company.encryption', 'Encryption')}</span>
-                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><Shield size={12}/> {t('company.active', 'Active')}</span>
+                        <span className="text-sm font-semibold text-slate-300">Encryption</span>
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><Shield size={12}/> Active</span>
                      </div>
                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-300">{t('company.lastSync', 'Last Sync')}</span>
+                        <span className="text-sm font-semibold text-slate-300">Last Sync</span>
                         <span className="text-xs font-bold text-white uppercase">{new Date().toLocaleDateString('en-GB')}</span>
                      </div>
                   </div>
-                  <div className="mt-10 pt-8 border-t border-white/5">
-                     <p className="text-[11px] font-medium text-slate-400 leading-relaxed italic">
-                       {t('company.syncGlobal', 'Enterprise settings are synchronized globaly across all connected terminals including POS and Inventory nodes.')}
-                     </p>
-                  </div>
                </div>
             </div>
+
+            {/* Year Creation Modal/Portal */}
+            {showYearForm && (
+               <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                  <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+                     <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-slate-800">
+                           <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-lg"><Calendar size={20} /></div>
+                           <h3 className="text-xl font-bold tracking-tight">{editingYear ? 'Modify Fiscal Cycle' : 'Initialize Fiscal Cycle'}</h3>
+                        </div>
+                        <button onClick={() => { setShowYearForm(false); setEditingYear(null); setNewYear({label:'', start:'', end:''}); }} className="text-slate-300 hover:text-rose-500 transition-colors"><X size={24} /></button>
+                     </div>
+                     <form onSubmit={handleAddYear} className="p-10 space-y-6">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Cycle Label</label>
+                           <input 
+                              type="text" 
+                              value={newYear.label}
+                              onChange={e => setNewYear({...newYear, label: e.target.value})}
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm italic"
+                              placeholder="e.g. 2026-27"
+                              required
+                           />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Start Threshold</label>
+                              <input 
+                                 type="date"
+                                 value={newYear.start}
+                                 onChange={e => setNewYear({...newYear, start: e.target.value})}
+                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 text-xs"
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">End Threshold</label>
+                              <input 
+                                 type="date"
+                                 value={newYear.end}
+                                 onChange={e => setNewYear({...newYear, end: e.target.value})}
+                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 text-xs"
+                              />
+                           </div>
+                        </div>
+                        <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all shadow-xl shadow-slate-100 flex items-center justify-center gap-3 mt-4">
+                           <Database size={18} /> {editingYear ? 'Commit Changes' : 'Register Fiscal Node'}
+                        </button>
+                     </form>
+                  </div>
+               </div>
+            )}
           </div>
         ) : (
           /* Edit / Creation Form */
@@ -320,7 +490,7 @@ function CompanySetup() {
                        name="company_name"
                        value={formData.company_name}
                        onChange={handleChange}
-                       placeholder="e.g. Super Store Pvt Ltd"
+                       placeholder="e.g. Danger Systeam Pvt Ltd"
                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
                      />
                    </div>
@@ -400,7 +570,7 @@ function CompanySetup() {
                   </h3>
                 </div>
 
-                <div className="space-y-2">
+                <div className="md:col-span-2 space-y-2 mb-4">
                   <label className="text-xs font-bold text-slate-500 ml-1">{t('company.operationalCurrency', 'Operational Currency')}</label>
                   <select
                     name="currency"
@@ -412,27 +582,43 @@ function CompanySetup() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 md:col-span-1">
-                   <div className="space-y-2 text-left">
-                      <label className="text-xs font-bold text-slate-500 ml-1">{t('company.fiscalStart', 'Fiscal Start')}</label>
-                      <input
-                        type="date"
-                        name="financial_year_start"
-                        value={formData.financial_year_start}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm"
-                      />
-                   </div>
-                   <div className="space-y-2 text-left">
-                      <label className="text-xs font-bold text-slate-500 ml-1">{t('company.fiscalEnd', 'Fiscal End')}</label>
-                      <input
-                        type="date"
-                        name="financial_year_end"
-                        value={formData.financial_year_end}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm"
-                      />
-                   </div>
+                <div className="md:col-span-2 space-y-4">
+                  <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                     <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-100 text-amber-600 rounded-lg"><Calendar size={18} /></div>
+                        <div>
+                           <p className="text-xs font-bold text-slate-700">Financial Cycle Registry</p>
+                           <p className="text-[10px] text-slate-400 font-medium">Manage multiple fiscal nodes for this organization.</p>
+                        </div>
+                     </div>
+                     <button 
+                        type="button"
+                        onClick={() => { setEditingYear(null); setNewYear({label:'', start:'', end:''}); setShowYearForm(true); }}
+                        className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all shadow-sm"
+                     >
+                        <Plus size={14} /> Add Year
+                     </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                     {financialYears.map(fy => (
+                        <div key={fy.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between group hover:border-blue-200 transition-all shadow-sm">
+                           <div>
+                              <p className="text-xs font-black text-slate-800">{fy.year_label}</p>
+                              <p className="text-[9px] font-bold text-slate-400 mt-0.5">
+                                 {fy.start_date ? new Date(fy.start_date).toLocaleDateString() : 'N/A'} - {fy.end_date ? new Date(fy.end_date).toLocaleDateString() : 'N/A'}
+                              </p>
+                           </div>
+                           <button 
+                              type="button"
+                              onClick={() => startEditYear(fy)}
+                              className="p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                           >
+                              <Edit3 size={14} />
+                           </button>
+                        </div>
+                     ))}
+                  </div>
                 </div>
 
                 {/* Form Progress Action */}

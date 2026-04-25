@@ -6,7 +6,7 @@ import { generateNextMemberCode } from '../utils/memberCodeGenerator.js';
 const router = express.Router();
 
 // ==================== CREATE ACCOUNT ====================
-router.post('/api/accounts', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { company_id, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no } = req.body;
 
@@ -90,7 +90,7 @@ router.post('/api/accounts', async (req, res) => {
 });
 
 // ==================== LIST ACCOUNTS BY COMPANY ====================
-router.get('/api/accounts/company/:company_id', async (req, res) => {
+router.get('/company/:company_id', async (req, res) => {
   try {
     const { company_id } = req.params;
     const { type } = req.query; // Optional filter by account_type
@@ -146,7 +146,7 @@ router.get('/api/accounts/company/:company_id', async (req, res) => {
 });
 
 // ==================== GET ACCOUNT BALANCE STATS ====================
-router.get('/api/accounts/:id/balance', async (req, res) => {
+router.get('/:id/balance', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -184,7 +184,7 @@ router.get('/api/accounts/:id/balance', async (req, res) => {
 });
 
 // ==================== GET SINGLE ACCOUNT ====================
-router.get('/api/accounts/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -208,7 +208,7 @@ router.get('/api/accounts/:id', async (req, res) => {
 });
 
 // ==================== UPDATE ACCOUNT ====================
-router.put('/api/accounts/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no } = req.body;
@@ -282,7 +282,7 @@ router.put('/api/accounts/:id', async (req, res) => {
 });
 
 // ==================== DEACTIVATE ACCOUNT ====================
-router.post('/api/accounts/:id/deactivate', async (req, res) => {
+router.post('/:id/deactivate', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -315,7 +315,7 @@ router.post('/api/accounts/:id/deactivate', async (req, res) => {
 });
 
 // ==================== ACTIVATE ACCOUNT ====================
-router.post('/api/accounts/:id/activate', async (req, res) => {
+router.post('/:id/activate', async (req, res) => {
   try {
     const { id } = req.params;
 

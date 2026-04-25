@@ -418,7 +418,7 @@ export function registerUserRoutes(app) {
         });
       }
 
-      const { email, password } = req.body;
+      const { email, password, financial_year } = req.body;
 
       // Find user by email (search across all companies)
       const user = await queryOne(
@@ -432,6 +432,21 @@ export function registerUserRoutes(app) {
         return res.status(401).json({
           success: false,
           error: 'Invalid email or password'
+        });
+      }
+
+      // Verify year exists for this company
+      const yearInfo = await queryOne(
+        'SELECT year_label FROM financial_years WHERE company_id = ? AND year_label = ? AND is_active = 1',
+        [user.company_id, financial_year]
+      );
+
+      if (!yearInfo) {
+        // Auto-create year if it's the first login? Or just throw error.
+        // User said "if year in db than it login", so we should throw error if not found.
+        return res.status(401).json({
+          success: false,
+          error: `Financial year ${financial_year} not configured for this company.`
         });
       }
 
@@ -469,7 +484,8 @@ export function registerUserRoutes(app) {
           email: user.email,
           role: user.role,
           company_id: user.company_id,
-          company_name: company?.company_name
+          company_name: company?.company_name,
+          financial_year: yearInfo.year_label
         }
       });
     } catch (error) {
@@ -478,6 +494,32 @@ export function registerUserRoutes(app) {
         success: false,
         error: error.message
       });
+    }
+  });
+
+  // ===== GET YEARS BY EMAIL =====
+  app.get('/api/auth/years', async (req, res) => {
+    try {
+      const { email } = req.query;
+      if (!email) return res.status(400).json({ error: 'Email required' });
+
+      const user = await queryOne('SELECT company_id FROM users WHERE email = ?', [email.toLowerCase().trim()]);
+      if (!user) return res.status(404).json({ error: 'No company found for this email' });
+
+      // Automatically initialize default year if NONE exist
+      const years = await query('SELECT * FROM financial_years WHERE company_id = ? ORDER BY year_label DESC', [user.company_id]);
+      
+      if (years.length === 0) {
+        // Create default
+        await execute('INSERT INTO financial_years (company_id, year_label, start_date, end_date) VALUES (?, ?, ?, ?)', 
+          [user.company_id, '2026-27', '2026-04-01', '2027-03-31']);
+        const newYears = await query('SELECT * FROM financial_years WHERE company_id = ? ORDER BY year_label DESC', [user.company_id]);
+        return res.json(newYears);
+      }
+
+      res.json(years);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
   });
 }

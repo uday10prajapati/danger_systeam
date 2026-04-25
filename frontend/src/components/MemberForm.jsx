@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import axios from 'axios'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   X, User, MapPin, Phone, 
-  Mail, Percent, CreditCard, Save,
-  AlertCircle, CheckCircle, Loader, ShieldCheck,
-  Building2, FileText
+  CreditCard, Save, AlertCircle, 
+  CheckCircle, Loader, Building2, 
+  Globe, Hash, Info
 } from 'lucide-react'
+import api, { sabhasadMasterApi } from '../api'
 
 export default function MemberForm({ 
   companyId, 
@@ -14,43 +13,125 @@ export default function MemberForm({
   editingMember = null, 
   onClose 
 }) {
-  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const [errors, setErrors] = useState({})
+  const [villageList, setVillageList] = useState([])
   
   const [formData, setFormData] = useState({
-    member_name: '',
-    member_address: '',
-    member_gst_no: '',
-    phone: '',
-    email: '',
-    discount_percentage: 0,
-    member_code: null,
+    sabhasadCode: '',
+    sabhasadName: '',
+    phoneNo: '',
+    villageCode: '',
+    villageName: '',
+    fullAcNumber: '',
+    bankName: '',
+    branchName: '',
+    accountType: '',
+    addressNo: '',
+    engName: '',
+    nominalMember: '',
     is_active: true
   })
 
-  useEffect(() => {
-    if (editingMember) {
-      setFormData({
-        member_name: editingMember.member_name,
-        member_address: editingMember.member_address || '',
-        member_gst_no: editingMember.member_gst_no || '',
-        phone: editingMember.phone || '',
-        email: editingMember.email || '',
-        discount_percentage: editingMember.discount_percentage || 0,
-        member_code: editingMember.member_code,
-        is_active: editingMember.is_active === 1 || editingMember.is_active === true
-      })
+  // To track if we've switched to "edit mode" via code fetch
+  const [localEditId, setLocalEditId] = useState(null)
+  const [isFetchingCode, setIsFetchingCode] = useState(false)
+
+  // Load villages for the dropdown
+  const loadVillages = useCallback(async () => {
+    try {
+      const res = await sabhasadMasterApi.getAllVillages()
+      setVillageList(res.data || [])
+    } catch (err) {
+      console.error('Failed to load villages', err)
     }
-  }, [editingMember])
+  }, [])
+
+  // Auto-generate next code if creating new
+  const initNewForm = useCallback(async () => {
+    try {
+      const res = await sabhasadMasterApi.getLastCode();
+      const nextCode = (parseInt(res.data.lastCode) || 0) + 1;
+      setFormData(prev => ({ ...prev, sabhasadCode: nextCode.toString() }));
+    } catch (err) {
+      console.error('Error fetching last code:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVillages()
+    if (editingMember) {
+      setLocalEditId(editingMember.id)
+      setFormData({
+        sabhasadCode: editingMember.member_code || '',
+        sabhasadName: editingMember.member_name || '',
+        phoneNo: editingMember.phone || '',
+        villageCode: editingMember.village_code || '',
+        villageName: editingMember.village_name || '',
+        fullAcNumber: editingMember.full_ac_number || '',
+        bankName: editingMember.bank_name || '',
+        branchName: editingMember.branch_name || '',
+        accountType: editingMember.account_type || '',
+        addressNo: editingMember.address_no || '',
+        engName: editingMember.eng_name || '',
+        nominalMember: editingMember.nominal_member || '',
+        is_active: editingMember.is_active === 1
+      })
+    } else {
+      initNewForm()
+    }
+  }, [editingMember, loadVillages, initNewForm])
+
+  // New: Fetch by Code logic
+  const handleCodeFetch = async (code) => {
+    if (!code || editingMember) return;
+    try {
+      setIsFetchingCode(true);
+      const res = await sabhasadMasterApi.getSabhasadByCode(code);
+      if (res.data.success && res.data.data) {
+        const member = res.data.data;
+        setLocalEditId(member.id);
+        setFormData({
+          sabhasadCode: member.member_code || '',
+          sabhasadName: member.member_name || '',
+          phoneNo: member.phone || '',
+          villageCode: member.village_code || '',
+          villageName: member.village_name || '',
+          fullAcNumber: member.full_ac_number || '',
+          bankName: member.bank_name || '',
+          branchName: member.branch_name || '',
+          accountType: member.account_type || '',
+          addressNo: member.address_no || '',
+          engName: member.eng_name || '',
+          nominalMember: member.nominal_member || '',
+          is_active: member.is_active === 1
+        });
+        setMessage({ type: 'success', text: 'Member found! Switched to edit mode.' });
+      }
+    } catch (err) {
+      // If not found, we just stay in "Add" mode
+      if (err.response?.status !== 404) {
+        console.error('Code fetch error:', err);
+      }
+    } finally {
+      setIsFetchingCode(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : (name === 'discount_percentage' ? parseFloat(value) || 0 : value)
-    }))
+    setFormData(prev => {
+      const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      
+      // Auto-fill village name if code changes
+      if (name === 'villageCode') {
+        const village = villageList.find(v => v.village_code === value);
+        if (village) newData.villageName = village.village_name;
+      }
+      
+      return newData;
+    })
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
   }
 
@@ -61,214 +142,284 @@ export default function MemberForm({
     
     try {
       setLoading(true)
-      const url = editingMember ? `/api/members/${editingMember.id}` : '/api/members'
-      const method = editingMember ? 'put' : 'post'
-      const headers = { 'x-company-id': companyId }
+      const currentId = localEditId || (editingMember ? editingMember.id : null);
 
-      const payload = { ...formData }
-      if (!editingMember) payload.company_id = companyId
-
-      const response = await axios({ method, url, data: payload, headers })
-
-      if (response.data.success) {
-        setMessage({ type: 'success', text: t('memberMaster.memberSaved') })
-        setTimeout(() => onSuccess(), 1500)
+      if (currentId) {
+        await sabhasadMasterApi.updateSabhasad(currentId, formData);
+        setMessage({ type: 'success', text: 'Record synchronized successfully' })
+      } else {
+        await sabhasadMasterApi.createSabhasad(formData);
+        setMessage({ type: 'success', text: 'New record initialized' })
       }
+
+      setTimeout(() => onSuccess(), 1000)
     } catch (err) {
-      if (err.response?.data?.errors) setErrors(err.response.data.errors)
-      else setMessage({ type: 'error', text: err.response?.data?.error || t('memberMaster.failedToSave') })
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Registry operation failed' })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-10 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+    <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/40 shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/5 rounded-full -mr-48 -mt-48 blur-[100px]"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-400/5 rounded-full -ml-48 -mb-48 blur-[100px]"></div>
       
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-            {editingMember ? t('memberMaster.editMember', 'Refine Entity') : t('memberMaster.newMember', 'Register Entity')}
-          </h2>
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-2">
+              {localEditId || editingMember ? 'Update Profile' : 'New Member'}
+            </h2>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Legal Identity Management</p>
+          </div>
           {onClose && (
-            <button onClick={onClose} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl transition-all">
-              <X size={24} />
+            <button onClick={onClose} className="p-3 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-2xl transition-all active:scale-90">
+              <X size={20} />
             </button>
           )}
         </div>
 
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
-            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+          <div className={`mb-8 p-5 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top duration-300 ${
+            message.type === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
           }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-            <p className="text-sm font-bold">{message.text}</p>
+            <span className="text-sm font-black italic">{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-10">
           
           {/* Identity Section */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-blue-600"></div> Identity & Registry
-            </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-3">
+                <div className="w-8 h-px bg-blue-600"></div> Core Identity
+              </h3>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 ml-1">Entity Name *</label>
-              <div className="relative group">
-                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                <input
-                  type="text"
-                  name="member_name"
-                  value={formData.member_name}
-                  onChange={handleChange}
-                  placeholder="Full Legal Name"
-                  className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.member_name ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1">Registry Code</label>
-                <div className="relative">
-                  <CreditCard size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input
-                    type="text"
-                    value={formData.member_code || 'AUTOGEN'}
-                    disabled
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-100 border border-slate-100 text-slate-400 rounded-2xl font-bold text-sm cursor-not-allowed"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-1 space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Code</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">
+                        {isFetchingCode ? <Loader size={14} className="animate-spin text-blue-500" /> : <Hash size={14} />}
+                      </div>
+                      <input
+                        type="text"
+                        name="sabhasadCode"
+                        value={formData.sabhasadCode}
+                        onChange={handleChange}
+                        onBlur={(e) => handleCodeFetch(e.target.value)}
+                        placeholder="000"
+                        className={`w-full pl-10 pr-4 py-3 bg-slate-50 border ${localEditId ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100'} focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-black text-slate-700 text-sm`}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Sabhasad Name (Local)</label>
+                    <div className="relative group">
+                      <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                      <input
+                        type="text"
+                        name="sabhasadName"
+                        value={formData.sabhasadName}
+                        onChange={handleChange}
+                        required
+                        placeholder="Enter Gujarati/Local Name"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-black text-slate-700 text-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1">GST Identification</label>
-                <div className="relative group">
-                  <FileText size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                  <input
-                    type="text"
-                    name="member_gst_no"
-                    value={formData.member_gst_no}
-                    onChange={handleChange}
-                    placeholder="GSTRN (Optional)"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm uppercase"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Contact Section */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-emerald-500"></div> Communication Protocol
-            </h3>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 ml-1">Physical Address</label>
-              <div className="relative group">
-                <MapPin size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
-                <textarea
-                  name="member_address"
-                  value={formData.member_address}
-                  onChange={handleChange}
-                  placeholder="Complete Logistics Route"
-                  rows="3"
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1">Interface Phone</label>
-                <div className="relative group">
-                  <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="Primary Node"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1">Digital Handle</label>
-                <div className="relative group">
-                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="eMail Address"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Fiscal Section */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-amber-500"></div> Fiscal Incentives
-            </h3>
-            
-            <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-2 text-amber-200"><ShieldCheck size={40} /></div>
-               <label className="block text-xs font-bold text-amber-600 uppercase tracking-widest mb-4">Baseline Discount Tier</label>
-               <div className="flex items-center gap-4 relative z-10">
-                 <div className="relative flex-1 group">
-                    <Percent size={24} className="absolute left-5 top-1/2 -translate-y-1/2 text-amber-500" />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">English Name / Alias</label>
+                  <div className="relative group">
+                    <Info size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                     <input
-                      type="number"
-                      name="discount_percentage"
-                      value={formData.discount_percentage}
+                      type="text"
+                      name="engName"
+                      value={formData.engName}
                       onChange={handleChange}
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      className="w-full pl-14 pr-6 py-4 bg-white border border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 rounded-2xl outline-none transition-all font-black text-2xl text-slate-800"
+                      placeholder="Legal Name in English"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-bold text-slate-600 text-sm"
                     />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-3">
+                <div className="w-8 h-px bg-emerald-600"></div> Communication
+              </h3>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Village Code</label>
+                     <select
+                       name="villageCode"
+                       value={formData.villageCode}
+                       onChange={handleChange}
+                       className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                     >
+                       <option value="">Select Village</option>
+                       {villageList.map(v => (
+                         <option key={v.id} value={v.village_code}>{v.village_code} - {v.village_name}</option>
+                       ))}
+                     </select>
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Phone Interface</label>
+                     <div className="relative group">
+                       <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
+                       <input
+                         type="tel"
+                         name="phoneNo"
+                         value={formData.phoneNo}
+                         onChange={handleChange}
+                         placeholder="Primary Number"
+                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm font-mono tracking-tighter"
+                       />
+                     </div>
+                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Administrative Address</label>
+                   <div className="relative group">
+                     <MapPin size={16} className="absolute left-4 top-4 text-slate-300 group-focus-within:text-emerald-600 transition-colors" />
+                     <textarea
+                       name="addressNo"
+                       value={formData.addressNo}
+                       onChange={handleChange}
+                       rows="2"
+                       placeholder="Locality, Sector, Street Details"
+                       className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-medium text-slate-600 text-sm"
+                     />
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent"></div>
+
+          {/* Financial Section */}
+          <div className="space-y-6">
+            <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] flex items-center gap-3">
+              <div className="w-8 h-px bg-amber-600"></div> Banking & Status
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Bank Institution</label>
+                 <div className="relative group">
+                   <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                   <input
+                     type="text"
+                     name="bankName"
+                     value={formData.bankName}
+                     onChange={handleChange}
+                     placeholder="Name of Bank"
+                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                   />
                  </div>
                </div>
-               <p className="mt-4 text-[10px] font-bold text-amber-600/60 uppercase tracking-tighter italic">Applied automatically during terminal checkout transactions</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-             <input
-               type="checkbox"
-               id="is_active"
-               name="is_active"
-               checked={formData.is_active}
-               onChange={handleChange}
-               className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-             />
-             <label htmlFor="is_active" className="text-xs font-bold text-slate-600 cursor-pointer">
-               {t('memberMaster.memberActive', 'Entity is currently operational and authorized for system entry')}
-             </label>
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Vault Account No.</label>
+                 <div className="relative group">
+                   <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                   <input
+                     type="text"
+                     name="fullAcNumber"
+                     value={formData.fullAcNumber}
+                     onChange={handleChange}
+                     placeholder="00000000000"
+                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
+                   />
+                 </div>
+               </div>
+
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Protocols</label>
+                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      name="is_active"
+                      checked={formData.is_active}
+                      onChange={handleChange}
+                      className="hidden"
+                    />
+                    <label 
+                      htmlFor="is_active"
+                      className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-lg transition-all ${
+                        formData.is_active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'text-slate-400'
+                      }`}
+                    >
+                      Active
+                    </label>
+                    <label 
+                      htmlFor="is_active"
+                      className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-lg transition-all ${
+                        !formData.is_active ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-400'
+                      }`}
+                      onClick={() => setFormData(p => ({ ...p, is_active: false }))}
+                    >
+                      Archived
+                    </label>
+                 </div>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Nominal Identification</label>
+                 <input
+                   type="text"
+                   name="nominalMember"
+                   value={formData.nominalMember}
+                   onChange={handleChange}
+                   placeholder="Nominal Status / ID"
+                   className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                 />
+              </div>
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Account Category</label>
+                 <select
+                   name="accountType"
+                   value={formData.accountType}
+                   onChange={handleChange}
+                   className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                 >
+                   <option value="">Default</option>
+                   <option value="Savings">Savings</option>
+                   <option value="Current">Current</option>
+                   <option value="Nominal">Nominal Member</option>
+                 </select>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-4 pt-4">
              <button
                type="submit"
                disabled={loading}
-               className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+               className="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
              >
-               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={20} /> {editingMember ? 'Commit Changes' : 'Initialize Identity'}</>}
+               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={18} /> {localEditId || editingMember ? 'Synchronize Record' : 'Create Identity'}</>}
              </button>
              <button
                type="button"
                onClick={onClose}
-               className="px-8 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 hover:text-slate-800 transition-all"
+               className="px-10 py-4 bg-white border border-slate-100 text-slate-400 font-black rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all text-sm uppercase tracking-widest"
              >
-               {t('common.cancel', 'Abort')}
+               Abort
              </button>
           </div>
         </form>

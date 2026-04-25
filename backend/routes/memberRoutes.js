@@ -1,205 +1,166 @@
 import express from 'express';
-import { query, execute } from '../db.js';
-import { body, validationResult } from 'express-validator';
+import { query, execute, queryOne } from '../db.js';
 
 const router = express.Router();
 
-// Validation middleware
-const validateCreateMember = [
-  body('member_name')
-    .notEmpty().withMessage('Member name is required')
-    .trim()
-    .isLength({ min: 2, max: 100 }).withMessage('Member name must be 2-100 characters'),
-  body('phone')
-    .optional({ checkFalsy: true })
-    .matches(/^[0-9\-\+\(\)\s]+$/).withMessage('Invalid phone format')
-    .isLength({ min: 10 }).withMessage('Phone must be at least 10 digits'),
-  body('email')
-    .optional({ checkFalsy: true })
-    .isEmail().withMessage('Invalid email format'),
-  body('discount_percentage')
-    .optional({ checkFalsy: true })
-    .isFloat({ min: 0, max: 100 }).withMessage('Discount must be between 0-100'),
-];
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ 
-      success: false, 
-      error: errors.array()[0].msg 
-    });
-  }
-  next();
-};
-
 /**
- * CREATE MEMBER
- * POST /api/members
+ * GET ALL SABHASAD
  */
-router.post('/', validateCreateMember, handleValidationErrors, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { member_name, member_address, member_gst_no, phone, email, discount_percentage } = req.body;
     const company_id = req.headers['x-company-id'];
-    
+    const financial_year = req.headers['x-financial-year'] || '2026-27';
+
     if (!company_id) {
-      return res.status(400).json({ success: false, error: 'Company ID is required' });
+      return res.status(400).json({ success: false, error: 'Company ID required' });
     }
 
-    // Get the next sequential member code for this company
-    const result = await query(
-      'SELECT MAX(CAST(member_code AS UNSIGNED)) as max_code FROM member_master WHERE company_id = ? AND member_code REGEXP "^[0-9]+$"',
-      [company_id]
+    const results = await query(
+      `SELECT * FROM member_master 
+       WHERE company_id = ? AND financial_year = ? 
+       ORDER BY CAST(member_code AS UNSIGNED) ASC`,
+      [company_id, financial_year]
     );
-
-    const nextCode = (result[0]?.max_code || 0) + 1;
-    const memberCode = String(nextCode);
-
-    // Insert member
-    await execute(
-      'INSERT INTO member_master (company_id, member_code, member_name, member_address, member_gst_no, phone, email, discount_percentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [company_id, memberCode, member_name, member_address || null, member_gst_no || null, phone || null, email || null, discount_percentage || 0]
-    );
-
-    // Get the inserted member
-    const members = await query(
-      'SELECT * FROM member_master WHERE member_code = ? AND company_id = ?',
-      [memberCode, company_id]
-    );
-
-    res.status(201).json({
-      success: true,
-      data: members[0]
-    });
-  } catch (error) {
-    if (error.message.includes('UNIQUE') || error.message.includes('Duplicate')) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Phone or email already exists for this company' 
-      });
-    }
-    console.error('Create member error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * GET MEMBERS BY COMPANY
- * GET /api/members/company/:companyId
- */
-router.get('/company/:companyId', async (req, res) => {
-  try {
-    const { companyId } = req.params;
-    const { active } = req.query;
-
-    let sql = `
-      SELECT 
-        m.id, m.company_id, m.account_id, m.member_code, m.member_name,
-        m.member_address, m.member_gst_no, m.phone, m.email, m.discount_percentage, 
-        m.loyalty_points, m.is_active, m.created_at, a.account_name, a.account_type
-      FROM member_master m
-      LEFT JOIN accounts a ON m.account_id = a.id
-      WHERE m.company_id = ?
-    `;
-
-    const params = [companyId];
-
-    if (active === 'true') {
-      sql += ' AND m.is_active = 1';
-    } else if (active === 'false') {
-      sql += ' AND m.is_active = 0';
-    }
-
-    sql += ' ORDER BY m.created_at DESC';
-
-    const results = await query(sql, params);
     res.json({ success: true, data: results || [] });
   } catch (error) {
-    console.error('List members error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 /**
- * GET SINGLE MEMBER
- * GET /api/members/:id
+ * GET LAST CODE
+ */
+router.get('/last-code', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    if (!company_id) return res.status(400).json({ error: 'Company ID required' });
+
+    const rows = await query(
+      "SELECT member_code FROM member_master WHERE company_id = ? ORDER BY id DESC LIMIT 1",
+      [company_id]
+    );
+    const last = rows.length > 0 ? parseInt(rows[0].member_code) : 0;
+    res.json({ lastCode: last });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * CREATE SABHASAD
+ */
+router.post('/', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    const financial_year = req.headers['x-financial-year'] || '2026-27';
+    
+    if (!company_id) return res.status(400).json({ error: 'Company ID required' });
+
+    const {
+      sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
+      fullAcNumber, bankName, branchName, accountType, addressNo,
+      engName, nominalMember
+    } = req.body;
+
+    const result = await execute(
+      `INSERT INTO member_master 
+      (company_id, financial_year, member_code, member_name, phone, village_code, village_name, 
+       full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        company_id, financial_year, sabhasadCode, sabhasadName, phoneNo || null, 
+        villageCode || null, villageName || null, fullAcNumber || null, bankName || null, 
+        branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null
+      ]
+    );
+
+    res.status(201).json({ success: true, id: result.lastID });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * UPDATE SABHASAD
+ */
+router.put('/:id', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    if (!company_id) return res.status(400).json({ error: 'Company ID required' });
+
+    const {
+      sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
+      fullAcNumber, bankName, branchName, accountType, addressNo,
+      engName, nominalMember
+    } = req.body;
+
+    await execute(
+      `UPDATE member_master SET 
+        member_code = ?, member_name = ?, phone = ?, village_code = ?, 
+        village_name = ?, full_ac_number = ?, bank_name = ?, branch_name = ?, 
+        account_type = ?, address_no = ?, eng_name = ?, nominal_member = ?,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND company_id = ?`,
+      [
+        sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
+        fullAcNumber, bankName, branchName, accountType, addressNo,
+        engName, nominalMember, req.params.id, company_id
+      ]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET SINGLE SABHASAD
  */
 router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const row = await queryOne('SELECT * FROM member_master WHERE id = ?', [req.params.id]);
+    res.json({ success: true, data: row });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
-    const results = await query(
-      `SELECT m.*, a.account_name, a.account_type
-       FROM member_master m
-       LEFT JOIN accounts a ON m.account_id = a.id
-       WHERE m.id = ?`,
-      [id]
+/**
+ * DELETE SABHASAD
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    await execute('DELETE FROM member_master WHERE id = ? AND company_id = ?', [req.params.id, company_id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/code/:code', async (req, res) => {
+  const company_id = req.headers['x-company-id'];
+  const financial_year = req.headers['x-financial-year'];
+
+  if (!company_id || !financial_year) {
+    return res.status(400).json({ error: 'Company ID and Financial Year required' });
+  }
+
+  try {
+    const member = await queryOne(
+      'SELECT * FROM member_master WHERE member_code = ? AND company_id = ? AND financial_year = ?',
+      [req.params.code, company_id, financial_year]
     );
 
-    if (!results || results.length === 0) {
+    if (!member) {
       return res.status(404).json({ success: false, error: 'Member not found' });
     }
 
-    res.json({ success: true, data: results[0] });
+    res.json({ success: true, data: member });
   } catch (error) {
-    console.error('Get member error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-
-/**
- * ACTIVATE MEMBER
- * POST /api/members/:id/activate
- */
-router.post('/:id/activate', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await execute('UPDATE member_master SET is_active = 1 WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Member activated successfully' });
-  } catch (error) {
-    console.error('Activate member error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * DEACTIVATE MEMBER
- * POST /api/members/:id/deactivate
- */
-router.post('/:id/deactivate', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await execute('UPDATE member_master SET is_active = 0 WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Member deactivated successfully' });
-  } catch (error) {
-    console.error('Deactivate member error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * UPDATE LOYALTY POINTS
- * POST /api/members/:id/update-loyalty
- */
-router.post('/:id/update-loyalty', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { points_to_add } = req.body;
-
-    if (!points_to_add || isNaN(points_to_add)) {
-      return res.status(400).json({ success: false, error: 'Valid points value required' });
-    }
-
-    await execute(
-      'UPDATE member_master SET loyalty_points = loyalty_points + ? WHERE id = ?',
-      [parseInt(points_to_add), id]
-    );
-
-    res.json({ success: true, message: 'Loyalty points updated' });
-  } catch (error) {
-    console.error('Update loyalty error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 export default router;
