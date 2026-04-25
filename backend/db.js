@@ -182,6 +182,17 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Migration for dangar_rates (ensure new columns exist)
+      try {
+        await connection.query("ALTER TABLE dangar_rates ADD COLUMN winter_rate DECIMAL(12, 2) DEFAULT 0");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE dangar_rates ADD COLUMN summer_rate DECIMAL(12, 2) DEFAULT 0");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE dangar_rates ADD COLUMN bardan_deduction_rate DECIMAL(12, 2) DEFAULT 0");
+      } catch (e) {}
+
       // Create Products table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS products (
@@ -746,6 +757,14 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Migration for dangar_entry (ensure columns added later are present)
+      try {
+        await connection.query("ALTER TABLE dangar_entry ADD COLUMN rate DECIMAL(12, 2) DEFAULT 0");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE dangar_entry ADD COLUMN amount DECIMAL(15, 2) DEFAULT 0");
+      } catch (e) {}
+
       // Create Dangar Weights table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS dangar_weights (
@@ -843,6 +862,17 @@ export async function initializeDatabase() {
           UNIQUE KEY uidx_company_bank (company_id, bank_name)
         )
       `);
+
+      // Seed Default Banks for all companies
+      try {
+        const [companies] = await connection.query("SELECT id FROM company");
+        for (const comp of companies) {
+          await connection.query("INSERT IGNORE INTO banks (company_id, bank_name) VALUES (?, ?)", [comp.id, "BOB"]);
+          await connection.query("INSERT IGNORE INTO banks (company_id, bank_name) VALUES (?, ?)", [comp.id, "SDCB"]);
+        }
+      } catch (e) {
+        console.warn("Bank seeding warning:", e.message);
+      }
 
       // Create Financial Years table
       await connection.query(`

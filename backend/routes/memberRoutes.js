@@ -28,6 +28,26 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET SABHASAD BY COMPANY ID (Direct URL compatibility)
+ */
+router.get('/company/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const financial_year = req.headers['x-financial-year'] || '2026-27';
+
+    const results = await query(
+      `SELECT * FROM member_master 
+       WHERE company_id = ? AND financial_year = ? 
+       ORDER BY CAST(member_code AS UNSIGNED) ASC`,
+      [companyId, financial_year]
+    );
+    res.json({ success: true, data: results || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * GET LAST CODE
  */
 router.get('/last-code', async (req, res) => {

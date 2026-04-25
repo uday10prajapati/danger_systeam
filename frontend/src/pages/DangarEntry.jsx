@@ -25,6 +25,7 @@ const DangarEntry = () => {
     gross_quintal: 0,
     less_bardan: 0,
     net_quintal: 0,
+    total_man: 0,
     rate: 0,
     bardan_rate: 0,
     amount: 0,
@@ -65,22 +66,30 @@ const DangarEntry = () => {
     }
   };
 
-  // Auto-calculate totals
+  // Improved calculation logic following business rules
   useEffect(() => {
-    const total = weightRows.reduce((acc, row) => acc + (parseFloat(row.wgt) || 0), 0);
-    const gross = total / 100;
-    const lessB = (formData.bardan * formData.gun) / 100;
-    const netQ = gross - lessB;
-    
-    // Amount calculation based on Quintal rate
-    const totalAmt = netQ * (formData.rate || 0);
+    // 1. Core Weight Calculation
+    const totalKG = weightRows.reduce((acc, row) => acc + (parseFloat(row.wgt) || 0), 0);
+    const totalMan = totalKG / 20; // 1 Man = 20 KG
+    const grossQuintal = totalKG / 100; // 1 Quintal = 100 KG
+
+    // 2. Bardan (Bag) Deduction Logic
+    // Logic: Bardan count * Weight per bag (Gun) = Deduction in KG
+    const bardanWeightKG = (parseFloat(formData.bardan) || 0) * (parseFloat(formData.gun) || 0);
+    const lessBardanQuintal = bardanWeightKG / 100; // Convert KG deduction to Quintal
+
+    // 3. Net Calculation with Safety
+    // Prevent negative net quintals (Stock safety)
+    const netQuintal = Math.max(0, grossQuintal - lessBardanQuintal);
+    const totalAmt = netQuintal * (parseFloat(formData.rate) || 0);
 
     setFormData(prev => ({ 
       ...prev, 
-      total_kg: total.toFixed(2),
-      gross_quintal: gross.toFixed(2),
-      less_bardan: lessB.toFixed(2),
-      net_quintal: netQ.toFixed(2),
+      total_kg: totalKG.toFixed(2),
+      total_man: totalMan.toFixed(2),
+      gross_quintal: grossQuintal.toFixed(2),
+      less_bardan: lessBardanQuintal.toFixed(2),
+      net_quintal: netQuintal.toFixed(2),
       amount: totalAmt.toFixed(2)
     }));
   }, [weightRows, formData.bardan, formData.gun, formData.rate]);
@@ -230,6 +239,7 @@ const DangarEntry = () => {
                        <th className="px-10 py-6">Date</th>
                        <th className="px-10 py-6">Reference</th>
                        <th className="px-10 py-6">Sabhasad</th>
+                       <th className="px-10 py-6 text-right">Net Man</th>
                        <th className="px-10 py-6 text-right">Net Quintal</th>
                        <th className="px-10 py-6 text-right">Ops</th>
                     </tr>
@@ -237,7 +247,9 @@ const DangarEntry = () => {
                  <tbody className="divide-y divide-slate-100">
                     {history.map((row) => (
                       <tr key={row.id} className="group hover:bg-white transition-all">
-                         <td className="px-10 py-6 text-sm font-bold text-slate-600 font-mono">{row.entry_date}</td>
+                         <td className="px-10 py-6 text-sm font-bold text-slate-600 font-mono">
+                            {new Date(row.entry_date).toLocaleDateString('en-GB')}
+                         </td>
                          <td className="px-10 py-6">
                             <span className="text-blue-600 font-black text-sm italic">#{row.sr_no}</span>
                             <p className="text-[10px] font-bold text-slate-300 uppercase italic">{row.book_type}</p>
@@ -245,6 +257,9 @@ const DangarEntry = () => {
                          <td className="px-10 py-6">
                             <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{row.member_name}</p>
                             <p className="text-[10px] font-bold text-slate-400 tracking-widest">CODE: {row.member_code}</p>
+                         </td>
+                         <td className="px-10 py-6 text-right font-black text-amber-600 text-lg italic">
+                            {(parseFloat(row.net_quintal) * 5).toFixed(2)}
                          </td>
                          <td className="px-10 py-6 text-right font-black text-slate-800 text-lg italic">{row.net_quintal}</td>
                          <td className="px-10 py-6">
@@ -567,6 +582,7 @@ const DangarEntry = () => {
                    <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 space-y-5">
                       {[
                         { label: t('dangarEntry.grossQuintal'), val: formData.gross_quintal, color: 'slate-500' },
+                        { label: 'Total Man (20kg)', val: formData.total_man, color: 'amber-500' },
                         { label: t('dangarEntry.lessBardan'), val: formData.less_bardan, color: 'rose-500' },
                         { label: 'Standard Rate (₹)', val: formData.rate, color: 'blue-500' },
                         { label: t('dangarEntry.netQuintal'), val: formData.net_quintal, color: 'white', size: 'text-3xl', highlight: true },

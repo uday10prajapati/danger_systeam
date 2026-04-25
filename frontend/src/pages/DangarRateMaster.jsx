@@ -5,7 +5,7 @@ import {
   TrendingUp, Scale, Box, Loader, Info, Edit3
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 
 export default function DangarRateMaster() {
   const { t } = useTranslation();
@@ -32,20 +32,19 @@ export default function DangarRateMaster() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const companyRes = await axios.get('/api/company');
+      const companyRes = await api.get('/company');
       if (companyRes.data.success) {
         const comp = companyRes.data.data;
         setCompany(comp);
         
         // Load items and rates in parallel
-        const [itemsRes, ratesRes] = await Promise.all([
-          axios.get(`/api/items/company/${comp.id}`, { headers: { 'x-company-id': comp.id } }),
-          axios.get(`/api/dangar-rates/company/${comp.id}?year=${financialYear}`)
+        const [itemsListRes, ratesRes] = await Promise.all([
+          api.get('/items'),
+          api.get(`/dangar-rates/company/${comp.id}?year=${financialYear}`)
         ]);
 
-        if (itemsRes.data.success) {
-          // Filter items that might be dangar (or just show all for now)
-          setItems(itemsRes.data.data || []);
+        if (itemsListRes.data.success) {
+          setItems(itemsListRes.data.data || []);
         }
         if (ratesRes.data.success) {
           setRates(ratesRes.data.data || []);
@@ -61,16 +60,16 @@ export default function DangarRateMaster() {
 
   const handleEdit = (item, rateObj) => {
     setEditingItemId(item.id);
-    setEditRate(rateObj ? rateObj.rate : '');
-    setEditWinterRate(rateObj ? rateObj.winter_rate : '');
-    setEditSummerRate(rateObj ? rateObj.summer_rate : '');
-    setEditBardan(rateObj ? rateObj.bardan_deduction_rate : '');
+    setEditRate(rateObj?.rate ?? '');
+    setEditWinterRate(rateObj?.winter_rate ?? '');
+    setEditSummerRate(rateObj?.summer_rate ?? '');
+    setEditBardan(rateObj?.bardan_deduction_rate ?? '');
   };
 
   const handleSave = async (itemId) => {
     try {
       setIsSaving(true);
-      const res = await axios.post('/api/dangar-rates', {
+      const res = await api.post('/dangar-rates', {
         company_id: company.id,
         financial_year: financialYear,
         item_id: itemId,

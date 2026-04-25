@@ -6,7 +6,13 @@ const router = express.Router();
 // GET all dangar entries
 router.get('/', async (req, res) => {
   try {
-    const { companyId, startDate, endDate } = req.query;
+    const companyId = req.headers['x-company-id'] || req.query.companyId;
+    const { startDate, endDate } = req.query;
+
+    if (!companyId) {
+      return res.status(400).json({ success: false, error: 'Company Context Required' });
+    }
+
     let sql = `
       SELECT de.*, mm.member_name, mm.member_code, im.item_name 
       FROM dangar_entry de
@@ -21,7 +27,7 @@ router.get('/', async (req, res) => {
       params.push(startDate, endDate);
     }
 
-    sql += ` ORDER BY de.entry_date DESC, de.id DESC`;
+    sql += ` ORDER BY de.entry_date DESC, de.id DESC LIMIT 500`;
     
     const rows = await query(sql, params);
     res.json({ success: true, data: rows });
@@ -43,7 +49,7 @@ router.get('/:id', async (req, res) => {
     `, [req.params.id]);
 
     if (!entry) {
-      return res.status(404).json({ success: false, message: 'Entry not found' });
+      return res.status(404).json({ success: false, message: 'Node not discovered in registry' });
     }
 
     const weights = await query('SELECT * FROM dangar_weights WHERE entry_id = ? ORDER BY sr_no ASC', [req.params.id]);
@@ -55,47 +61,57 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST create new dangar entry
+// POST create new dangar entry (Commit Transaction)
 router.post('/', async (req, res) => {
   try {
+    const companyId = req.headers['x-company-id'] || req.body.company_id;
+    const currentFinancialYear = req.headers['x-financial-year'] || '2026-27';
+
+    if (!companyId) {
+      throw new Error('Mandatory Header: X-Company-Id missing');
+    }
+
     const { 
-      company_id, financial_year, bookType, date, 
-      member_id, item_id, remark, vehicleNo,
+      bookType, date, member_id, item_id, remark, vehicleNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate, amount,
-      created_by, weights 
+      rate, amount, created_by, weights 
     } = req.body;
 
-    // 1. Generate SR No (Simple AUTO logic for now)
-    const lastEntry = await queryOne('SELECT id FROM dangar_entry ORDER BY id DESC LIMIT 1');
-    const srNo = `DNG-${(lastEntry?.id || 0) + 1}`;
+    // 1. Precise SR No Generation (Isolate by Company/Year)
+    const lastEntry = await queryOne(`
+      SELECT id FROM dangar_entry 
+      WHERE company_id = ? AND financial_year = ? 
+      ORDER BY id DESC LIMIT 1
+    `, [companyId, currentFinancialYear]);
+    
+    const nextSr = (lastEntry?.id || 0) + 1;
+    const srNo = `${bookType?.[0]?.toUpperCase() || 'D'}${String(nextSr).padStart(5, '0')}`;
 
-    // 2. Insert Header
+    // 2. Commit Header State
     const result = await execute(`
       INSERT INTO dangar_entry (
         company_id, financial_year, book_type, sr_no, entry_date, 
         member_id, item_id, remark, vehicle_no,
         total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-        rate, amount,
-        created_by
+        rate, amount, created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      company_id, financial_year || '2026-27', bookType, srNo, date,
+      companyId, currentFinancialYear, bookType, srNo, date,
       member_id, item_id, remark, vehicleNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate || 0, amount || 0,
-      created_by
+      rate || 0, amount || 0, created_by || 1
     ]);
 
     const entryId = result.insertId || result.lastID;
 
-    // 3. Insert Weights
-    if (weights && weights.length > 0) {
-      for (const [idx, w] of weights.entries()) {
-        if (w.wgt) {
+    // 3. Populate Weight Matrix
+    if (weights && Array.isArray(weights)) {
+      for (let i = 0; i < weights.length; i++) {
+        const val = parseFloat(weights[i].wgt);
+        if (!isNaN(val) && val > 0) {
           await execute(
             'INSERT INTO dangar_weights (entry_id, sr_no, weight) VALUES (?, ?, ?)',
-            [entryId, idx + 1, w.wgt]
+            [entryId, i + 1, val]
           );
         }
       }
@@ -103,8 +119,8 @@ router.post('/', async (req, res) => {
 
     res.json({ success: true, data: { id: entryId, srNo } });
   } catch (error) {
-    console.error('Create dangar entry error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Dangar Entry Commit Error:', error);
+    res.status(500).json({ success: false, error: 'Database Synchronization Failure: ' + error.message });
   }
 });
 

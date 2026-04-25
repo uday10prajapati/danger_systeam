@@ -3,6 +3,30 @@ import { query } from '../db.js';
 
 const router = express.Router();
 
+// GET all rates root (Registry)
+router.get('/', async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'];
+    const { year } = req.query;
+    const currentYear = year || req.headers['x-financial-year'] || '2026-27';
+
+    if (!companyId) {
+      return res.status(400).json({ success: false, error: 'Context Required' });
+    }
+
+    const results = await query(
+      `SELECT dr.*, im.item_name, im.item_code 
+       FROM dangar_rates dr
+       JOIN item_master im ON dr.item_id = im.id
+       WHERE dr.company_id = ? AND dr.financial_year = ?`,
+      [companyId, currentYear]
+    );
+    res.json({ success: true, data: results });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET all rates for a company and year
 router.get('/company/:companyId', async (req, res) => {
   try {
