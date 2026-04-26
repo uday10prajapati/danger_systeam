@@ -53,20 +53,20 @@ router.get('/', async (req, res) => {
         
         -- Opening Balance Calculation (Up to startDate)
         (
-          SELECT COALESCE(SUM(credit_amount), 0) - COALESCE(SUM(debit_amount), 0)
+          SELECT COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0)
           FROM account_ledger
           WHERE account_id = m.account_id AND transaction_date < ?
         ) AS op_period_balance,
 
         -- Debits and Credits during the period
         (
-          SELECT COALESCE(SUM(debit_amount), 0)
+          SELECT COALESCE(SUM(debit), 0)
           FROM account_ledger
           WHERE account_id = m.account_id AND transaction_date BETWEEN ? AND ?
         ) AS period_debit,
 
         (
-          SELECT COALESCE(SUM(credit_amount), 0)
+          SELECT COALESCE(SUM(credit), 0)
           FROM account_ledger
           WHERE account_id = m.account_id AND transaction_date BETWEEN ? AND ?
         ) AS period_credit

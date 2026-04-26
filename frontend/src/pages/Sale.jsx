@@ -3,7 +3,7 @@ import {
   Plus, Search, Eye, Printer, X, ShoppingBag, 
   TrendingUp, CreditCard, UserCheck, Layout, 
   RefreshCcw, ArrowRight, Calendar, ChevronRight, 
-  Database, ShieldCheck, Activity, Package
+  Database, ShieldCheck, Activity, Package, FileText
 } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';

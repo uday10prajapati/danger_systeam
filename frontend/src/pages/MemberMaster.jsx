@@ -101,6 +101,11 @@ export default function MemberMaster() {
       setMessage({ type: 'success', text: 'Entity decommissioned' });
       loadMembers();
     } catch (error) {
+      if (error.response?.status === 404) {
+        setMessage({ type: 'success', text: 'Entity already decommissioned' });
+        loadMembers();
+        return;
+      }
       setMessage({ type: 'error', text: 'Operation failed' });
     }
   }

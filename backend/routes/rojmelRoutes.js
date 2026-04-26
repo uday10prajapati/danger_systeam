@@ -12,15 +12,17 @@ router.get('/nav-dates', async (req, res) => {
 
     const prevSql = `
       SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as nav_date
-      FROM cash_book 
+      FROM account_ledger 
       WHERE company_id = ? AND transaction_date < DATE(?) 
+      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
       ORDER BY transaction_date DESC 
       LIMIT 1
     `;
     const nextSql = `
       SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as nav_date
-      FROM cash_book 
+      FROM account_ledger 
       WHERE company_id = ? AND transaction_date > DATE(?) 
+      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
       ORDER BY transaction_date ASC 
       LIMIT 1
     `;
@@ -42,206 +44,130 @@ router.get('/nav-dates', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const companyId = req.header('x-company-id');
-    const { date } = req.query; // specific date for Rojmel
+    const { date } = req.query;
 
-    if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
-    if (!date) return res.status(400).json({ success: false, error: 'Date is required' });
+    if (!companyId || !date) return res.status(400).json({ success: false, error: 'Company ID and date required' });
 
-    // 1. Calculate previous day's net balance (opening balance for today)
+    // 1. Calculate Opening Balance (Cash Flow perspective)
+    // Formula: Total Receipts (Member Credits) - Total Payments (Member Debits)
     const opBalSql = `
       SELECT 
-        COALESCE(SUM(cash_in), 0) - COALESCE(SUM(cash_out), 0) as net_balance
-      FROM cash_book
+        SUM(COALESCE(credit, credit_amount, 0)) - SUM(COALESCE(debit, debit_amount, 0)) as net_balance 
+      FROM account_ledger 
       WHERE company_id = ? AND transaction_date < ?
+      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
     `;
-    const opBalResult = await query(opBalSql, [companyId, date]);
-    const netBalanceOp = parseFloat(opBalResult[0]?.net_balance || 0);
+    const [opBalRows] = await query(opBalSql, [companyId, date]);
+    const netBalanceOp = parseFloat(opBalRows[0]?.net_balance || 0);
 
-    // If netBalanceOp > 0, historically jama > udhar. To balance yesterday, closing was on udhar.
-    // So today's opening is on jama.
-    // If netBalanceOp < 0, historically udhar > jama. To balance yesterday, closing was on jama.
-    // So today's opening is on udhar.
     let opening = null;
-    if (netBalanceOp > 0) {
-      opening = { side: 'jama', amount: netBalanceOp };
-    } else if (netBalanceOp < 0) {
-      opening = { side: 'udhar', amount: Math.abs(netBalanceOp) };
-    }
+    if (netBalanceOp > 0) opening = { side: 'jama', amount: netBalanceOp };
+    else if (netBalanceOp < 0) opening = { side: 'udhar', amount: Math.abs(netBalanceOp) };
 
-    // 2. Fetch all transactions for the current day
+    // 2. Fetch Ledger entries (Cash perspective: Member Credit = In, Member Debit = Out)
     const txSql = `
-      SELECT id, transaction_date, reference_no, description, notes, cash_in, cash_out
-      FROM cash_book
-      WHERE company_id = ? AND transaction_date = ?
+      SELECT id, reference_no, reference_type, description, notes, 
+             COALESCE(credit, credit_amount, 0) as cash_in, 
+             COALESCE(debit, debit_amount, 0) as cash_out 
+      FROM account_ledger 
+      WHERE company_id = ? AND transaction_date = ? 
+      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
       ORDER BY id ASC
     `;
     const transactions = await query(txSql, [companyId, date]);
 
-    const jamaList = []; // Left Side
-    const udharList = []; // Right Side
+    // 3. Fetch Non-Cash JV Items (Adjustments that don't hit cash_book)
+    const jvSql = `
+      SELECT i.id, i.type, i.amount, i.reference_no, i.particulars, a.account_name, v.voucher_type
+      FROM journal_voucher_items i
+      JOIN journal_vouchers v ON i.voucher_id = v.id
+      JOIN accounts a ON i.account_id = a.id
+      WHERE v.company_id = ? AND v.voucher_date = ? AND a.account_type NOT IN ('cash', 'bank')
+    `;
+    const jvItems = await query(jvSql, [companyId, date]);
 
-    // 3. Add Opening Balance at TOP
+    const jamaList = []; 
+    const udharList = [];
+
     if (opening) {
-      const opRow = {
-        details: 'ઉઘડતી સિલ્ક (Op. Balance)',
-        sub_amount: '',
-        amount: opening.amount,
-        isOpening: true
-      };
-      if (opening.side === 'jama') {
-        jamaList.push(opRow);
-      } else {
-        udharList.push(opRow);
-      }
+      const opRow = { details: 'ઉઘડતી સિલ્ક (Op. Balance)', amount: opening.amount, isOpening: true };
+      opening.side === 'jama' ? jamaList.push(opRow) : udharList.push(opRow);
     }
 
-    // Helper function to extract GST type from description
-    const extractGSTType = (description) => {
-      if (description.includes('CGST')) return 'CGST';
-      if (description.includes('SGST')) return 'SGST';
-      if (description.includes('IGST')) return 'IGST';
+    const extractGSTType = (desc) => {
+      if (desc.includes('CGST')) return 'CGST';
+      if (desc.includes('SGST')) return 'SGST';
+      if (desc.includes('IGST')) return 'IGST';
       return null;
     };
 
-    // Group GST entries before populating lists
-    const gstGrouped = {
-      jama: { CGST: 0, SGST: 0, IGST: 0 },
-      udhar: { CGST: 0, SGST: 0, IGST: 0 }
-    };
-    const gstSubledger = {
-      jama: { CGST: [], SGST: [], IGST: [] },
-      udhar: { CGST: [], SGST: [], IGST: [] }
-    };
-    const nonGSTTransactions = [];
+    const gstGrouped = { jama: { CGST: 0, SGST: 0, IGST: 0 }, udhar: { CGST: 0, SGST: 0, IGST: 0 } };
+    const gstSubledger = { jama: { CGST: [], SGST: [], IGST: [] }, udhar: { CGST: [], SGST: [], IGST: [] } };
 
+    // Process Cash Book entries
     transactions.forEach(tx => {
-      const gstType = extractGSTType(tx.description);
+      const isJVOrContra = ['jv', 'JV', 'contra', 'CONTRA'].includes(tx.reference_type);
+      const gstType = isJVOrContra ? null : extractGSTType(tx.description);
       const cIn = parseFloat(tx.cash_in || 0);
       const cOut = parseFloat(tx.cash_out || 0);
 
       if (gstType) {
-        // This is a GST entry - add to grouped totals and subledger
         if (cIn > 0) {
           gstGrouped.jama[gstType] += cIn;
-          gstSubledger.jama[gstType].push({
-            id: tx.id,
-            description: tx.description,
-            amount: cIn
-          });
+          gstSubledger.jama[gstType].push({ id: tx.id, description: tx.description, amount: cIn });
         }
         if (cOut > 0) {
           gstGrouped.udhar[gstType] += cOut;
-          gstSubledger.udhar[gstType].push({
-            id: tx.id,
-            description: tx.description,
-            amount: cOut
-          });
+          gstSubledger.udhar[gstType].push({ id: tx.id, description: tx.description, amount: cOut });
         }
       } else {
-        // Non-GST entry - keep separate
-        nonGSTTransactions.push(tx);
+        if (cIn > 0) {
+          jamaList.push({ id: tx.id, details: tx.description, notes: tx.notes, amount: cIn, isJV: tx.reference_type?.toUpperCase().includes('JV'), isContra: tx.reference_type?.toUpperCase().includes('CONTRA') });
+        }
+        if (cOut > 0) {
+          udharList.push({ id: tx.id, details: tx.description, notes: tx.notes, amount: cOut, isJV: tx.reference_type?.toUpperCase().includes('JV'), isContra: tx.reference_type?.toUpperCase().includes('CONTRA') });
+        }
       }
     });
 
-    // 4. Populate current day's transactions
-    // First add non-GST transactions
-    nonGSTTransactions.forEach(tx => {
-      const cIn = parseFloat(tx.cash_in || 0);
-      const cOut = parseFloat(tx.cash_out || 0);
-
-      if (cIn > 0) {
-        jamaList.push({
-          id: tx.id,
-          details: tx.description,
-          notes: tx.notes,
-          sub_amount: cIn,
-          amount: cIn
-        });
-      }
-
-      if (cOut > 0) {
-        udharList.push({
-          id: tx.id,
-          details: tx.description,
-          notes: tx.notes,
-          sub_amount: cOut,
-          amount: cOut
-        });
-      }
+    // Process Adjustment JVs
+    jvItems.forEach(item => {
+      const amt = parseFloat(item.amount || 0);
+      const row = {
+        id: `JV-ITEM-${item.id}`,
+        details: item.particulars || `${item.account_name} (JV Adjustment)`,
+        notes: item.reference_no,
+        amount: amt,
+        isJV: item.voucher_type?.toUpperCase().includes('JV'),
+        isContra: item.voucher_type?.toUpperCase().includes('CONTRA')
+      };
+      item.type === 'CREDIT' ? jamaList.push(row) : udharList.push(row);
     });
 
-    // Then add grouped GST entries
+    // Add grouped GST entries
     ['CGST', 'SGST', 'IGST'].forEach(gstType => {
-      if (gstGrouped.jama[gstType] > 0) {
-        jamaList.push({
-          details: `${gstType} IN/OUT`,
-          sub_amount: gstGrouped.jama[gstType],
-          amount: gstGrouped.jama[gstType],
-          isGST: true,
-          gstType: gstType,
-          subledger: gstSubledger.jama[gstType]
-        });
-      }
-      if (gstGrouped.udhar[gstType] > 0) {
-        udharList.push({
-          details: `${gstType} IN/OUT`,
-          sub_amount: gstGrouped.udhar[gstType],
-          amount: gstGrouped.udhar[gstType],
-          isGST: true,
-          gstType: gstType,
-          subledger: gstSubledger.udhar[gstType]
-        });
-      }
+      if (gstGrouped.jama[gstType] > 0) jamaList.push({ details: `${gstType} IN/OUT`, amount: gstGrouped.jama[gstType], isGST: true, gstType, subledger: gstSubledger.jama[gstType] });
+      if (gstGrouped.udhar[gstType] > 0) udharList.push({ details: `${gstType} IN/OUT`, amount: gstGrouped.udhar[gstType], isGST: true, gstType, subledger: gstSubledger.udhar[gstType] });
     });
 
-    // 5. Calculate running totals
-    const currentTotalJama = jamaList.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
-    const currentTotalUdhar = udharList.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
+    const totalJama = jamaList.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+    const totalUdhar = udharList.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
 
-    // 6. Calculate Closing Balance at BOTTOM based on actual current totals
     let closing = null;
-    let finalJamaTotal = currentTotalJama;
-    let finalUdharTotal = currentTotalUdhar;
+    let finalJama = totalJama;
+    let finalUdhar = totalUdhar;
 
-    if (currentTotalJama > currentTotalUdhar) {
-      // Need closing on Udhar side to balance
-      const closingAmount = currentTotalJama - currentTotalUdhar;
-      closing = { side: 'udhar', amount: closingAmount };
-      udharList.push({
-        details: 'બંધ સિલ્ક (Cl. Balance)',
-        sub_amount: '',
-        amount: closingAmount,
-        isClosing: true
-      });
-      finalUdharTotal += closingAmount;
-    } else if (currentTotalUdhar > currentTotalJama) {
-      // Need closing on Jama side to balance
-      const closingAmount = currentTotalUdhar - currentTotalJama;
-      closing = { side: 'jama', amount: closingAmount };
-      jamaList.push({
-        details: 'બંધ સિલ્ક (Cl. Balance)',
-        sub_amount: '',
-        amount: closingAmount,
-        isClosing: true
-      });
-      finalJamaTotal += closingAmount;
+    if (totalJama > totalUdhar) {
+      closing = { side: 'udhar', amount: totalJama - totalUdhar };
+      udharList.push({ details: 'બંધ સિલ્ક (Cl. Balance)', amount: closing.amount, isClosing: true });
+      finalUdhar += closing.amount;
+    } else if (totalUdhar > totalJama) {
+      closing = { side: 'jama', amount: totalUdhar - totalJama };
+      jamaList.push({ details: 'બંધ સિલ્ક (Cl. Balance)', amount: closing.amount, isClosing: true });
+      finalJama += closing.amount;
     }
 
-    // Format strictly required by user
-    return res.json({ 
-      success: true, 
-      date: date,
-      data: {
-        jama: jamaList,
-        udhar: udharList,
-        totals: {
-           jama_total: finalJamaTotal,
-           udhar_total: finalUdharTotal
-        },
-        closing: closing || { side: null, amount: 0 },
-        opening: opening || { side: null, amount: 0 }
-      }
-    });
+    res.json({ success: true, date, data: { jama: jamaList, udhar: udharList, totals: { jama_total: finalJama, udhar_total: finalUdhar }, closing: closing || { side: null, amount: 0 }, opening: opening || { side: null, amount: 0 } } });
 
   } catch (error) {
     console.error('Rojmel Error:', error);

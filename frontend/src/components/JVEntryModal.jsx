@@ -7,8 +7,8 @@ import {
   Database
 } from 'lucide-react';
 
-export default function JVEntryModal({ company, onClose, onSubmit }) {
-   const [voucherDate, setVoucherDate] = useState(new Date().toISOString().split('T')[0]);
+export default function JVEntryModal({ company, initialDate, editId = null, onClose, onSubmit }) {
+   const [voucherDate, setVoucherDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
    const [credits, setCredits] = useState([]);
    const [debits, setDebits] = useState([]);
 
@@ -17,14 +17,38 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
    const [selected, setSelected] = useState(null); 
 
    const [accounts, setAccounts] = useState([]);
+   const [loading, setLoading] = useState(false);
 
    useEffect(() => {
       fetchAccounts();
    }, [company]);
 
+   useEffect(() => {
+      if (editId && company?.id) fetchJV();
+   }, [editId, company?.id]);
+
+   const fetchJV = async () => {
+      try {
+         setLoading(true);
+         const res = await axios.get(`/api/jv/${editId}`, {
+            headers: { 'x-company-id': company?.id }
+         });
+         if (res.data.success) {
+            const { voucher_date, credits, debits } = res.data.data;
+            setVoucherDate(voucher_date.split('T')[0]);
+            setCredits(credits);
+            setDebits(debits);
+         }
+      } catch (err) {
+         console.error('Fetch JV error', err);
+      } finally {
+         setLoading(false);
+      }
+   };
+
    const fetchAccounts = async () => {
       try {
-         const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company?.id}`, {
+         const res = await axios.get(`/api/accounts/company/${company?.id}`, {
             headers: { 'x-company-id': company?.id }
          });
          if (res.data.success) {
@@ -44,7 +68,7 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
             voucher_type: 'CONTRA/JV'
          };
 
-         await axios.post(`${import.meta.env.VITE_API_URL}/api/jv`, payload, {
+         await axios.post(`/api/jv`, payload, {
             headers: { 'x-company-id': company.id, 'x-user-id': 1 }
          });
 
@@ -112,7 +136,15 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
             </div>
 
             {/* Dual Processing Vector */}
-            <div className="flex h-[400px]">
+            <div className="flex h-[400px] relative">
+               {loading && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-50 flex items-center justify-center">
+                     <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Reconstructing Matrix Nodes...</span>
+                     </div>
+                  </div>
+               )}
                {/* Credit Vector */}
                <div className="flex-1 flex flex-col border-r border-slate-100">
                   <div className="bg-emerald-50/30 p-3 px-6 border-b border-emerald-50 flex justify-between items-center">
@@ -263,6 +295,7 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
                   type={activeSubModal}
                   date={voucherDate}
                   accounts={accounts}
+                  company={company}
                   initialData={editIndex !== null ? (activeSubModal === 'credit' ? credits[editIndex] : debits[editIndex]) : null}
                   onClose={() => { setActiveSubModal(null); setEditIndex(null); }}
                   onAdd={(item) => {
@@ -301,14 +334,22 @@ export default function JVEntryModal({ company, onClose, onSubmit }) {
 }
 
 // Compact Sub Entry Modal with Identity Discovery Engine
-function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
+function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, company }) {
    const isCredit = type === 'credit';
    const themeColor = isCredit ? 'emerald' : 'blue';
    const title = initialData ? 'Modify Node' : (isCredit ? 'Jama Allocation' : 'Udhar Allocation');
 
    const [accountId, setAccountId] = useState(initialData?.account_id || '');
+   const [selectedAccount, setSelectedAccount] = useState(null);
    const [searchCode, setSearchCode] = useState(initialData?.account_id ? String(initialData.account_id) : '');
    const [searchText, setSearchText] = useState(initialData?.account_name || '');
+   
+   const [memberId, setMemberId] = useState(initialData?.member_id || '');
+   const [memberName, setMemberName] = useState(initialData?.member_name || '');
+   const [memberSearch, setMemberSearch] = useState(initialData?.member_name || '');
+   const [members, setMembers] = useState([]);
+   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+
    const [amount, setAmount] = useState(initialData?.amount || '');
    const [refNo, setRefNo] = useState(initialData?.reference_no || '');
    const [particulars, setParticulars] = useState(initialData?.particulars || '');
@@ -319,14 +360,30 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
    const codeInputRef = React.useRef(null);
    const nameInputRef = React.useRef(null);
 
+   useEffect(() => {
+      if (initialData?.account_id) {
+         const acc = accounts.find(a => a.id === initialData.account_id);
+         if (acc) setSelectedAccount(acc);
+      }
+      fetchMembers();
+   }, []);
+
+   const fetchMembers = async () => {
+      try {
+         const res = await axios.get(`/api/members/company/${company?.id}`);
+         if (res.data.success) setMembers(res.data.data);
+      } catch (err) {}
+   };
+
    const filteredAccounts = accounts.filter(a => {
-      const codeMatch = searchCode ? (String(a.id).includes(searchCode) || String(a.phone).includes(searchCode)) : true;
+      const codeMatch = searchCode ? (String(a.id).includes(searchCode) || (a.phone && String(a.phone).includes(searchCode))) : true;
       const nameMatch = searchText ? a.account_name.toLowerCase().includes(searchText.toLowerCase()) : true;
       return codeMatch && nameMatch;
    });
 
    const handleAccountSelect = (acc) => {
       setAccountId(acc.id);
+      setSelectedAccount(acc);
       setSearchCode(String(acc.id));
       setSearchText(acc.account_name);
       setShowDropdown(false);
@@ -335,7 +392,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
    // Auto-fetch by code logic
    useEffect(() => {
      if (searchCode && !accountId) {
-       const match = accounts.find(a => String(a.id) === searchCode || String(a.phone) === searchCode);
+       const match = accounts.find(a => String(a.id) === searchCode || (a.phone && String(a.phone) === searchCode));
        if (match) handleAccountSelect(match);
      }
    }, [searchCode, accounts]);
@@ -362,9 +419,11 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
       onAdd({
          account_id: parseInt(accountId),
          account_name: searchText || 'Account Node',
+         member_id: memberId || null,
+         member_name: memberName || '',
          amount: parseFloat(amount),
          reference_no: refNo,
-         particulars: particulars || searchText || ''
+         particulars: particulars || (memberName ? `${searchText} - ${memberName}` : searchText) || ''
       });
    };
 
@@ -387,7 +446,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
                   <span className="font-mono font-black text-slate-800 text-[10px] tracking-widest">{date}</span>
                </div>
 
-               {/* Discovery Shard */}
+               {/* Account Discovery */}
                <div className="relative group">
                   <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-xl border border-slate-50 group-focus-within:border-indigo-100 transition-all">
                      <div className="p-2 bg-white rounded-lg shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14}/></div>
@@ -399,20 +458,20 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
                               type="text"
                               placeholder="CODE"
                               value={searchCode}
-                              onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); if (accountId) setAccountId(''); }}
+                              onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); if (accountId) { setAccountId(''); setSelectedAccount(null); } }}
                               onFocus={() => setShowDropdown(true)}
                               onKeyDown={handleSearchKeyDown}
                               className="w-full bg-transparent border-none outline-none font-black text-slate-800 text-xs tracking-widest text-center"
                            />
                         </div>
                         <div className="col-span-9">
-                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Nomenclature Search</p>
+                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Ledger Account</p>
                            <input
                               ref={nameInputRef}
                               type="text"
                               placeholder="START TYPING..."
                               value={searchText}
-                              onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); if (accountId) setAccountId(''); }}
+                              onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); if (accountId) { setAccountId(''); setSelectedAccount(null); } }}
                               onFocus={() => setShowDropdown(true)}
                               onKeyDown={handleSearchKeyDown}
                               className="w-full bg-transparent border-none outline-none font-bold text-slate-800 text-xs italic"
@@ -421,7 +480,6 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
                      </div>
                   </div>
 
-                  {/* Discovery Feed */}
                   {showDropdown && (
                      <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 shadow-2xl z-[1300] max-h-48 overflow-y-auto rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="bg-slate-900 text-white p-2.5 px-5 text-[7px] font-black uppercase tracking-[0.4em] flex justify-between items-center sticky top-0 italic">
@@ -445,6 +503,47 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
                      </div>
                   )}
                </div>
+
+               {/* Member Selection - Dynamic Shard */}
+               {selectedAccount?.is_subledger === 1 && (
+                  <div className="relative animate-in slide-in-from-left duration-300">
+                     <div className="flex items-center gap-4 bg-indigo-50/30 p-4 rounded-xl border border-indigo-100 transition-all shadow-sm">
+                        <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500"><Users size={14}/></div>
+                        <div className="flex-1">
+                           <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-0.5 italic">Member Assignment (Subledger Required)</p>
+                           <input
+                              type="text"
+                              placeholder="SEARCH SABHASAD..."
+                              value={memberSearch}
+                              onChange={(e) => { setMemberSearch(e.target.value); setShowMemberDropdown(true); if (memberId) setMemberId(''); }}
+                              onFocus={() => setShowMemberDropdown(true)}
+                              className="w-full bg-transparent border-none outline-none font-black text-indigo-900 text-xs italic tracking-tight"
+                           />
+                        </div>
+                        {memberId && <CheckCircle2 size={16} className="text-emerald-500" strokeWidth={3} />}
+                     </div>
+
+                     {showMemberDropdown && memberSearch.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-indigo-100 shadow-2xl z-[1300] max-h-40 overflow-y-auto rounded-xl overflow-hidden divide-y divide-indigo-50">
+                           {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase()) || m.member_code.toString().includes(memberSearch)).map(m => (
+                              <div 
+                                 key={m.id}
+                                 onClick={() => {
+                                    setMemberId(m.id);
+                                    setMemberName(m.member_name);
+                                    setMemberSearch(m.member_name);
+                                    setShowMemberDropdown(false);
+                                 }}
+                                 className="px-4 py-2 hover:bg-indigo-50 cursor-pointer flex justify-between items-center group transition-colors"
+                              >
+                                 <span className="text-[10px] font-bold text-slate-700 italic">{m.member_name}</span>
+                                 <span className="text-[8px] font-black bg-indigo-100 px-1.5 py-0.5 rounded text-indigo-600 font-mono">#{m.member_code}</span>
+                              </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+               )}
 
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -482,7 +581,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData }) {
 
             <div className="bg-[#F8FAFC] p-6 px-7 flex justify-end gap-3 border-t border-slate-50 shadow-inner">
                <button onClick={onClose} className="px-6 py-3 text-[9px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">Cancel</button>
-               <button onClick={handleSubmit} className={`bg-${themeColor}-600 text-white px-8 py-3 text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95`}>
+               <button onClick={handleSubmit} className={`bg-${themeColor}-600 text-white px-8 py-3 text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale`} disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}>
                   {initialData ? 'Update Node' : 'Initialize Node'}
                </button>
             </div>

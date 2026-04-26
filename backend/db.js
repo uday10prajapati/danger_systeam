@@ -118,11 +118,20 @@ export async function initializeDatabase() {
           opening_balance DECIMAL(10, 2) DEFAULT 0,
           is_active INT DEFAULT 1,
           is_deleted INT DEFAULT 0,
+          account_code VARCHAR(50),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
+
+      // Migration for accounts (ensure account_code and is_subledger exist)
+      try {
+        await connection.query("ALTER TABLE accounts ADD COLUMN account_code VARCHAR(50)");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE accounts ADD COLUMN is_subledger TINYINT(1) DEFAULT 0");
+      } catch (e) {}
 
       // Create Item Master table
       await connection.query(`
@@ -173,7 +182,6 @@ export async function initializeDatabase() {
           rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
           winter_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
           summer_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
-          bardan_deduction_rate DECIMAL(12, 2) NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id),
@@ -188,9 +196,6 @@ export async function initializeDatabase() {
       } catch (e) {}
       try {
         await connection.query("ALTER TABLE dangar_rates ADD COLUMN summer_rate DECIMAL(12, 2) DEFAULT 0");
-      } catch (e) {}
-      try {
-        await connection.query("ALTER TABLE dangar_rates ADD COLUMN bardan_deduction_rate DECIMAL(12, 2) DEFAULT 0");
       } catch (e) {}
 
       // Create Products table
@@ -526,29 +531,71 @@ export async function initializeDatabase() {
         )
       `);
 
-      // Create Account Ledger table
+      // Create Account Ledger table (UNIFIED MASTER LEDGER)
       await connection.query(`
         CREATE TABLE IF NOT EXISTS account_ledger (
           id INT PRIMARY KEY AUTO_INCREMENT,
           company_id INT NOT NULL,
-          account_id INT NOT NULL,
-          transaction_date DATE,
-          transaction_type VARCHAR(50),
+          account_id INT DEFAULT NULL,
+          member_id INT DEFAULT NULL,
+          transaction_date DATE NOT NULL,
+          transaction_type VARCHAR(50) DEFAULT 'manual', -- manual, sale, purchase, cash_book, jv
           reference_type VARCHAR(50),
           reference_id INT,
           reference_no VARCHAR(100),
-          debit_amount DECIMAL(10, 2) DEFAULT 0,
-          credit_amount DECIMAL(10, 2) DEFAULT 0,
-          debit DECIMAL(10, 2) DEFAULT 0,
-          credit DECIMAL(10, 2) DEFAULT 0,
+          debit DECIMAL(12, 2) DEFAULT 0.00,
+          credit DECIMAL(12, 2) DEFAULT 0.00,
           description TEXT,
+          notes TEXT,
+          financial_year VARCHAR(20) DEFAULT '2026-27',
           created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
-          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
-          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+          FOREIGN KEY (member_id) REFERENCES member_master(id) ON DELETE SET NULL,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+          INDEX (transaction_date),
+          INDEX (account_id),
+          INDEX (member_id),
+          INDEX (reference_type, reference_id)
         )
       `);
+
+      // Migration for account_ledger (Ensure consistency)
+      const ledgerCols = [
+        { name: 'notes', type: 'TEXT' },
+        { name: 'financial_year', type: "VARCHAR(20) DEFAULT '2026-27'" },
+        { name: 'transaction_type', type: "VARCHAR(50) DEFAULT 'manual'" },
+        { name: 'updated_at', type: 'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
+        { name: 'debit', type: 'DECIMAL(12, 2) DEFAULT 0.00' },
+        { name: 'credit', type: 'DECIMAL(12, 2) DEFAULT 0.00' }
+      ];
+
+      for (const col of ledgerCols) {
+        try {
+          await connection.query(`ALTER TABLE account_ledger ADD COLUMN ${col.name} ${col.type}`);
+        } catch (e) {
+          // Column likely already exists
+        }
+      }
+
+      // Ensure "Cash" account exists in account master for unification
+      try {
+        const [companies] = await connection.query("SELECT id FROM company");
+        for (const comp of companies) {
+           const [cashAcc] = await connection.query("SELECT id FROM accounts WHERE company_id = ? AND (account_name = 'Cash' OR account_name = 'CASH' OR account_type = 'cash')", [comp.id]);
+           if (cashAcc.length === 0) {
+              await connection.query(`
+                INSERT INTO accounts (company_id, account_name, account_type, opening_balance, is_active, account_code)
+                VALUES (?, 'Cash Account', 'cash', 0, 1, 'CASH-001')
+              `, [comp.id]);
+              console.log(`✅ Default Cash Account created for company ${comp.id}`);
+           }
+        }
+      } catch (e) {
+        console.warn("Cash account initialization warning:", e.message);
+      }
 
       // Create Journal Vouchers table
       await connection.query(`
@@ -851,6 +898,26 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Create Narrations table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS narrations (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          narration_code VARCHAR(50),
+          narration_text TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Migration for narrations
+      try {
+        await connection.query("ALTER TABLE narrations ADD COLUMN narration_code VARCHAR(50)");
+      } catch (e) {
+        // Ignore if column already exists
+      }
+
       // Create Banks Master table
        await connection.query(`
         CREATE TABLE IF NOT EXISTS banks (
@@ -860,6 +927,81 @@ export async function initializeDatabase() {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
           UNIQUE KEY uidx_company_bank (company_id, bank_name)
+        )
+      `);
+
+      // Create Deduction Master table (Kapat Master)
+       await connection.query(`
+        CREATE TABLE IF NOT EXISTS deduction_master (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          type ENUM('fixed', 'per_unit', 'percentage') NOT NULL DEFAULT 'fixed',
+          ledger_account_id INT,
+          default_value DECIMAL(12, 2) DEFAULT 0,
+          show_balance BOOLEAN DEFAULT TRUE,
+          sort_order INT DEFAULT 0,
+          is_active BOOLEAN DEFAULT TRUE,
+          auto_apply BOOLEAN DEFAULT FALSE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+          FOREIGN KEY (ledger_account_id) REFERENCES accounts(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Create Transaction Deductions table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS transaction_deductions (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          entry_id INT NOT NULL,
+          deduction_id INT NOT NULL,
+          input_value DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          calculated_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
+          balance_at_time DECIMAL(15, 2) DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (entry_id) REFERENCES dangar_entry(id) ON DELETE CASCADE,
+          FOREIGN KEY (deduction_id) REFERENCES deduction_master(id) ON DELETE RESTRICT
+        )
+      `);
+
+      // Create Seasons table (for Tariff Designation)
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS seasons (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          season_type VARCHAR(100) NOT NULL,
+          financial_year VARCHAR(20) NOT NULL,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Bardan Price Master table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS bardan_price_master (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          price_per_bardan DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Create Persistent Targets for Kapat Console
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS deduction_targets (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          company_id INT NOT NULL,
+          target_type VARCHAR(50) NOT NULL,
+          target_id INT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY unique_target (company_id, target_type, target_id),
+          FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
         )
       `);
 
@@ -907,6 +1049,12 @@ export async function initializeDatabase() {
       }
 
       // IFSC Code handled in the migration block above
+
+      // Migrations for Deductions
+      try { await connection.query("ALTER TABLE deduction_master ADD COLUMN ledger_account_id INT"); } catch(e) {}
+      try { await connection.query("ALTER TABLE deduction_master ADD COLUMN show_balance BOOLEAN DEFAULT TRUE"); } catch(e) {}
+      try { await connection.query("ALTER TABLE deduction_master ADD COLUMN sort_order INT DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE transaction_deductions ADD COLUMN balance_at_time DECIMAL(15, 2) DEFAULT 0"); } catch(e) {}
 
       await connection.commit();
       console.log('✅ MySQL Database tables created/verified/upgraded');
@@ -1843,92 +1991,104 @@ export async function getSaleReturnDetails(saleReturnId) {
 // CASH BOOK FUNCTIONS
 // ============================================
 
-export async function insertCashBookEntry(
-  companyId,
-  transactionDate,
-  referenceType,
-  referenceId,
-  referenceNo,
-  description,
-  cashIn,
-  cashOut,
-  userId,
-  notes = '',
-  financialYear = '2026-27'
+// ============================================
+// UNIFIED MASTER LEDGER FUNCTIONS (Universal Source)
+// ============================================
+
+export async function insertLedgerEntry(
+  companyId, accountId, transactionDate, transactionType, referenceType, 
+  referenceId, referenceNo, debit, credit, description, notes = '', memberId = null, financialYear = '2026-27'
 ) {
   const sql = `
-    INSERT INTO cash_book 
-    (company_id, transaction_date, reference_type, reference_id, reference_no, 
-     description, cash_in, cash_out, created_by, notes, financial_year)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO account_ledger 
+    (company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+     reference_id, reference_no, debit, credit, description, notes, financial_year)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const result = await query(sql, [
-    companyId,
-    transactionDate,
-    referenceType,
-    referenceId || null,
-    referenceNo || '',
-    description,
-    parseFloat(cashIn) || 0,
-    parseFloat(cashOut) || 0,
-    userId,
-    notes,
-    financialYear
+  return await query(sql, [
+    companyId, accountId || null, memberId || null, transactionDate, 
+    transactionType || 'manual', referenceType || null, referenceId || null, 
+    referenceNo || '', description || '', notes || '', financialYear
   ]);
+}
+
+// Legacy Compatibility Wrapper for Cash Book (Now strictly Unified, Single-Entry)
+export async function insertCashBookEntry(
+  companyId, transactionDate, referenceType, referenceId, referenceNo, 
+  description, cashIn, cashOut, userId, notes = '', financialYear = '2026-27'
+) {
+  // Directly insert into ledger as a cash_book transaction
+  // No "Master Cash Account" needed; visibility is handled by transaction_type
+  const result = await insertLedgerEntry(
+     companyId, 
+     null, // No specific account_id required for generic cash transactions
+     transactionDate, 'cash_book', referenceType,
+     referenceId, referenceNo, 
+     parseFloat(cashIn) || 0,  // Debit (In)
+     parseFloat(cashOut) || 0, // Credit (Out)
+     description, notes, null, financialYear
+  );
 
   return { insertId: result.insertId };
 }
 
-export async function getCashBookEntries(companyId, startDate, endDate) {
-  const sql = `
-    SELECT 
-      cb.id,
-      cb.transaction_date,
-      cb.reference_type,
-      cb.reference_no,
-      cb.description,
-      cb.cash_in,
-      cb.cash_out,
-      (cb.cash_in - cb.cash_out) as net_amount,
-      u.username as created_by_user,
-      cb.created_at
-    FROM cash_book cb
-    LEFT JOIN users u ON cb.created_by = u.id
-    WHERE cb.company_id = ? AND cb.transaction_date BETWEEN ? AND ?
-    ORDER BY cb.transaction_date DESC, cb.created_at DESC
-  `;
-  return await query(sql, [companyId, startDate, endDate]);
-}
-
+// Optimized Cash Balance (Aggregates Receipts - Payments from WHOLE ledger)
 export async function getCashBalance(companyId, upToDate = null) {
-  const dateCondition = upToDate ? `AND cb.transaction_date <= ?` : '';
+  const dateCondition = upToDate ? `AND transaction_date <= ?` : '';
   const params = [companyId];
   if (upToDate) params.push(upToDate);
 
   const sql = `
     SELECT 
-      COALESCE(SUM(cash_in), 0) as total_cash_in,
-      COALESCE(SUM(cash_out), 0) as total_cash_out,
-      COALESCE(SUM(cash_in - cash_out), 0) as current_balance
-    FROM cash_book
-    WHERE company_id = ? ${dateCondition}
+      SUM(COALESCE(debit, debit_amount, 0)) as total_cash_in,
+      SUM(COALESCE(credit, credit_amount, 0)) as total_cash_out,
+      SUM(COALESCE(debit, 0) - COALESCE(credit, 0)) as current_balance
+    FROM account_ledger
+    WHERE company_id = ? 
+      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
+      ${dateCondition}
   `;
 
   const result = await query(sql, params);
   return result?.[0] || { total_cash_in: 0, total_cash_out: 0, current_balance: 0 };
 }
 
+export async function getCashBookEntries(companyId, startDate, endDate) {
+  const sql = `
+    SELECT 
+      al.id,
+      al.transaction_date,
+      al.reference_type,
+      al.reference_no,
+      al.description,
+      COALESCE(al.debit, al.debit_amount, 0) as cash_in,
+      COALESCE(al.credit, al.credit_amount, 0) as cash_out,
+      (COALESCE(al.debit, 0) - COALESCE(al.credit, 0)) as net_amount,
+      u.username as created_by_user,
+      al.created_at
+    FROM account_ledger al
+    LEFT JOIN users u ON al.created_by = u.id
+    WHERE al.company_id = ? 
+      AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book')
+      AND al.transaction_date BETWEEN ? AND ?
+    ORDER BY al.transaction_date DESC, al.created_at DESC
+  `;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
 export async function getDailyCashSummary(companyId, startDate, endDate) {
   const sql = `
     SELECT 
       transaction_date,
-      SUM(cash_in) as daily_in,
-      SUM(cash_out) as daily_out,
-      SUM(cash_in - cash_out) as daily_net,
+      SUM(COALESCE(debit, debit_amount, 0)) as daily_in,
+      SUM(COALESCE(credit, credit_amount, 0)) as daily_out,
+      SUM(COALESCE(debit, 0) - COALESCE(credit, 0)) as daily_net,
       COUNT(*) as transaction_count
-    FROM cash_book
-    WHERE company_id = ? AND transaction_date BETWEEN ? AND ?
+    FROM account_ledger
+    WHERE company_id = ? 
+      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
+      AND transaction_date BETWEEN ? AND ?
     GROUP BY transaction_date
     ORDER BY transaction_date DESC
   `;
@@ -1944,70 +2104,58 @@ export async function getOpeningBalance(companyId, forDate) {
   return parseFloat(balanceData.current_balance) || 0;
 }
 
-// ============================================
-// ACCOUNT LEDGER FUNCTIONS
-// ============================================
-
-export async function insertLedgerEntry(
-  companyId,
-  accountId,
-  transactionDate,
-  referenceType,
-  referenceId,
-  referenceNo,
-  description,
-  debit,
-  credit
-) {
-  const sql = `
-    INSERT INTO account_ledger 
-    (company_id, account_id, transaction_date, reference_type, reference_id, 
-     reference_no, description, debit, credit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  return await query(sql, [
-    companyId,
-    accountId,
-    transactionDate,
-    referenceType,
-    referenceId || null,
-    referenceNo || '',
-    description,
-    parseFloat(debit) || 0,
-    parseFloat(credit) || 0
-  ]);
-}
+// ACCOUNT LEDGER FUNCTIONS (Now using Unified logic)
 
 export async function getAccountLedger(accountId, startDate, endDate) {
+  let whereClause = "al.account_id = ?";
+  let params = [accountId];
+
+  // Handle Member ID prefix
+  if (String(accountId).startsWith('M')) {
+    const memberId = accountId.substring(1);
+    whereClause = "al.member_id = ?";
+    params = [memberId];
+  }
+
   const sql = `
     SELECT 
       al.id,
       al.transaction_date,
       COALESCE(al.transaction_type, al.reference_type, 'JV') as transaction_type,
       al.reference_no,
-      (COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) as debit,
-      (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0)) as credit,
-      al.description
+      COALESCE(al.debit, al.debit_amount, 0) as debit,
+      COALESCE(al.credit, al.credit_amount, 0) as credit,
+      COALESCE(al.description, al.notes, '') as description
     FROM account_ledger al
-    WHERE al.account_id = ? AND al.transaction_date BETWEEN ? AND ?
+    WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date ASC, al.created_at ASC
   `;
-  return await query(sql, [accountId, startDate, endDate]);
+  
+  params.push(startDate, endDate);
+  return await query(sql, params);
 }
 
 export async function getAccountBalance(accountId, upToDate = null) {
+  let whereClause = "al.account_id = ?";
+  let params = [accountId];
+
+  // Handle Member ID prefix
+  if (String(accountId).startsWith('M')) {
+    const memberId = accountId.substring(1);
+    whereClause = "al.member_id = ?";
+    params = [memberId];
+  }
+
   const dateCondition = upToDate ? `AND al.transaction_date <= ?` : '';
-  const params = [accountId];
   if (upToDate) params.push(upToDate);
 
   const sql = `
     SELECT 
-      COALESCE(SUM(COALESCE(debit_amount, 0) + COALESCE(debit, 0)), 0) as total_debit,
-      COALESCE(SUM(COALESCE(credit_amount, 0) + COALESCE(credit, 0)), 0) as total_credit,
-      COALESCE(SUM((COALESCE(debit_amount, 0) + COALESCE(debit, 0)) - (COALESCE(credit_amount, 0) + COALESCE(credit, 0))), 0) as running_balance
+      COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
+      COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit,
+      COALESCE(SUM(COALESCE(debit, debit_amount, 0) - COALESCE(credit, credit_amount, 0)), 0) as running_balance
     FROM account_ledger al
-    WHERE al.account_id = ? ${dateCondition}
+    WHERE ${whereClause} ${dateCondition}
   `;
 
   const result = await query(sql, params);
@@ -2018,11 +2166,18 @@ export async function getAccountBalance(accountId, upToDate = null) {
 }
 
 export async function getAccountLedgerWithRunningBalance(accountId, startDate, endDate) {
-  // Get all transactions in order
+  // 1. Get Opening Balance (transactions before startDate)
+  const prevDate = new Date(startDate);
+  prevDate.setDate(prevDate.getDate() - 1);
+  const prevDateStr = prevDate.toISOString().split('T')[0];
+  
+  const balanceData = await getAccountBalance(accountId, prevDateStr);
+  let runningBalance = parseFloat(balanceData.running_balance || 0);
+
+  // 2. Get period transactions
   const entries = await getAccountLedger(accountId, startDate, endDate);
 
-  // Calculate running balance for each entry
-  let runningBalance = 0;
+  // 3. Map with running balance
   const entriesWithBalance = entries.map(entry => {
     runningBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
     return {
@@ -2036,42 +2191,69 @@ export async function getAccountLedgerWithRunningBalance(accountId, startDate, e
 
 export async function getTrialBalance(companyId, asOfDate = null) {
   const dateCondition = asOfDate ? `AND al.transaction_date <= ?` : '';
-  const params = [companyId];
-  if (asOfDate) params.push(asOfDate);
+  const params = [companyId, companyId];
+  if (asOfDate) params.push(asOfDate, asOfDate);
 
   const sql = `
     SELECT 
-      a.id,
-      a.account_name,
-      a.account_type,
-      COALESCE(SUM(COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)), 0) as total_debit,
-      COALESCE(SUM(COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0)), 0) as total_credit,
-      COALESCE(SUM((COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) - (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0))), 0) as balance
-    FROM accounts a
-    LEFT JOIN account_ledger al ON a.id = al.account_id ${dateCondition}
-    WHERE a.company_id = ?
-    GROUP BY a.id, a.account_name, a.account_type
-    ORDER BY a.account_name
+      id, account_name, account_type,
+      SUM(total_debit) as total_debit,
+      SUM(total_credit) as total_credit,
+      SUM(total_debit - total_credit) as balance
+    FROM (
+      SELECT 
+        a.id, a.account_name, a.account_type,
+        COALESCE(SUM(COALESCE(al.debit, al.debit_amount, 0)), 0) as total_debit,
+        COALESCE(SUM(COALESCE(al.credit, al.credit_amount, 0)), 0) as total_credit
+      FROM accounts a
+      LEFT JOIN account_ledger al ON a.id = al.account_id ${dateCondition}
+      WHERE a.company_id = ? AND a.is_deleted = 0
+      GROUP BY a.id, a.account_name, a.account_type
+      
+      UNION ALL
+      
+      SELECT 
+        CONCAT('M', m.id) as id, m.member_name as account_name, 'member' as account_type,
+        COALESCE(SUM(COALESCE(al.debit, al.debit_amount, 0)), 0) as total_debit,
+        COALESCE(SUM(COALESCE(al.credit, al.credit_amount, 0)), 0) as total_credit
+      FROM member_master m
+      LEFT JOIN account_ledger al ON m.id = al.member_id ${dateCondition}
+      WHERE m.company_id = ? AND m.account_id IS NULL
+      GROUP BY m.id, m.member_name
+    ) unified
+    GROUP BY id, account_name, account_type
+    ORDER BY account_name ASC
   `;
 
-  const params2 = params.length === 2 ? [params[1], params[0]] : [params[0]];
-  return await query(sql, params2);
+  const results = await query(sql, params);
+  
+  const totals = results.reduce((acc, curr) => {
+    acc.total_debit += parseFloat(curr.total_debit);
+    acc.total_credit += parseFloat(curr.total_credit);
+    return acc;
+  }, { total_debit: 0, total_credit: 0 });
+
+  totals.difference = Math.abs(totals.total_debit - totals.total_credit);
+
+  return { data: results, totals };
 }
+
 
 export async function getLedgerByDateRange(companyId, startDate, endDate) {
   const sql = `
     SELECT 
       al.id,
-      a.account_name,
+      COALESCE(a.account_name, m.member_name) as account_name,
       al.transaction_date,
       COALESCE(al.reference_type, al.transaction_type) as reference_type,
       al.reference_no,
       COALESCE(al.description, '') as description,
-      (COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) as debit,
-      (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0)) as credit,
-      ((COALESCE(al.debit_amount, 0) + COALESCE(al.debit, 0)) - (COALESCE(al.credit_amount, 0) + COALESCE(al.credit, 0))) as net_amount
+      COALESCE(al.debit, al.debit_amount, 0) as debit,
+      COALESCE(al.credit, al.credit_amount, 0) as credit,
+      (COALESCE(al.debit, al.debit_amount, 0) - COALESCE(al.credit, al.credit_amount, 0)) as net_amount
     FROM account_ledger al
-    JOIN accounts a ON al.account_id = a.id
+    LEFT JOIN accounts a ON al.account_id = a.id
+    LEFT JOIN member_master m ON al.member_id = m.id
     WHERE al.company_id = ? AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date ASC, al.created_at ASC
   `;

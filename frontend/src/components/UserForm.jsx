@@ -26,6 +26,9 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
     module_access: []
   })
 
+  const toApiRole = (role) => (role === 'hod' ? 'admin' : role)
+  const fromApiRole = (role) => (role === 'admin' ? 'hod' : role)
+
   const modules = [
     { id: 'company', label: 'company', icon: <Building2 size={16}/>, color: 'blue' },
     { id: 'users', label: 'userMaster', icon: <User size={16}/>, color: 'indigo' },
@@ -72,7 +75,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
           username: user.username,
           email: user.email,
           password: '',
-          role: user.role,
+          role: fromApiRole(user.role),
           is_active: user.is_active,
           module_access: Array.isArray(user.module_access) ? user.module_access : []
         })
@@ -125,6 +128,26 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
       const endpoint = userId ? `/api/users/${userId}` : '/api/users'
       const method = userId ? 'put' : 'post'
       const submitData = { ...formData }
+      submitData.role = toApiRole(submitData.role)
+
+      let resolvedCompanyId = Number(submitData.company_id || company_id)
+      if (!Number.isInteger(resolvedCompanyId) || resolvedCompanyId <= 0) {
+        try {
+          const companyRes = await axios.get('/api/company')
+          resolvedCompanyId = Number(companyRes?.data?.data?.id)
+        } catch (companyErr) {
+          resolvedCompanyId = NaN
+        }
+      }
+
+      if (!Number.isInteger(resolvedCompanyId) || resolvedCompanyId <= 0) {
+        setMessage({ type: 'error', text: 'Company setup is required before creating a user.' })
+        setLoading(false)
+        return
+      }
+
+      submitData.company_id = resolvedCompanyId
+
       if (userId && !submitData.password) delete submitData.password
 
       const response = await axios({ method, url: endpoint, data: submitData })

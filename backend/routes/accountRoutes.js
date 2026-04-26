@@ -5,10 +5,47 @@ import { generateNextMemberCode } from '../utils/memberCodeGenerator.js';
 
 const router = express.Router();
 
+// ==================== LIST ALL ACCOUNTS (HEADER BASED) ====================
+router.get('/', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
+
+    const sql = `
+       SELECT id, account_code, account_name, account_type, is_active, is_subledger FROM accounts 
+       WHERE company_id = ? AND is_deleted = 0
+       ORDER BY account_name ASC
+    `;
+    const accounts = await query(sql, [company_id]);
+    res.json({ success: true, data: accounts });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== GET LAST ACCOUNT CODE ====================
+router.get('/last-code', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
+
+    const result = await queryOne(
+      `SELECT MAX(CAST(account_code AS UNSIGNED)) as last_code 
+       FROM accounts 
+       WHERE company_id = ? AND account_code REGEXP '^[0-9]+$'`,
+      [company_id]
+    );
+
+    res.json({ success: true, lastCode: result?.last_code || 0 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== CREATE ACCOUNT ====================
 router.post('/', async (req, res) => {
   try {
-    const { company_id, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no } = req.body;
+    const { company_id, account_code, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     // Credit balances are stored as negative numbers internally to differentiate
     let final_opening_balance = parseFloat(opening_balance || 0);
@@ -36,9 +73,9 @@ router.post('/', async (req, res) => {
 
     // Insert account
     const result = await execute(
-      `INSERT INTO accounts (company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company_id, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1]
+      `INSERT INTO accounts (company_id, account_code, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, is_subledger)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company_id, account_code || null, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? 1 : 0]
     );
 
     // If it's a cash account, inject the opening balance directly into Cashbook
@@ -96,23 +133,34 @@ router.get('/company/:company_id', async (req, res) => {
     const { type } = req.query; // Optional filter by account_type
 
     let sql = `
-       SELECT 
-         a.id, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
-         a.opening_balance, a.is_active, a.created_at, a.updated_at,
-         COALESCE(SUM(al.debit_amount), 0) as total_debit,
-         COALESCE(SUM(al.credit_amount), 0) as total_credit
-       FROM accounts a
-       LEFT JOIN account_ledger al ON a.id = al.account_id
-       WHERE a.company_id = ? AND a.is_deleted = 0
+       SELECT * FROM (
+         SELECT 
+           CAST(a.id AS CHAR) as id, a.account_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
+           a.opening_balance, a.is_active, a.is_subledger, a.created_at, a.updated_at,
+           COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_debit,
+           COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_credit
+         FROM accounts a
+         WHERE a.company_id = ? AND a.is_deleted = 0
+         
+         UNION ALL
+         
+         SELECT 
+           CONCAT('M', m.id) as id, m.member_code as account_code, m.company_id, m.member_name as account_name, 'member' as account_type, m.phone, NULL as email, NULL as gst_no, NULL as tin_no,
+           0 as opening_balance, m.is_active, 0 as is_subledger, m.created_at, m.updated_at,
+           COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE member_id = m.id AND company_id = m.company_id), 0) as total_debit,
+           COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE member_id = m.id AND company_id = m.company_id), 0) as total_credit
+         FROM member_master m
+         WHERE m.company_id = ? AND m.account_id IS NULL
+       ) unified
     `;
-    let params = [company_id];
+    let params = [company_id, company_id];
 
     if (type && type !== 'all') {
-      sql += ' AND a.account_type = ?';
+      sql += ' WHERE account_type = ?';
       params.push(type);
     }
 
-    sql += ' GROUP BY a.id ORDER BY a.account_type ASC, a.account_name ASC';
+    sql += ' ORDER BY account_type ASC, account_name ASC';
 
     const accounts = await query(sql, params);
 
@@ -159,8 +207,8 @@ router.get('/:id/balance', async (req, res) => {
     // Get total ledger debits and credits
     const ledgerStats = await queryOne(`
        SELECT 
-         COALESCE(SUM(debit_amount), 0) as total_debit,
-         COALESCE(SUM(credit_amount), 0) as total_credit
+         COALESCE(SUM(debit), 0) as total_debit,
+         COALESCE(SUM(credit), 0) as total_credit
        FROM account_ledger
        WHERE account_id = ?
     `, [id]);
@@ -189,7 +237,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
     const account = await queryOne(
-      `SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
+      `SELECT id, account_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
               is_active, created_at, updated_at
        FROM accounts 
        WHERE id = ? AND is_deleted = 0`,
@@ -211,7 +259,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no } = req.body;
+    const { account_code, account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     let final_opening_balance = undefined;
     if (opening_balance !== undefined) {
@@ -254,19 +302,21 @@ router.put('/:id', async (req, res) => {
     // Update account
     await execute(
       `UPDATE accounts 
-       SET account_name = COALESCE(?, account_name),
+       SET account_code = COALESCE(?, account_code),
+           account_name = COALESCE(?, account_name),
            phone = COALESCE(?, phone),
            email = COALESCE(?, email),
            gst_no = IF(? IS NOT NULL, ?, gst_no),
            tin_no = IF(? IS NOT NULL, ?, tin_no),
            opening_balance = COALESCE(?, opening_balance),
+           is_subledger = IF(? IS NOT NULL, ?, is_subledger),
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [account_name || null, phone || null, email || null, gst_no !== undefined ? gst_no : null, gst_no || null, tin_no !== undefined ? tin_no : null, tin_no || null, final_opening_balance !== undefined ? final_opening_balance : null, id]
+      [account_code || null, account_name || null, phone || null, email || null, gst_no !== undefined ? gst_no : null, gst_no || null, tin_no !== undefined ? tin_no : null, tin_no || null, final_opening_balance !== undefined ? final_opening_balance : null, is_subledger !== undefined ? is_subledger : null, is_subledger ? 1 : 0, id]
     );
 
     const updatedAccount = await queryOne(
-      'SELECT id, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, created_at, updated_at FROM accounts WHERE id = ?',
+      'SELECT id, account_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, created_at, updated_at FROM accounts WHERE id = ?',
       [id]
     );
 

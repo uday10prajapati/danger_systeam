@@ -16,6 +16,7 @@ export default function ItemRate() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [company, setCompany] = useState(null);
+  const [rateEntries, setRateEntries] = useState([]);
   const [rates, setRates] = useState([]);
   const [filteredRates, setFilteredRates] = useState([]);
   const [items, setItems] = useState([]);
@@ -30,6 +31,33 @@ export default function ItemRate() {
   useEffect(() => {
     loadCompany();
   }, []);
+
+  const mergeRatesWithItems = (rateRows = [], itemRows = []) => {
+    const validRateRows = Array.isArray(rateRows) ? rateRows : [];
+    const validItems = Array.isArray(itemRows) ? itemRows : [];
+    const existingItemIds = new Set(validRateRows.map(r => Number(r.item_id)));
+
+    const pendingRows = validItems
+      .filter(item => Number(item.is_active) === 1 && !existingItemIds.has(Number(item.id)))
+      .map(item => ({
+        id: `pending-${item.id}`,
+        company_id: item.company_id,
+        item_id: item.id,
+        item_name: item.item_name,
+        item_code: item.item_code,
+        barcode: item.barcode,
+        purchase_rate: item.purchase_price || 0,
+        sale_rate: item.sale_price || 0,
+        mrp: null,
+        effective_from: item.updated_at || item.created_at || new Date().toISOString(),
+        is_active: 1,
+        is_pending_rate: 1,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+
+    return [...validRateRows, ...pendingRows];
+  };
 
   const loadCompany = async () => {
     try {
@@ -53,8 +81,11 @@ export default function ItemRate() {
         headers: { 'x-company-id': companyId }
       });
       if (res.data.success) {
-        setRates(res.data.data);
-        applyFilters(res.data.data, searchTerm, selectedStatus);
+        const fetchedRates = res.data.data || [];
+        setRateEntries(fetchedRates);
+        const mergedRates = mergeRatesWithItems(fetchedRates, items);
+        setRates(mergedRates);
+        applyFilters(mergedRates, searchTerm, selectedStatus);
       }
     } catch (err) {
       console.error('Fetch rates error:', err);
@@ -69,7 +100,11 @@ export default function ItemRate() {
         headers: { 'x-company-id': companyId }
       });
       if (res.data.success) {
-        setItems(res.data.data);
+        const fetchedItems = res.data.data || [];
+        setItems(fetchedItems);
+        const mergedRates = mergeRatesWithItems(rateEntries, fetchedItems);
+        setRates(mergedRates);
+        applyFilters(mergedRates, searchTerm, selectedStatus);
       }
     } catch (err) {
       console.error('Fetch items error:', err);
@@ -94,13 +129,13 @@ export default function ItemRate() {
     let filtered = ratesToFilter;
     if (search) {
       filtered = filtered.filter(rate =>
-        rate.item_name.toLowerCase().includes(search.toLowerCase()) ||
-        rate.item_code.toLowerCase().includes(search.toLowerCase()) ||
-        (rate.barcode && rate.barcode.includes(search))
+        (rate.item_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (rate.item_code || '').toLowerCase().includes(search.toLowerCase()) ||
+        (rate.barcode && String(rate.barcode).includes(search))
       );
     }
-    if (status === 'active') filtered = filtered.filter(rate => rate.is_active === 1);
-    else if (status === 'inactive') filtered = filtered.filter(rate => rate.is_active === 0);
+    if (status === 'active') filtered = filtered.filter(rate => Number(rate.is_active) === 1 || Number(rate.is_pending_rate) === 1);
+    else if (status === 'inactive') filtered = filtered.filter(rate => Number(rate.is_active) === 0 && Number(rate.is_pending_rate) !== 1);
     setFilteredRates(filtered);
   };
 
@@ -116,6 +151,11 @@ export default function ItemRate() {
   };
 
   const handleEdit = (rate) => {
+    if (rate.is_pending_rate) {
+      setEditingRate(null);
+      setShowForm(true);
+      return;
+    }
     setEditingRate(rate);
     setShowForm(true);
   };
@@ -226,7 +266,7 @@ export default function ItemRate() {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Nodes</p>
               <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><CheckCircle size={16} /></div>
             </div>
-            <p className="text-2xl font-bold text-emerald-600">{rates.filter(r => r.is_active === 1).length}</p>
+            <p className="text-2xl font-bold text-emerald-600">{rateEntries.filter(r => Number(r.is_active) === 1).length}</p>
           </div>
           <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
             <div className="flex justify-between items-start mb-4">
@@ -296,11 +336,11 @@ export default function ItemRate() {
                         <td className="px-10 py-6">
                            <div className="flex items-center gap-4">
                               <div className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                 {rate.item_name[0]}
+                                {(rate.item_name || '?')[0]}
                               </div>
                               <div>
                                 <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase">{rate.item_name}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Procurement: ₹{parseFloat(rate.purchase_rate).toFixed(2)}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{rate.is_pending_rate ? 'Pending rate setup' : `Procurement: ₹${parseFloat(rate.purchase_rate || 0).toFixed(2)}`}</p>
                               </div>
                            </div>
                         </td>
@@ -310,7 +350,7 @@ export default function ItemRate() {
                         <td className="px-10 py-6 text-right">
                            <div className="flex flex-col items-end">
                               <span className="text-sm font-black text-slate-800 italic">₹{parseFloat(rate.sale_rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                              <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Margin: {rate.purchase_rate > 0 ? ((rate.sale_rate - rate.purchase_rate) / rate.purchase_rate * 100).toFixed(1) : '0'}%</span>
+                              <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Margin: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
                            </div>
                         </td>
                         <td className="px-10 py-6 text-center">
@@ -319,16 +359,16 @@ export default function ItemRate() {
                         <td className="px-10 py-6">
                            <div className="flex justify-center">
                               <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                rate.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
+                                rate.is_pending_rate ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100' : (rate.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100')
                               }`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${rate.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                                {rate.is_active ? 'Verified' : 'Redacted'}
+                                <div className={`w-1.5 h-1.5 rounded-full ${rate.is_pending_rate ? 'bg-amber-500 animate-pulse' : (rate.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500')}`} />
+                                {rate.is_pending_rate ? 'Pending' : (rate.is_active ? 'Verified' : 'Redacted')}
                               </span>
                            </div>
                         </td>
                         <td className="px-10 py-6">
                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                              <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><History size={16} /></button>
+                              {!rate.is_pending_rate && <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><History size={16} /></button>}
                               <button onClick={() => handleEdit(rate)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
                            </div>
                         </td>

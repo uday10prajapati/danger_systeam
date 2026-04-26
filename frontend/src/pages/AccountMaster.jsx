@@ -6,7 +6,7 @@ import {
   XCircle, Eye, X, Download, Database, Shield,
   Search, Filter, Users, Scale, TrendingUp,
   Activity, ArrowRight, Loader, FileText, IndianRupee,
-  MoreVertical, Power, QrCode
+  MoreVertical, Power, QrCode, Hash, Layers
 } from 'lucide-react';
 import AccountForm from '../components/AccountForm';
 import { useNavigate } from 'react-router-dom';
@@ -130,7 +130,9 @@ export default function AccountMaster() {
   };
 
   const filteredAccounts = (Array.isArray(accounts) ? accounts : []).filter(acc => {
-    const matchesSearch = acc.account_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = 
+      acc.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      acc.account_code?.toString().includes(searchQuery);
     const matchesBalanceType = balanceTypeFilter === 'all' || acc.balance_type === balanceTypeFilter;
     return matchesSearch && matchesBalanceType;
   });
@@ -340,18 +342,30 @@ export default function AccountMaster() {
                            }`}>
                              {acc.account_name.charAt(0).toUpperCase()}
                            </div>
-                           <div>
-                             <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase">{acc.account_name}</p>
-                             <p className="text-[10px] font-medium text-slate-400 mt-0.5">{acc.email || 'NO_DIGITAL_HANDLE'}</p>
-                           </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase leading-none">{acc.account_name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded-md text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                                    <Hash size={9} /> {acc.account_code || acc.id}
+                                 </span>
+                                 <p className="text-[10px] font-medium text-slate-400 leading-none">{acc.email || 'NO_DIGITAL_HANDLE'}</p>
+                              </div>
+                            </div>
                          </div>
                        </td>
                        <td className="px-10 py-6">
-                         <span className={`inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
-                           ['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
-                         }`}>
-                           {acc.account_type}
-                         </span>
+                          <div className="flex flex-col gap-1.5">
+                            <span className={`inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                              ['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                            }`}>
+                              {acc.account_type}
+                            </span>
+                            {acc.is_subledger ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-600 border border-violet-100 rounded-md text-[8px] font-black uppercase tracking-widest">
+                                <Layers size={8} /> Sub-Ledger
+                              </span>
+                            ) : null}
+                          </div>
                        </td>
                        <td className="px-10 py-6">
                          <div className="flex flex-col">

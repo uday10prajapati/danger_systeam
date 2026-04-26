@@ -86,6 +86,7 @@ export const sabhasadMasterApi = {
   updateSabhasad: (id, data) => api.put(`/members/${id}`, data),
   deleteSabhasad: (id) => api.delete(`/members/${id}`),
   getAllVillages: () => api.get('/village'),
+  getMemberBalance: (accountId, memberId) => api.get(`/account-ledger/member-balance/${accountId}/${memberId}`),
 };
 
 // Dangar Entry

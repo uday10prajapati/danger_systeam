@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
     const { 
       bookType, date, member_id, item_id, remark, vehicleNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate, amount, created_by, weights 
+      rate, amount, created_by, weights, deductions = [], remaining_bardan_bags
     } = req.body;
 
     // 1. Precise SR No Generation (Isolate by Company/Year)
@@ -114,6 +114,36 @@ router.post('/', async (req, res) => {
             [entryId, i + 1, val]
           );
         }
+      }
+    }
+
+    // 4. Handle Strategic Deductions (Kapat)
+    if (deductions.length > 0) {
+      for (const d of deductions) {
+        if (d.deduction_id) {
+          await execute(
+            `INSERT INTO transaction_deductions (entry_id, deduction_id, input_value, calculated_amount)
+             VALUES (?, ?, ?, ?)`,
+            [entryId, d.deduction_id, d.value || 0, d.calculated_amount || 0]
+          );
+        }
+      }
+    }
+
+    // 5. Auto-Settle Bardan Balance (Jama Entry)
+    if (remaining_bardan_bags && parseFloat(remaining_bardan_bags) > 0) {
+      const member = await queryOne(`SELECT member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
+      if (member) {
+        let settleRemark = `Dangar Settlement SR: ${srNo}`;
+        await execute(`
+          INSERT INTO jama_bardan_entry (
+            company_id, financial_year, entry_date, 
+            book_type, pavti_no, mem_nominal, code, name, qty, remark
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          companyId, currentFinancialYear, date,
+          'J', srNo, 'S', member.member_code, member.member_name, parseFloat(remaining_bardan_bags), settleRemark
+        ]);
       }
     }
 

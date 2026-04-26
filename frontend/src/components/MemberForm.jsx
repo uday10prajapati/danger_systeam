@@ -261,6 +261,23 @@ export default function MemberForm({
                     />
                   </div>
                 </div>
+
+                {/* Member Type Checkbox */}
+                <div className="flex items-center gap-6 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={!formData.nominalMember}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nominalMember: !e.target.checked }))}
+                      className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                    />
+                    <span className={`text-xs font-bold uppercase tracking-wider transition-colors ${!formData.nominalMember ? 'text-emerald-600' : 'text-blue-600'}`}>
+                      {!formData.nominalMember ? 'Sabhasad' : 'Nominal Member'}
+                    </span>
+                  </label>
+                </div>
+
+
               </div>
             </div>
 

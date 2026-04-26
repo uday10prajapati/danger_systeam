@@ -45,6 +45,25 @@ router.get('/balance/:accountId', async (req, res) => {
   }
 });
 
+// GET: Member balance in specific account
+router.get('/member-balance/:accountId/:memberId', async (req, res) => {
+  try {
+    const { accountId, memberId } = req.params;
+    const companyId = req.header('x-company-id');
+    
+    const result = await query(
+      `SELECT SUM(debit - credit) as balance 
+       FROM account_ledger 
+       WHERE account_id = ? AND reference_id = ? AND company_id = ?`,
+      [accountId, memberId, companyId]
+    );
+    
+    res.json({ success: true, balance: result[0].balance || 0 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET: Ledger entries by date range
 router.get('/', async (req, res) => {
   try {

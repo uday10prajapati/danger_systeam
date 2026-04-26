@@ -32,6 +32,10 @@ import dangarRateRoutes from './routes/dangarRateRoutes.js';
 import bardanRoutes from './routes/bardanRoutes.js';
 import jamaBardanRoutes from './routes/jamaBardanRoutes.js';
 import bankRoutes from './routes/bankRoutes.js';
+import deductionRoutes from './routes/deductionRoutes.js';
+import bardanPriceRoutes from './routes/bardanPriceRoutes.js';
+import seasonRoutes from './routes/seasonRoutes.js';
+import narrationRoutes from './routes/narrationRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -85,6 +89,11 @@ async function startServer() {
     app.use('/api/bardan-entry', bardanRoutes);
     app.use('/api/jama-bardan-entry', jamaBardanRoutes);
     app.use('/api/banks', bankRoutes);
+    app.use('/api/deductions', deductionRoutes);
+    app.use('/api/bardan-price', bardanPriceRoutes);
+    app.use('/api/seasons', seasonRoutes);
+    app.use('/api/narrations', narrationRoutes);
+
 
     console.log('🔄 Initializing database...');
     await initializeDatabase();
@@ -99,19 +108,6 @@ async function startServer() {
             res.status(500).json({ error: err.message });
         }
     });
-
-    // 404 Catch-All (Finally)
-    app.use((req, res) => {
-      if (req.url.startsWith('/api')) {
-        console.warn(`[404] No route found for: ${req.method} ${req.url}`);
-        return res.status(404).json({ 
-          success: false, 
-          error: `Route not found: ${req.method} ${req.url}`
-        });
-      }
-    });
-
-
 
     app.post('/api/financial-years', async (req, res) => {
         try {
@@ -364,6 +360,22 @@ async function startServer() {
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
+    });
+
+    // 404 Catch-All (Finally)
+    app.use((req, res) => {
+      if (req.url.startsWith('/api')) {
+        console.warn(`[404] No route found for: ${req.method} ${req.url}`);
+        return res.status(404).json({
+          success: false,
+          error: `Route not found: ${req.method} ${req.url}`
+        });
+      }
+
+      return res.status(404).json({
+        success: false,
+        error: 'Route not found'
+      });
     });
 
     // Start listening

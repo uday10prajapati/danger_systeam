@@ -4,7 +4,8 @@ import {
   getCashBookEntries,
   getCashBalance,
   getDailyCashSummary,
-  getOpeningBalance
+  getOpeningBalance,
+  query
 } from '../db.js';
 
 const router = express.Router();
@@ -29,22 +30,100 @@ router.post('/manual', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Either cash_in or cash_out must be provided' });
     }
 
-    const result = await insertCashBookEntry(
-      companyId,
-      transaction_date,
-      'expense',
-      null,
-      `EXP-${Date.now()}`,
-      description,
-      cash_in || 0,
-      cash_out || 0,
-      userId,
-      notes || ''
-    );
+    // UNIFIED SINGLE-ENTRY LOGIC (No mandatory cash account required)
+    const referenceNo = `CB-${Date.now()}`;
+    const transactionDate = transaction_date;
+    
+    // 1. Insert Entry for the Target Account (if provided)
+    let mainResult = null;
+    if (req.body.account_id || req.body.member_id) {
+       // Debit the account if money is going OUT to them
+       // Credit the account if money is coming IN from them
+       mainResult = await query(`
+         INSERT INTO account_ledger (
+           company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+           reference_no, description, debit, credit, notes, created_by, financial_year
+         ) VALUES (?, ?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
+       `, [
+          companyId, 
+          req.body.account_id || null, 
+          req.body.member_id || null, 
+          transactionDate, referenceNo, description,
+          parseFloat(cash_out || 0),
+          parseFloat(cash_in || 0),
+          notes || '', userId, '2026-27'
+       ]);
+    }
 
-    return res.status(201).json({ success: true, data: { id: result.insertId, description } });
+    const returnId = mainResult ? mainResult.insertId : (referenceNo);
+    return res.status(201).json({ success: true, data: { id: returnId, reference_no: referenceNo } });
+
+
   } catch (error) {
     console.error('Add cash entry error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET: Single cash book entry from unified ledger
+router.get('/:id', async (req, res) => {
+  try {
+    const companyId = req.header('x-company-id');
+    const id = req.params.id;
+
+    // In unified system, we fetch the cash entry.
+    // If it's a double entry, we might want the details of the other side too.
+    const rows = await query(`
+      SELECT 
+        al.id, 
+        al.transaction_date, 
+        al.description, 
+        al.debit as cash_in, 
+        al.credit as cash_out, 
+        al.notes,
+        al.account_id,
+        al.reference_no,
+        al.reference_type
+      FROM account_ledger al
+      WHERE al.id = ? AND al.company_id = ?
+    `, [id, companyId]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Entry not found' });
+    }
+
+    res.json({ success: true, data: rows[0] });
+  } catch (error) {
+    console.error('Get single cash entry error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH: Update cash entry in unified ledger
+router.patch('/:id', async (req, res) => {
+  try {
+    const companyId = req.header('x-company-id');
+    const id = req.params.id;
+    const { transaction_date, description, cash_in, cash_out, notes, account_id } = req.body;
+
+    // Update the main entry (The record we are editing)
+    await query(`
+      UPDATE account_ledger 
+      SET transaction_date = ?, description = ?, debit = ?, credit = ?, notes = ?, 
+          account_id = ?, member_id = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND company_id = ?
+    `, [
+      transaction_date, description, cash_in || 0, cash_out || 0, notes || '', 
+      req.body.account_id || null, req.body.member_id || null,
+      id, companyId
+    ]);
+
+
+
+    res.json({ success: true, message: 'Entry updated successfully' });
+  } catch (error) {
+    console.error('Update cash entry error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

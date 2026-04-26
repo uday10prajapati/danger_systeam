@@ -29,7 +29,8 @@ export default function Rojmel() {
    const [printItemDetails, setPrintItemDetails] = useState(false);
 
    // Modal State
-   const [activeModal, setActiveModal] = useState(null); // 'credit', 'debit', 'purchase', 'sales', null
+   const [activeModal, setActiveModal] = useState(null); // 'credit', 'debit', 'purchase', 'sales', 'jv', null
+   const [editingEntry, setEditingEntry] = useState(null);
 
    useEffect(() => {
       loadCompany();
@@ -114,6 +115,21 @@ export default function Rojmel() {
       } catch (err) {
          console.error('PDF Generation Failed:', err);
       }
+   };
+
+   const handleEditEntry = (row, side) => {
+      if (!row.id || row.isOpening || row.isClosing) return;
+
+      // 1. Check if it is a Journal Voucher item
+      if (String(row.id).startsWith('JV-ITEM-')) {
+         setEditingEntry({ id: row.id.split('-').pop(), type: 'jv' });
+         setActiveModal('jv');
+         return;
+      }
+
+      // 2. Default to Cash Entry for standard IDs
+      setEditingEntry({ id: row.id, side: side, type: 'cash' });
+      setActiveModal(side === 'jama' ? 'credit' : 'debit');
    };
 
    const formatDate = (dateStr) => {
@@ -284,10 +300,14 @@ export default function Rojmel() {
                         ) : normalizedJama.map((row, idx) => {
                            const isHighNode = row.isOpening || row.isClosing;
                            return (
-                              <div key={idx} className="group">
+                              <div key={idx} className="group" onDoubleClick={() => handleEditEntry(row, 'jama')}>
                                  <div className={`grid grid-cols-12 transition-all items-center ${isHighNode ? 'bg-slate-50/80' : 'hover:bg-slate-50/30'}`}>
                                     <div className="col-span-6 px-10 py-5">
-                                       <p className={`uppercase italic tracking-tight ${isHighNode ? 'font-black text-slate-900 text-sm' : 'font-bold text-slate-600 text-xs'}`}>{row.details}</p>
+                                       <div className="flex items-center gap-2">
+                                          {(row.isJV || row.isContra) && <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" title="Journal Entry"></div>}
+                                          
+                                          <p className={`uppercase italic tracking-tight ${isHighNode ? 'font-black text-slate-900 text-sm' : 'font-bold text-slate-600 text-xs'}`}>{row.details}</p>
+                                       </div>
                                        {printItemDetails && row.notes && (
                                           <p className="text-[9px] font-bold text-slate-300 mt-1 uppercase italic tracking-widest">{row.notes}</p>
                                        )}
@@ -337,10 +357,13 @@ export default function Rojmel() {
                         ) : normalizedUdhar.map((row, idx) => {
                            const isHighNode = row.isOpening || row.isClosing;
                            return (
-                              <div key={idx} className="group">
+                              <div key={idx} className="group" onDoubleClick={() => handleEditEntry(row, 'udhar')}>
                                  <div className={`grid grid-cols-12 transition-all items-center ${isHighNode ? 'bg-slate-50/80' : 'hover:bg-slate-50/30'}`}>
                                     <div className="col-span-6 px-10 py-5">
-                                       <p className={`uppercase italic tracking-tight ${isHighNode ? 'font-black text-slate-900 text-sm' : 'font-bold text-slate-600 text-xs'}`}>{row.details}</p>
+                                       <div className="flex items-center gap-2">
+                                        {(row.isJV || row.isContra) && <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>}
+<p className={`uppercase italic tracking-tight ${isHighNode ? 'font-black text-slate-900 text-sm' : 'font-bold text-slate-600 text-xs'}`}>{row.details}</p>
+</div>
                                        {printItemDetails && row.notes && (
                                           <p className="text-[9px] font-bold text-slate-300 mt-1 uppercase italic tracking-widest">{row.notes}</p>
                                        )}
@@ -390,13 +413,13 @@ export default function Rojmel() {
 
                <div className="flex gap-2 p-1 bg-slate-50/50 rounded-[2rem] border border-slate-100">
                   <button
-                     onClick={() => setActiveModal('credit')}
+                     onClick={() => { setEditingEntry(null); setActiveModal('credit'); }}
                      className="bg-emerald-600 text-white pl-4 pr-6 py-3 rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-100 flex items-center gap-2 transition-all hover:bg-emerald-700 active:scale-95"
                   >
                      <ArrowUpRight size={14} strokeWidth={3} /> Jama (Receipt)
                   </button>
                   <button
-                     onClick={() => setActiveModal('debit')}
+                     onClick={() => { setEditingEntry(null); setActiveModal('debit'); }}
                      className="bg-blue-600 text-white pl-4 pr-6 py-3 rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-blue-100 flex items-center gap-2 transition-all hover:bg-blue-700 active:scale-95"
                   >
                      <ArrowDownLeft size={14} strokeWidth={3} /> Udhar (Payment)
@@ -471,16 +494,19 @@ export default function Rojmel() {
             <CashEntryModal
                company={company}
                type={activeModal}
-               onClose={() => setActiveModal(null)}
-               onSubmit={() => { setActiveModal(null); fetchRojmel(); }}
+               editId={editingEntry?.type === 'cash' ? editingEntry.id : null}
+               onClose={() => { setActiveModal(null); setEditingEntry(null); }}
+               onSubmit={() => { setActiveModal(null); setEditingEntry(null); fetchRojmel(); }}
             />
          )}
 
          {activeModal === 'jv' && (
             <JVEntryModal
                company={company}
-               onClose={() => setActiveModal(null)}
-               onSubmit={() => { setActiveModal(null); fetchRojmel(); }}
+               initialDate={date}
+               editId={editingEntry?.type === 'jv' ? editingEntry.id : null}
+               onClose={() => { setActiveModal(null); setEditingEntry(null); }}
+               onSubmit={() => { setActiveModal(null); setEditingEntry(null); fetchRojmel(); }}
             />
          )}
 

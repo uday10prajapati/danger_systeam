@@ -25,8 +25,8 @@ router.get('/account/:accountId', async (req, res) => {
     // We will calculate exact running sums for Debit and Credit.
     const historySql = `
       SELECT 
-        COALESCE(SUM(debit_amount), 0) as total_debit_hist,
-        COALESCE(SUM(credit_amount), 0) as total_credit_hist
+        COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit_hist,
+        COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit_hist
       FROM account_ledger 
       WHERE account_id = ? AND company_id = ? AND transaction_date < ?
     `;
@@ -58,9 +58,9 @@ router.get('/account/:accountId', async (req, res) => {
       SELECT 
         transaction_date, 
         reference_no, 
-        transaction_type as description, 
-        debit_amount as debit, 
-        credit_amount as credit
+        description, 
+        COALESCE(debit, debit_amount, 0) as debit, 
+        COALESCE(credit, credit_amount, 0) as credit
       FROM account_ledger 
       WHERE account_id = ? AND company_id = ? AND transaction_date BETWEEN ? AND ?
       ORDER BY transaction_date ASC, id ASC

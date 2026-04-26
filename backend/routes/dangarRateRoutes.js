@@ -74,20 +74,19 @@ router.get('/item/:itemId', async (req, res) => {
 // POST create or update rate
 router.post('/', async (req, res) => {
   try {
-    const { company_id, financial_year, item_id, rate, winter_rate, summer_rate, bardan_deduction_rate } = req.body;
+    const { company_id, financial_year, item_id, rate, winter_rate, summer_rate } = req.body;
     
     const sql = `
-      INSERT INTO dangar_rates (company_id, financial_year, item_id, rate, winter_rate, summer_rate, bardan_deduction_rate)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO dangar_rates (company_id, financial_year, item_id, rate, winter_rate, summer_rate)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE 
         rate = VALUES(rate),
         winter_rate = VALUES(winter_rate),
         summer_rate = VALUES(summer_rate),
-        bardan_deduction_rate = VALUES(bardan_deduction_rate),
         updated_at = CURRENT_TIMESTAMP
     `;
     
-    await query(sql, [company_id, financial_year, item_id, rate || 0, winter_rate || 0, summer_rate || 0, bardan_deduction_rate || 0]);
+    await query(sql, [company_id, financial_year, item_id, rate || 0, winter_rate || 0, summer_rate || 0]);
     res.json({ success: true, message: 'Rate upserted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

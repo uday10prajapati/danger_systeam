@@ -5,7 +5,7 @@ import {
   Building2, User, Phone, Mail, FileText, 
   ShieldAlert, IndianRupee, Save, X, RefreshCcw,
   Layout, Database, Tag, ShieldCheck, Activity,
-  Briefcase, TrendingUp
+  Briefcase, TrendingUp, Hash
 } from 'lucide-react';
 
 // Airy Label Component
@@ -32,6 +32,7 @@ const FormInput = ({ className = "", error, ...props }) => (
 export default function AccountForm({ companyId, initialData = null, onSuccess, onCancel }) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState(initialData || {
+    account_code: '',
     account_name: '',
     account_type: 'customer',
     phone: '',
@@ -45,6 +46,20 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   const [message, setMessage] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+
+  React.useEffect(() => {
+    if (!initialData) {
+      axios.get('/api/accounts/last-code', { headers: { 'x-company-id': companyId } })
+        .then(res => {
+          if (res.data.success) {
+            const nextCode = (parseInt(res.data.lastCode) || 0) + 1;
+            setFormData(prev => ({ ...prev, account_code: nextCode.toString() }));
+          }
+        })
+        .catch(err => console.error("Failed to fetch last account code", err));
+    }
+  }, [initialData, companyId]);
 
   const accountTypes = [
     { value: 'customer', label: t('accountMaster.customer'), icon: <User size={14}/>, color: 'blue' },
@@ -93,16 +108,6 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
     try {
       const submitData = { company_id: companyId, ...formData };
       
-      // Save bank to master if provided
-      if (formData.account_type === 'bank' && formData.bank_name_master) {
-         try {
-           await axios.post('/api/banks', { name: formData.bank_name_master }, {
-              headers: { 'x-company-id': companyId }
-           });
-         } catch (bankErr) {
-           console.error('Master bank save skipped/failed:', bankErr);
-         }
-      }
 
       if (initialData?.id) {
         await axios.put(`/api/accounts/${initialData.id}`, formData);
@@ -146,8 +151,19 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
               <div className="w-6 h-0.5 bg-indigo-600"></div> Profile context
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="col-span-full">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="col-span-1">
+                <FormLabel icon={Hash}>Entity Code</FormLabel>
+                <FormInput
+                  name="account_code"
+                  value={formData.account_code}
+                  onChange={handleChange}
+                  placeholder="000"
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="col-span-2">
                 <FormLabel icon={Building2}>{t('accountMaster.accountName')} *</FormLabel>
                 <FormInput
                   name="account_name"
@@ -176,33 +192,22 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
                 </div>
               </div>
 
-              {formData.account_type === 'bank' && (
-                <div className="animate-in zoom-in-95 duration-300">
-                  <FormLabel icon={Database}>{t('accountMaster.bankNameMaster')}</FormLabel>
-                  <FormInput
-                    name="bank_name_master"
-                    value={formData.bank_name_master || ''}
-                    onChange={handleChange}
-                    placeholder="e.g. STATE BANK OF INDIA"
-                    className="border-sky-100 bg-sky-50/20 uppercase"
-                  />
-                  <p className="text-[8px] font-bold text-sky-500 uppercase mt-2 ml-2 tracking-widest">{t('accountMaster.linkedToGlobalRegistry')}</p>
+
+              {!['bank', 'supplier', 'revenue', 'expense'].includes(formData.account_type) && (
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 self-end h-12">
+                   <input
+                     type="checkbox"
+                     id="is_subledger"
+                     name="is_subledger"
+                     checked={formData.is_subledger}
+                     onChange={handleChange}
+                     className="w-5 h-5 rounded-lg border-slate-200 accent-indigo-600 cursor-pointer"
+                   />
+                   <label htmlFor="is_subledger" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer group-hover:text-slate-800">
+                      Assign as Sub-Ledger Registry
+                   </label>
                 </div>
               )}
-
-              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 self-end h-12">
-                 <input
-                   type="checkbox"
-                   id="is_subledger"
-                   name="is_subledger"
-                   checked={formData.is_subledger}
-                   onChange={handleChange}
-                   className="w-5 h-5 rounded-lg border-slate-200 accent-indigo-600 cursor-pointer"
-                 />
-                 <label htmlFor="is_subledger" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer group-hover:text-slate-800">
-                    Assign as Sub-Ledger Registry
-                 </label>
-              </div>
             </div>
           </div>
 

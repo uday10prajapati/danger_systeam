@@ -28,7 +28,8 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
-  ArrowLeftRight
+  ArrowLeftRight,
+  MessageSquare
 } from 'lucide-react'
 
 function Sidebar() {
@@ -51,11 +52,13 @@ function Sidebar() {
       children: [
         { id: 'village', title: t('modules.villageMaster'), icon: MapPin, path: '/village' },
         { id: 'members', title: t('modules.memberMaster'), icon: Users2, path: '/members' },
-        { id: 'accounts', title: t('modules.accountMaster'), icon: DollarSign, path: '/accounts' },
-        { id: 'items', title: t('modules.itemMaster'), icon: Package, path: '/items' },
-        { id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
-        { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
-        { id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
+        {id: 'accounts', title: t('modules.accountMaster'), icon: DollarSign, path: '/accounts'},
+        {id: 'items', title: t('modules.itemMaster'), icon: Package, path: '/items'},
+        {id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates'},
+        {id: 'kapat', title: 'Kapat Console', icon: TrendingDown, path: '/kapat'},
+        {id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry'},
+        {id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio'},
+        {id: 'narrations', title: 'Narration Master', icon: MessageSquare, path: '/narrations'},
       ]
     },
     { id: 'sales', title: t('modules.sale'), icon: ShoppingCart, path: '/sales' },

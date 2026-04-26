@@ -5,7 +5,7 @@ import {
   AlertCircle, CheckCircle, History, 
   Package, User, FileText, ChevronRight,
   Database, Info, Layout, ArrowLeftRight,
-  TrendingDown, TrendingUp
+  TrendingDown, TrendingUp, IndianRupee, Tag
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
@@ -36,6 +36,9 @@ const BardanPortfolio = () => {
   const [ledgerData, setLedgerData] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [balanceData, setBalanceData] = useState({ taken: 0, returned: 0, balance: 0 });
+  const [bardanPrice, setBardanPrice] = useState(0);
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [priceForm, setPriceForm] = useState({ price_per_bardan: '' });
 
   useEffect(() => {
     const total = gridRows.reduce((acc, row) => {
@@ -47,6 +50,7 @@ const BardanPortfolio = () => {
 
   useEffect(() => {
     loadData();
+    loadBardanPrice();
   }, []);
 
   const loadData = async () => {
@@ -109,6 +113,32 @@ const BardanPortfolio = () => {
       setMessage({ type: 'error', text: 'Synchronization failure' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBardanPrice = async () => {
+    try {
+      const res = await import('../api').then(m => m.default.get('/bardan-price'));
+      if (res.data.success) {
+        setBardanPrice(res.data.data?.price_per_bardan || 0);
+        setPriceForm({ price_per_bardan: res.data.data?.price_per_bardan || '' });
+      }
+    } catch (err) {
+      console.error('Bardan price fetch error:', err);
+    }
+  };
+
+  const saveBardanPrice = async () => {
+    try {
+      const res = await import('../api').then(m => m.default.post('/bardan-price', priceForm));
+      if (res.data.success) {
+        setBardanPrice(parseFloat(priceForm.price_per_bardan) || 0);
+        setShowPriceModal(false);
+        setMessage({ type: 'success', text: 'Bardan price updated successfully' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to update bardan price' });
     }
   };
 
@@ -369,13 +399,28 @@ const BardanPortfolio = () => {
             </h1>
           </div>
           
-          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white shadow-sm">
-             <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">
-                <History size={20} />
-             </div>
-             <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-blue-600 transition-colors">Audit Console</p>
-                <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-blue-500/30">Review Unified History</p>
+          <div className="flex items-center gap-4">
+             {/* Bardan Price Button */}
+             <button
+               onClick={() => setShowPriceModal(true)}
+               className="flex items-center gap-2 bg-white border border-slate-100 text-slate-700 px-5 py-4 rounded-3xl text-xs font-black uppercase tracking-widest hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 transition-all shadow-sm"
+             >
+               <Tag size={16} />
+               <div className="text-left">
+                 <p className="text-[9px] font-black uppercase leading-none tracking-widest">Bardan Rate</p>
+                 {bardanPrice > 0 && <p className="text-[8px] font-bold opacity-60 mt-0.5">₹{parseFloat(bardanPrice).toFixed(2)}/bag</p>}
+               </div>
+             </button>
+
+             {/* History Button */}
+             <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white shadow-sm">
+               <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">
+                  <History size={20} />
+               </div>
+               <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-blue-600 transition-colors">Audit Console</p>
+                  <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-blue-500/30">Review Unified History</p>
+               </div>
              </div>
           </div>
         </div>
@@ -411,6 +456,11 @@ const BardanPortfolio = () => {
               <div className="relative z-10">
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Net Position</p>
                  <p className="text-2xl font-black text-white italic">#{balanceData.balance} <span className="text-[10px] text-blue-400 font-bold ml-1 uppercase">Outstanding</span></p>
+                 {bardanPrice > 0 && (
+                   <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mt-2 italic">
+                      Est. Value: ₹{(balanceData.balance * bardanPrice).toFixed(2)}
+                   </p>
+                 )}
               </div>
            </div>
         </div>
@@ -698,6 +748,79 @@ const BardanPortfolio = () => {
         .custom-scroller::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         .custom-scroller:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
       `}} />
+
+      {/* Bardan Price Modal */}
+      {showPriceModal && (
+        <div className="fixed inset-0 z-[100] flex justify-center items-center p-6 animate-in fade-in duration-300">
+           <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md" onClick={() => setShowPriceModal(false)}></div>
+           <div className="relative w-full max-w-md bg-white rounded-[3rem] shadow-2xl animate-in zoom-in-95 duration-500 overflow-hidden">
+              
+              {/* Modal Header */}
+              <div className="p-10 bg-[#F8FAFC] border-b border-slate-100 flex justify-between items-center relative overflow-hidden">
+                 <div className="absolute -right-10 -top-10 w-48 h-48 bg-amber-50 rounded-full blur-3xl opacity-60"></div>
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-1">
+                       <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
+                          <Tag size={18} />
+                       </div>
+                       <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">Bardan Rate</h2>
+                    </div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] italic">Price per Gunny Bag (₹)</p>
+                 </div>
+                 <button onClick={() => setShowPriceModal(false)} className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 rounded-2xl transition-all shadow-sm relative z-10">
+                    <X size={18} />
+                 </button>
+              </div>
+
+              {/* Current Price Display */}
+              {bardanPrice > 0 && (
+                <div className="mx-10 mt-8 p-5 bg-amber-50 border border-amber-100 rounded-2xl flex justify-between items-center">
+                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest italic">Current Rate</p>
+                   <p className="text-xl font-black text-amber-800 italic font-mono">₹{parseFloat(bardanPrice).toFixed(2)}</p>
+                </div>
+              )}
+
+              {/* Price Input */}
+              <div className="p-10 space-y-8">
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-2">New Price Per Bardan (₹)</label>
+                    <div className="relative">
+                       <IndianRupee className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                       <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={priceForm.price_per_bardan}
+                          onChange={(e) => setPriceForm({ price_per_bardan: e.target.value })}
+                          className="w-full pl-16 pr-6 py-5 bg-slate-50 border-none rounded-[2rem] outline-none font-black text-slate-800 text-xl font-mono italic shadow-inner focus:ring-4 focus:ring-amber-100 transition-all"
+                          autoFocus
+                       />
+                    </div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic ml-2">
+                       This rate will be used to compute estimated bardan value across the system.
+                    </p>
+                 </div>
+
+                 <div className="flex gap-4">
+                    <button
+                       onClick={saveBardanPrice}
+                       disabled={!priceForm.price_per_bardan}
+                       className="flex-1 py-5 bg-amber-500 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:bg-amber-600 transition-all flex items-center justify-center gap-3 italic disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                       <Save size={18} /> Commit Rate
+                    </button>
+                    <button
+                       onClick={() => setShowPriceModal(false)}
+                       className="px-8 py-5 bg-slate-100 text-slate-400 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.3em] italic"
+                    >
+                       Cancel
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
