@@ -5,45 +5,52 @@ const router = express.Router();
 
 router.get('/account/:accountId', async (req, res) => {
   try {
-    const accountId = req.params.accountId;
+    const rawId = req.params.accountId;
     const companyId = req.header('x-company-id');
     const { startDate, endDate } = req.query;
 
     if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
     if (!startDate || !endDate) return res.status(400).json({ success: false, error: 'Start and End dates required' });
 
-    // 1. Get Account Info
-    const accountSql = `SELECT account_name, opening_balance FROM accounts WHERE id = ? AND company_id = ?`;
-    const account = await queryOne(accountSql, [accountId, companyId]);
-    if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+    // Determine if this is a Member or a General Account
+    const isMember = String(rawId).startsWith('M');
+    const dbId = isMember ? rawId.substring(1) : rawId;
+    const identityCol = isMember ? 'member_id' : 'account_id';
+
+    // 1. Get Identity Info
+    let identityName = '';
+    let baseOpeningBalance = 0;
+
+    if (isMember) {
+       const member = await queryOne(`SELECT name as account_name, COALESCE(opening_balance, 0) as opening_balance FROM member_master WHERE id = ? AND company_id = ?`, [dbId, companyId]);
+       if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+       identityName = member.account_name;
+       baseOpeningBalance = parseFloat(member.opening_balance || 0);
+    } else {
+       const account = await queryOne(`SELECT account_name, COALESCE(opening_balance, 0) as opening_balance FROM accounts WHERE id = ? AND company_id = ?`, [dbId, companyId]);
+       if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+       identityName = account.account_name;
+       baseOpeningBalance = parseFloat(account.opening_balance || 0);
+    }
 
     // 2. Get Historical Transactions (Before startDate)
-    // To calculate Opening Balance for the report
-    // Assuming 'closing_balance = opening_balance + sum(Debit) - sum(Credit)'
-    // Wait, in Indian accounting, if Opening Balance is a Credit, it is negative. Let's assume opening_balance in DB is absolute, but usually it needs a sign. 
-    // For simplicity, we assume account.opening_balance is treated as Credit if it's a liability, Debit if Asset. 
-    // We will calculate exact running sums for Debit and Credit.
     const historySql = `
       SELECT 
         COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit_hist,
         COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit_hist
       FROM account_ledger 
-      WHERE account_id = ? AND company_id = ? AND transaction_date < ?
+      WHERE ${identityCol} = ? AND company_id = ? AND transaction_date < ?
     `;
-    const history = await queryOne(historySql, [accountId, companyId, startDate]);
+    const history = await queryOne(historySql, [dbId, companyId, startDate]);
     
-    // In our DB, we don't have debit/credit type for opening_balance, we just have decimal. 
-    // Typically `total_debit - total_credit` is a debit balance.
-    // Let's assume opening_balance is a DEBIT balance if positive. If it's a saving account (liability), it might be logged as negative, or we just rely on transactions.
-    // If user DB tracks pure debits and credits:
-    const baseOpeningBalance = parseFloat(account.opening_balance || 0);
-    // Let's assume baseOpeningBalance is Debit. If negative, it's Credit.
     let historicalDebit = parseFloat(history.total_debit_hist || 0);
     let historicalCredit = parseFloat(history.total_credit_hist || 0);
 
+    // In this system: Balance = Opening + Credit - Debit (assuming liability/income style)
+    // Or Balance = Opening + Debit - Credit (Asset style)
+    // Let's stick to Debit (+) - Credit (-) as standard "Debit Balance"
     let netBalance = baseOpeningBalance + historicalDebit - historicalCredit;
     
-    // We want to pass this as the "Opening Balance" row
     const openingRow = {
       transaction_date: startDate,
       reference_no: '',
@@ -62,10 +69,10 @@ router.get('/account/:accountId', async (req, res) => {
         COALESCE(debit, debit_amount, 0) as debit, 
         COALESCE(credit, credit_amount, 0) as credit
       FROM account_ledger 
-      WHERE account_id = ? AND company_id = ? AND transaction_date BETWEEN ? AND ?
+      WHERE ${identityCol} = ? AND company_id = ? AND transaction_date BETWEEN ? AND ?
       ORDER BY transaction_date ASC, id ASC
     `;
-    const transactions = await query(txSql, [accountId, companyId, startDate, endDate]);
+    const transactions = await query(txSql, [dbId, companyId, startDate, endDate]);
 
     // 4. Calculate Running Balances
     let currentBalance = netBalance;
@@ -94,7 +101,7 @@ router.get('/account/:accountId', async (req, res) => {
 
     return res.json({ 
       success: true, 
-      account_name: account.account_name,
+      account_name: identityName,
       data: reportData, 
       totals: {
         debit: totalDebitRange.toFixed(2),

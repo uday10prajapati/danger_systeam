@@ -193,25 +193,36 @@ router.get('/company/:company_id', async (req, res) => {
   }
 });
 
-// ==================== GET ACCOUNT BALANCE STATS ====================
+// ==================== GET ACCOUNT/MEMBER BALANCE STATS ====================
 router.get('/:id/balance', async (req, res) => {
   try {
-    const { id } = req.params;
-    
-    // Get account opening balance
-    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [id]);
-    if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
-    
-    const openingBalance = parseFloat(account.opening_balance || 0);
+    const rawId = req.params.id;
+    const companyId = req.headers['x-company-id'];
 
-    // Get total ledger debits and credits
+    const isMember = String(rawId).startsWith('M');
+    const dbId = isMember ? rawId.substring(1) : rawId;
+    const identityCol = isMember ? 'member_id' : 'account_id';
+
+    // 1. Get Opening Balance
+    let openingBalance = 0;
+    if (isMember) {
+      const member = await queryOne('SELECT COALESCE(opening_balance, 0) as opening_balance FROM member_master WHERE id = ?', [dbId]);
+      if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+      openingBalance = parseFloat(member.opening_balance || 0);
+    } else {
+      const account = await queryOne('SELECT COALESCE(opening_balance, 0) as opening_balance FROM accounts WHERE id = ?', [dbId]);
+      if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+      openingBalance = parseFloat(account.opening_balance || 0);
+    }
+
+    // 2. Get total ledger debits and credits
     const ledgerStats = await queryOne(`
        SELECT 
-         COALESCE(SUM(debit), 0) as total_debit,
-         COALESCE(SUM(credit), 0) as total_credit
+         COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
+         COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit
        FROM account_ledger
-       WHERE account_id = ?
-    `, [id]);
+       WHERE ${identityCol} = ? AND (company_id = ? OR ? IS NULL)
+    `, [dbId, companyId, companyId]);
 
     const totalDebit = parseFloat(ledgerStats.total_debit || 0);
     const totalCredit = parseFloat(ledgerStats.total_credit || 0);
@@ -221,7 +232,8 @@ router.get('/:id/balance', async (req, res) => {
       data: {
         openingBalance,
         totalDebit,
-        totalCredit
+        totalCredit,
+        currentBalance: openingBalance + totalDebit - totalCredit
       }
     });
 

@@ -130,7 +130,21 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // 5. Auto-Settle Bardan Balance (Jama Entry)
+    // 5. Commit to Unified Ledger (Reflect in Rojmel & Member Balance)
+    // In this flow, Dangar Entry acts as a cash purchase from the member
+    // So we CREDIT the member (they provided goods, we owe them/paid them)
+    const ledgerDesc = `${bookType} Purchase - ${item_id} - ${net_quintal} Qt @ ${rate}`;
+    await execute(`
+      INSERT INTO account_ledger (
+        company_id, member_id, transaction_date, transaction_type, reference_type, 
+        reference_id, reference_no, description, credit, financial_year
+      ) VALUES (?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?)
+    `, [
+      companyId, member_id, date, entryId, srNo, ledgerDesc, 
+      parseFloat(amount || 0), currentFinancialYear
+    ]);
+
+    // 6. Auto-Settle Bardan Balance (Jama Entry)
     if (remaining_bardan_bags && parseFloat(remaining_bardan_bags) > 0) {
       const member = await queryOne(`SELECT member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
       if (member) {
