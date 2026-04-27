@@ -586,22 +586,7 @@ export async function initializeDatabase() {
         }
       }
 
-      // Ensure "Cash" account exists in account master for unification
-      try {
-        const [companies] = await connection.query("SELECT id FROM company");
-        for (const comp of companies) {
-           const [cashAcc] = await connection.query("SELECT id FROM accounts WHERE company_id = ? AND (account_name = 'Cash' OR account_name = 'CASH' OR account_type = 'cash')", [comp.id]);
-           if (cashAcc.length === 0) {
-              await connection.query(`
-                INSERT INTO accounts (company_id, account_name, account_type, opening_balance, is_active, account_code)
-                VALUES (?, 'Cash Account', 'cash', 0, 1, 'CASH-001')
-              `, [comp.id]);
-              console.log(`✅ Default Cash Account created for company ${comp.id}`);
-           }
-        }
-      } catch (e) {
-        console.warn("Cash account initialization warning:", e.message);
-      }
+      // Unified ledger system completed - no forced cash accounts required
 
       // Create Journal Vouchers table
       await connection.query(`
