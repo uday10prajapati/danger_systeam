@@ -687,7 +687,14 @@ const DangarEntry = () => {
                         type="number"
                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3.5 text-sm font-black text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all shadow-inner font-mono italic"
                         value={row.wgt}
+                        autoFocus={idx === weightRows.length - 1 && idx > 0}
                         onChange={(e) => handleWeightChange(row.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddRow();
+                          }
+                        }}
                         placeholder="0.00"
                       />
                     </div>
@@ -720,40 +727,40 @@ const DangarEntry = () => {
               <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.4em] italic mb-2 relative z-10">Calculated Fiscal State</h3>
 
               <div className="space-y-6 relative z-10">
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none font-mono italic">Remaining Bardan</p>
+                <div className="grid grid-cols-1 gap-5">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rem. Bardan</p>
+                      <input
+                        type="number"
+                        readOnly
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                        value={formData.bardan}
+                      />
                       {selectedMember && (
-                        <span className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded-2xl flex items-center gap-1">
-                          OUTSTANDING: {bardanBalance}
-                        </span>
+                        <div className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
+                          Bal: {bardanBalance}
+                        </div>
                       )}
                     </div>
-                    <input
-                      type="number"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm font-black text-white outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-mono italic shadow-inner"
-                      value={formData.bardan}
-                      onChange={(e) => setFormData({ ...formData, bardan: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none font-mono italic">{t('dangarEntry.gun')}</p>
-                    <input
-                      type="number"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm font-black text-white outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-mono italic shadow-inner"
-                      value={formData.gun}
-                      onChange={(e) => setFormData({ ...formData, gun: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none font-mono italic">Bardan Rate (₹)</p>
-                    <input
-                      type="number"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm font-black text-white outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-mono italic shadow-inner"
-                      value={formData.active_bardan_price}
-                      onChange={(e) => setFormData({ ...formData, active_bardan_price: parseFloat(e.target.value) || 0, bardan_rate: parseFloat(e.target.value) || 0 })}
-                    />
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">{t('dangarEntry.gun')}</p>
+                      <input
+                        type="number"
+                        readOnly
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                        value={formData.gun}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rate (₹)</p>
+                      <input
+                        type="number"
+                        readOnly
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                        value={formData.active_bardan_price}
+                      />
+                    </div>
                   </div>
                 </div>
 

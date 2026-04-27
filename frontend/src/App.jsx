@@ -31,6 +31,7 @@ import DangarRateMaster from './pages/DangarRateMaster'
 import DeductionConsole from './pages/DeductionConsole'
 import BardanPortfolio from './pages/BardanPortfolio'
 import NarrationMaster from './pages/NarrationMaster'
+import DangarMaster from './pages/DangarMaster'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 
@@ -114,6 +115,7 @@ function AppContent() {
               <Route path="/kapat" element={<DeductionConsole />} />
               <Route path="/bardan-portfolio" element={<BardanPortfolio />} />
               <Route path="/narrations" element={<NarrationMaster />} />
+              <Route path="/dangar-master" element={<DangarMaster />} />
               
               {/* Transactions */}
               <Route path="/sales" element={<Sale />} />

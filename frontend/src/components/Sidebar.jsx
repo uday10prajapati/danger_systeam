@@ -29,7 +29,8 @@ import {
   ChevronRight,
   Database,
   ArrowLeftRight,
-  MessageSquare
+  MessageSquare,
+  Shield
 } from 'lucide-react'
 
 function Sidebar() {
@@ -59,6 +60,7 @@ function Sidebar() {
         { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
         { id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
         { id: 'narrations', title: 'Narration Master', icon: MessageSquare, path: '/narrations' },
+        { id: 'dangar-master', title: 'Dangar Master', icon: Shield, path: '/dangar-master' },
       ]
     },
     { id: 'sales', title: t('modules.sale'), icon: ShoppingCart, path: '/sales' },
