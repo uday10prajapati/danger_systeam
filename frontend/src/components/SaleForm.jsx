@@ -251,8 +251,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
   };
 
   const handleItemSearchKeyDown = (e) => {
-    const filteredItems = availableItems.filter(i => 
-      String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || 
+    const filteredItems = availableItems.filter(i =>
+      String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) ||
       String(i.item_code).includes(itemSearchText)
     );
 
@@ -321,14 +321,14 @@ export default function SaleForm({ onSubmit, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 sm:p-4 backdrop-blur-md">
       <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
-        
+
         {/* Header Ribbon - Modern Design */}
         <div className="flex justify-between items-center bg-slate-900 text-white px-6 py-3">
           <div className="flex items-center gap-3 font-black text-xs uppercase tracking-widest">
             <div className="w-2.5 h-2.5 bg-violet-400 rounded-full"></div>
             Sale Entry
           </div>
-          <button onClick={onCancel} className="hover:bg-violet-100 text-slate-600 hover:text-violet-700 rounded-lg p-1.5 transition-all active:scale-90">
+          <button onClick={onCancel} className="hover:bg-violet-100 text-slate-600 hover:text-violet-700 rounded-2xl p-1.5 transition-all active:scale-90">
             <X size={18} strokeWidth={3} />
           </button>
         </div>
@@ -360,34 +360,34 @@ export default function SaleForm({ onSubmit, onCancel }) {
             <div className="flex flex-wrap gap-x-8 gap-y-3 items-center px-2">
               <div className="flex items-center gap-3 relative" ref={memberDropdownRef}>
                 <span className="font-black text-slate-600 uppercase tracking-widest text-[9px] w-14 text-right">Member :</span>
-                <input 
-                  type="text" 
-                  value={memberSearchText} 
+                <input
+                  type="text"
+                  value={memberSearchText}
                   onChange={e => { setMemberSearchText(e.target.value); setShowMemberDropdown(true); }}
                   onFocus={() => setShowMemberDropdown(true)}
-                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-28 outline-none rounded-xl font-black text-center uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all" 
+                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-28 outline-none rounded-xl font-black text-center uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
                   placeholder="CODE"
                 />
-                <input 
-                  type="text" 
-                  value={memberNameSearch} 
-                  onChange={e => { 
-                    setMemberNameSearch(e.target.value); 
-                    setShowMemberDropdown(true); 
+                <input
+                  type="text"
+                  value={memberNameSearch}
+                  onChange={e => {
+                    setMemberNameSearch(e.target.value);
+                    setShowMemberDropdown(true);
                     if (selectedMember && selectedMember.member_name !== e.target.value) {
                       setSelectedMember(null);
                       setMemberId('');
                     }
-                  }} 
+                  }}
                   onFocus={() => setShowMemberDropdown(true)}
-                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-64 outline-none rounded-xl font-black text-slate-900 uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all" 
+                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-64 outline-none rounded-xl font-black text-slate-900 uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
                   placeholder="NAME OR SEARCH..."
                 />
                 {showMemberDropdown && (
                   <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-56 overflow-y-auto z-50 rounded-2xl mt-1 animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0 rounded-t-2xl">
-                       <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Accounts (Suppliers)</span>
-                       <X size={14} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowMemberDropdown(false)}/>
+                      <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Accounts (Suppliers)</span>
+                      <X size={14} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowMemberDropdown(false)} />
                     </div>
                     {availableMembers.filter(m => {
                       const idMatch = memberSearchText ? String(m.id).includes(memberSearchText) : true;
@@ -413,18 +413,18 @@ export default function SaleForm({ onSubmit, onCancel }) {
             </div>
 
             {salesType === 'cash' && (
-               <div className="flex items-center gap-4 px-2">
-                 <label className="flex items-center gap-2 cursor-pointer ml-14">
-                    <input type="checkbox" checked={isChequePayment} onChange={e => setIsChequePayment(e.target.checked)} className="w-4 h-4 rounded" />
-                    <span className="font-black text-slate-500 uppercase tracking-widest text-[9px]">Cheque Payment</span>
-                 </label>
-                 {isChequePayment && (
-                    <div className="flex gap-2 items-center">
-                       <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="BANK NAME" className="border border-slate-300 px-3 h-7 text-[10px] w-48 outline-none rounded bg-white font-black shadow-sm" />
-                       <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} placeholder="CHQ NO" className="border border-slate-300 px-3 h-7 text-[10px] w-28 outline-none rounded bg-white font-black shadow-sm" />
-                    </div>
-                 )}
-               </div>
+              <div className="flex items-center gap-4 px-2">
+                <label className="flex items-center gap-2 cursor-pointer ml-14">
+                  <input type="checkbox" checked={isChequePayment} onChange={e => setIsChequePayment(e.target.checked)} className="w-4 h-4 rounded" />
+                  <span className="font-black text-slate-500 uppercase tracking-widest text-[9px]">Cheque Payment</span>
+                </label>
+                {isChequePayment && (
+                  <div className="flex gap-2 items-center">
+                    <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="BANK NAME" className="border border-slate-300 px-3 h-7 text-[10px] w-48 outline-none rounded bg-white font-black shadow-sm" />
+                    <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} placeholder="CHQ NO" className="border border-slate-300 px-3 h-7 text-[10px] w-28 outline-none rounded bg-white font-black shadow-sm" />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -459,26 +459,26 @@ export default function SaleForm({ onSubmit, onCancel }) {
                     <td className={`p-2 text-right text-slate-400 text-[9px] ${taxType === 'CGST/SGST' ? 'bg-slate-50/50' : ''}`}>{taxType === 'IGST' ? '' : item.sgstPercent.toFixed(1)}</td>
                     <td className={`p-2 text-right font-mono text-slate-600 font-bold ${taxType === 'CGST/SGST' ? 'bg-slate-50/50' : ''}`}>{taxType === 'IGST' ? '' : item.sgstAmt.toFixed(1)}</td>
                     <td className="p-2 text-right font-mono bg-slate-50 text-slate-900 font-black">{item.totalAmount.toFixed(2)}</td>
-                    <td className="p-2 text-center text-slate-400 hover:text-red-500 cursor-pointer transition-all" onClick={() => handleRemoveItem(idx)}><X size={14} strokeWidth={3}/></td>
+                    <td className="p-2 text-center text-slate-400 hover:text-red-500 cursor-pointer transition-all" onClick={() => handleRemoveItem(idx)}><X size={14} strokeWidth={3} /></td>
                   </tr>
                 ))}
                 {/* Live Entry Input Row */}
                 <tr className="bg-violet-50/30 border-t-2 border-violet-200 sticky bottom-0 z-20 shadow-[0_-5px_15px_rgba(139,92,246,0.05)] h-11">
                   <td className="p-2 bg-slate-100 text-center text-[8px] font-black uppercase text-slate-600 italic w-10">NEW</td>
                   <td className="p-0 relative w-72">
-                    <input 
-                      ref={itemInputRef} 
-                      type="text" 
-                      value={itemSearchText} 
-                      onChange={e => { 
-                        setItemSearchText(e.target.value); 
-                        setShowItemDropdown(true); 
+                    <input
+                      ref={itemInputRef}
+                      type="text"
+                      value={itemSearchText}
+                      onChange={e => {
+                        setItemSearchText(e.target.value);
+                        setShowItemDropdown(true);
                         setItemSelectedIndex(0);
-                      }} 
-                      onFocus={() => setShowItemDropdown(true)} 
+                      }}
+                      onFocus={() => setShowItemDropdown(true)}
                       onKeyDown={handleItemSearchKeyDown}
-                      className="w-full h-full px-4 outline-none border-none text-xs bg-white font-black uppercase text-black placeholder:text-slate-400" 
-                      placeholder="SEARCH PRODUCT..." 
+                      className="w-full h-full px-4 outline-none border-none text-xs bg-white font-black uppercase text-black placeholder:text-slate-400"
+                      placeholder="SEARCH PRODUCT..."
                     />
                   </td>
                   <td className="p-0 bg-violet-100/20 w-20">
@@ -487,7 +487,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
                   <td className="p-0 bg-violet-100/20 w-20">
                     <input type="number" value={currentRate} onChange={e => setCurrentRate(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} className="w-full h-full px-2 text-right outline-none bg-transparent font-black font-mono text-xs focus:bg-white transition-colors" placeholder="0.00" />
                   </td>
-                  
+
                   {livePreview ? (
                     <>
                       <td className="p-2 text-right font-black font-mono bg-slate-50 text-[11px] w-24">₹{livePreview.amount.toFixed(2)}</td>
@@ -502,7 +502,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
                       [ Enter Quantity & Rate ]
                     </td>
                   )}
-                  
+
                   <td className="bg-violet-600 hover:bg-violet-700 transition-colors text-white">
                     <button onClick={handleAddItem} className="w-full h-full text-[10px] font-black uppercase transition-all active:scale-95">Add</button>
                   </td>
@@ -517,23 +517,21 @@ export default function SaleForm({ onSubmit, onCancel }) {
               <div ref={dropdownListRef}>
                 <div className="bg-slate-900 text-white p-3 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0 rounded-t-2xl">
                   <span>Select Item</span>
-                  <X size={14} className="cursor-pointer text-slate-400 hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowItemDropdown(false)}/>
+                  <X size={14} className="cursor-pointer text-slate-400 hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowItemDropdown(false)} />
                 </div>
                 {availableItems.filter(i => String(i.item_name).toLowerCase().includes(itemSearchText.toLowerCase()) || String(i.item_code).includes(itemSearchText)).map((i, idx) => (
-                  <div 
-                    key={i.id} 
-                    onClick={() => handleItemSelect(i)} 
-                    className={`px-4 py-3 border-b border-slate-100 transition-colors flex justify-between items-center cursor-pointer ${
-                      itemSelectedIndex === idx ? 'bg-violet-600 text-white' : 'hover:bg-slate-50 text-slate-800'
-                    }`}
+                  <div
+                    key={i.id}
+                    onClick={() => handleItemSelect(i)}
+                    className={`px-4 py-3 border-b border-slate-100 transition-colors flex justify-between items-center cursor-pointer ${itemSelectedIndex === idx ? 'bg-violet-600 text-white' : 'hover:bg-slate-50 text-slate-800'
+                      }`}
                   >
                     <div className="flex flex-col">
                       <span className={`text-[11px] font-black uppercase transition-colors ${itemSelectedIndex === idx ? 'text-white' : 'text-slate-800'}`}>{i.item_name}</span>
                       <span className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${itemSelectedIndex === idx ? 'text-violet-100' : 'text-slate-400'}`}>₹{i.sale_price !== undefined ? i.sale_price : i.sale_rate} | STK: {i.current_stock || 0}</span>
                     </div>
-                    <div className={`px-2 py-1 rounded text-[9px] font-black transition-all border ${
-                      itemSelectedIndex === idx ? 'bg-violet-600 text-white border-violet-500' : 'bg-violet-50 text-black border-violet-200'
-                    }`}>{i.item_code}</div>
+                    <div className={`px-2 py-1 rounded text-[9px] font-black transition-all border ${itemSelectedIndex === idx ? 'bg-violet-600 text-white border-violet-500' : 'bg-violet-50 text-black border-violet-200'
+                      }`}>{i.item_code}</div>
                   </div>
                 ))}
               </div>
@@ -543,7 +541,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
           {/* Footer Summary Bar */}
           <div className="bg-violet-50 p-4 text-slate-900 flex justify-between items-center sm:flex-row flex-col gap-4 border-t border-violet-100">
             <div className="text-[9px] font-mono text-slate-500 opacity-70 uppercase tracking-[0.2em] italic leading-relaxed">
-              * LIVE GST CALCULATION ENABLED<br/>
+              * LIVE GST CALCULATION ENABLED<br />
               * ROUNDED TO NEAREST RUPEE
             </div>
             <div className="flex gap-6 items-center">
@@ -561,7 +559,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
               </div>
               <div className="flex flex-col items-end pr-2 justify-center">
                 <span className="text-[8px] font-black text-violet-700 uppercase tracking-[0.3em] mb-1">NET PAYABLE ₹</span>
-                <div className="bg-violet-600 text-white px-6 py-2 rounded-lg h-12 flex items-center font-black font-mono text-[24px] shadow-md tracking-tighter border border-violet-500">
+                <div className="bg-violet-600 text-white px-6 py-2 rounded-2xl h-12 flex items-center font-black font-mono text-[24px] shadow-md tracking-tighter border border-violet-500">
                   ₹{netAmount.toFixed(2)}
                 </div>
               </div>

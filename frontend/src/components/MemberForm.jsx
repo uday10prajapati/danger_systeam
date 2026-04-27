@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { 
-  X, User, MapPin, Phone, 
-  CreditCard, Save, AlertCircle, 
-  CheckCircle, Loader, Building2, 
+import {
+  X, User, MapPin, Phone,
+  CreditCard, Save, AlertCircle,
+  CheckCircle, Loader, Building2,
   Globe, Hash, Info, Package
 } from 'lucide-react'
 import api, { sabhasadMasterApi } from '../api'
 
-export default function MemberForm({ 
-  companyId, 
-  onSuccess, 
-  editingMember = null, 
-  onClose 
+export default function MemberForm({
+  companyId,
+  onSuccess,
+  editingMember = null,
+  onClose
 }) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
@@ -20,7 +20,7 @@ export default function MemberForm({
   const [errors, setErrors] = useState({})
   const [villageList, setVillageList] = useState([])
   const [bankList, setBankList] = useState([])
-  
+
   const [formData, setFormData] = useState({
     sabhasadCode: '',
     sabhasadName: '',
@@ -136,13 +136,13 @@ export default function MemberForm({
     const { name, value, type, checked } = e.target
     setFormData(prev => {
       const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
-      
+
       // Auto-fill village name if code changes
       if (name === 'villageCode') {
         const village = villageList.find(v => v.village_code === value);
         if (village) newData.villageName = village.village_name;
       }
-      
+
       return newData;
     })
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
@@ -152,7 +152,7 @@ export default function MemberForm({
     e.preventDefault()
     setMessage(null)
     setErrors({})
-    
+
     try {
       setLoading(true)
       const currentId = localEditId || (editingMember ? editingMember.id : null);
@@ -177,7 +177,7 @@ export default function MemberForm({
     <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/40 shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
       <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/5 rounded-full -mr-48 -mt-48 blur-[100px]"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-400/5 rounded-full -ml-48 -mb-48 blur-[100px]"></div>
-      
+
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-10">
           <div>
@@ -194,16 +194,15 @@ export default function MemberForm({
         </div>
 
         {message && (
-          <div className={`mb-8 p-5 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top duration-300 ${
-            message.type === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
-          }`}>
+          <div className={`mb-8 p-5 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
+            }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <span className="text-sm font-black italic">{message.text}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-10">
-          
+
           {/* Identity Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
@@ -288,49 +287,49 @@ export default function MemberForm({
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Village Code</label>
-                     <select
-                       name="villageCode"
-                       value={formData.villageCode}
-                       onChange={handleChange}
-                       className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
-                     >
-                       <option value="">Select Village</option>
-                       {villageList.map(v => (
-                         <option key={v.id} value={v.village_code}>{v.village_code} - {v.village_name}</option>
-                       ))}
-                     </select>
-                   </div>
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Phone Interface</label>
-                     <div className="relative group">
-                       <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
-                       <input
-                         type="tel"
-                         name="phoneNo"
-                         value={formData.phoneNo}
-                         onChange={handleChange}
-                         placeholder="Primary Number"
-                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm font-mono tracking-tighter"
-                       />
-                     </div>
-                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Village Code</label>
+                    <select
+                      name="villageCode"
+                      value={formData.villageCode}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                    >
+                      <option value="">Select Village</option>
+                      {villageList.map(v => (
+                        <option key={v.id} value={v.village_code}>{v.village_code} - {v.village_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Phone Interface</label>
+                    <div className="relative group">
+                      <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
+                      <input
+                        type="tel"
+                        name="phoneNo"
+                        value={formData.phoneNo}
+                        onChange={handleChange}
+                        placeholder="Primary Number"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm font-mono tracking-tighter"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
-                   <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Administrative Address</label>
-                   <div className="relative group">
-                     <MapPin size={16} className="absolute left-4 top-4 text-slate-300 group-focus-within:text-emerald-600 transition-colors" />
-                     <textarea
-                       name="addressNo"
-                       value={formData.addressNo}
-                       onChange={handleChange}
-                       rows="2"
-                       placeholder="Locality, Sector, Street Details"
-                       className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-medium text-slate-600 text-sm"
-                     />
-                   </div>
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Administrative Address</label>
+                  <div className="relative group">
+                    <MapPin size={16} className="absolute left-4 top-4 text-slate-300 group-focus-within:text-emerald-600 transition-colors" />
+                    <textarea
+                      name="addressNo"
+                      value={formData.addressNo}
+                      onChange={handleChange}
+                      rows="2"
+                      placeholder="Locality, Sector, Street Details"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-medium text-slate-600 text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -345,146 +344,144 @@ export default function MemberForm({
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.bankInstitution')}</label>
-                 <div className="relative group">
-                   <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                   <select
-                     name="bankName"
-                     value={formData.bankName}
-                     onChange={handleChange}
-                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
-                   >
-                     <option value="">{t('memberMaster.selectBankMaster')}</option>
-                     {bankList.map(b => (
-                       <option key={b.id} value={b.bank_name}>{b.bank_name}</option>
-                     ))}
-                   </select>
-                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
-                 </div>
-               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.bankInstitution')}</label>
+                <div className="relative group">
+                  <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <select
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="">{t('memberMaster.selectBankMaster')}</option>
+                    {bankList.map(b => (
+                      <option key={b.id} value={b.bank_name}>{b.bank_name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
+                </div>
+              </div>
 
-               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.ifscCode')}</label>
-                 <div className="relative group">
-                   <Hash size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                   <input
-                     type="text"
-                     name="ifscCode"
-                     value={formData.ifscCode}
-                     onChange={handleChange}
-                     placeholder="IFSC0000XXX"
-                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold uppercase"
-                   />
-                 </div>
-               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.ifscCode')}</label>
+                <div className="relative group">
+                  <Hash size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input
+                    type="text"
+                    name="ifscCode"
+                    value={formData.ifscCode}
+                    onChange={handleChange}
+                    placeholder="IFSC0000XXX"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold uppercase"
+                  />
+                </div>
+              </div>
 
-               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Vault Account No.</label>
-                 <div className="relative group">
-                   <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                   <input
-                     type="text"
-                     name="fullAcNumber"
-                     value={formData.fullAcNumber}
-                     onChange={handleChange}
-                     placeholder="00000000000"
-                     className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
-                   />
-                 </div>
-               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Vault Account No.</label>
+                <div className="relative group">
+                  <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input
+                    type="text"
+                    name="fullAcNumber"
+                    value={formData.fullAcNumber}
+                    onChange={handleChange}
+                    placeholder="00000000000"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
+                  />
+                </div>
+              </div>
 
-               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Protocols</label>
-                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 flex items-center">
-                    <input
-                      type="checkbox"
-                      id="is_active"
-                      name="is_active"
-                      checked={formData.is_active}
-                      onChange={handleChange}
-                      className="hidden"
-                    />
-                    <label 
-                      htmlFor="is_active"
-                      className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-lg transition-all ${
-                        formData.is_active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'text-slate-400'
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Protocols</label>
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    name="is_active"
+                    checked={formData.is_active}
+                    onChange={handleChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="is_active"
+                    className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-2xl transition-all ${formData.is_active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'text-slate-400'
                       }`}
-                    >
-                      Active
-                    </label>
-                    <label 
-                      htmlFor="is_active"
-                      className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-lg transition-all ${
-                        !formData.is_active ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-400'
+                  >
+                    Active
+                  </label>
+                  <label
+                    htmlFor="is_active"
+                    className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-2xl transition-all ${!formData.is_active ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-400'
                       }`}
-                      onClick={() => setFormData(p => ({ ...p, is_active: false }))}
-                    >
-                      Archived
-                    </label>
-                 </div>
-               </div>
+                    onClick={() => setFormData(p => ({ ...p, is_active: false }))}
+                  >
+                    Archived
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Nominal Identification</label>
-                 <input
-                   type="text"
-                   name="nominalMember"
-                   value={formData.nominalMember}
-                   onChange={handleChange}
-                   placeholder="Nominal Status / ID"
-                   className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
-                 />
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Nominal Identification</label>
+                <input
+                  type="text"
+                  name="nominalMember"
+                  value={formData.nominalMember}
+                  onChange={handleChange}
+                  placeholder="Nominal Status / ID"
+                  className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Account Category</label>
-                 <select
-                   name="accountType"
-                   value={formData.accountType}
-                   onChange={handleChange}
-                   className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
-                 >
-                   <option value="">Default</option>
-                   <option value="Savings">Savings</option>
-                   <option value="Current">Current</option>
-                   <option value="Nominal">Nominal Member</option>
-                 </select>
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Account Category</label>
+                <select
+                  name="accountType"
+                  value={formData.accountType}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                >
+                  <option value="">Default</option>
+                  <option value="Savings">Savings</option>
+                  <option value="Current">Current</option>
+                  <option value="Nominal">Nominal Member</option>
+                </select>
               </div>
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Bardan Opening Balance</label>
-                 <div className="relative group">
-                    <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                      type="number"
-                      step="0.01"
-                      name="bardanOpening"
-                      value={formData.bardanOpening}
-                      onChange={handleChange}
-                      placeholder="0.00"
-                      className="w-full pl-12 pr-4 py-3 bg-blue-50/30 border border-blue-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
-                    />
-                 </div>
+                <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Bardan Opening Balance</label>
+                <div className="relative group">
+                  <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="bardanOpening"
+                    value={formData.bardanOpening}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    className="w-full pl-12 pr-4 py-3 bg-blue-50/30 border border-blue-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           <div className="flex gap-4 pt-4">
-             <button
-               type="submit"
-               disabled={loading}
-               className="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
-             >
-               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={18} /> {localEditId || editingMember ? 'Synchronize Record' : 'Create Identity'}</>}
-             </button>
-             <button
-               type="button"
-               onClick={onClose}
-               className="px-10 py-4 bg-white border border-slate-100 text-slate-400 font-black rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all text-sm uppercase tracking-widest"
-             >
-               Abort
-             </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+            >
+              {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={18} /> {localEditId || editingMember ? 'Synchronize Record' : 'Create Identity'}</>}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-10 py-4 bg-white border border-slate-100 text-slate-400 font-black rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all text-sm uppercase tracking-widest"
+            >
+              Abort
+            </button>
           </div>
         </form>
       </div>

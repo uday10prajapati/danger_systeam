@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  X, Search, AlertCircle, Trash2, Edit3, 
-  Calendar, FileText, ArrowRightLeft, Plus, 
-  ChevronRight, Calculator, CheckCircle2,
-  Database
+import {
+   X, Search, AlertCircle, Trash2, Edit3,
+   Calendar, FileText, ArrowRightLeft, Plus,
+   ChevronRight, Calculator, CheckCircle2,
+   Database
 } from 'lucide-react';
 
 export default function JVEntryModal({ company, initialDate, editId = null, onClose, onSubmit }) {
@@ -12,9 +12,9 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
    const [credits, setCredits] = useState([]);
    const [debits, setDebits] = useState([]);
 
-   const [activeSubModal, setActiveSubModal] = useState(null); 
+   const [activeSubModal, setActiveSubModal] = useState(null);
    const [editIndex, setEditIndex] = useState(null);
-   const [selected, setSelected] = useState(null); 
+   const [selected, setSelected] = useState(null);
 
    const [accounts, setAccounts] = useState([]);
    const [loading, setLoading] = useState(false);
@@ -127,7 +127,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      className="bg-transparent border-none outline-none font-bold text-slate-700 text-xs italic"
                   />
                </div>
-               
+
                {totalCredit !== totalDebit && (
                   <div className="flex items-center gap-2 text-red-500 font-black text-[9px] uppercase tracking-widest animate-pulse italic">
                      <AlertCircle size={14} /> Fiscal Imbalance: ({(totalCredit - totalDebit).toFixed(2)})
@@ -152,8 +152,8 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                         <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] italic">Credit Stream (Jama)</span>
                      </div>
-                     <button 
-                        onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }} 
+                     <button
+                        onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }}
                         className="bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
                      >
                         <Plus size={12} strokeWidth={4} /> Add Credit
@@ -172,8 +172,8 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                            onClick={() => item && setSelected({ type: 'credit', index: i })}
                            onDoubleClick={() => { if (item) { setEditIndex(i); setActiveSubModal('credit'); } }}
                            className={`grid grid-cols-12 transition-all min-h-[4rem] items-center border-b border-slate-50 group cursor-pointer ${selected?.type === 'credit' && selected?.index === i
-                                 ? 'bg-slate-900 text-white'
-                                 : 'hover:bg-slate-50'
+                              ? 'bg-slate-900 text-white'
+                              : 'hover:bg-slate-50'
                               }`}
                         >
                            <div className="col-span-8 px-6 flex flex-col gap-1">
@@ -182,7 +182,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                               </div>
                               {item && (
                                  <div className={`text-[9px] font-bold italic truncate flex items-center gap-2 ${selected?.type === 'credit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
-                                    <ChevronRight size={10} className="text-emerald-500"/> {item?.particulars || 'No narrative provided'}
+                                    <ChevronRight size={10} className="text-emerald-500" /> {item?.particulars || 'No narrative provided'}
                                  </div>
                               )}
                            </div>
@@ -193,7 +193,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                               {item && (
                                  <button
                                     onClick={(e) => { e.stopPropagation(); removeItem('credit', i); }}
-                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
+                                    className={`p-1.5 rounded-2xl opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
                                  >
                                     <Trash2 size={14} />
                                  </button>
@@ -217,8 +217,8 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                         <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"></div>
                         <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] italic">Debit Stream (Udhar)</span>
                      </div>
-                     <button 
-                        onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }} 
+                     <button
+                        onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }}
                         className="bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
                      >
                         <Plus size={12} strokeWidth={4} /> Add Debit
@@ -237,8 +237,8 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                            onClick={() => item && setSelected({ type: 'debit', index: i })}
                            onDoubleClick={() => { if (item) { setEditIndex(i); setActiveSubModal('debit'); } }}
                            className={`grid grid-cols-12 transition-all min-h-[4rem] items-center border-b border-slate-50 group cursor-pointer ${selected?.type === 'debit' && selected?.index === i
-                                 ? 'bg-slate-900 text-white'
-                                 : 'hover:bg-slate-50'
+                              ? 'bg-slate-900 text-white'
+                              : 'hover:bg-slate-50'
                               }`}
                         >
                            <div className="col-span-8 px-6 flex flex-col gap-1">
@@ -247,7 +247,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                               </div>
                               {item && (
                                  <div className={`text-[9px] font-bold italic truncate flex items-center gap-2 ${selected?.type === 'debit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
-                                    <ChevronRight size={10} className="text-blue-500"/> {item?.particulars || 'No narrative provided'}
+                                    <ChevronRight size={10} className="text-blue-500" /> {item?.particulars || 'No narrative provided'}
                                  </div>
                               )}
                            </div>
@@ -258,7 +258,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                               {item && (
                                  <button
                                     onClick={(e) => { e.stopPropagation(); removeItem('debit', i); }}
-                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
+                                    className={`p-1.5 rounded-2xl opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
                                  >
                                     <Trash2 size={14} />
                                  </button>
@@ -284,7 +284,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                   disabled={totalCredit === 0 || totalCredit !== totalDebit}
                   className="bg-indigo-600 text-white px-10 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-3"
                >
-                  {totalCredit > 0 && totalCredit === totalDebit && <CheckCircle2 size={16} strokeWidth={3}/>}
+                  {totalCredit > 0 && totalCredit === totalDebit && <CheckCircle2 size={16} strokeWidth={3} />}
                   Commit Fiscal Voucher
                </button>
             </div>
@@ -323,8 +323,9 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
             )}
 
          </div>
-         
-         <style dangerouslySetInnerHTML={{ __html: `
+
+         <style dangerouslySetInnerHTML={{
+            __html: `
             .scroller-airy::-webkit-scrollbar { width: 4px; }
             .scroller-airy::-webkit-scrollbar-track { background: transparent; }
             .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
@@ -343,7 +344,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
    const [selectedAccount, setSelectedAccount] = useState(null);
    const [searchCode, setSearchCode] = useState(initialData?.account_id ? String(initialData.account_id) : '');
    const [searchText, setSearchText] = useState(initialData?.account_name || '');
-   
+
    const [memberId, setMemberId] = useState(initialData?.member_id || '');
    const [memberName, setMemberName] = useState(initialData?.member_name || '');
    const [memberSearch, setMemberSearch] = useState(initialData?.member_name || '');
@@ -372,7 +373,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
       try {
          const res = await axios.get(`/api/members/company/${company?.id}`);
          if (res.data.success) setMembers(res.data.data);
-      } catch (err) {}
+      } catch (err) { }
    };
 
    const filteredAccounts = accounts.filter(a => {
@@ -391,10 +392,10 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
    // Auto-fetch by code logic
    useEffect(() => {
-     if (searchCode && !accountId) {
-       const match = accounts.find(a => String(a.id) === searchCode || (a.phone && String(a.phone) === searchCode));
-       if (match) handleAccountSelect(match);
-     }
+      if (searchCode && !accountId) {
+         const match = accounts.find(a => String(a.id) === searchCode || (a.phone && String(a.phone) === searchCode));
+         if (match) handleAccountSelect(match);
+      }
    }, [searchCode, accounts]);
 
    const handleSearchKeyDown = (e) => {
@@ -432,7 +433,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-500">
             <div className={`bg-${themeColor}-600 p-5 px-7 flex justify-between items-center`}>
                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center text-white">
+                  <div className="w-9 h-9 bg-white/20 rounded-2xl flex items-center justify-center text-white">
                      <Database size={18} strokeWidth={3} />
                   </div>
                   <span className="text-[11px] font-black uppercase text-white tracking-[0.2em] italic">{title}</span>
@@ -449,7 +450,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                {/* Account Discovery */}
                <div className="relative group">
                   <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-xl border border-slate-50 group-focus-within:border-indigo-100 transition-all">
-                     <div className="p-2 bg-white rounded-lg shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14}/></div>
+                     <div className="p-2 bg-white rounded-2xl shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14} /></div>
                      <div className="flex-1 grid grid-cols-12 gap-3" ref={dropdownRef}>
                         <div className="col-span-3 border-r border-slate-100 pr-3">
                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic text-center">Node ID</p>
@@ -508,7 +509,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                {selectedAccount?.is_subledger === 1 && (
                   <div className="relative animate-in slide-in-from-left duration-300">
                      <div className="flex items-center gap-4 bg-indigo-50/30 p-4 rounded-xl border border-indigo-100 transition-all shadow-sm">
-                        <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500"><Users size={14}/></div>
+                        <div className="p-2 bg-white rounded-2xl shadow-sm text-indigo-500"><Users size={14} /></div>
                         <div className="flex-1">
                            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-0.5 italic">Member Assignment (Subledger Required)</p>
                            <input
@@ -526,7 +527,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                      {showMemberDropdown && memberSearch.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-indigo-100 shadow-2xl z-[1300] max-h-40 overflow-y-auto rounded-xl overflow-hidden divide-y divide-indigo-50">
                            {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase()) || m.member_code.toString().includes(memberSearch)).map(m => (
-                              <div 
+                              <div
                                  key={m.id}
                                  onClick={() => {
                                     setMemberId(m.id);

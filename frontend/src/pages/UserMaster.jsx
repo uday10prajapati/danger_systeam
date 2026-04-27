@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { 
-  Plus, Edit3, Trash2, Power, 
+import {
+  Plus, Edit3, Trash2, Power,
   Loader, AlertCircle, CheckCircle,
   Users, UserCheck, UserMinus, Shield,
   Search, Filter, ChevronRight, X,
@@ -20,7 +20,7 @@ function UserMaster() {
   const [showForm, setShowForm] = useState(false)
   const [editingUserId, setEditingUserId] = useState(null)
   const [message, setMessage] = useState(null)
-  const [filter, setFilter] = useState('all') 
+  const [filter, setFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
@@ -115,8 +115,8 @@ function UserMaster() {
 
   const filteredUsers = users.filter(user => {
     const matchesFilter = filter === 'all' || (filter === 'active' ? user.is_active : !user.is_active)
-    const matchesSearch = user.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesFilter && matchesSearch
   })
 
@@ -158,8 +158,8 @@ function UserMaster() {
             onClick={() => { setShowForm(false); setEditingUserId(null); }}
             className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
           >
-            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all">
-               <X size={16} />
+            <div className="p-2 bg-white rounded-2xl border border-slate-200 group-hover:border-slate-800 transition-all">
+              <X size={16} />
             </div>
             {t('userMaster.backToUsers', 'Back to User Master')}
           </button>
@@ -177,7 +177,7 @@ function UserMaster() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
       <div className="max-w-[1600px] mx-auto px-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
           <div>
@@ -188,31 +188,30 @@ function UserMaster() {
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('userMaster.userMaster', 'System User Repository')}</h1>
           </div>
           <div className="flex items-center gap-4">
-             <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-                <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('dashboard.search', 'Search users...')} 
-                  className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium" 
-                />
-             </div>
-             <button
-               onClick={handleCreateUser}
-               className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-             >
-               <Plus size={20} />
-               {t('userMaster.createUser', 'Add New User')}
-             </button>
+            <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('dashboard.search', 'Search users...')}
+                className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium"
+              />
+            </div>
+            <button
+              onClick={handleCreateUser}
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+            >
+              <Plus size={20} />
+              {t('userMaster.createUser', 'Add New User')}
+            </button>
           </div>
         </div>
 
         {/* Global Messages */}
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
-            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-          }`}>
+          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+            }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
           </div>
@@ -262,19 +261,18 @@ function UserMaster() {
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id)}
-                  className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
-                    filter === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
+                  className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-3">
-               <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
-               <button className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-widest hover:underline">
-                 <Command size={14} /> Bulk Actions
-               </button>
+              <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
+              <button className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-widest hover:underline">
+                <Command size={14} /> Bulk Actions
+              </button>
             </div>
           </div>
 
@@ -294,10 +292,10 @@ function UserMaster() {
                 <thead className="bg-[#F8FAFC]">
                   <tr>
                     {[
-                      t('userMaster.username', 'User Profile'), 
-                      t('userMaster.role', 'Access Tier'), 
-                      t('userMaster.status', 'System Status'), 
-                      t('userMaster.createdDate', 'Established'), 
+                      t('userMaster.username', 'User Profile'),
+                      t('userMaster.role', 'Access Tier'),
+                      t('userMaster.status', 'System Status'),
+                      t('userMaster.createdDate', 'Established'),
                       t('userMaster.actions', 'Operations')
                     ].map((head) => (
                       <th key={head} className="px-10 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
@@ -309,9 +307,8 @@ function UserMaster() {
                     <tr key={user.id} className="group hover:bg-slate-50/50 transition-colors">
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-linear-to-br transition-transform group-hover:scale-110 ${
-                            user.is_active ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-linear-to-br transition-transform group-hover:scale-110 ${user.is_active ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500'
+                            }`}>
                             {user.username.charAt(0).toUpperCase()}
                           </div>
                           <div>
@@ -321,20 +318,19 @@ function UserMaster() {
                         </div>
                       </td>
                       <td className="px-10 py-6">
-                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
-                          user.role === 'hod' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                          user.role === 'manager' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          'bg-amber-50 text-amber-600 border-amber-100'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-2xl text-[10px] font-bold uppercase tracking-wider border ${user.role === 'hod' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                            user.role === 'manager' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                              'bg-amber-50 text-amber-600 border-amber-100'
+                          }`}>
                           {user.role}
                         </span>
                       </td>
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-2">
-                           <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                           <span className={`text-[10px] font-bold uppercase tracking-widest ${user.is_active ? 'text-emerald-600' : 'text-rose-600'}`}>
-                             {user.is_active ? t('userMaster.active', 'Operational') : t('userMaster.inactive', 'Offline')}
-                           </span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${user.is_active ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {user.is_active ? t('userMaster.active', 'Operational') : t('userMaster.inactive', 'Offline')}
+                          </span>
                         </div>
                       </td>
                       <td className="px-10 py-6 text-[11px] font-bold text-slate-400 italic">
@@ -351,9 +347,8 @@ function UserMaster() {
                           </button>
                           <button
                             onClick={() => handleDeactivateUser(user.id, user.is_active)}
-                            className={`p-2.5 bg-white border border-slate-200 rounded-xl transition-all shadow-sm ${
-                              user.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-600' : 'text-emerald-500 hover:bg-emerald-50 border-emerald-200'
-                            }`}
+                            className={`p-2.5 bg-white border border-slate-200 rounded-xl transition-all shadow-sm ${user.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-600' : 'text-emerald-500 hover:bg-emerald-50 border-emerald-200'
+                              }`}
                           >
                             <Power size={16} />
                           </button>

@@ -336,7 +336,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
             <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></div>
             Purchase Entry
           </div>
-          <button onClick={onCancel} className="hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg p-1.5 transition-all active:scale-90">
+          <button onClick={onCancel} className="hover:bg-slate-800 text-slate-300 hover:text-white rounded-2xl p-1.5 transition-all active:scale-90">
             <X size={18} strokeWidth={3} />
           </button>
         </div>
@@ -670,7 +670,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
               {/* FINAL BIG TOTAL */}
               <div className="flex flex-col items-end gap-0 pl-4 justify-center">
                 <span className="font-black text-emerald-700 text-[7px] uppercase tracking-[0.2em] opacity-70">Net Payable</span>
-                <div className="bg-emerald-600 text-white px-4 py-1 rounded-lg shadow-md border border-emerald-500 flex items-center h-8">
+                <div className="bg-emerald-600 text-white px-4 py-1 rounded-2xl shadow-md border border-emerald-500 flex items-center h-8">
                   <span className="text-[18px] font-black font-mono tracking-tighter">₹{netAmount.toFixed(2)}</span>
                 </div>
               </div>

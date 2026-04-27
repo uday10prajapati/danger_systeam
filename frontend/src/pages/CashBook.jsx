@@ -107,7 +107,7 @@ export default function CashBook() {
     e.preventDefault();
     try {
       setLoading(true);
-      
+
       if (!formData.description) {
         setError('Description is required');
         setLoading(false);
@@ -171,7 +171,7 @@ export default function CashBook() {
           <Database className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <p className="text-lg mb-4 italic">Establishing secure connection...</p>
           <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden rounded-full">
-             <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
+            <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
           </div>
         </div>
       </div>
@@ -180,7 +180,7 @@ export default function CashBook() {
 
   return (
     <div className="p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900 font-sans">
-      
+
       {/* Header - Industrial Monochrome */}
       <div className="flex justify-between items-end border-b-4 border-black pb-4">
         <div>
@@ -189,7 +189,7 @@ export default function CashBook() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
+          className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-2xl hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
         >
           <Plus size={18} strokeWidth={3} />
           {t('cashBook.addEntry', 'Inject Capital / Debit')}
@@ -227,9 +227,8 @@ export default function CashBook() {
           <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Current Liquidity</p>
-              <p className={`text-4xl font-black mt-1 tracking-tighter group-hover:text-white ${
-                parseFloat(balance.current_balance) >= 0 ? 'text-slate-900' : 'text-red-600'
-              }`}>
+              <p className={`text-4xl font-black mt-1 tracking-tighter group-hover:text-white ${parseFloat(balance.current_balance) >= 0 ? 'text-slate-900' : 'text-red-600'
+                }`}>
                 ₹{parseFloat(balance.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </p>
             </div>
@@ -252,10 +251,10 @@ export default function CashBook() {
       {dailySummary.length > 0 && (
         <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="bg-slate-900 p-4 border-b border-black">
-             <h2 className="text-[10px] font-black text-white uppercase tracking-[0.3em] italic flex items-center gap-2">
-                <div className="w-4 h-1 bg-white"></div>
-                Chronological Daily Aggregation
-             </h2>
+            <h2 className="text-[10px] font-black text-white uppercase tracking-[0.3em] italic flex items-center gap-2">
+              <div className="w-4 h-1 bg-white"></div>
+              Chronological Daily Aggregation
+            </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[11px]">
@@ -278,13 +277,12 @@ export default function CashBook() {
                     <td className="px-6 py-3 text-right text-slate-400 font-bold">
                       ₹{parseFloat(day.daily_out || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className={`px-6 py-3 text-right font-black italic underline decoration-slate-100 ${
-                      parseFloat(day.daily_net) >= 0 ? 'text-black' : 'text-red-700'
-                    }`}>
+                    <td className={`px-6 py-3 text-right font-black italic underline decoration-slate-100 ${parseFloat(day.daily_net) >= 0 ? 'text-black' : 'text-red-700'
+                      }`}>
                       ₹{parseFloat(day.daily_net || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-3 text-center">
-                       <span className="bg-slate-100 px-2 py-1 rounded text-[9px] font-black border border-slate-200">{day.transaction_count} TX</span>
+                      <span className="bg-slate-100 px-2 py-1 rounded text-[9px] font-black border border-slate-200">{day.transaction_count} TX</span>
                     </td>
                   </tr>
                 ))}
@@ -305,7 +303,7 @@ export default function CashBook() {
               placeholder="SEARCH BY DESCRIPTION OR REFERENCE..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs"
+              className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs"
             />
           </div>
         </div>
@@ -316,7 +314,7 @@ export default function CashBook() {
               type="date"
               value={dateRange.startDate}
               onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
+              className="px-4 py-2 border-2 border-slate-100 rounded-2xl focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
             />
           </div>
           <div>
@@ -325,14 +323,14 @@ export default function CashBook() {
               type="date"
               value={dateRange.endDate}
               onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
+              className="px-4 py-2 border-2 border-slate-100 rounded-2xl focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
             />
           </div>
           <button
-             onClick={handleDateChange}
-             className="px-6 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-black font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg h-[41px]"
+            onClick={handleDateChange}
+            className="px-6 py-2.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg h-[41px]"
           >
-             {t('common.filter', 'EXECUTE')}
+            {t('common.filter', 'EXECUTE')}
           </button>
         </div>
       </div>
@@ -368,12 +366,11 @@ export default function CashBook() {
                     <td className="px-6 py-4 font-black text-slate-900 text-xs uppercase tracking-tight">{entry.description}</td>
                     <td className="px-6 py-4 text-[10px] text-slate-400 font-black uppercase tracking-widest">{entry.reference_no || 'MANUAL_POS'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.1em] border-2 ${
-                        entry.reference_type === 'sale' ? 'bg-slate-100 text-black border-black' :
-                        entry.reference_type === 'sale_return' ? 'bg-black text-white border-black' :
-                        entry.reference_type === 'purchase' ? 'bg-slate-50 text-slate-600 border-slate-200' :
-                        'bg-white text-slate-400 border-slate-100'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.1em] border-2 ${entry.reference_type === 'sale' ? 'bg-slate-100 text-black border-black' :
+                          entry.reference_type === 'sale_return' ? 'bg-black text-white border-black' :
+                            entry.reference_type === 'purchase' ? 'bg-slate-50 text-slate-600 border-slate-200' :
+                              'bg-white text-slate-400 border-slate-100'
+                        }`}>
                         {entry.reference_type}
                       </span>
                     </td>
@@ -383,9 +380,8 @@ export default function CashBook() {
                     <td className="px-6 py-4 text-right text-slate-400 font-bold text-sm">
                       {parseFloat(entry.cash_out || 0) > 0 ? `₹${parseFloat(entry.cash_out).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
                     </td>
-                    <td className={`px-6 py-4 text-right font-black text-sm italic ${
-                      parseFloat(entry.net_amount) >= 0 ? 'text-black' : 'text-red-700 underline decoration-red-100'
-                    }`}>
+                    <td className={`px-6 py-4 text-right font-black text-sm italic ${parseFloat(entry.net_amount) >= 0 ? 'text-black' : 'text-red-700 underline decoration-red-100'
+                      }`}>
                       ₹{parseFloat(entry.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
@@ -406,8 +402,8 @@ export default function CashBook() {
                 <h2 className="text-2xl font-black tracking-tighter uppercase italic">Manual Cash Entry</h2>
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Ledger Injection Control</p>
               </div>
-              <button 
-                onClick={() => setShowForm(false)} 
+              <button
+                onClick={() => setShowForm(false)}
                 className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-xl transition-all active:scale-90"
               >
                 <X size={20} strokeWidth={3} />
@@ -427,65 +423,65 @@ export default function CashBook() {
               )}
 
               <div className="grid grid-cols-1 gap-6">
-                 <div>
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Registry Date</span>
-                    <div className="relative">
-                       <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
-                       <input
-                        type="date"
-                        value={formData.transaction_date}
-                        onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
-                      />
-                    </div>
-                 </div>
-
-                 <div>
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Nomenclature / Purpose</span>
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Registry Date</span>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
                     <input
-                      type="text"
-                      placeholder="E.G., MISC OFFICE OVERHEADS, CAPITAL INJECTION..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12 placeholder:text-slate-300"
+                      type="date"
+                      value={formData.transaction_date}
+                      onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
                     />
-                 </div>
+                  </div>
+                </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Influx (+)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.cash_in}
-                        onChange={(e) => setFormData({ ...formData, cash_in: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
-                      />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Outflow (-)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.cash_out}
-                        onChange={(e) => setFormData({ ...formData, cash_out: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
-                      />
-                    </div>
-                 </div>
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Nomenclature / Purpose</span>
+                  <input
+                    type="text"
+                    placeholder="E.G., MISC OFFICE OVERHEADS, CAPITAL INJECTION..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12 placeholder:text-slate-300"
+                  />
+                </div>
 
-                 <div>
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Internal Manifesto (Notes)</span>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows="3"
-                      placeholder="OPTIONAL CONTEXTUAL DATA..."
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-bold text-xs uppercase placeholder:text-slate-200"
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Influx (+)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.cash_in}
+                      onChange={(e) => setFormData({ ...formData, cash_in: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
                     />
-                 </div>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Outflow (-)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.cash_out}
+                      onChange={(e) => setFormData({ ...formData, cash_out: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Internal Manifesto (Notes)</span>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows="3"
+                    placeholder="OPTIONAL CONTEXTUAL DATA..."
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-bold text-xs uppercase placeholder:text-slate-200"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">

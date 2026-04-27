@@ -11,11 +11,11 @@ import React, { useState, useEffect, useCallback } from 'react';
  * - Taxable Amount ALWAYS calculated from: amount * (gstPercent / 100)
  * - Real-time recalculation on price, quantity, or GST % changes
  */
-export default function GSTSelector({ 
-  amount = 0, 
+export default function GSTSelector({
+  amount = 0,
   onGSTChange = null,
   showBreakdown = true,
-  isIntraState = true 
+  isIntraState = true
 }) {
   const [gstPercent, setGstPercent] = useState(18);
   const [gstData, setGstData] = useState({
@@ -98,7 +98,7 @@ export default function GSTSelector({
   }, [calculateGST]);
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
       {/* Header */}
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-gray-800">
@@ -114,7 +114,7 @@ export default function GSTSelector({
         <select
           value={gstPercent}
           onChange={(e) => setGstPercent(Number(e.target.value))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           {gstOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -126,17 +126,17 @@ export default function GSTSelector({
 
       {/* Amount Display */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+        <div className="bg-blue-50 p-3 rounded-2xl border border-blue-200">
           <p className="text-xs text-gray-600">Taxable Amount</p>
           <p className="text-lg font-bold text-gray-800">₹ {Number(gstData.taxable_amount).toFixed(2)}</p>
         </div>
 
-        <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+        <div className="bg-yellow-50 p-3 rounded-2xl border border-yellow-200">
           <p className="text-xs text-gray-600">Total Tax</p>
           <p className="text-lg font-bold text-yellow-600">₹ {Number(gstData.total_tax).toFixed(2)}</p>
         </div>
 
-        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+        <div className="bg-green-50 p-3 rounded-2xl border border-green-200">
           <p className="text-xs text-gray-600">Final Amount</p>
           <p className="text-lg font-bold text-green-600">₹ {Number(gstData.final_amount).toFixed(2)}</p>
         </div>
@@ -144,7 +144,7 @@ export default function GSTSelector({
 
       {/* GST Breakdown */}
       {showBreakdown && (
-        <div className="bg-gray-50 p-3 rounded-lg">
+        <div className="bg-gray-50 p-3 rounded-2xl">
           <p className="text-sm font-semibold text-gray-700 mb-3">GST Breakdown:</p>
 
           {isIntraState ? (
@@ -200,10 +200,10 @@ export default function GSTSelector({
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="text-gray-600">Taxable Amount:</div>
           <div className="font-semibold text-right">₹ {Number(gstData.taxable_amount).toFixed(2)}</div>
-          
+
           <div className="text-gray-600">+ Tax ({gstPercent}%):</div>
           <div className="font-semibold text-right text-yellow-600">₹ {Number(gstData.total_tax).toFixed(2)}</div>
-          
+
           <div className="text-lg font-bold text-gray-800 pt-2">Final Amount:</div>
           <div className="text-lg font-bold text-right text-green-600 pt-2">₹ {Number(gstData.final_amount).toFixed(2)}</div>
         </div>

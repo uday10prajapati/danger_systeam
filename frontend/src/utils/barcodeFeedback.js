@@ -57,13 +57,12 @@ export function playBarcodeSound(type = 'success') {
 export function showNotification(message, type = 'success', duration = 3000) {
   // Create toast element
   const toast = document.createElement('div');
-  toast.className = `fixed top-4 right-4 px-4 py-3 rounded-lg text-white font-semibold shadow-lg z-50 animate-slideIn ${
-    type === 'success' ? 'bg-green-500' :
-    type === 'error' ? 'bg-red-500' :
-    type === 'warning' ? 'bg-yellow-500' :
-    'bg-blue-500'
-  }`;
-  
+  toast.className = `fixed top-4 right-4 px-4 py-3 rounded-2xl text-white font-semibold shadow-lg z-50 animate-slideIn ${type === 'success' ? 'bg-green-500' :
+      type === 'error' ? 'bg-red-500' :
+        type === 'warning' ? 'bg-yellow-500' :
+          'bg-blue-500'
+    }`;
+
   toast.textContent = message;
   document.body.appendChild(toast);
 
@@ -84,10 +83,10 @@ export function showNotification(message, type = 'success', duration = 3000) {
  */
 export function flashElement(element, duration = 200) {
   if (!element) return;
-  
+
   const originalBg = element.style.backgroundColor;
   element.style.backgroundColor = '#d4edda'; // Light green
-  
+
   setTimeout(() => {
     element.style.backgroundColor = originalBg;
   }, duration);

@@ -160,9 +160,9 @@ const DangarEntry = () => {
         setSeasons(seasonsRes.data.data);
         setCurrentSeason(latest);
         // Sync form season with verified DB season
-        setFormData(prev => ({ 
-          ...prev, 
-          season: latest.season_type.toLowerCase() 
+        setFormData(prev => ({
+          ...prev,
+          season: latest.season_type.toLowerCase()
         }));
       }
 
@@ -178,7 +178,7 @@ const DangarEntry = () => {
   useEffect(() => {
     // Count all rows added to the weight matrix as bags being returned
     const bagCountFromWeights = weightRows.length;
-    
+
     // Automatically sync the return bags in the form
     const calculatedBardanReturn = bagCountFromWeights;
 
@@ -208,7 +208,7 @@ const DangarEntry = () => {
     const remainingBardan = Math.max(0, bardanBalance - bagCountFromWeights);
     const activePrice = parseFloat(formData.active_bardan_price) || bardanPrice;
     const bardanDeductionValue = remainingBardan * activePrice;
-    
+
     // Ultimate Net Payable
     const netPayable = finalAmt - bardanDeductionValue;
 
@@ -519,7 +519,7 @@ const DangarEntry = () => {
                 <div className="md:col-span-4 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
                     <span>Protocol Season</span>
-                    <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 text-[8px] animate-pulse">VERIFIED</span>
+                    <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-2xl border border-emerald-100 text-[8px] animate-pulse">VERIFIED</span>
                   </label>
                   <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-2xl cursor-not-allowed">
                     {['winter', 'summer'].map(s => (
@@ -528,8 +528,8 @@ const DangarEntry = () => {
                         type="button"
                         disabled
                         className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.season === s
-                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                            : 'text-slate-300'
+                          ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                          : 'text-slate-300'
                           }`}
                       >
                         {s}
@@ -549,9 +549,9 @@ const DangarEntry = () => {
                     <span>Sabhasad Identity Vector</span>
                     {selectedMember && (
                       <div className="flex gap-2">
-                        <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">{selectedMember.village_name}</span>
+                        <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-2xl border border-blue-100">{selectedMember.village_name}</span>
                         {selectedMember.bank_name && (
-                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase">{selectedMember.bank_name}</span>
+                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-2xl border border-slate-100 uppercase">{selectedMember.bank_name}</span>
                         )}
                       </div>
                     )}
@@ -711,7 +711,7 @@ const DangarEntry = () => {
               </div>
             </div>
 
-          
+
 
             {/* Fiscal Shard */}
             <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl space-y-6 relative overflow-hidden group">
@@ -725,7 +725,7 @@ const DangarEntry = () => {
                     <div className="flex items-center justify-between">
                       <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none font-mono italic">Remaining Bardan</p>
                       {selectedMember && (
-                        <span className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                        <span className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded-2xl flex items-center gap-1">
                           OUTSTANDING: {bardanBalance}
                         </span>
                       )}
@@ -794,9 +794,9 @@ const DangarEntry = () => {
               key={i}
               onClick={btn.action}
               className={`flex items-center gap-4 px-10 py-5 rounded-[1.5rem] tracking-widest transition-all shadow-xl active:scale-95 border-b-4 overflow-hidden relative group ${btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
-                  btn.color === 'rose' ? 'bg-rose-600 text-white border-rose-800 hover:bg-rose-700' :
-                    btn.color === 'emerald' ? 'bg-emerald-600 text-white border-emerald-800 hover:bg-emerald-700' :
-                      'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+                btn.color === 'rose' ? 'bg-rose-600 text-white border-rose-800 hover:bg-rose-700' :
+                  btn.color === 'emerald' ? 'bg-emerald-600 text-white border-emerald-800 hover:bg-emerald-700' :
+                    'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
                 }`}
             >
               <btn.icon size={20} className={`${btn.color === 'slate' ? 'text-blue-600' : 'text-white/80'} group-hover:scale-110 transition-transform`} />

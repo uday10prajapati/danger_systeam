@@ -52,13 +52,13 @@ function Sidebar() {
       children: [
         { id: 'village', title: t('modules.villageMaster'), icon: MapPin, path: '/village' },
         { id: 'members', title: t('modules.memberMaster'), icon: Users2, path: '/members' },
-        {id: 'accounts', title: t('modules.accountMaster'), icon: DollarSign, path: '/accounts'},
-        {id: 'items', title: t('modules.itemMaster'), icon: Package, path: '/items'},
-        {id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates'},
-        {id: 'kapat', title: 'Kapat Console', icon: TrendingDown, path: '/kapat'},
-        {id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry'},
-        {id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio'},
-        {id: 'narrations', title: 'Narration Master', icon: MessageSquare, path: '/narrations'},
+        { id: 'accounts', title: t('modules.accountMaster'), icon: DollarSign, path: '/accounts' },
+        { id: 'items', title: t('modules.itemMaster'), icon: Package, path: '/items' },
+        { id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
+        { id: 'kapat', title: 'Kapat Console', icon: TrendingDown, path: '/kapat' },
+        { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
+        { id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
+        { id: 'narrations', title: 'Narration Master', icon: MessageSquare, path: '/narrations' },
       ]
     },
     { id: 'sales', title: t('modules.sale'), icon: ShoppingCart, path: '/sales' },
@@ -91,7 +91,7 @@ function Sidebar() {
   }, [location.pathname])
 
   const toggleMenu = (id) => {
-    setOpenMenus(prev => 
+    setOpenMenus(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
   }
@@ -120,7 +120,7 @@ function Sidebar() {
         {/* Brand Section */}
         <div className="h-20 flex items-center px-6 overflow-hidden">
           <div className="flex items-center gap-3">
-            <div className="min-w-[32px] w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="min-w-[32px] w-8 h-8 bg-blue-600 rounded-2xl flex items-center justify-center">
               <div className="grid grid-cols-2 gap-0.5">
                 <div className="w-1.5 h-1.5 bg-white rounded-full opacity-40"></div>
                 <div className="w-1.5 h-1.5 bg-white rounded-full transition-all"></div>
@@ -146,9 +146,8 @@ function Sidebar() {
                   <div key={item.id} className="space-y-1">
                     <button
                       onClick={() => toggleMenu(item.id)}
-                      className={`w-full flex items-center justify-between group p-3 rounded-xl transition-all duration-200 ${
-                        isChildActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                      }`}
+                      className={`w-full flex items-center justify-between group p-3 rounded-xl transition-all duration-200 ${isChildActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
                     >
                       <div className="flex items-center">
                         <item.icon className={`w-5 h-5 flex-shrink-0 ${isChildActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-900'}`} />
@@ -156,7 +155,7 @@ function Sidebar() {
                       </div>
                       {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
-                    
+
                     {isOpen && (
                       <div className="ml-4 pl-4 border-l border-slate-100 space-y-1 mt-1">
                         {item.children.map((child) => {
@@ -165,11 +164,10 @@ function Sidebar() {
                             <button
                               key={child.id}
                               onClick={() => navigate(child.path)}
-                              className={`w-full flex items-center group p-2.5 rounded-lg transition-all duration-200 ${
-                                childActive 
-                                  ? 'bg-blue-50 text-blue-600 font-semibold' 
+                              className={`w-full flex items-center group p-2.5 rounded-2xl transition-all duration-200 ${childActive
+                                  ? 'bg-blue-50 text-blue-600 font-semibold'
                                   : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
-                              }`}
+                                }`}
                             >
                               <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-900'}`} />
                               <span className="ml-3 text-xs font-medium truncate">{child.title}</span>
@@ -187,19 +185,18 @@ function Sidebar() {
                 <button
                   key={item.id}
                   onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center group p-3 rounded-xl transition-all duration-200 relative ${
-                    active 
-                      ? 'bg-blue-50 text-blue-600' 
+                  className={`w-full flex items-center group p-3 rounded-xl transition-all duration-200 relative ${active
+                      ? 'bg-blue-50 text-blue-600'
                       : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   {/* Active Indicator Bar */}
                   {active && (
                     <div className="absolute left-0 top-3 bottom-3 w-1 bg-blue-600 rounded-r-full" />
                   )}
-                  
+
                   <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-900 transition-colors'}`} />
-                  
+
                   <span className={`ml-3 text-sm font-medium truncate ${active ? 'font-semibold' : ''}`}>
                     {item.title}
                   </span>
@@ -225,17 +222,17 @@ function Sidebar() {
 
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 md:hidden transition-all"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div 
+          <div
             className="w-72 h-full bg-white shadow-2xl relative flex flex-col p-4 animate-in slide-in-from-left duration-300"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-8 px-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-2xl flex items-center justify-center">
                   <div className="grid grid-cols-2 gap-0.5">
                     <div className="w-1.5 h-1.5 bg-white rounded-full opacity-40"></div>
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
@@ -245,9 +242,9 @@ function Sidebar() {
                 </div>
                 <h1 className="text-slate-900 font-bold text-xl">Danger Systeam</h1>
               </div>
-              <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 p-2 hover:bg-slate-50 rounded-lg"><X size={20}/></button>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 p-2 hover:bg-slate-50 rounded-2xl"><X size={20} /></button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto space-y-1">
               {menuItems.map((item) => {
                 if (item.children) {
@@ -258,9 +255,8 @@ function Sidebar() {
                     <div key={item.id} className="space-y-1">
                       <button
                         onClick={() => toggleMenu(item.id)}
-                        className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all ${
-                          isChildActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'
-                        }`}
+                        className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all ${isChildActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'
+                          }`}
                       >
                         <div className="flex items-center">
                           <item.icon size={20} className={isChildActive ? 'text-blue-600' : 'text-slate-400'} />
@@ -277,9 +273,8 @@ function Sidebar() {
                               <button
                                 key={child.id}
                                 onClick={() => { navigate(child.path); setMobileMenuOpen(false); }}
-                                className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                                  active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-                                }`}
+                                className={`w-full flex items-center p-3 rounded-2xl transition-all ${active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                                  }`}
                               >
                                 <child.icon size={18} />
                                 <span className="ml-3 font-medium text-sm">{child.title}</span>
@@ -309,7 +304,8 @@ function Sidebar() {
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #f1f5f9; border-radius: 10px; }

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { 
-  AlertCircle, CheckCircle, Loader, 
-  Eye, EyeOff, Save, X, User, 
+import {
+  AlertCircle, CheckCircle, Loader,
+  Eye, EyeOff, Save, X, User,
   Mail, Lock, ShieldCheck, Settings,
   Building2, Layout, Database, ShoppingCart,
   Package, BarChart3, TrendingUp, RefreshCcw,
@@ -30,21 +30,21 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   const fromApiRole = (role) => (role === 'admin' ? 'hod' : role)
 
   const modules = [
-    { id: 'company', label: 'company', icon: <Building2 size={16}/>, color: 'blue' },
-    { id: 'users', label: 'userMaster', icon: <User size={16}/>, color: 'indigo' },
-    { id: 'accounts', label: 'accountMaster', icon: <Database size={16}/>, color: 'emerald' },
-    { id: 'members', label: 'memberMaster', icon: <ShieldCheck size={16}/>, color: 'violet' },
-    { id: 'items', label: 'itemMaster', icon: <Package size={16}/>, color: 'amber' },
-    { id: 'rates', label: 'itemRate', icon: <BarChart3 size={16}/>, color: 'orange' },
-    { id: 'sales', label: 'sale', icon: <ShoppingCart size={16}/>, color: 'pink' },
-    { id: 'sales-return', label: 'saleReturn', icon: <RefreshCcw size={16}/>, color: 'rose' },
-    { id: 'purchase', label: 'purchase', icon: <TrendingUp size={16}/>, color: 'cyan' },
-    { id: 'purchase-return', label: 'purchaseReturn', icon: <RefreshCcw size={16}/>, color: 'teal' },
-    { id: 'barcode', label: 'barcodeScanner', icon: <QrCode size={16}/>, color: 'slate' },
-    { id: 'cashbook', label: 'cashBook', icon: <BookOpen size={16}/>, color: 'sky' },
-    { id: 'ledger', label: 'accountLedger', icon: <FileText size={16}/>, color: 'blue' },
-    { id: 'profit-loss', label: 'profitAndLoss', icon: <PieChart size={16}/>, color: 'emerald' },
-    { id: 'stock', label: 'stockReport', icon: <Activity size={16}/>, color: 'amber' },
+    { id: 'company', label: 'company', icon: <Building2 size={16} />, color: 'blue' },
+    { id: 'users', label: 'userMaster', icon: <User size={16} />, color: 'indigo' },
+    { id: 'accounts', label: 'accountMaster', icon: <Database size={16} />, color: 'emerald' },
+    { id: 'members', label: 'memberMaster', icon: <ShieldCheck size={16} />, color: 'violet' },
+    { id: 'items', label: 'itemMaster', icon: <Package size={16} />, color: 'amber' },
+    { id: 'rates', label: 'itemRate', icon: <BarChart3 size={16} />, color: 'orange' },
+    { id: 'sales', label: 'sale', icon: <ShoppingCart size={16} />, color: 'pink' },
+    { id: 'sales-return', label: 'saleReturn', icon: <RefreshCcw size={16} />, color: 'rose' },
+    { id: 'purchase', label: 'purchase', icon: <TrendingUp size={16} />, color: 'cyan' },
+    { id: 'purchase-return', label: 'purchaseReturn', icon: <RefreshCcw size={16} />, color: 'teal' },
+    { id: 'barcode', label: 'barcodeScanner', icon: <QrCode size={16} />, color: 'slate' },
+    { id: 'cashbook', label: 'cashBook', icon: <BookOpen size={16} />, color: 'sky' },
+    { id: 'ledger', label: 'accountLedger', icon: <FileText size={16} />, color: 'blue' },
+    { id: 'profit-loss', label: 'profitAndLoss', icon: <PieChart size={16} />, color: 'emerald' },
+    { id: 'stock', label: 'stockReport', icon: <Activity size={16} />, color: 'amber' },
   ]
 
   const defaultModuleAccess = {
@@ -112,7 +112,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
       const isChecked = prev.module_access.includes(moduleId)
       return {
         ...prev,
-        module_access: isChecked 
+        module_access: isChecked
           ? prev.module_access.filter(id => id !== moduleId)
           : [...prev.module_access, moduleId]
       }
@@ -166,29 +166,28 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   return (
     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10 animate-in slide-in-from-bottom duration-500 overflow-hidden relative">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/20 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-      
+
       <div className="relative z-10">
         <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-8">
           {userId ? t('userMaster.editUser', 'Refine User Identity') : t('userMaster.createUser', 'Initialize New Identity')}
         </h2>
 
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
-            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-          }`}>
+          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+            }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-10">
-          
+
           {/* Section 1: Identity Info */}
           <div className="space-y-6">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <div className="w-6 h-0.5 bg-blue-600"></div> Profile Context
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 ml-1">{t('userMaster.username', 'Public Name')} *</label>
@@ -268,7 +267,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
               </div>
               <span className="italic normal-case text-[10px] font-medium opacity-60">Tuned for {formData.role} role</span>
             </h3>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {modules.map((module) => {
                 const isSelected = formData.module_access.includes(module.id)
@@ -277,11 +276,10 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                     key={module.id}
                     type="button"
                     onClick={() => handleModuleToggle(module.id)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
-                      isSelected 
-                      ? `bg-${module.color}-50 border-${module.color}-200 shadow-sm ring-1 ring-${module.color}-100` 
-                      : 'bg-white border-slate-100 hover:border-slate-300'
-                    }`}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${isSelected
+                        ? `bg-${module.color}-50 border-${module.color}-200 shadow-sm ring-1 ring-${module.color}-100`
+                        : 'bg-white border-slate-100 hover:border-slate-300'
+                      }`}
                   >
                     <div className={`p-2 rounded-xl border ${isSelected ? `bg-white text-${module.color}-600 border-${module.color}-100` : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
                       {module.icon}
@@ -296,34 +294,34 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
           </div>
 
           <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-             <input
-               type="checkbox"
-               id="is_active"
-               name="is_active"
-               checked={formData.is_active}
-               onChange={handleChange}
-               className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-             />
-             <label htmlFor="is_active" className="text-xs font-bold text-slate-600 cursor-pointer">
-               {t('userMaster.userActive', 'Identity is currently operational and authorized for system entry')}
-             </label>
+            <input
+              type="checkbox"
+              id="is_active"
+              name="is_active"
+              checked={formData.is_active}
+              onChange={handleChange}
+              className="w-5 h-5 rounded-2xl border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <label htmlFor="is_active" className="text-xs font-bold text-slate-600 cursor-pointer">
+              {t('userMaster.userActive', 'Identity is currently operational and authorized for system entry')}
+            </label>
           </div>
 
           <div className="flex gap-4 pt-4">
-             <button
-               type="submit"
-               disabled={loading}
-               className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
-             >
-               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={20} /> {userId ? 'Commit Changes' : 'Initialize Identity'}</>}
-             </button>
-             <button
-               type="button"
-               onClick={onCancel}
-               className="px-8 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 hover:text-slate-800 transition-all"
-             >
-               {t('common.cancel', 'Abort')}
-             </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+            >
+              {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={20} /> {userId ? 'Commit Changes' : 'Initialize Identity'}</>}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-8 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 hover:text-slate-800 transition-all"
+            >
+              {t('common.cancel', 'Abort')}
+            </button>
           </div>
         </form>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Check, Activity, Package, QrCode, 
+import {
+  X, Check, Activity, Package, QrCode,
   Building2, TrendingUp, IndianRupee, ShieldAlert,
   Tag, Layers, FileText, Briefcase, Calendar,
   ShieldCheck, Percent, HelpCircle, Save, RefreshCcw,
@@ -220,7 +220,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
   return (
     <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-      
+
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-4">
@@ -290,7 +290,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                     id="consider_in_autostock"
                     checked={formData.consider_in_autostock === 1}
                     onChange={handleChange}
-                    className="w-5 h-5 border-2 border-slate-200 rounded-lg accent-blue-600 cursor-pointer"
+                    className="w-5 h-5 border-2 border-slate-200 rounded-2xl accent-blue-600 cursor-pointer"
                   />
                   <label htmlFor="consider_in_autostock" className="text-[10px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-widest cursor-pointer transition-colors">AutoStock Process?</label>
                 </div>
@@ -413,68 +413,68 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
 
           {/* Section 2: Stock Orchestration */}
           <div className="space-y-8">
-             <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
-                  <div className="w-6 h-0.5 bg-amber-500"></div> Stock Ledger control
-                </h3>
-                <label className="flex items-center gap-2 cursor-pointer group pr-4">
-                  <input
-                    type="checkbox"
-                    name="do_auto_stock_in_sales"
-                    id="do_auto_stock_in_sales"
-                    checked={formData.do_auto_stock_in_sales === 1}
-                    onChange={handleChange}
-                    className="w-4 h-4 rounded border-slate-200 accent-amber-500 cursor-pointer"
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
+                <div className="w-6 h-0.5 bg-amber-500"></div> Stock Ledger control
+              </h3>
+              <label className="flex items-center gap-2 cursor-pointer group pr-4">
+                <input
+                  type="checkbox"
+                  name="do_auto_stock_in_sales"
+                  id="do_auto_stock_in_sales"
+                  checked={formData.do_auto_stock_in_sales === 1}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded border-slate-200 accent-amber-500 cursor-pointer"
+                />
+                <span className="text-[10px] font-black text-slate-400 group-hover:text-amber-600 uppercase tracking-widest transition-colors">Auto-Stock Registry</span>
+              </label>
+            </div>
+
+            <div className="p-10 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-[0.03] scale-[4] text-slate-900 group-hover:opacity-[0.05] transition-all duration-700">
+                <Activity />
+              </div>
+
+              <div className="grid grid-cols-[160px_120px_160px_120px] gap-x-12 gap-y-[20px] items-center justify-center relative z-10">
+                <FormLabel icon={Box}>Opening Stock :</FormLabel>
+                <FormInput type="number" step="0.001" name="opening_stock" value={formData.opening_stock} onChange={handleChange} className="text-right font-mono" />
+
+                <FormLabel icon={IndianRupee}>Purchase Rate :</FormLabel>
+                <FormInput type="number" step="0.01" name="purchase_price" value={formData.purchase_price} onChange={handleChange} className="text-right font-mono text-blue-600" />
+
+                <FormLabel icon={TrendingUp} className="text-slate-800">Standard Sale :</FormLabel>
+                <FormInput type="number" step="0.01" name="sale_price" value={formData.sale_price} onChange={handleChange} className="text-right font-mono bg-white border-blue-500/20 text-rose-600 shadow-lg shadow-rose-100/20 ring-4 ring-rose-500/5" />
+
+                <FormLabel icon={ArrowDownLeft}>Inward (Total) :</FormLabel>
+                <div className="relative">
+                  <FormInput
+                    disabled
+                    value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0)).toFixed(3)}
+                    className="text-right bg-blue-50/50 border-blue-100 text-blue-800"
                   />
-                  <span className="text-[10px] font-black text-slate-400 group-hover:text-amber-600 uppercase tracking-widest transition-colors">Auto-Stock Registry</span>
-                </label>
-             </div>
-
-             <div className="p-10 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 relative group overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] scale-[4] text-slate-900 group-hover:opacity-[0.05] transition-all duration-700">
-                   <Activity />
+                  <span className="absolute -top-3 right-0 text-[7px] font-black text-blue-400 uppercase tracking-tighter">Gross Inflow</span>
                 </div>
-                
-                <div className="grid grid-cols-[160px_120px_160px_120px] gap-x-12 gap-y-[20px] items-center justify-center relative z-10">
-                  <FormLabel icon={Box}>Opening Stock :</FormLabel>
-                  <FormInput type="number" step="0.001" name="opening_stock" value={formData.opening_stock} onChange={handleChange} className="text-right font-mono" />
 
-                  <FormLabel icon={IndianRupee}>Purchase Rate :</FormLabel>
-                  <FormInput type="number" step="0.01" name="purchase_price" value={formData.purchase_price} onChange={handleChange} className="text-right font-mono text-blue-600" />
+                <FormLabel icon={IndianRupee}>Op Stock Val :</FormLabel>
+                <FormInput disabled value={formData.opening_stock_value} className="text-right bg-slate-100/50 text-slate-400" />
 
-                  <FormLabel icon={TrendingUp} className="text-slate-800">Standard Sale :</FormLabel>
-                  <FormInput type="number" step="0.01" name="sale_price" value={formData.sale_price} onChange={handleChange} className="text-right font-mono bg-white border-blue-500/20 text-rose-600 shadow-lg shadow-rose-100/20 ring-4 ring-rose-500/5" />
-
-                  <FormLabel icon={ArrowDownLeft}>Inward (Total) :</FormLabel>
-                  <div className="relative">
-                    <FormInput
-                      disabled
-                      value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0)).toFixed(3)}
-                      className="text-right bg-blue-50/50 border-blue-100 text-blue-800"
-                    />
-                    <span className="absolute -top-3 right-0 text-[7px] font-black text-blue-400 uppercase tracking-tighter">Gross Inflow</span>
-                  </div>
-
-                  <FormLabel icon={IndianRupee}>Op Stock Val :</FormLabel>
-                  <FormInput disabled value={formData.opening_stock_value} className="text-right bg-slate-100/50 text-slate-400" />
-
-                  <FormLabel icon={ArrowUpRight}>Outward (Total) :</FormLabel>
-                  <div className="relative">
-                    <FormInput
-                      disabled
-                      value={parseFloat(formData.outward || 0).toFixed(3)}
-                      className="text-right bg-slate-200/30 text-slate-400"
-                    />
-                    <span className="absolute -top-3 right-0 text-[7px] font-black text-slate-400 uppercase tracking-tighter">Total Dispatch</span>
-                  </div>
-
-                  <FormLabel icon={ShieldAlert}>Critical Min :</FormLabel>
-                  <FormInput type="number" step="0.001" name="minimum_stock" value={formData.minimum_stock} onChange={handleChange} className="text-right font-mono text-amber-600" />
-
-                  <FormLabel icon={Activity}>Closing Bal :</FormLabel>
-                  <FormInput disabled value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0) - parseFloat(formData.outward || 0)).toFixed(3)} className="text-right bg-slate-900 text-white border-none shadow-xl shadow-slate-200 ring-4 ring-slate-900/10" />
+                <FormLabel icon={ArrowUpRight}>Outward (Total) :</FormLabel>
+                <div className="relative">
+                  <FormInput
+                    disabled
+                    value={parseFloat(formData.outward || 0).toFixed(3)}
+                    className="text-right bg-slate-200/30 text-slate-400"
+                  />
+                  <span className="absolute -top-3 right-0 text-[7px] font-black text-slate-400 uppercase tracking-tighter">Total Dispatch</span>
                 </div>
-             </div>
+
+                <FormLabel icon={ShieldAlert}>Critical Min :</FormLabel>
+                <FormInput type="number" step="0.001" name="minimum_stock" value={formData.minimum_stock} onChange={handleChange} className="text-right font-mono text-amber-600" />
+
+                <FormLabel icon={Activity}>Closing Bal :</FormLabel>
+                <FormInput disabled value={(parseFloat(formData.opening_stock || 0) + parseFloat(formData.inward || 0) - parseFloat(formData.outward || 0)).toFixed(3)} className="text-right bg-slate-900 text-white border-none shadow-xl shadow-slate-200 ring-4 ring-slate-900/10" />
+              </div>
+            </div>
           </div>
 
           {/* Section 3: Statutory Compliance */}
@@ -506,20 +506,20 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
 
           {/* Footer Actions */}
           <div className="pt-6 flex gap-5 border-t border-slate-50">
-             <button
-               type="submit"
-               disabled={loading}
-               className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] py-5 rounded-[2rem] hover:bg-blue-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
-             >
-               {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> {currentItem ? 'Commit Changes' : 'Initialize Object'}</>}
-             </button>
-             <button
-               type="button"
-               onClick={onClose}
-               className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
-             >
-               Abort
-             </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] py-5 rounded-[2rem] hover:bg-blue-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+            >
+              {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> {currentItem ? 'Commit Changes' : 'Initialize Object'}</>}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
+            >
+              Abort
+            </button>
           </div>
 
         </form>

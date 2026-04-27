@@ -24,10 +24,10 @@ const translations = {
       edit: "Edit",
       delete: "Delete",
       cancel: "Cancel",
-      
+
       print: "Print",
       data_show: "Data Show",
-            refresh: "Refresh",
+      refresh: "Refresh",
       report: "Report",
       temporary_save: "Temporary Save",
       name_update: "Name Update"
@@ -55,9 +55,9 @@ const translations = {
       edit: "સુધારો",
       delete: "કાઢી નાખો",
       cancel: "રદ",
-      
+
       data_show: "ડેટા બતાવો",
-            refresh: "રીફ્રેશ",
+      refresh: "રીફ્રેશ",
       print: "પ્રિન્ટ",
       report: "રિપોર્ટ",
       temporary_save: "ટેમ્પરરી સેવ",
@@ -141,7 +141,7 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    
+
     // Auto-fill name if code is changed
     if (name === 'code') {
       const member = members.find(m => m.member_code === value);
@@ -313,59 +313,59 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
         {/* Header */}
         <div className="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-             <div className="bg-white/20 p-2 rounded-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-             </div>
-             <h2 className="text-xl font-bold tracking-tight">{t.title}</h2>
+            <div className="bg-white/20 p-2 rounded-2xl">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">{t.title}</h2>
           </div>
           <button onClick={onClose} className="bg-white/20 hover:bg-white/40 p-2 rounded-full transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col p-6 gap-6 bg-gray-50">
           {/* Balance Metrics Card */}
           <div className="grid grid-cols-3 gap-4">
-             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 italic">Total Bags Taken</p>
-                <p className="text-2xl font-black text-slate-800 italic">{balanceData.taken}</p>
-             </div>
-             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-emerald-500">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 italic">Total Returned</p>
-                <p className="text-2xl font-black text-emerald-500 italic">{balanceData.returned}</p>
-             </div>
-             <div className="bg-slate-900 p-4 rounded-xl shadow-lg border-l-4 border-l-rose-500">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 italic">Current Remaining</p>
-                <p className="text-2xl font-black text-white italic">{balanceData.balance}</p>
-             </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 italic">Total Bags Taken</p>
+              <p className="text-2xl font-black text-slate-800 italic">{balanceData.taken}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-emerald-500">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 italic">Total Returned</p>
+              <p className="text-2xl font-black text-emerald-500 italic">{balanceData.returned}</p>
+            </div>
+            <div className="bg-slate-900 p-4 rounded-xl shadow-lg border-l-4 border-l-rose-500">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 italic">Current Remaining</p>
+              <p className="text-2xl font-black text-white italic">{balanceData.balance}</p>
+            </div>
           </div>
 
-          {error && <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg animate-pulse">{error}</div>}
-          {success && <div className="p-3 bg-green-100 border border-green-200 text-green-700 rounded-lg">{success}</div>}
-          
+          {error && <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-2xl animate-pulse">{error}</div>}
+          {success && <div className="p-3 bg-green-100 border border-green-200 text-green-700 rounded-2xl">{success}</div>}
+
           <div className="grid grid-cols-12 gap-6 flex-1 overflow-hidden">
             {/* Form Section */}
             <div className="col-span-8 flex flex-col gap-6 overflow-y-auto pr-2">
               <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.book_type}</label>
-                  <select name="bookType" value={form.bookType} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500 transition-all">
+                  <select name="bookType" value={form.bookType} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500 transition-all">
                     <option>Combo1</option>
                     <option>Combo2</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.pavti_no}</label>
-                  <input name="pavtiNo" value={form.pavtiNo} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" placeholder="Enter Pavti No" />
+                  <input name="pavtiNo" value={form.pavtiNo} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500" placeholder="Enter Pavti No" />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.date}</label>
-                  <input type="date" name="date" value={form.date} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" />
+                  <input type="date" name="date" value={form.date} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.mem_nominal}</label>
-                  <select name="memNominal" value={form.memNominal} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
+                  <select name="memNominal" value={form.memNominal} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500">
                     <option value="">Select...</option>
                     <option value="Member">Member</option>
                     <option value="Nominal">Nominal</option>
@@ -374,14 +374,14 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.code}</label>
-                  <select name="code" value={form.code} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
+                  <select name="code" value={form.code} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500">
                     <option value="">Select Code</option>
                     {members.map(m => <option key={m.id} value={m.member_code}>{m.member_code}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.name}</label>
-                  <select name="name" value={form.name} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
+                  <select name="name" value={form.name} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500">
                     <option value="">Select Name</option>
                     {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
                   </select>
@@ -389,26 +389,26 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.qty}</label>
-                  <input type="number" name="qty" value={form.qty} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" placeholder="0.00" />
+                  <input type="number" name="qty" value={form.qty} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500" placeholder="0.00" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.option}</label>
-                  <select name="option" value={form.option} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
+                  <select name="option" value={form.option} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500">
                     <option>Combo1</option>
                   </select>
                 </div>
 
                 <div className="col-span-2 space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.remark}</label>
-                  <input name="remark" value={form.remark} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" placeholder="Add any notes..." />
+                  <input name="remark" value={form.remark} onChange={handleChange} className="w-full border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500" placeholder="Add any notes..." />
                 </div>
               </div>
 
               {/* Data Table */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
-                   <h3 className="text-sm font-bold text-gray-700 uppercase">{t.title} List</h3>
-                   <span className="text-xs text-gray-400">{entries.length} records</span>
+                  <h3 className="text-sm font-bold text-gray-700 uppercase">{t.title} List</h3>
+                  <span className="text-xs text-gray-400">{entries.length} records</span>
                 </div>
                 <div className="overflow-y-auto flex-1">
                   <table className="w-full text-left border-collapse">
@@ -425,7 +425,7 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
                         <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-400 italic">No entries found</td></tr>
                       ) : (
                         entries.map(entry => (
-                          <tr 
+                          <tr
                             key={entry.id}
                             onClick={() => handleEdit(entry.id)}
                             className="cursor-pointer hover:bg-rose-50 transition-colors group"
@@ -504,15 +504,15 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
                     </tbody>
                   </table>
                 </div>
-                
+
                 <div className="p-4 bg-gray-50 border-t border-gray-100 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t.form.day_qty}</span>
-                    <input type="number" name="dayQty" value={form.dayQty} onChange={handleChange} className="w-24 text-right border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500 py-1" placeholder="0.00" />
+                    <input type="number" name="dayQty" value={form.dayQty} onChange={handleChange} className="w-24 text-right border-gray-200 rounded-2xl focus:ring-rose-500 focus:border-rose-500 py-1" placeholder="0.00" />
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t.form.total_qty}</span>
-                    <input type="number" name="totalQty" value={form.totalQty} onChange={handleChange} className="w-24 text-right border-gray-200 rounded-lg font-bold text-rose-600 focus:ring-rose-500 focus:border-rose-500 py-1" placeholder="0.00" />
+                    <input type="number" name="totalQty" value={form.totalQty} onChange={handleChange} className="w-24 text-right border-gray-200 rounded-2xl font-bold text-rose-600 focus:ring-rose-500 focus:border-rose-500 py-1" placeholder="0.00" />
                   </div>
                 </div>
               </div>
@@ -523,31 +523,31 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
           <div className="flex justify-between items-center pt-6 border-t border-gray-200 shrink-0">
             <div className="flex gap-2">
               <button type="button" onClick={handleNew} className="flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold shadow-lg shadow-sky-200 transition-all active:scale-95">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                 {t.buttons.new}
               </button>
               <button type="button" onClick={handleDelete} className="flex items-center gap-2 px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-200 transition-all active:scale-95">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 {t.buttons.delete}
               </button>
               <button type="button" onClick={fetchEntries} className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-all">
-                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 {t.buttons.refresh}
               </button>
             </div>
 
             <div className="flex gap-2">
               <button type="button" onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                 {t.buttons.print}
               </button>
-              <button 
-                type="button" 
-                onClick={form.id ? handleUpdate : handleSubmit} 
+              <button
+                type="button"
+                onClick={form.id ? handleUpdate : handleSubmit}
                 disabled={loading}
                 className="flex items-center gap-2 px-8 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
                 {form.id ? t.buttons.edit : t.buttons.save}
               </button>
             </div>

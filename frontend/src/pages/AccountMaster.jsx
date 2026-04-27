@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { 
-  Plus, AlertCircle, Edit2, Trash2, CheckCircle, 
+import {
+  Plus, AlertCircle, Edit2, Trash2, CheckCircle,
   XCircle, Eye, X, Download, Database, Shield,
   Search, Filter, Users, Scale, TrendingUp,
   Activity, ArrowRight, Loader, FileText, IndianRupee,
@@ -23,7 +23,7 @@ export default function AccountMaster() {
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Balance Modal state
   const [balanceModal, setBalanceModal] = useState({
     isOpen: false,
@@ -130,7 +130,7 @@ export default function AccountMaster() {
   };
 
   const filteredAccounts = (Array.isArray(accounts) ? accounts : []).filter(acc => {
-    const matchesSearch = 
+    const matchesSearch =
       acc.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       acc.account_code?.toString().includes(searchQuery);
     const matchesBalanceType = balanceTypeFilter === 'all' || acc.balance_type === balanceTypeFilter;
@@ -163,8 +163,8 @@ export default function AccountMaster() {
           <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('accountMaster.noCompanyFound', 'System Lock')}</h2>
           <p className="text-slate-500 font-medium mb-8 leading-relaxed">Financial identity registry is offline. Please initialize company profile context first.</p>
           <div className="flex flex-col gap-3">
-             <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">Go to Company Setup</button>
-             <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-slate-100 transition-all">Retry Synchronization</button>
+            <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">Go to Company Setup</button>
+            <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-slate-100 transition-all">Retry Synchronization</button>
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function AccountMaster() {
             onClick={() => { setShowForm(false); setEditingAccount(null); }}
             className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
           >
-            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
+            <div className="p-2 bg-white rounded-2xl border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
             Back to Registry List
           </button>
           <AccountForm
@@ -196,7 +196,7 @@ export default function AccountMaster() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
       <div className="max-w-[1600px] mx-auto px-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
           <div>
@@ -207,38 +207,37 @@ export default function AccountMaster() {
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Ledger Repository</h1>
           </div>
           <div className="flex items-center gap-4">
-             <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-                <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Seach by entity name or ID..." 
-                  className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium" 
-                />
-             </div>
-             <button
-               onClick={handleDownloadCSV}
-               className="hidden lg:flex items-center gap-2 bg-white px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 shadow-sm"
-             >
-               <Download size={18} />
-               Export
-             </button>
-             <button
-               onClick={handleCreateNew}
-               className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-             >
-               <Plus size={20} />
-               Initialize Ledger
-             </button>
+            <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Seach by entity name or ID..."
+                className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium"
+              />
+            </div>
+            <button
+              onClick={handleDownloadCSV}
+              className="hidden lg:flex items-center gap-2 bg-white px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 shadow-sm"
+            >
+              <Download size={18} />
+              Export
+            </button>
+            <button
+              onClick={handleCreateNew}
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+            >
+              <Plus size={20} />
+              Initialize Ledger
+            </button>
           </div>
         </div>
 
         {/* Global Messages */}
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
-            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-          }`}>
+          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+            }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
           </div>
@@ -278,187 +277,183 @@ export default function AccountMaster() {
 
         {/* Table View */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-           <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-3">
-                 <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Database size={18} /></div>
-                 <h2 className="text-lg font-bold text-slate-800">Operational Registry</h2>
-              </div>
-              <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-2xl">
-                 {accountTypes.slice(0, 4).map(type => (
-                   <button
-                     key={type.value}
-                     onClick={() => setSelectedType(type.value)}
-                     className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
-                       selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                     }`}
-                   >
-                     {type.label}
-                   </button>
-                 ))}
-                 <div className="w-px h-4 bg-slate-200 ml-2 mr-2"></div>
-                 <select 
-                    value={balanceTypeFilter}
-                    onChange={(e) => setBalanceTypeFilter(e.target.value)}
-                    className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-400 px-3 cursor-pointer uppercase tracking-widest"
-                 >
-                    <option value="all">Balance (All)</option>
-                    <option value="credit">Credit (Jama)</option>
-                    <option value="debit">Debit (Udhar)</option>
-                 </select>
-              </div>
-           </div>
+          <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Database size={18} /></div>
+              <h2 className="text-lg font-bold text-slate-800">Operational Registry</h2>
+            </div>
+            <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-2xl">
+              {accountTypes.slice(0, 4).map(type => (
+                <button
+                  key={type.value}
+                  onClick={() => setSelectedType(type.value)}
+                  className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+              <div className="w-px h-4 bg-slate-200 ml-2 mr-2"></div>
+              <select
+                value={balanceTypeFilter}
+                onChange={(e) => setBalanceTypeFilter(e.target.value)}
+                className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-400 px-3 cursor-pointer uppercase tracking-widest"
+              >
+                <option value="all">Balance (All)</option>
+                <option value="credit">Credit (Jama)</option>
+                <option value="debit">Debit (Udhar)</option>
+              </select>
+            </div>
+          </div>
 
-           {loading ? (
-             <div className="flex-1 flex flex-col items-center justify-center p-24">
-                <Loader className="w-12 h-12 text-blue-100 animate-spin mb-4" />
-                <p className="text-slate-300 font-bold uppercase tracking-[0.2em] text-[10px]">Synchronizing Financial Shards...</p>
-             </div>
-           ) : filteredAccounts.length === 0 ? (
-             <div className="flex-1 flex flex-col items-center justify-center p-24 text-center">
-                <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-6"><FileText size={40} /></div>
-                <h3 className="text-lg font-bold text-slate-400 mb-2">No matched accounts found</h3>
-                <p className="text-slate-300 text-sm max-w-xs mx-auto mb-8 font-medium">Try adjusting your filters or initialize a new financial entity.</p>
-                <button onClick={handleCreateNew} className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl hover:bg-black transition-all">Initialize First Ledger</button>
-             </div>
-           ) : (
-             <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse">
-                 <thead>
-                   <tr className="bg-[#F8FAFC]">
-                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Entity Nomenclature</th>
-                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Classification</th>
-                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Closing Balance</th>
-                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Status</th>
-                     <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Audit</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-50">
-                   {filteredAccounts.map(acc => (
-                     <tr key={acc.id} className="group hover:bg-blue-50/30 transition-all duration-300">
-                       <td className="px-10 py-6">
-                         <div className="flex items-center gap-4">
-                           <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg transition-transform group-hover:scale-110 ${
-                             ['customer', 'supplier'].includes(acc.account_type) ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'
-                           }`}>
-                             {acc.account_name.charAt(0).toUpperCase()}
-                           </div>
-                            <div className="space-y-1">
-                              <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase leading-none">{acc.account_name}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded-md text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                    <Hash size={9} /> {acc.account_code || acc.id}
-                                 </span>
-                                 <p className="text-[10px] font-medium text-slate-400 leading-none">{acc.email || 'NO_DIGITAL_HANDLE'}</p>
-                              </div>
-                            </div>
-                         </div>
-                       </td>
-                       <td className="px-10 py-6">
-                          <div className="flex flex-col gap-1.5">
-                            <span className={`inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
-                              ['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+          {loading ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-24">
+              <Loader className="w-12 h-12 text-blue-100 animate-spin mb-4" />
+              <p className="text-slate-300 font-bold uppercase tracking-[0.2em] text-[10px]">Synchronizing Financial Shards...</p>
+            </div>
+          ) : filteredAccounts.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-24 text-center">
+              <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-6"><FileText size={40} /></div>
+              <h3 className="text-lg font-bold text-slate-400 mb-2">No matched accounts found</h3>
+              <p className="text-slate-300 text-sm max-w-xs mx-auto mb-8 font-medium">Try adjusting your filters or initialize a new financial entity.</p>
+              <button onClick={handleCreateNew} className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl hover:bg-black transition-all">Initialize First Ledger</button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F8FAFC]">
+                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Entity Nomenclature</th>
+                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Classification</th>
+                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Closing Balance</th>
+                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Status</th>
+                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Audit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredAccounts.map(acc => (
+                    <tr key={acc.id} className="group hover:bg-blue-50/30 transition-all duration-300">
+                      <td className="px-10 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg transition-transform group-hover:scale-110 ${['customer', 'supplier'].includes(acc.account_type) ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'
                             }`}>
-                              {acc.account_type}
-                            </span>
-                            {acc.is_subledger ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-600 border border-violet-100 rounded-md text-[8px] font-black uppercase tracking-widest">
-                                <Layers size={8} /> Sub-Ledger
-                              </span>
-                            ) : null}
+                            {acc.account_name.charAt(0).toUpperCase()}
                           </div>
-                       </td>
-                       <td className="px-10 py-6">
-                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-800 flex items-center gap-1 leading-none italic">
-                              <IndianRupee size={12} className="text-slate-400" />
-                              {(parseFloat(acc.closing_balance) || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                            </span>
-                            <span className={`text-[9px] font-bold uppercase tracking-widest mt-1.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : 'text-rose-600'}`}>
-                              {acc.balance_type === 'credit' ? 'Jama (Cr)' : 'Udhar (Dr)'}
-                            </span>
-                         </div>
-                       </td>
-                       <td className="px-10 py-6">
-                         <div className="flex justify-center">
-                            <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                              acc.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase leading-none">{acc.account_name}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded-md text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                                <Hash size={9} /> {acc.account_code || acc.id}
+                              </span>
+                              <p className="text-[10px] font-medium text-slate-400 leading-none">{acc.email || 'NO_DIGITAL_HANDLE'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6">
+                        <div className="flex flex-col gap-1.5">
+                          <span className={`inline-flex px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
                             }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${acc.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                              {acc.is_active ? 'Online' : 'Offline'}
+                            {acc.account_type}
+                          </span>
+                          {acc.is_subledger ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-600 border border-violet-100 rounded-md text-[8px] font-black uppercase tracking-widest">
+                              <Layers size={8} /> Sub-Ledger
                             </span>
-                         </div>
-                       </td>
-                       <td className="px-10 py-6 text-right">
-                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                           <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><Eye size={16} /></button>
-                           <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
-                           <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-xl transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
-                         </div>
-                       </td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-             </div>
-           )}
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-10 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-800 flex items-center gap-1 leading-none italic">
+                            <IndianRupee size={12} className="text-slate-400" />
+                            {(parseFloat(acc.closing_balance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase tracking-widest mt-1.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : 'text-rose-600'}`}>
+                            {acc.balance_type === 'credit' ? 'Jama (Cr)' : 'Udhar (Dr)'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6">
+                        <div className="flex justify-center">
+                          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${acc.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
+                            }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${acc.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                            {acc.is_active ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                          <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><Eye size={16} /></button>
+                          <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
+                          <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-xl transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Balance Modal - Airy SaaS Style */}
       {balanceModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg ring-4 ring-blue-500/5"><Eye size={20} /></div>
-                   <div>
-                      <h3 className="text-xl font-bold text-slate-800">Financial Insights</h3>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Balance Audit</p>
-                   </div>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg ring-4 ring-blue-500/5"><Eye size={20} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Financial Insights</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Balance Audit</p>
                 </div>
-                <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
+              </div>
+              <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
+            </div>
+
+            <div className="p-10 space-y-8">
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Entity Nomenclature</p>
+                <p className="text-xl font-black text-slate-800 uppercase tracking-tight italic">{balanceModal.account?.account_name}</p>
               </div>
 
-              <div className="p-10 space-y-8">
-                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Entity Nomenclature</p>
-                    <p className="text-xl font-black text-slate-800 uppercase tracking-tight italic">{balanceModal.account?.account_name}</p>
-                 </div>
-
-                 {balanceModal.loading ? (
-                    <div className="py-12 flex flex-col items-center gap-4">
-                       <Loader className="w-10 h-10 text-blue-500 animate-spin" />
-                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aggregating Fiscal Data...</p>
+              {balanceModal.loading ? (
+                <div className="py-12 flex flex-col items-center gap-4">
+                  <Loader className="w-10 h-10 text-blue-500 animate-spin" />
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aggregating Fiscal Data...</p>
+                </div>
+              ) : balanceModal.data ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Opening Context</span>
+                    <span className="font-mono font-bold text-slate-700">₹{balanceModal.data.openingBalance.toFixed(2)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-rose-50/30 border border-rose-100 rounded-2xl">
+                      <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 italic">Total Udhar</p>
+                      <p className="text-lg font-black text-rose-600">₹{balanceModal.data.totalDebit.toFixed(2)}</p>
                     </div>
-                 ) : balanceModal.data ? (
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Opening Context</span>
-                          <span className="font-mono font-bold text-slate-700">₹{balanceModal.data.openingBalance.toFixed(2)}</span>
-                       </div>
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-rose-50/30 border border-rose-100 rounded-2xl">
-                             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 italic">Total Udhar</p>
-                             <p className="text-lg font-black text-rose-600">₹{balanceModal.data.totalDebit.toFixed(2)}</p>
-                          </div>
-                          <div className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl">
-                             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1 italic">Total Jama</p>
-                             <p className="text-lg font-black text-emerald-600">₹{balanceModal.data.totalCredit.toFixed(2)}</p>
-                          </div>
-                       </div>
-                       <div className="p-6 bg-slate-900 rounded-3xl shadow-xl shadow-slate-200 flex flex-col gap-1 mt-4">
-                          <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Current Synchronized Balance</span>
-                          <span className="text-3xl font-black text-white italic">
-                            ₹{(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                          </span>
-                       </div>
+                    <div className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl">
+                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1 italic">Total Jama</p>
+                      <p className="text-lg font-black text-emerald-600">₹{balanceModal.data.totalCredit.toFixed(2)}</p>
                     </div>
-                 ) : null}
-              </div>
-              <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
-                 <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="px-10 py-3.5 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-all uppercase text-[10px] tracking-widest">Close Audit</button>
-              </div>
-           </div>
+                  </div>
+                  <div className="p-6 bg-slate-900 rounded-3xl shadow-xl shadow-slate-200 flex flex-col gap-1 mt-4">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Current Synchronized Balance</span>
+                    <span className="text-3xl font-black text-white italic">
+                      ₹{(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="px-10 py-3.5 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-all uppercase text-[10px] tracking-widest">Close Audit</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
