@@ -42,7 +42,8 @@ const createConnection = async () => {
         const [rows, fields] = await connection.query(sql, params);
         return [rows, fields];
       } catch (err) {
-        console.error('SQL Error:', err.message, '\nIn query:', sql);
+        console.error('SQL Error:', err);
+        console.error('In query:', sql);
         throw err;
       }
     },
@@ -51,7 +52,8 @@ const createConnection = async () => {
         const [result] = await connection.execute(sql, params);
         return [result, []];
       } catch (err) {
-        console.error('SQL Error:', err.message, '\nIn query:', sql);
+        console.error('SQL Error:', err);
+        console.error('In query:', sql);
         throw err;
       }
     },
@@ -329,13 +331,15 @@ export async function initializeDatabase() {
              'village_code', 'village_name', 'full_ac_number', 
              'bank_name', 'branch_name', 'account_type', 
              'address_no', 'eng_name', 'nominal_member',
-             'bardan_opening', 'ifsc_code'
+             'bardan_opening', 'ifsc_code', 'account_id'
           ];
           for (const col of cols) {
              if (col === 'bardan_opening') {
                try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} DECIMAL(15, 2) DEFAULT 0`); } catch(e) {}
              } else if (col === 'ifsc_code') {
                try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} VARCHAR(20)`); } catch(e) {}
+             } else if (col === 'account_id') {
+               try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} INT DEFAULT NULL`); } catch(e) {}
              } else {
                try { await connection.query(`ALTER TABLE member_master ADD COLUMN ${col} VARCHAR(255)`); } catch(e) {}
              }
@@ -569,7 +573,9 @@ export async function initializeDatabase() {
         { name: 'transaction_type', type: "VARCHAR(50) DEFAULT 'manual'" },
         { name: 'updated_at', type: 'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
         { name: 'debit', type: 'DECIMAL(12, 2) DEFAULT 0.00' },
-        { name: 'credit', type: 'DECIMAL(12, 2) DEFAULT 0.00' }
+        { name: 'credit', type: 'DECIMAL(12, 2) DEFAULT 0.00' },
+        { name: 'account_id', type: 'INT DEFAULT NULL' },
+        { name: 'member_id', type: 'INT DEFAULT NULL' }
       ];
 
       for (const col of ledgerCols) {

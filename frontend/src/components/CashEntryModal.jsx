@@ -187,10 +187,15 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
       const finalAccountId = isMember ? null : parseInt(idStr);
       const finalMemberId = isMember ? parseInt(idStr.substring(1)) : null;
 
+      let extractedMemberId = finalMemberId;
+      if (selectedAccount?.is_subledger && subEntries.length > 0) {
+        extractedMemberId = subEntries[0].member_id || parseInt(subEntries[0].code) || null;
+      }
+
       const payload = {
         transaction_date: formData.transaction_date,
         account_id: finalAccountId,
-        member_id: finalMemberId,
+        member_id: extractedMemberId,
         description: formData.description || `Cash ${isCredit ? 'In' : 'Out'} - ${searchText}`,
         cash_in: isCredit ? parseFloat(formData.amount) : 0,
         cash_out: isCredit ? 0 : parseFloat(formData.amount),
@@ -367,7 +372,8 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                               const updated = subEntries.map(r => r.id === row.id ? {
                                 ...r, 
                                 code: val,
-                                description: matched ? (selectedAccount?.is_subledger ? matched.member_name : matched.narration_text) : r.description
+                                description: matched ? (selectedAccount?.is_subledger ? matched.member_name : matched.narration_text) : r.description,
+                                member_id: matched && selectedAccount?.is_subledger ? matched.id : r.member_id
                               } : r);
                               setSubEntries(updated);
                             }}
@@ -393,7 +399,8 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                               const updated = subEntries.map(r => r.id === row.id ? {
                                 ...r, 
                                 description: desc,
-                                code: matched ? (selectedAccount?.is_subledger ? matched.member_code : matched.narration_code) : r.code
+                                code: matched ? (selectedAccount?.is_subledger ? matched.member_code : matched.narration_code) : r.code,
+                                member_id: matched && selectedAccount?.is_subledger ? matched.id : r.member_id
                               } : r);
                               setSubEntries(updated);
                               setActiveRowId(row.id);
@@ -409,7 +416,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                                  <div 
                                    key={m.id}
                                    onClick={() => {
-                                     const updated = subEntries.map(r => r.id === row.id ? { ...r, description: m.member_name, code: m.member_code } : r);
+                                     const updated = subEntries.map(r => r.id === row.id ? { ...r, description: m.member_name, code: m.member_code, member_id: m.id } : r);
                                      setSubEntries(updated);
                                      setShowMemberDropdown(false);
                                      setActiveRowId(null);

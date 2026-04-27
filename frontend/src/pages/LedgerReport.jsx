@@ -330,21 +330,15 @@ export default function LedgerReport() {
            </div>
 
            <div className="flex-1 overflow-x-auto px-4 pb-12 scroller-airy">
-              <table className="w-full text-left">
-                 <thead className="bg-[#F8FAFC]">
-                    <tr>
-                       {[
-                         { h: 'Post Epoch', w: '120px' },
-                         { h: 'Manifest Shard', w: '150px' },
-                         { h: 'Particulars / Descriptor', w: 'auto' },
-                         { h: 'Credit (-)', w: '140px', al: 'right' },
-                         { h: 'Debit (+)', w: '140px', al: 'right' },
-                         { h: 'Running Position', w: '160px', al: 'right' }
-                       ].map((col, i) => (
-                         <th key={i} style={{ width: col.w }} className={`px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${col.al === 'right' ? 'text-right' : ''}`}>
-                            {col.h}
-                         </th>
-                       ))}
+              <table className="w-full text-left border-collapse">
+                 <thead>
+                    <tr className="bg-[#F8FAFC]">
+                      <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 w-28">Date</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 w-32">Reference</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Particulars</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right w-36">Debit (Dr)</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right w-36">Credit (Cr)</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right w-40">Balance</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-50">
@@ -359,27 +353,45 @@ export default function LedgerReport() {
                       <tr>
                         <td colSpan="6" className="px-10 py-32 text-center">
                            <Database className="text-slate-100 mx-auto" size={56} strokeWidth={1} />
-                           <p className="mt-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest italic">No Transaction Nodes Detected</p>
+                           <p className="mt-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest italic">No Transaction Records Found</p>
                         </td>
                       </tr>
                     ) : (
                       <>
-                        {data.map((row, idx) => (
-                           <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                              <td className="px-8 py-5 text-[11px] font-bold text-slate-400 font-mono italic">{formatDate(row.transaction_date)}</td>
-                              <td className="px-8 py-5 text-[10px] font-bold text-slate-300 uppercase tracking-tight italic">{row.reference_no}</td>
-                              <td className="px-8 py-5 font-bold text-slate-700 text-sm uppercase tracking-tight">{row.description}</td>
-                              <td className="px-8 py-5 text-right font-bold text-slate-400 italic">₹{parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                              <td className="px-8 py-5 text-right font-black text-slate-900 italic">₹{parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                              <td className="px-8 py-5 text-right font-black text-slate-800 italic underline decoration-slate-100 underline-offset-4">{formatBalance(row.running_balance)}</td>
-                           </tr>
-                        ))}
-                        {/* Consolidated Total Shard */}
-                        <tr className="bg-slate-900 text-white font-bold italic border-t-8 border-white">
-                           <td colSpan="3" className="px-8 py-8 text-xs font-black uppercase tracking-[0.5em] text-blue-500">Aggregate Integrity Total</td>
-                           <td className="px-8 py-8 text-right text-base font-black italic tracking-tighter">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                           <td className="px-8 py-8 text-right text-base font-black italic tracking-tighter">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                           <td className="px-8 py-8 text-right opacity-30 text-[10px] uppercase font-black tracking-widest">End_of_Window</td>
+                        {data.map((row, idx) => {
+                          const bal = parseFloat(row.running_balance || 0);
+                          const isOpening = row.description === 'Opening Balance';
+                          return (
+                            <tr key={idx} className={`group transition-colors ${isOpening ? 'bg-slate-50/80' : 'hover:bg-blue-50/20'}`}>
+                              <td className="px-6 py-4 text-[11px] font-bold text-slate-500 font-mono">{formatDate(row.transaction_date)}</td>
+                              <td className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.reference_no || '—'}</td>
+                              <td className="px-6 py-4 font-bold text-slate-700 text-sm uppercase tracking-tight">
+                                {isOpening
+                                  ? <span className="text-blue-600 italic">{row.description}</span>
+                                  : row.description}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-rose-600">
+                                {row.debit ? `₹${parseFloat(row.debit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-emerald-600">
+                                {row.credit ? `₹${parseFloat(row.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}
+                              </td>
+                              <td className={`px-6 py-4 text-right font-mono font-black ${bal < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {bal >= 0 ? '+' : ''}{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Total Row */}
+                        <tr className="bg-slate-900 text-white font-bold border-t-4 border-slate-200">
+                           <td colSpan="3" className="px-6 py-6 text-xs font-black uppercase tracking-widest text-blue-400">Total</td>
+                           <td className="px-6 py-6 text-right text-base font-black text-rose-300 font-mono">
+                             ₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                           </td>
+                           <td className="px-6 py-6 text-right text-base font-black text-emerald-300 font-mono">
+                             ₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                           </td>
+                           <td className="px-6 py-6 text-right text-[10px] uppercase font-black tracking-widest opacity-40">Closing</td>
                         </tr>
                       </>
                     )}

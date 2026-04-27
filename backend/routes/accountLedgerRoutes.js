@@ -45,6 +45,53 @@ router.get('/balance/:accountId', async (req, res) => {
   }
 });
 
+// GET: Account stats (debit, credit, balance) by Date Range
+router.get('/account-stats/:accountId', async (req, res) => {
+  try {
+    const accountId = req.params.accountId;
+    const { startDate, endDate } = req.query;
+    const companyId = req.header('x-company-id');
+
+    let dateFilter = '';
+    const params = [accountId, companyId];
+
+    if (startDate && endDate) {
+      dateFilter = ' AND DATE(transaction_date) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    const result = await query(
+      `SELECT 
+         COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
+         COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit
+       FROM account_ledger 
+       WHERE account_id = ? AND company_id = ? ${dateFilter}`,
+      params
+    );
+
+    const debit = parseFloat(result[0].total_debit || 0);
+    const credit = parseFloat(result[0].total_credit || 0);
+    
+    // Assume opening balance is Jama (Credit)
+    const accQuery = await query('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
+    const openingBal = parseFloat(accQuery[0]?.opening_balance || 0);
+
+    const totalCredit = credit + openingBal;
+
+    res.json({
+      success: true,
+      data: {
+        total_debit: debit,
+        total_credit: totalCredit,
+        balance: totalCredit - debit
+      }
+    });
+  } catch (error) {
+    console.error('Get account stats error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET: Member balance in specific account
 router.get('/member-balance/:accountId/:memberId', async (req, res) => {
   try {
@@ -52,13 +99,25 @@ router.get('/member-balance/:accountId/:memberId', async (req, res) => {
     const companyId = req.header('x-company-id');
     
     const result = await query(
-      `SELECT SUM(debit - credit) as balance 
+      `SELECT 
+         COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
+         COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit
        FROM account_ledger 
-       WHERE account_id = ? AND reference_id = ? AND company_id = ?`,
-      [accountId, memberId, companyId]
+       WHERE account_id = ? AND (member_id = ? OR reference_id = ?) AND company_id = ?`,
+      [accountId, memberId, memberId, companyId]
     );
     
-    res.json({ success: true, balance: result[0].balance || 0 });
+    const totalDebit = parseFloat(result[0].total_debit || 0);
+    const totalCredit = parseFloat(result[0].total_credit || 0);
+    
+    res.json({ 
+      success: true, 
+      balance: totalDebit - totalCredit,
+      data: {
+        total_debit: totalDebit,
+        total_credit: totalCredit
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

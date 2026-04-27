@@ -196,22 +196,31 @@ router.get('/company/:company_id', async (req, res) => {
 // ==================== GET ACCOUNT BALANCE STATS ====================
 router.get('/:id/balance', async (req, res) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const isMember = String(rawId).toUpperCase().startsWith('M');
+    const numericId = isMember ? parseInt(rawId.slice(1), 10) : parseInt(rawId, 10);
     
-    // Get account opening balance
-    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [id]);
-    if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+    let openingBalance = 0;
     
-    const openingBalance = parseFloat(account.opening_balance || 0);
+    if (isMember) {
+      const member = await queryOne('SELECT id FROM member_master WHERE id = ?', [numericId]);
+      if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+      // Members typically don't have an opening balance column in this schema, assume 0
+      openingBalance = 0;
+    } else {
+      const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [numericId]);
+      if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+      openingBalance = parseFloat(account.opening_balance || 0);
+    }
 
     // Get total ledger debits and credits
     const ledgerStats = await queryOne(`
        SELECT 
-         COALESCE(SUM(debit), 0) as total_debit,
-         COALESCE(SUM(credit), 0) as total_credit
+         COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
+         COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit
        FROM account_ledger
-       WHERE account_id = ?
-    `, [id]);
+       WHERE ${isMember ? 'member_id' : 'account_id'} = ?
+    `, [numericId]);
 
     const totalDebit = parseFloat(ledgerStats.total_debit || 0);
     const totalCredit = parseFloat(ledgerStats.total_credit || 0);
