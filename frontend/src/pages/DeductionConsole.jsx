@@ -31,7 +31,9 @@ export default function DeductionConsole() {
    useEffect(() => {
       if (deductionPayload.target_identifier && deductionPayload.target_identifier.startsWith('account-')) {
          const accId = deductionPayload.target_identifier.split('-')[1];
-         api.get(`/account-ledger/account-stats/${accId}`, { params: accountStatsRange })
+         api.get(`/account-ledger/account-stats/${accId}`, { 
+            params: { ...accountStatsRange, memberId: deductionPayload.sabhasad_id } 
+         })
             .then(res => {
                if (res.data.success) setActiveAccountStats(res.data.data);
             })
@@ -39,7 +41,7 @@ export default function DeductionConsole() {
       } else {
          setActiveAccountStats({ total_debit: 0, total_credit: 0, balance: 0 });
       }
-   }, [deductionPayload.target_identifier, accountStatsRange]);
+   }, [deductionPayload.target_identifier, accountStatsRange, deductionPayload.sabhasad_id]);
 
    useEffect(() => { loadIdentities(); }, []);
 
@@ -313,29 +315,39 @@ export default function DeductionConsole() {
 
                   {/* Account Stats Summary */}
                   {deductionPayload.target_identifier && deductionPayload.target_identifier.startsWith('account-') && (
-                     <div className="bg-blue-50 border-b-2 border-slate-300 px-4 py-2 flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-3">
-                           <span className="text-[10px] font-black text-slate-500 uppercase">From:</span>
-                           <input type="date" value={accountStatsRange.startDate}
-                              onChange={e => setAccountStatsRange(p => ({ ...p, startDate: e.target.value }))}
-                              className="px-2 py-0.5 bg-white border border-slate-300 rounded-sm text-[10px] font-bold text-slate-800 outline-none focus:border-blue-500" />
-                           <span className="text-[10px] font-black text-slate-500 uppercase">To:</span>
-                           <input type="date" value={accountStatsRange.endDate}
-                              onChange={e => setAccountStatsRange(p => ({ ...p, endDate: e.target.value }))}
-                              className="px-2 py-0.5 bg-white border border-slate-300 rounded-sm text-[10px] font-bold text-slate-800 outline-none focus:border-blue-500" />
+                     <div className="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center justify-between shrink-0 gap-2">
+                        <div className="flex items-center gap-2">
+                           <div className="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">From:</span>
+                              <input type="date" value={accountStatsRange.startDate}
+                                 onChange={e => setAccountStatsRange(p => ({ ...p, startDate: e.target.value }))}
+                                 className="bg-transparent border-none text-[10px] font-bold text-slate-800 outline-none w-20" />
+                           </div>
+                           <div className="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">To:</span>
+                              <input type="date" value={accountStatsRange.endDate}
+                                 onChange={e => setAccountStatsRange(p => ({ ...p, endDate: e.target.value }))}
+                                 className="bg-transparent border-none text-[10px] font-bold text-slate-800 outline-none w-20" />
+                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-[10px] font-mono font-black">
-                           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100/50 border border-emerald-200 rounded">
-                              <span className="text-emerald-700 uppercase">Total Credited (Jama):</span>
-                              <span className="text-emerald-900">{parseFloat(activeAccountStats.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <div className="flex items-center gap-2 text-[10px] font-mono font-black">
+                           <div className="flex flex-col items-end px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded min-w-[80px]">
+                              <span className="text-emerald-700 text-[8px] uppercase leading-none mb-0.5">Jama</span>
+                              <span className="text-emerald-900 leading-none">{parseFloat(activeAccountStats.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                            </div>
-                           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-100/50 border border-rose-200 rounded">
-                              <span className="text-rose-700 uppercase">Total Debited (Udhar):</span>
-                              <span className="text-rose-900">{parseFloat(activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                           {activeAccountStats.bardan_penalty > 0 && (
+                              <div className="flex flex-col items-end px-2 py-0.5 bg-amber-50 border border-amber-200 rounded min-w-[80px]">
+                                 <span className="text-amber-700 text-[8px] uppercase leading-none mb-0.5">Bardan ({activeAccountStats.bardan_balance})</span>
+                                 <span className="text-amber-900 leading-none">{parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                           )}
+                           <div className="flex flex-col items-end px-2 py-0.5 bg-rose-50 border border-rose-200 rounded min-w-[80px]">
+                              <span className="text-rose-700 text-[8px] uppercase leading-none mb-0.5">Total Udhar</span>
+                              <span className="text-rose-900 leading-none">{parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                            </div>
-                           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-100/50 border border-blue-200 rounded">
-                              <span className="text-blue-700 uppercase">Remaining Balance:</span>
-                              <span className="text-blue-900 text-[11px]">{parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                           <div className="flex flex-col items-end px-3 py-0.5 bg-blue-600 border border-blue-700 rounded shadow-sm min-w-[100px]">
+                              <span className="text-blue-100 text-[8px] uppercase leading-none mb-0.5">Remaining Bal.</span>
+                              <span className="text-white text-[11px] leading-none">{parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                            </div>
                         </div>
                      </div>

@@ -32,6 +32,7 @@ const DangarEntry = () => {
     amount: 0,
     active_bardan_price: 0,
     returned_bags: 0,
+    quality_class: '1st',
     season: new Date().getMonth() >= 3 && new Date().getMonth() <= 8 ? 'summer' : 'winter'
   });
 
@@ -209,8 +210,8 @@ const DangarEntry = () => {
     const activePrice = parseFloat(formData.active_bardan_price) || bardanPrice;
     const bardanDeductionValue = remainingBardan * activePrice;
 
-    // Ultimate Net Payable
-    const netPayable = finalAmt - bardanDeductionValue;
+    // Ultimate Net Payable - Penalty is shown as info only, settled in Kapat Console
+    const netPayable = finalAmt;
 
     setFormData(prev => ({
       ...prev,
@@ -243,7 +244,10 @@ const DangarEntry = () => {
           const res = await api.get(`/dangar-rates/item/${formData.item_id}?year=${year}`);
           if (res.data.success && res.data.data) {
             const data = res.data.data;
-            const selectedRate = formData.season === 'summer' ? (data.summer_rate || data.rate) : (data.winter_rate || data.rate);
+            let selectedRate = data.rate; // Default to 1st class
+            if (formData.quality_class === '2nd') selectedRate = data.winter_rate || data.rate;
+            else if (formData.quality_class === '3rd') selectedRate = data.summer_rate || data.rate;
+
             setFormData(prev => ({
               ...prev,
               rate: selectedRate
@@ -258,7 +262,7 @@ const DangarEntry = () => {
       };
       fetchItemRate();
     }
-  }, [formData.item_id, formData.season, company]);
+  }, [formData.item_id, formData.quality_class, company]);
 
   const handleAddRow = () => {
     setWeightRows([...weightRows, { id: Date.now(), wgt: '' }]);
@@ -578,9 +582,36 @@ const DangarEntry = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                {/* Quality Category Selection */}
+                <div className="md:col-span-4 space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
+                    <span>Quality Vector</span>
+                    <span className="text-amber-500 bg-amber-50 px-2 py-0.5 rounded-2xl border border-amber-100 text-[8px]">GRADED</span>
+                  </label>
+                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-2xl">
+                    {[
+                      { key: '1st', label: '1st Class' },
+                      { key: '2nd', label: '2nd Class' },
+                      { key: '3rd', label: '3rd Class' }
+                    ].map(q => (
+                      <button
+                        key={q.key}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, quality_class: q.key }))}
+                        className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${formData.quality_class === q.key
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                          : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                      >
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Item Selection */}
-                <div className="space-y-3">
+                <div className="md:col-span-8 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Item Schema Vector</label>
                   <div className="relative group">
                     <Box className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
@@ -596,7 +627,9 @@ const DangarEntry = () => {
                     </select>
                   </div>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Vehicle No */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.vehicleNo')}</label>
@@ -769,7 +802,7 @@ const DangarEntry = () => {
                     { label: t('dangarEntry.grossQuintal'), val: formData.gross_quintal, color: 'slate-500' },
                     { label: 'Total Man (20kg)', val: formData.total_man, color: 'amber-500' },
                     { label: t('dangarEntry.lessBardan'), val: `${formData.less_bardan} (${formData.returned_bags} Bags)`, color: 'rose-500' },
-                    { label: 'Standard Rate (₹)', val: formData.rate, color: 'blue-500' },
+                    { label: `${formData.quality_class} Class Rate (₹)`, val: formData.rate, color: 'blue-500' },
                     { label: t('dangarEntry.netQuintal'), val: formData.net_quintal, color: 'white', size: 'text-3xl', highlight: true },
                     { label: `Penalty: Unreturned (${formData.bardan || 0} x ₹${formData.active_bardan_price || bardanPrice})`, val: `₹${formData.remaining_bardan_deduction || '0.00'}`, color: 'rose-400' },
                     { label: 'Total Amount (₹)', val: formData.amount, color: 'emerald-400', size: 'text-4xl', highlight: true }

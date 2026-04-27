@@ -15,6 +15,7 @@ export default function DangarMaster() {
   const [searchQuery, setSearchQuery] = useState('');
   const [company, setCompany] = useState(null);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [season, setSeason] = useState('');
 
   useEffect(() => {
     loadInitialData();
@@ -42,6 +43,9 @@ export default function DangarMaster() {
       if (dateRange.start && dateRange.end) {
         params.startDate = dateRange.start;
         params.endDate = dateRange.end;
+      }
+      if (season) {
+        params.season = season;
       }
       const res = await api.get('/dangar-entry', { params: { companyId: compId, ...params } });
       if (res.data.success) {
@@ -110,6 +114,34 @@ export default function DangarMaster() {
            </div>
            <button onClick={() => fetchEntries(company?.id)} className="px-6 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all active:scale-95">Verify Registry</button>
            
+           <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
+             {['', 'Winter', 'Summer'].map((s) => (
+               <button
+                 key={s}
+                 onClick={() => {
+                   setSeason(s);
+                   // Trigger fetch immediately on season change for better UX
+                   const params = { companyId: company?.id };
+                   if (dateRange.start && dateRange.end) {
+                     params.startDate = dateRange.start;
+                     params.endDate = dateRange.end;
+                   }
+                   if (s) params.season = s;
+                   api.get('/dangar-entry', { params }).then(res => {
+                     if (res.data.success) setEntries(res.data.data);
+                   });
+                 }}
+                 className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                   season === s 
+                   ? 'bg-white text-blue-600 shadow-sm border border-slate-100 italic' 
+                   : 'text-slate-400 hover:text-slate-600'
+                 }`}
+               >
+                 {s || 'All Seasons'}
+               </button>
+             ))}
+           </div>
+
            <div className="ml-auto flex items-center gap-6">
               <div className="text-right">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Registry Volume</p>

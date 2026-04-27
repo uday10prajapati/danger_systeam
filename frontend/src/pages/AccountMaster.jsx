@@ -383,11 +383,20 @@ export default function AccountMaster() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-10 py-6 text-right">
+                       <td className="px-10 py-6 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
                           <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><Eye size={16} /></button>
-                          <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
-                          <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-xl transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
+                          {!acc.is_system && (
+                            <>
+                              <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
+                              <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-xl transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
+                            </>
+                          )}
+                          {acc.is_system && (
+                            <div className="p-2.5 bg-slate-50 border border-slate-200 text-slate-300 rounded-xl cursor-not-allowed" title="System Protected Node">
+                              <Shield size={16} />
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>

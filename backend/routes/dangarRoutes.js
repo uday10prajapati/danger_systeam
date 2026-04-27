@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const companyId = req.headers['x-company-id'] || req.query.companyId;
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, season } = req.query;
 
     if (!companyId) {
       return res.status(400).json({ success: false, error: 'Company Context Required' });
@@ -22,12 +22,17 @@ router.get('/', async (req, res) => {
     `;
     const params = [companyId];
 
+    if (season) {
+      sql += ` AND de.book_type = ?`;
+      params.push(season);
+    }
+
     if (startDate && endDate) {
       sql += ` AND de.entry_date BETWEEN ? AND ?`;
       params.push(startDate, endDate);
     }
 
-    sql += ` ORDER BY de.entry_date DESC, de.id DESC LIMIT 500`;
+    sql += ` ORDER BY de.entry_date DESC, de.id DESC LIMIT 1000`;
     
     const rows = await query(sql, params);
     res.json({ success: true, data: rows });
@@ -74,7 +79,8 @@ router.post('/', async (req, res) => {
     const { 
       bookType, date, member_id, item_id, remark, vehicleNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate, amount, created_by, weights, deductions = [], remaining_bardan_bags
+      rate, amount, created_by, weights, deductions = [], remaining_bardan_bags, returned_bags,
+      quality_class
     } = req.body;
 
     // 1. Precise SR No Generation (Isolate by Company/Year)
@@ -91,13 +97,13 @@ router.post('/', async (req, res) => {
     const result = await execute(`
       INSERT INTO dangar_entry (
         company_id, financial_year, book_type, sr_no, entry_date, 
-        member_id, item_id, remark, vehicle_no,
+        member_id, item_id, remark, vehicle_no, quality_class,
         total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
         rate, amount, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       companyId, currentFinancialYear, bookType, srNo, date,
-      member_id, item_id, remark, vehicleNo,
+      member_id, item_id, remark, vehicleNo, quality_class || '1st',
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
       rate || 0, amount || 0, created_by || 1
     ]);
@@ -133,19 +139,25 @@ router.post('/', async (req, res) => {
     // 5. Commit to Unified Ledger (Reflect in Rojmel & Member Balance)
     // In this flow, Dangar Entry acts as a cash purchase from the member
     // So we CREDIT the member (they provided goods, we owe them/paid them)
+    
+    // Fetch Item's Ledger Account Identity
+    const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
+    const purchaseAccountId = itemData?.purchase_account_id || null;
+
     const ledgerDesc = `${bookType} Purchase - ${item_id} - ${net_quintal} Qt @ ${rate}`;
     await execute(`
       INSERT INTO account_ledger (
-        company_id, member_id, transaction_date, transaction_type, reference_type, 
+        company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
         reference_id, reference_no, description, credit, financial_year
-      ) VALUES (?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?)
     `, [
-      companyId, member_id, date, entryId, srNo, ledgerDesc, 
+      companyId, purchaseAccountId, member_id, date, entryId, srNo, ledgerDesc, 
       parseFloat(amount || 0), currentFinancialYear
     ]);
 
     // 6. Auto-Settle Bardan Balance (Jama Entry)
-    if (remaining_bardan_bags && parseFloat(remaining_bardan_bags) > 0) {
+    // We credit the bags actually returned (returned_bags), not the remaining balance.
+    if (returned_bags && parseFloat(returned_bags) > 0) {
       const member = await queryOne(`SELECT member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
       if (member) {
         let settleRemark = `Dangar Settlement SR: ${srNo}`;
@@ -156,7 +168,7 @@ router.post('/', async (req, res) => {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           companyId, currentFinancialYear, date,
-          'J', srNo, 'S', member.member_code, member.member_name, parseFloat(remaining_bardan_bags), settleRemark
+          'J', srNo, 'S', member.member_code, member.member_name, parseFloat(returned_bags), settleRemark
         ]);
       }
     }
@@ -165,6 +177,52 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Dangar Entry Commit Error:', error);
     res.status(500).json({ success: false, error: 'Database Synchronization Failure: ' + error.message });
+  }
+});
+
+// RECALCULATE entries for an item based on current master rates
+router.post('/recalculate', async (req, res) => {
+  try {
+    const { item_id, financial_year, company_id } = req.body;
+    
+    // 1. Fetch Master Rates
+    const rates = await queryOne(
+      'SELECT rate, winter_rate, summer_rate FROM dangar_rates WHERE item_id = ? AND financial_year = ? AND company_id = ?',
+      [item_id, financial_year, company_id]
+    );
+
+    if (!rates) return res.status(404).json({ success: false, error: 'Rates not configured for this item/year' });
+
+    // 2. Fetch all entries
+    const entries = await query(
+      'SELECT id, net_quintal, quality_class FROM dangar_entry WHERE item_id = ? AND financial_year = ? AND company_id = ?',
+      [item_id, financial_year, company_id]
+    );
+
+    for (const entry of entries) {
+      let activeRate = rates.rate;
+      if (entry.quality_class === '2nd') activeRate = rates.winter_rate || rates.rate;
+      else if (entry.quality_class === '3rd') activeRate = rates.summer_rate || rates.rate;
+
+      const newAmount = parseFloat(entry.net_quintal || 0) * parseFloat(activeRate || 0);
+
+      // Update Dangar Entry
+      await execute(
+        'UPDATE dangar_entry SET rate = ?, amount = ? WHERE id = ?',
+        [activeRate, newAmount, entry.id]
+      );
+
+      // Update Ledger (Matching by reference_id and reference_type)
+      await execute(
+        'UPDATE account_ledger SET credit = ? WHERE reference_type = "cash_book" AND reference_id = ? AND company_id = ?',
+        [newAmount, entry.id, company_id]
+      );
+    }
+
+    res.json({ success: true, message: `Successfully synchronized ${entries.length} transaction nodes.` });
+  } catch (error) {
+    console.error('Recalculate Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

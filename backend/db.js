@@ -127,12 +127,15 @@ export async function initializeDatabase() {
         )
       `);
 
-      // Migration for accounts (ensure account_code and is_subledger exist)
+      // Migration for accounts (ensure account_code, is_subledger, is_system exist)
       try {
         await connection.query("ALTER TABLE accounts ADD COLUMN account_code VARCHAR(50)");
       } catch (e) {}
       try {
         await connection.query("ALTER TABLE accounts ADD COLUMN is_subledger TINYINT(1) DEFAULT 0");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE accounts ADD COLUMN is_system TINYINT(1) DEFAULT 0");
       } catch (e) {}
 
       // Create Item Master table

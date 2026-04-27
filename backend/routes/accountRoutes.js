@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
 
     const sql = `
-       SELECT id, account_code, account_name, account_type, is_active, is_subledger FROM accounts 
+       SELECT id, account_code, account_name, account_type, is_active, is_subledger, is_system FROM accounts 
        WHERE company_id = ? AND is_deleted = 0
        ORDER BY account_name ASC
     `;
@@ -133,30 +133,18 @@ router.get('/company/:company_id', async (req, res) => {
     const { type } = req.query; // Optional filter by account_type
 
     let sql = `
-       SELECT * FROM (
-         SELECT 
-           CAST(a.id AS CHAR) as id, a.account_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
-           a.opening_balance, a.is_active, a.is_subledger, a.created_at, a.updated_at,
-           COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_debit,
-           COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_credit
-         FROM accounts a
-         WHERE a.company_id = ? AND a.is_deleted = 0
-         
-         UNION ALL
-         
-         SELECT 
-           CONCAT('M', m.id) as id, m.member_code as account_code, m.company_id, m.member_name as account_name, 'member' as account_type, m.phone, NULL as email, NULL as gst_no, NULL as tin_no,
-           0 as opening_balance, m.is_active, 0 as is_subledger, m.created_at, m.updated_at,
-           COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE member_id = m.id AND company_id = m.company_id), 0) as total_debit,
-           COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE member_id = m.id AND company_id = m.company_id), 0) as total_credit
-         FROM member_master m
-         WHERE m.company_id = ? AND m.account_id IS NULL
-       ) unified
+       SELECT 
+         CAST(a.id AS CHAR) as id, a.account_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
+         a.opening_balance, a.is_active, a.is_subledger, a.is_system, a.created_at, a.updated_at,
+         COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_debit,
+         COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_credit
+       FROM accounts a
+       WHERE a.company_id = ? AND a.is_deleted = 0
     `;
-    let params = [company_id, company_id];
+    let params = [company_id];
 
     if (type && type !== 'all') {
-      sql += ' WHERE account_type = ?';
+      sql += ' AND a.account_type = ?';
       params.push(type);
     }
 
@@ -300,6 +288,10 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Account not found' });
     }
 
+    if (account.is_system) {
+      return res.status(403).json({ success: false, error: 'System Protocol Account: Modification restricted by core security layer.' });
+    }
+
     // Check if new account name conflicts
     if (account_name) {
       const duplicate = await queryOne(
@@ -407,6 +399,39 @@ router.post('/:id/activate', async (req, res) => {
   } catch (error) {
     console.error('Activate account error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to activate account' });
+  }
+});
+
+// ==================== DELETE ACCOUNT ====================
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const account = await queryOne(
+      'SELECT id, is_system FROM accounts WHERE id = ? AND is_deleted = 0',
+      [id]
+    );
+
+    if (!account) {
+      return res.status(404).json({ success: false, error: 'Account not found' });
+    }
+
+    if (account.is_system) {
+      return res.status(403).json({ success: false, error: 'Operation Denied: This account is a critical system dependency (Protocol Node).' });
+    }
+
+    await execute(
+      'UPDATE accounts SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Account permanently removed from active registry'
+    });
+  } catch (error) {
+    console.error('Delete account error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to purge account' });
   }
 });
 

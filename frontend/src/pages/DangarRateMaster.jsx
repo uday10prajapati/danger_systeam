@@ -234,9 +234,9 @@ export default function DangarRateMaster() {
                         <tr className="bg-[#F8FAFC]">
                            <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Commodity</th>
                            <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">SKU</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Std Rate (₹)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30">Winter (₹)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30">Summer (₹)</th>
+                           <th className="px-6 py-5 text-[ Berkshire-100] text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">1st Class (₹)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30 font-black">2nd Class (₹)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30 font-black">3rd Class (₹)</th>
                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Ops</th>
                         </tr>
                      </thead>
@@ -309,29 +309,57 @@ export default function DangarRateMaster() {
 
                                  <td className="px-10 py-6 text-right">
                                     {isEditing ? (
-                                       <div className="flex items-center justify-end gap-2">
-                                          <button
-                                             onClick={() => handleSave(item.id)}
-                                             disabled={isSaving}
-                                             className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95"
-                                          >
-                                             {isSaving ? <RefreshCcw size={16} className="animate-spin" /> : <Save size={16} />}
-                                          </button>
-                                          <button
-                                             onClick={() => setEditingItemId(null)}
-                                             className="p-2.5 bg-slate-100 text-slate-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all"
-                                          >
-                                             <Plus className="rotate-45" size={16} />
-                                          </button>
-                                       </div>
-                                    ) : (
-                                       <button
-                                          onClick={() => handleEdit(item, rateObj)}
-                                          className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"
-                                       >
-                                          <Edit3 size={16} />
-                                       </button>
-                                    )}
+                                        <div className="flex items-center justify-end gap-2">
+                                           <button
+                                              onClick={() => handleSave(item.id)}
+                                              disabled={isSaving}
+                                              className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                                           >
+                                              {isSaving ? <RefreshCcw size={16} className="animate-spin" /> : <Save size={16} />}
+                                           </button>
+                                           <button
+                                              onClick={() => setEditingItemId(null)}
+                                              className="p-2.5 bg-slate-100 text-slate-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                           >
+                                              <Plus className="rotate-45" size={16} />
+                                           </button>
+                                        </div>
+                                     ) : (
+                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                           <button
+                                              onClick={async () => {
+                                                 if (!window.confirm(`Sync all previous entries for ${item.item_name} with current master rates?`)) return;
+                                                 try {
+                                                    setIsSaving(true);
+                                                    const res = await api.post('/dangar-entry/recalculate', {
+                                                       item_id: item.id,
+                                                       financial_year: financialYear,
+                                                       company_id: companyId
+                                                    });
+                                                    if (res.data.success) {
+                                                       setMessage({ type: 'success', text: res.data.message });
+                                                       setTimeout(() => setMessage(null), 3000);
+                                                    }
+                                                 } catch (e) {
+                                                    setMessage({ type: 'error', text: 'Synchronization engine error' });
+                                                 } finally {
+                                                    setIsSaving(false);
+                                                 }
+                                              }}
+                                              disabled={isSaving}
+                                              title="Recalculate earlier entries"
+                                              className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-amber-600 hover:border-amber-100 hover:shadow-lg rounded-xl transition-all"
+                                           >
+                                              <RefreshCcw size={16} className={isSaving ? 'animate-spin' : ''} />
+                                           </button>
+                                           <button
+                                              onClick={() => handleEdit(item, rateObj)}
+                                              className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl"
+                                           >
+                                              <Edit3 size={16} />
+                                           </button>
+                                        </div>
+                                     )}
                                  </td>
                               </tr>
                            );

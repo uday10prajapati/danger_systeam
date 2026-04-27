@@ -259,7 +259,6 @@ router.post('/execute-batch', async (req, res) => {
        if (amount <= 0) continue;
 
        // Create Debit Entry for the member/account in the specific Kapat Account
-       // In Kapat, the member OWES more or pays from balance. We DEBIT them.
        await query(`
          INSERT INTO account_ledger (
            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
@@ -276,6 +275,55 @@ router.post('/execute-batch', async (req, res) => {
           req.headers['x-user-id'] || 1, 
           '2026-27'
        ]);
+
+       // --- Bardan Penalty Auto-Settlement Logic ---
+       if (target.type === 'member') {
+         try {
+           const member = await queryOne('SELECT member_name, member_code, bardan_opening FROM member_master WHERE id = ?', [target.id]);
+           if (member) {
+             const code = member.member_code;
+             const taken = await queryOne('SELECT SUM(qty) as total FROM bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+             const returned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+             
+             const bardan_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(returned?.total || 0);
+             
+             if (bardan_balance > 0) {
+               const priceData = await queryOne('SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ?', [companyId]);
+               const price = parseFloat(priceData?.price_per_bardan || 0);
+               
+               if (price > 0) {
+                 // Calculate how many bags are 'paid for' by this deduction
+                 // If the deduction amount is specifically meant to cover the penalty
+                 // We'll clear up to the balance if amount is sufficient.
+                 // Business Rule: If amount >= penalty, clear all. Otherwise clear proportional.
+                 const penalty = bardan_balance * price;
+                 let bagsToClear = 0;
+                 
+                 if (amount >= penalty) {
+                    bagsToClear = bardan_balance;
+                 } else {
+                    bagsToClear = Math.floor(amount / price);
+                 }
+
+                 if (bagsToClear > 0) {
+                   await execute(`
+                     INSERT INTO jama_bardan_entry (
+                       company_id, financial_year, entry_date, 
+                       book_type, pavti_no, mem_nominal, code, name, qty, remark
+                     ) VALUES (?, ?, ?, 'J', ?, 'S', ?, ?, ?, ?)
+                   `, [
+                     companyId, '2026-27', date, referenceNo, 
+                     code, member.member_name, bagsToClear, `Bardan Penalty Paid via Kapat (${rule.name})`
+                   ]);
+                 }
+               }
+             }
+           }
+         } catch (err) {
+           console.error('Bardan Settlement Failure:', err);
+         }
+       }
+
        successCount++;
     }
 
