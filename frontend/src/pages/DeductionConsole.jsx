@@ -167,6 +167,10 @@ export default function DeductionConsole() {
       }
    };
 
+   const activeTarget = selectedIdentities.find(i => `${i.type}-${i.id}` === deductionPayload.target_identifier);
+   const activeAccount = activeTarget?.type === 'account' ? accounts.find(a => a.id === activeTarget.id) : null;
+   const isSubledger = activeAccount ? activeAccount.is_subledger === 1 : true;
+
    return (
       <div className="min-h-screen bg-slate-50 p-8">
          <div className="max-w-7xl mx-auto space-y-6">
@@ -268,24 +272,28 @@ export default function DeductionConsole() {
                         </div>
                      </div>
                      <div className="flex items-center gap-2">
-                        <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">Sabhasad :</label>
+                        <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">{isSubledger ? 'Sabhasad :' : 'Narration :'}</label>
                         {/* Code box — small, auto-fills name on change */}
                         <input
                            type="text"
                            value={deductionPayload.sabhasad_code || ''}
                            onChange={async (e) => {
                               const code = e.target.value;
-                              const match = members.find(m => String(m.member_code) === String(code));
+                              let match = null;
+                              if (isSubledger) {
+                                 match = members.find(m => String(m.member_code) === String(code));
+                              } else {
+                                 match = narrations.find(n => String(n.narration_code) === String(code));
+                              }
 
                               setDeductionPayload(p => ({
                                  ...p,
                                  sabhasad_code: code,
-                                 sabhasad_name: match ? match.member_name : '',
-                                 sabhasad_id: match ? match.id : null
+                                 sabhasad_name: match ? (isSubledger ? match.member_name : match.narration_text) : '',
+                                 sabhasad_id: match && isSubledger ? match.id : null
                               }));
 
-                              if (match) {
-                                 // Fetch balances for ALL accounts in the grid specifically for this member
+                              if (match && isSubledger) {
                                  preloadIdentityInsights(selectedIdentities, match.id);
                               }
                            }}
@@ -298,7 +306,7 @@ export default function DeductionConsole() {
                            value={deductionPayload.sabhasad_name || ''}
                            onChange={e => setDeductionPayload(p => ({ ...p, sabhasad_name: e.target.value }))}
                            className="flex-1 px-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-800 outline-none focus:border-blue-500 h-7"
-                           placeholder="Member Name"
+                           placeholder={isSubledger ? "Member Name" : "Narration / Description"}
                         />
                      </div>
                   </div>
@@ -438,7 +446,7 @@ export default function DeductionConsole() {
                            );
                         })
                      ) : (
-                        accounts.filter(a => a.account_name.toLowerCase().includes(identitySearch.toLowerCase())).map(a => {
+                        accounts.filter(a => a.is_subledger === 1 && a.account_name.toLowerCase().includes(identitySearch.toLowerCase())).map(a => {
                            const isSel = selectedIdentities.some(i => i.id === a.id && i.type === 'account');
                            return (
                               <div key={a.id} onClick={() => toggleIdentitySelection(a.id, 'account', a.account_name, a.account_code || a.id)}
