@@ -175,14 +175,14 @@ export default function LedgerReport() {
           <div className="flex items-center gap-4">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 bg-white border border-slate-100 px-6 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-2 bg-white border border-slate-100 px-6 py-3 rounded-lg text-sm font-bold text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95"
             >
               <Printer size={18} />
               Print Statement
             </button>
             <button
               onClick={fetchReportData}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-3 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
             >
               <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
               Synchronize
@@ -198,10 +198,10 @@ export default function LedgerReport() {
             { label: 'Aggregate Credit', val: `₹${parseFloat(totals.credit || 0).toLocaleString('en-IN')}`, icon: <TrendingDown size={18} />, color: 'amber' },
             { label: 'Closing Position', val: formatBalance(data[data.length - 1]?.running_balance || 0), icon: <CheckCircle2 size={18} />, color: 'emerald' }
           ].map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
+            <div key={i} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <div className={`p-2.5 bg-${stat.color}-50 text-${stat.color}-600 rounded-xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                <div className={`p-2.5 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
               </div>
               <p className={`text-2xl font-bold text-slate-800 tracking-tighter ${i === 3 ? 'text-emerald-600 animate-pulse' : ''}`}>{stat.val}</p>
             </div>
@@ -209,7 +209,7 @@ export default function LedgerReport() {
         </div>
 
         {/* Control Deck - Page Container Style */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10 print:hidden">
+        <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden">
           <div className="flex flex-wrap items-end justify-between gap-8">
             <div className="flex-1 flex flex-wrap items-end gap-6 relative">
 
@@ -228,7 +228,7 @@ export default function LedgerReport() {
                     }}
                     onFocus={() => setShowMemberDropdown(true)}
                     placeholder="ID"
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
                   />
                 </div>
               </div>
@@ -248,14 +248,14 @@ export default function LedgerReport() {
                     }}
                     onFocus={() => setShowMemberDropdown(true)}
                     placeholder="SEARCH IDENTITY REGISTRY..."
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
                   />
                 </div>
               </div>
 
               {/* Dropdown Results */}
               {showMemberDropdown && (filteredAccounts.length > 0) && (
-                <div className="absolute top-[85px] left-0 right-0 bg-white border border-slate-100 shadow-2xl rounded-[1.5rem] overflow-hidden z-[100] animate-in zoom-in-95 duration-200">
+                <div className="absolute top-[85px] left-0 right-0 bg-white border border-slate-100 shadow-2xl rounded-lg overflow-hidden z-[100] animate-in zoom-in-95 duration-200">
                   <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center italic">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Identified Nodes in Registry</span>
                     <X size={12} className="text-slate-300 cursor-pointer" onClick={() => setShowMemberDropdown(false)} />
@@ -280,18 +280,18 @@ export default function LedgerReport() {
               <div className="flex flex-wrap items-end gap-4">
                 <div>
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal Start</span>
-                  <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50/50 border border-slate-100 rounded-2xl px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono" />
+                  <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50/50 border border-slate-100 rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono" />
                 </div>
                 <div>
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal End</span>
-                  <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50/50 border border-slate-100 rounded-2xl px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono" />
+                  <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50/50 border border-slate-100 rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono" />
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-6 p-2 bg-slate-50/50 rounded-2xl border border-slate-100">
+            <div className="flex items-center gap-6 p-2 bg-slate-50/50 rounded-lg border border-slate-100">
               <label className="flex items-center gap-3 px-4 py-2 cursor-pointer group transition-all">
-                <div className={`w-5 h-5 rounded-2xl border-2 flex items-center justify-center transition-all ${printSubAmount ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
+                <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${printSubAmount ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
                   <input type="checkbox" checked={printSubAmount} onChange={e => setPrintSubAmount(e.target.checked)} className="hidden" />
                   {printSubAmount && <X size={12} className="text-white rotate-45" />}
                 </div>
@@ -299,7 +299,7 @@ export default function LedgerReport() {
               </label>
               <div className="w-px h-6 bg-slate-200"></div>
               <label className="flex items-center gap-3 px-4 py-2 cursor-pointer group transition-all">
-                <div className={`w-5 h-5 rounded-2xl border-2 flex items-center justify-center transition-all ${showAccountNumber ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
+                <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${showAccountNumber ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
                   <input type="checkbox" checked={showAccountNumber} onChange={e => setShowAccountNumber(e.target.checked)} className="hidden" />
                   {showAccountNumber && <X size={12} className="text-white rotate-45" />}
                 </div>
@@ -310,7 +310,7 @@ export default function LedgerReport() {
         </div>
 
         {/* Audit Canvas - Statement Presentation */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[700px] relative">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[700px] relative">
 
 
           {/* Watermark Section Header */}
@@ -391,7 +391,7 @@ export default function LedgerReport() {
           {/* Dashboard Insight Footer */}
           <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
+              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
               <span className="flex items-center gap-2"><Layout size={12} /> Shards Populated: {data.length}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -411,7 +411,7 @@ export default function LedgerReport() {
           .print\\:hidden { display: none !important; }
           .bg-slate-900, .bg-black { background-color: #000000 !important; color: white !important; }
           .bg-slate-100, .bg-slate-50 { background-color: #f8fafc !important; }
-          .rounded-\\[2\\.5rem\\], .rounded-2xl { border-radius: 0 !important; border: none !important; shadow: none !important; }
+          .rounded-\\[2\\.5rem\\], .rounded-lg { border-radius: 0 !important; border: none !important; shadow: none !important; }
           table { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important; }
           th, td { border-bottom: 1px solid #e2e8f0 !important; padding: 10px 12px !important; }
           .text-slate-900, .text-slate-700, .text-slate-800 { color: #000000 !important; }

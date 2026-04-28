@@ -131,7 +131,7 @@ export default function AccountMaster() {
   };
 
   const filteredAccounts = (Array.isArray(accounts) ? accounts : []).filter(acc => {
-    const matchesCode = searchCode === '' || 
+    const matchesCode = searchCode === '' ||
       acc.account_code?.toString().includes(searchCode) ||
       acc.id?.toString().includes(searchCode);
     const matchesName = searchName === '' || acc.account_name.toLowerCase().includes(searchName.toLowerCase());
@@ -160,13 +160,13 @@ export default function AccountMaster() {
   if (!company && !loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
-          <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertCircle size={40} /></div>
+        <div className="bg-white rounded-lg border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-lg flex items-center justify-center mx-auto mb-6"><AlertCircle size={40} /></div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('accountMaster.noCompanyFound', 'System Lock')}</h2>
           <p className="text-slate-500 font-medium mb-8 leading-relaxed">Financial identity registry is offline. Please initialize company profile context first.</p>
           <div className="flex flex-col gap-3">
-            <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">Go to Company Setup</button>
-            <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-slate-100 transition-all">Retry Synchronization</button>
+            <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg transition-all active:scale-95">Go to Company Setup</button>
+            <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-lg hover:bg-slate-100 transition-all">Retry Synchronization</button>
           </div>
         </div>
       </div>
@@ -181,7 +181,7 @@ export default function AccountMaster() {
             onClick={() => { setShowForm(false); setEditingAccount(null); }}
             className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
           >
-            <div className="p-2 bg-white rounded-2xl border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
+            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
             Back to Registry List
           </button>
           <AccountForm
@@ -210,7 +210,7 @@ export default function AccountMaster() {
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2">
-              <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+              <div className="flex items-center gap-3 bg-white rounded-lg px-4 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
                 <Hash size={16} className="text-slate-300 group-focus-within:text-blue-500" />
                 <input
                   type="text"
@@ -220,7 +220,7 @@ export default function AccountMaster() {
                   className="bg-transparent border-none outline-none text-xs text-slate-600 w-16 placeholder:text-slate-300 font-bold font-mono"
                 />
               </div>
-              <div className="flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+              <div className="flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
                 <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
                 <input
                   type="text"
@@ -233,14 +233,14 @@ export default function AccountMaster() {
             </div>
             <button
               onClick={handleDownloadCSV}
-              className="hidden lg:flex items-center gap-2 bg-white px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 shadow-sm"
+              className="hidden lg:flex items-center gap-2 bg-white px-6 py-3.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all active:scale-95 shadow-sm"
             >
               <Download size={18} />
               Export
             </button>
             <button
               onClick={handleCreateNew}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
             >
               <Plus size={20} />
               Initialize Ledger
@@ -250,7 +250,7 @@ export default function AccountMaster() {
 
         {/* Global Messages */}
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
@@ -259,49 +259,49 @@ export default function AccountMaster() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Accounts</p>
-              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Users size={16} /></div>
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Users size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">{accounts.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Online Nodes</p>
-              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><Activity size={16} /></div>
+              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><Activity size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-emerald-600">{accounts.filter(a => a.is_active).length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fiscal Assets</p>
-              <div className="p-2 bg-violet-50 rounded-xl text-violet-600"><Scale size={16} /></div>
+              <div className="p-2 bg-violet-50 rounded-lg text-violet-600"><Scale size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">{accounts.filter(a => a.account_type === 'assets').length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-amber-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-amber-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Revenue Streams</p>
-              <div className="p-2 bg-amber-50 rounded-xl text-amber-600"><TrendingUp size={16} /></div>
+              <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><TrendingUp size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">{accounts.filter(a => a.account_type === 'revenue').length}</p>
           </div>
         </div>
 
         {/* Table View */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
           <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Database size={18} /></div>
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Database size={18} /></div>
               <h2 className="text-lg font-bold text-slate-800">Operational Registry</h2>
             </div>
-            <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-2xl">
+            <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-lg">
               {accountTypes.slice(0, 4).map(type => (
                 <button
                   key={type.value}
                   onClick={() => setSelectedType(type.value)}
-                  className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                  className={`px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                     }`}
                 >
                   {type.label}
@@ -327,10 +327,10 @@ export default function AccountMaster() {
             </div>
           ) : filteredAccounts.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-24 text-center">
-              <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-6"><FileText size={40} /></div>
+              <div className="w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center text-slate-200 mb-6"><FileText size={40} /></div>
               <h3 className="text-lg font-bold text-slate-400 mb-2">No matched accounts found</h3>
               <p className="text-slate-300 text-sm max-w-xs mx-auto mb-8 font-medium">Try adjusting your filters or initialize a new financial entity.</p>
-              <button onClick={handleCreateNew} className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl hover:bg-black transition-all">Initialize First Ledger</button>
+              <button onClick={handleCreateNew} className="px-8 py-3.5 bg-slate-900 text-white rounded-lg font-bold text-sm shadow-xl hover:bg-black transition-all">Initialize First Ledger</button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -349,7 +349,7 @@ export default function AccountMaster() {
                     <tr key={acc.id} className="group hover:bg-blue-50/30 transition-all duration-300">
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-4">
-                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg transition-transform group-hover:scale-110 ${['customer', 'supplier'].includes(acc.account_type) ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                          <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg transition-transform group-hover:scale-110 ${['customer', 'supplier'].includes(acc.account_type) ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'
                             }`}>
                             {acc.account_name.charAt(0).toUpperCase()}
                           </div>
@@ -366,7 +366,7 @@ export default function AccountMaster() {
                       </td>
                       <td className="px-10 py-6">
                         <div className="flex flex-col gap-1.5">
-                          <span className={`inline-flex px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                          <span className={`inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
                             }`}>
                             {acc.account_type}
                           </span>
@@ -397,17 +397,17 @@ export default function AccountMaster() {
                           </span>
                         </div>
                       </td>
-                       <td className="px-10 py-6 text-right">
+                      <td className="px-10 py-6 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                          <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><Eye size={16} /></button>
+                          <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-lg transition-all"><Eye size={16} /></button>
                           {!acc.is_system && (
                             <>
-                              <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
-                              <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-xl transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
+                              <button onClick={() => handleEdit(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-lg transition-all"><Edit2 size={16} /></button>
+                              <button onClick={() => handleStatusToggle(acc)} className={`p-2.5 bg-white border border-slate-100 rounded-lg transition-all ${acc.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-100' : 'text-emerald-500 hover:border-emerald-100'}`}><Power size={16} /></button>
                             </>
                           )}
                           {acc.is_system && (
-                            <div className="p-2.5 bg-slate-50 border border-slate-200 text-slate-300 rounded-xl cursor-not-allowed" title="System Protected Node">
+                            <div className="p-2.5 bg-slate-50 border border-slate-200 text-slate-300 rounded-lg cursor-not-allowed" title="System Protected Node">
                               <Shield size={16} />
                             </div>
                           )}
@@ -425,10 +425,10 @@ export default function AccountMaster() {
       {/* Balance Modal - Airy SaaS Style */}
       {balanceModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg ring-4 ring-blue-500/5"><Eye size={20} /></div>
+                <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg ring-4 ring-blue-500/5"><Eye size={20} /></div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-800">Financial Insights</h3>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Balance Audit</p>
@@ -438,7 +438,7 @@ export default function AccountMaster() {
             </div>
 
             <div className="p-10 space-y-8">
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+              <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Entity Nomenclature</p>
                 <p className="text-xl font-black text-slate-800 uppercase tracking-tight italic">{balanceModal.account?.account_name}</p>
               </div>
@@ -450,21 +450,21 @@ export default function AccountMaster() {
                 </div>
               ) : balanceModal.data ? (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl">
+                  <div className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-lg">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Opening Context</span>
                     <span className="font-mono font-bold text-slate-700">₹{balanceModal.data.openingBalance.toFixed(2)}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-rose-50/30 border border-rose-100 rounded-2xl">
+                    <div className="p-4 bg-rose-50/30 border border-rose-100 rounded-lg">
                       <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 italic">Total Udhar</p>
                       <p className="text-lg font-black text-rose-600">₹{balanceModal.data.totalDebit.toFixed(2)}</p>
                     </div>
-                    <div className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl">
+                    <div className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-lg">
                       <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1 italic">Total Jama</p>
                       <p className="text-lg font-black text-emerald-600">₹{balanceModal.data.totalCredit.toFixed(2)}</p>
                     </div>
                   </div>
-                  <div className="p-6 bg-slate-900 rounded-3xl shadow-xl shadow-slate-200 flex flex-col gap-1 mt-4">
+                  <div className="p-6 bg-slate-900 rounded-lg shadow-xl shadow-slate-200 flex flex-col gap-1 mt-4">
                     <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Current Synchronized Balance</span>
                     <span className="text-3xl font-black text-white italic">
                       ₹{(balanceModal.data.openingBalance + balanceModal.data.totalCredit - balanceModal.data.totalDebit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -474,7 +474,7 @@ export default function AccountMaster() {
               ) : null}
             </div>
             <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="px-10 py-3.5 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-all uppercase text-[10px] tracking-widest">Close Audit</button>
+              <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="px-10 py-3.5 bg-white border border-slate-200 text-slate-500 font-bold rounded-lg hover:bg-slate-100 transition-all uppercase text-[10px] tracking-widest">Close Audit</button>
             </div>
           </div>
         </div>

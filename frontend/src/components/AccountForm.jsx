@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { 
-  Building2, User, Phone, Mail, FileText, 
+import {
+  Building2, User, Phone, Mail, FileText,
   ShieldAlert, IndianRupee, Save, X, RefreshCcw,
   Layout, Database, Tag, ShieldCheck, Activity,
   Briefcase, TrendingUp, Hash
@@ -22,7 +22,7 @@ const FormLabel = ({ children, icon: Icon, className = "" }) => (
 const FormInput = ({ className = "", error, ...props }) => (
   <div className="space-y-1.5 flex-1">
     <input
-      className={`w-full h-12 px-5 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50 transition-all rounded-2xl font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
+      className={`w-full h-12 px-5 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50 transition-all rounded-lg font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
       {...props}
     />
     {error && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-2">{error}</p>}
@@ -50,8 +50,8 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
 
   const fetchNextCode = async (type) => {
     try {
-      const response = await axios.get(`/api/accounts/next-code?type=${type}`, { 
-        headers: { 'x-company-id': companyId } 
+      const response = await axios.get(`/api/accounts/next-code?type=${type}`, {
+        headers: { 'x-company-id': companyId }
       });
       if (response.data.success) {
         setFormData(prev => ({ ...prev, account_code: response.data.nextCode }));
@@ -82,16 +82,16 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   }, [initialData, companyId, formData.account_type]);
 
   const accountTypes = [
-    { value: 'customer', label: t('accountMaster.customer'), icon: <User size={14}/>, color: 'blue' },
-    { value: 'supplier', label: t('accountMaster.supplier'), icon: <Briefcase size={14}/>, color: 'indigo' },
-    { value: 'bank', label: t('accountMaster.bank'), icon: <Database size={14}/>, color: 'sky' },
-    { value: 'cash', label: t('accountMaster.cash'), icon: <IndianRupee size={14}/>, color: 'emerald' },
-    { value: 'assets', label: t('accountMaster.assets'), icon: <TrendingUp size={14}/>, color: 'emerald' },
-    { value: 'liabilities', label: t('accountMaster.liabilities'), icon: <ShieldAlert size={14}/>, color: 'rose' },
-    { value: 'revenue', label: t('accountMaster.revenue'), icon: <Activity size={14}/>, color: 'amber' },
-    { value: 'expense', label: t('accountMaster.expense'), icon: <ShieldAlert size={14}/>, color: 'orange' },
-    { value: 'purchase', label: t('accountMaster.purchase', 'Purchase'), icon: <Briefcase size={14}/>, color: 'indigo' },
-    { value: 'sales', label: t('accountMaster.sales', 'Sales'), icon: <TrendingUp size={14}/>, color: 'emerald' }
+    { value: 'customer', label: t('accountMaster.customer'), icon: <User size={14} />, color: 'blue' },
+    { value: 'supplier', label: t('accountMaster.supplier'), icon: <Briefcase size={14} />, color: 'indigo' },
+    { value: 'bank', label: t('accountMaster.bank'), icon: <Database size={14} />, color: 'sky' },
+    { value: 'cash', label: t('accountMaster.cash'), icon: <IndianRupee size={14} />, color: 'emerald' },
+    { value: 'assets', label: t('accountMaster.assets'), icon: <TrendingUp size={14} />, color: 'emerald' },
+    { value: 'liabilities', label: t('accountMaster.liabilities'), icon: <ShieldAlert size={14} />, color: 'rose' },
+    { value: 'revenue', label: t('accountMaster.revenue'), icon: <Activity size={14} />, color: 'amber' },
+    { value: 'expense', label: t('accountMaster.expense'), icon: <ShieldAlert size={14} />, color: 'orange' },
+    { value: 'purchase', label: t('accountMaster.purchase', 'Purchase'), icon: <Briefcase size={14} />, color: 'indigo' },
+    { value: 'sales', label: t('accountMaster.sales', 'Sales'), icon: <TrendingUp size={14} />, color: 'emerald' }
   ];
 
   const handleChange = (e) => {
@@ -127,7 +127,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
 
     try {
       const submitData = { company_id: companyId, ...formData };
-      
+
 
       if (initialData?.id) {
         await axios.put(`/api/accounts/${initialData.id}`, formData);
@@ -145,9 +145,9 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
+    <div className="bg-white rounded-lg border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-      
+
       <div className="relative z-10">
         <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-10">
           {initialData?.id ? 'Refine Ledger Identity' : 'Initialize Fiscal Node'}
@@ -155,26 +155,25 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
         </h2>
 
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-          }`}>
+          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+            }`}>
             <ShieldAlert size={20} />
             <p className="text-sm font-bold uppercase tracking-widest text-[10px]">{message.text}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-12">
-          
+
           {/* Section 1: Entity Definition */}
           <div className="space-y-6">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
               <div className="w-6 h-0.5 bg-indigo-600"></div> Profile context
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="col-span-1">
                 <FormLabel icon={Hash}>Structural ID</FormLabel>
-                <div className="h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3 group hover:bg-white transition-all">
+                <div className="h-12 px-5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-3 group hover:bg-white transition-all">
                   <span className="text-[10px] font-black text-slate-300">#</span>
                   <span className="text-sm font-black text-slate-800 italic">
                     {initialData?.id || nextId || '...'}
@@ -188,9 +187,9 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
               <div className="col-span-1">
                 <div className="flex justify-between items-center pr-1">
                   <FormLabel icon={Tag}>Entity Code</FormLabel>
-                   {!initialData && (
+                  {!initialData && (
                     <span className="text-[7px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter">Autogen</span>
-                   )}
+                  )}
                 </div>
                 <FormInput
                   name="account_code"
@@ -215,34 +214,34 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
               <div>
                 <FormLabel icon={Layout}>{t('accountMaster.accountType')} *</FormLabel>
                 <div className="relative group">
-                   <select
-                     name="account_type"
-                     value={formData.account_type}
-                     onChange={handleChange}
-                     className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 appearance-none cursor-pointer group-hover:bg-slate-50 transition-all uppercase tracking-widest"
-                   >
-                     {accountTypes.map(type => (
-                       <option key={type.value} value={type.value}>{type.label}</option>
-                     ))}
-                   </select>
-                   <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
+                  <select
+                    name="account_type"
+                    value={formData.account_type}
+                    onChange={handleChange}
+                    className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-lg outline-none font-bold text-slate-700 appearance-none cursor-pointer group-hover:bg-slate-50 transition-all uppercase tracking-widest"
+                  >
+                    {accountTypes.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
                 </div>
               </div>
 
 
               {!['bank', 'supplier', 'revenue', 'expense'].includes(formData.account_type) && (
-                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 self-end h-12">
-                   <input
-                     type="checkbox"
-                     id="is_subledger"
-                     name="is_subledger"
-                     checked={formData.is_subledger}
-                     onChange={handleChange}
-                     className="w-5 h-5 rounded-lg border-slate-200 accent-indigo-600 cursor-pointer"
-                   />
-                   <label htmlFor="is_subledger" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer group-hover:text-slate-800">
-                      Assign as Sub-Ledger Registry
-                   </label>
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100 self-end h-12">
+                  <input
+                    type="checkbox"
+                    id="is_subledger"
+                    name="is_subledger"
+                    checked={formData.is_subledger}
+                    onChange={handleChange}
+                    className="w-5 h-5 rounded-lg border-slate-200 accent-indigo-600 cursor-pointer"
+                  />
+                  <label htmlFor="is_subledger" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer group-hover:text-slate-800">
+                    Assign as Sub-Ledger Registry
+                  </label>
                 </div>
               )}
             </div>
@@ -253,7 +252,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
               <div className="w-6 h-0.5 bg-emerald-500"></div> Contact & Fiscal Meta
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <FormLabel icon={Phone}>{t('accountMaster.phone')}</FormLabel>
@@ -276,49 +275,49 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
 
           {/* Section 3: Value Context */}
           <div className="space-y-6">
-             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
               <div className="w-6 h-0.5 bg-amber-500"></div> Opening fiscal context
             </h3>
-            <div className="bg-[#F8FAFC]/50 p-10 rounded-[2.5rem] border border-slate-100 flex items-center gap-8 group">
-               <div className="p-4 bg-white rounded-3xl shadow-sm border border-slate-100 text-amber-500 group-hover:rotate-12 transition-transform duration-500">
-                  <IndianRupee size={24} />
-               </div>
-               <div className="flex-1 flex gap-4">
-                  <div className="flex-1">
-                    <FormLabel>{t('accountMaster.openingBalance')}</FormLabel>
-                    <FormInput type="number" name="opening_balance" value={formData.opening_balance} onChange={handleChange} className="text-right font-mono" />
-                  </div>
-                  <div className="w-40">
-                    <FormLabel>Type</FormLabel>
-                    <select
-                      name="opening_balance_type"
-                      value={formData.opening_balance_type}
-                      onChange={handleChange}
-                      className="w-full h-12 px-5 border border-slate-100 bg-white rounded-2xl outline-none font-bold text-slate-700 appearance-none uppercase text-[10px] tracking-widest"
-                    >
-                      <option value="credit">{t('accountMaster.jama')}</option>
-                      <option value="debit">{t('accountMaster.udhar')}</option>
-                    </select>
-                  </div>
-               </div>
+            <div className="bg-[#F8FAFC]/50 p-10 rounded-lg border border-slate-100 flex items-center gap-8 group">
+              <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-100 text-amber-500 group-hover:rotate-12 transition-transform duration-500">
+                <IndianRupee size={24} />
+              </div>
+              <div className="flex-1 flex gap-4">
+                <div className="flex-1">
+                  <FormLabel>{t('accountMaster.openingBalance')}</FormLabel>
+                  <FormInput type="number" name="opening_balance" value={formData.opening_balance} onChange={handleChange} className="text-right font-mono" />
+                </div>
+                <div className="w-40">
+                  <FormLabel>Type</FormLabel>
+                  <select
+                    name="opening_balance_type"
+                    value={formData.opening_balance_type}
+                    onChange={handleChange}
+                    className="w-full h-12 px-5 border border-slate-100 bg-white rounded-lg outline-none font-bold text-slate-700 appearance-none uppercase text-[10px] tracking-widest"
+                  >
+                    <option value="credit">{t('accountMaster.jama')}</option>
+                    <option value="debit">{t('accountMaster.udhar')}</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="flex gap-4 pt-4">
-             <button
-               type="submit"
-               disabled={loading}
-               className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-[2rem] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
-             >
-               {loading ? <RefreshCcw className="animate-spin" size={18} /> : <><Save size={18} /> Commit Ledger Shard</>}
-             </button>
-             <button
-               type="button"
-               onClick={onCancel}
-               className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-bold rounded-[2rem] hover:bg-slate-50 hover:text-slate-800 transition-all uppercase text-[10px] tracking-widest"
-             >
-                Abort
-             </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-lg hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+            >
+              {loading ? <RefreshCcw className="animate-spin" size={18} /> : <><Save size={18} /> Commit Ledger Shard</>}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-bold rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all uppercase text-[10px] tracking-widest"
+            >
+              Abort
+            </button>
           </div>
         </form>
       </div>

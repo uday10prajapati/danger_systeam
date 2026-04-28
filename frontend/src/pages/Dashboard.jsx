@@ -64,12 +64,12 @@ function Dashboard() {
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{t('dashboard.inventoryManagement', 'Inventory Management')}</h1>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+            <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
               <Calendar size={18} />
               {t('dashboard.thisMonth', 'This Month')}
               <ChevronDown size={16} />
             </button>
-            <button className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95">
+            <button className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95">
               {t('dashboard.export', 'Export')}
               <Download size={18} />
             </button>
@@ -79,12 +79,12 @@ function Dashboard() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {summaryCards.map((card, idx) => (
-            <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+            <div key={idx} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:shadow-md transition-all group">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-slate-400 group-hover:text-slate-500 transition-colors">{card.label}</p>
-                <div className={`p-2 rounded-xl border ${card.color === 'blue' ? 'bg-blue-50 text-blue-600' :
-                    card.color === 'green' ? 'bg-emerald-50 text-emerald-600' :
-                      card.color === 'rose' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+                <div className={`p-2 rounded-lg border ${card.color === 'blue' ? 'bg-blue-50 text-blue-600' :
+                  card.color === 'green' ? 'bg-emerald-50 text-emerald-600' :
+                    card.color === 'rose' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
                   }`}>
                   <card.icon size={20} />
                 </div>
@@ -106,10 +106,10 @@ function Dashboard() {
         {/* Financial Flow Shards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {financialCards.map((card, idx) => (
-            <div key={idx} className={`p-6 rounded-[2.5rem] border flex items-center justify-between shadow-sm hover:shadow-md transition-all ${card.color === 'blue' ? 'bg-blue-600 border-blue-700 text-white shadow-blue-100' : 'bg-white border-slate-100 text-slate-800'
+            <div key={idx} className={`p-6 rounded-lg border flex items-center justify-between shadow-sm hover:shadow-md transition-all ${card.color === 'blue' ? 'bg-blue-600 border-blue-700 text-white shadow-blue-100' : 'bg-white border-slate-100 text-slate-800'
               }`}>
               <div className="flex items-center gap-5">
-                <div className={`p-4 rounded-2xl ${card.color === 'blue' ? 'bg-white/10 text-white' : 'bg-rose-50 text-rose-600'}`}>
+                <div className={`p-4 rounded-lg ${card.color === 'blue' ? 'bg-white/10 text-white' : 'bg-rose-50 text-rose-600'}`}>
                   <card.icon size={24} strokeWidth={2.5} />
                 </div>
                 <div>
@@ -121,7 +121,7 @@ function Dashboard() {
                   </h3>
                 </div>
               </div>
-              <button className={`px-5 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${card.color === 'blue' ? 'bg-white text-blue-600 hover:bg-blue-50' : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-200'
+              <button className={`px-5 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all ${card.color === 'blue' ? 'bg-white text-blue-600 hover:bg-blue-50' : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-200'
                 }`}>
                 {idx === 0 ? 'View Sales' : 'View Purchases'}
               </button>
@@ -133,16 +133,16 @@ function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 
           {/* Inventory Status Overview */}
-          <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col">
             <div className="p-8 pb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                   <TrendingUp size={20} />
                 </div>
                 <h2 className="text-lg font-bold text-slate-800">{t('dashboard.inventoryStatus', 'Inventory Status Overview')}</h2>
               </div>
               <div className="flex items-center gap-4">
-                <div className="hidden sm:flex items-center gap-2 bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
+                <div className="hidden sm:flex items-center gap-2 bg-slate-50 rounded-lg px-4 py-2 border border-slate-100">
                   <Search size={16} className="text-slate-400" />
                   <input type="text" placeholder={t('dashboard.search', 'Search here...')} className="bg-transparent border-none outline-none text-xs text-slate-600 w-32 placeholder:text-slate-300" />
                 </div>
@@ -176,8 +176,8 @@ function Dashboard() {
                       <td className="px-8 py-5 text-sm font-semibold text-slate-500">{item.threshold}</td>
                       <td className="px-8 py-5">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${item.statusColor === 'amber' ? 'bg-amber-50 text-amber-600' :
-                            item.statusColor === 'orange' ? 'bg-orange-50 text-orange-600' :
-                              'bg-rose-50 text-rose-600'
+                          item.statusColor === 'orange' ? 'bg-orange-50 text-orange-600' :
+                            'bg-rose-50 text-rose-600'
                           }`}>
                           {item.status}
                         </span>
@@ -192,10 +192,10 @@ function Dashboard() {
           </div>
 
           {/* Activity/Chart Section */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 flex flex-col">
+          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-8 flex flex-col">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-lg font-bold text-slate-800">{t('dashboard.inventoryDistribution', 'Inventory Distribution')}</h2>
-              <button className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-2xl text-xs font-bold text-slate-500 border border-slate-100">
+              <button className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-100">
                 {t('dashboard.monthly', 'Monthly')} <ChevronDown size={14} />
               </button>
             </div>
@@ -236,20 +236,20 @@ function Dashboard() {
         </div>
 
         {/* Supplier Information */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                 <Users size={20} />
               </div>
               <h2 className="text-lg font-bold text-slate-800">{t('dashboard.supplierInfo', 'Supplier Information')}</h2>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
+              <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-4 py-2 border border-slate-100">
                 <Search size={16} className="text-slate-400" />
                 <input type="text" placeholder="Search..." className="bg-transparent border-none outline-none text-xs text-slate-600 w-full sm:w-48 placeholder:text-slate-300" />
               </div>
-              <button className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
+              <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
             </div>
           </div>
 

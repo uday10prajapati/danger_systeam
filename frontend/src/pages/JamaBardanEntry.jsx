@@ -203,13 +203,13 @@ const JamaBardanEntry = () => {
             </div>
             <button
               onClick={() => setShowHistory(false)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
+              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
             >
               <X size={16} /> Exit History
             </button>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-xl rounded-[3rem] border border-white shadow-2xl overflow-hidden">
+          <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -236,8 +236,8 @@ const JamaBardanEntry = () => {
                     </td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => handleEdit(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"><ChevronRight size={16} /></button>
-                        <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        <button onClick={() => handleEdit(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><ChevronRight size={16} /></button>
+                        <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -266,8 +266,8 @@ const JamaBardanEntry = () => {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white shadow-sm">
-            <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500">
+          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-lg border border-white shadow-sm">
+            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
               <History size={20} />
             </div>
             <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
@@ -279,9 +279,9 @@ const JamaBardanEntry = () => {
 
         {/* Balance Metrics Strip */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-xl group hover:bg-white/80 transition-all">
+          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-xl group hover:bg-white/80 transition-all">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
+              <div className="w-12 h-12 bg-slate-900 text-white rounded-lg flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
                 <Package size={20} />
               </div>
               <div>
@@ -290,9 +290,9 @@ const JamaBardanEntry = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-xl group hover:bg-white/80 transition-all border-l-8 border-l-emerald-500">
+          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-xl group hover:bg-white/80 transition-all border-l-8 border-l-emerald-500">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
+              <div className="w-12 h-12 bg-emerald-500 text-white rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
                 <History size={20} />
               </div>
               <div>
@@ -301,7 +301,7 @@ const JamaBardanEntry = () => {
               </div>
             </div>
           </div>
-          <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group border-l-8 border-l-rose-500">
+          <div className="bg-slate-900 p-8 rounded-lg border border-slate-800 shadow-2xl relative overflow-hidden group border-l-8 border-l-rose-500">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
               <Database size={80} />
             </div>
@@ -314,7 +314,7 @@ const JamaBardanEntry = () => {
 
         {/* Messaging */}
         {message && (
-          <div className={`mb-8 p-5 rounded-[2rem] flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          <div className={`mb-8 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <span className="text-sm font-black italic tracking-tight uppercase tracking-widest">{message.text}</span>
@@ -325,7 +325,7 @@ const JamaBardanEntry = () => {
 
           {/* Main Form (Left) */}
           <div className="lg:col-span-8 space-y-8">
-            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-white shadow-2xl space-y-8 relative overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-lg border border-white shadow-2xl space-y-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 -mr-10 -mt-10 select-none pointer-events-none">
                 <Package size={240} />
               </div>
@@ -335,7 +335,7 @@ const JamaBardanEntry = () => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.book_type')}</label>
                   <select
                     name="bookType"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase"
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase"
                     value={formData.bookType}
                     onChange={handleChange}
                   >
@@ -348,7 +348,7 @@ const JamaBardanEntry = () => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.pavti_no')}</label>
                   <input
                     name="pavtiNo"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
                     placeholder="ENTER PVT NO."
                     value={formData.pavtiNo}
                     onChange={handleChange}
@@ -360,7 +360,7 @@ const JamaBardanEntry = () => {
                   <input
                     type="date"
                     name="date"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner"
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner"
                     value={formData.date}
                     onChange={handleChange}
                   />
@@ -374,7 +374,7 @@ const JamaBardanEntry = () => {
                     <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
                     <select
                       name="code"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
                       value={formData.code}
                       onChange={handleChange}
                     >
@@ -390,7 +390,7 @@ const JamaBardanEntry = () => {
                     <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
                     <select
                       name="name"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
                       value={formData.name}
                       onChange={handleChange}
                     >
@@ -409,7 +409,7 @@ const JamaBardanEntry = () => {
                     <input
                       type="number"
                       name="qty"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
                       placeholder="0.00"
                       value={formData.qty}
                       onChange={handleChange}
@@ -421,7 +421,7 @@ const JamaBardanEntry = () => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.mem_nominal')}</label>
                   <select
                     name="memNominal"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner appearance-none uppercase"
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner appearance-none uppercase"
                     value={formData.memNominal}
                     onChange={handleChange}
                   >
@@ -438,7 +438,7 @@ const JamaBardanEntry = () => {
                   <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
                   <textarea
                     name="remark"
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
                     placeholder="ADDITIONAL CONTEXT..."
                     value={formData.remark}
                     onChange={handleChange}
@@ -450,9 +450,9 @@ const JamaBardanEntry = () => {
 
           {/* Right Panel (Grid) */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col h-[600px]">
+            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-lg border border-white shadow-2xl flex flex-col h-[600px]">
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-emerald-50 text-emerald-500 rounded-2xl shadow-inner">
+                <div className="p-3 bg-emerald-50 text-emerald-500 rounded-lg shadow-inner">
                   <Layout size={20} />
                 </div>
                 <div>
@@ -477,7 +477,7 @@ const JamaBardanEntry = () => {
                         <td className="text-center font-black text-slate-200 italic">{i + 1}</td>
                         <td className="px-1 py-1">
                           <input
-                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                            className="w-full bg-slate-50 border-none rounded-lg px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
                             value={row.col1}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
@@ -486,7 +486,7 @@ const JamaBardanEntry = () => {
                         </td>
                         <td className="px-1 py-1">
                           <input
-                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                            className="w-full bg-slate-50 border-none rounded-lg px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
                             value={row.col2}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
@@ -495,7 +495,7 @@ const JamaBardanEntry = () => {
                         </td>
                         <td className="px-1 py-1">
                           <input
-                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                            className="w-full bg-slate-50 border-none rounded-lg px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
                             value={row.col3}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
@@ -514,7 +514,7 @@ const JamaBardanEntry = () => {
                   <input
                     type="number"
                     name="dayQty"
-                    className="w-24 text-right bg-slate-50 rounded-xl px-3 py-2 font-black text-slate-700"
+                    className="w-24 text-right bg-slate-50 rounded-lg px-3 py-2 font-black text-slate-700"
                     value={formData.dayQty}
                     onChange={handleChange}
                   />
@@ -524,7 +524,7 @@ const JamaBardanEntry = () => {
                   <input
                     type="number"
                     name="totalQty"
-                    className="w-32 text-right bg-emerald-50/50 border border-emerald-100 rounded-xl px-3 py-3 text-2xl font-black italic tracking-tighter"
+                    className="w-32 text-right bg-emerald-50/50 border border-emerald-100 rounded-lg px-3 py-3 text-2xl font-black italic tracking-tighter"
                     value={formData.totalQty}
                     onChange={handleChange}
                   />
@@ -535,7 +535,7 @@ const JamaBardanEntry = () => {
         </div>
 
         {/* Commands */}
-        <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-[3rem] border border-white shadow-xl flex flex-wrap justify-center gap-5">
+        <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-lg border border-white shadow-xl flex flex-wrap justify-center gap-5">
           {[
             { label: 'Display History', icon: History, color: 'slate', action: () => setShowHistory(true), sub: 'Registry logs' },
             { label: 'Initialize New', icon: Plus, color: 'blue', action: resetForm, sub: 'Reset command' },
@@ -546,9 +546,9 @@ const JamaBardanEntry = () => {
             <button
               key={i}
               onClick={btn.action}
-              className={`flex items-center gap-4 px-10 py-5 rounded-[1.5rem] tracking-widest transition-all shadow-xl active:scale-95 border-b-4 relative group overflow-hidden ${btn.color === 'emerald' ? 'bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-600' :
-                  btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
-                    'bg-white text-slate-800 border-slate-100 hover:bg-slate-50'
+              className={`flex items-center gap-4 px-10 py-5 rounded-lg tracking-widest transition-all shadow-xl active:scale-95 border-b-4 relative group overflow-hidden ${btn.color === 'emerald' ? 'bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-600' :
+                btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
+                  'bg-white text-slate-800 border-slate-100 hover:bg-slate-50'
                 }`}
             >
               <div className="absolute inset-0 bg-white/10 translate-y-20 group-hover:translate-y-0 transition-transform duration-300"></div>

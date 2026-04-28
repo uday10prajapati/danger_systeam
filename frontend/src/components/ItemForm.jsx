@@ -22,7 +22,7 @@ const FormLabel = ({ children, icon: Icon, className = "" }) => (
 // Airy Input Component - Ultra Soft Style
 const FormInput = ({ className = "", ...props }) => (
   <input
-    className={`w-full h-10 px-4 text-[11px] border border-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none bg-slate-50/50 hover:bg-slate-50 disabled:bg-slate-100/50 text-slate-800 disabled:text-slate-400 font-bold transition-all rounded-2xl ${className}`}
+    className={`w-full h-10 px-4 text-[11px] border border-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none bg-slate-50/50 hover:bg-slate-50 disabled:bg-slate-100/50 text-slate-800 disabled:text-slate-400 font-bold transition-all rounded-lg ${className}`}
     {...props}
   />
 );
@@ -218,13 +218,13 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
   };
 
   return (
-    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
+    <div className="bg-white rounded-lg border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
 
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-100">
+            <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-100">
               <Package size={24} />
             </div>
             <div>
@@ -234,13 +234,13 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Inventory Registry node</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-800 rounded-2xl transition-all active:scale-90 border border-slate-100">
+          <button onClick={onClose} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-800 rounded-lg transition-all active:scale-90 border border-slate-100">
             <X size={20} />
           </button>
         </div>
 
         {error && (
-          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 text-rose-600 text-[11px] font-black uppercase tracking-widest rounded-2xl animate-pulse flex items-center gap-3">
+          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 text-rose-600 text-[11px] font-black uppercase tracking-widest rounded-lg animate-pulse flex items-center gap-3">
             <ShieldAlert size={16} />
             {error}
           </div>
@@ -274,7 +274,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                       const nextBarcode = Math.floor(100000 + Math.random() * 900000).toString();
                       setFormData(prev => ({ ...prev, item_code: nextCode, barcode: nextBarcode }));
                     }}
-                    className="px-4 h-10 bg-slate-900 text-white text-[9px] font-black uppercase rounded-2xl hover:bg-blue-600 transition-all shadow-md active:scale-95"
+                    className="px-4 h-10 bg-slate-900 text-white text-[9px] font-black uppercase rounded-lg hover:bg-blue-600 transition-all shadow-md active:scale-95"
                   >
                     Auto
                   </button>
@@ -290,14 +290,14 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                     id="consider_in_autostock"
                     checked={formData.consider_in_autostock === 1}
                     onChange={handleChange}
-                    className="w-5 h-5 border-2 border-slate-200 rounded-2xl accent-blue-600 cursor-pointer"
+                    className="w-5 h-5 border-2 border-slate-200 rounded-lg accent-blue-600 cursor-pointer"
                   />
                   <label htmlFor="consider_in_autostock" className="text-[10px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-widest cursor-pointer transition-colors">AutoStock Process?</label>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <FormLabel icon={Tag} className="!pr-0">Barcode :</FormLabel>
-                  <div className="flex bg-slate-50 border border-slate-100 p-0.5 rounded-2xl">
+                  <div className="flex bg-slate-50 border border-slate-100 p-0.5 rounded-lg">
                     <input
                       name="barcode"
                       value={formData.barcode}
@@ -308,7 +308,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                     <button
                       type="button"
                       onClick={handleGenerateBarcode}
-                      className="h-8 px-3 bg-white text-slate-600 text-[9px] font-black uppercase rounded-xl border border-slate-100 hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+                      className="h-8 px-3 bg-white text-slate-600 text-[9px] font-black uppercase rounded-lg border border-slate-100 hover:bg-blue-600 hover:text-white transition-all active:scale-95"
                     >
                       Gen
                     </button>
@@ -377,7 +377,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                   name="purchase_account_id"
                   value={formData.purchase_account_id}
                   onChange={handleChange}
-                  className="flex-1 h-10 border border-slate-100 rounded-2xl px-4 text-[11px] font-bold uppercase outline-none focus:border-blue-500 bg-slate-50/50 hover:bg-white"
+                  className="flex-1 h-10 border border-slate-100 rounded-lg px-4 text-[11px] font-bold uppercase outline-none focus:border-blue-500 bg-slate-50/50 hover:bg-white"
                 >
                   <option value="">-- SELECT PURCHASE ACCOUNT --</option>
                   {accounts.filter(a => a.account_type === 'purchase').map(acc => (
@@ -400,7 +400,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
                   name="sales_account_id"
                   value={formData.sales_account_id}
                   onChange={handleChange}
-                  className="flex-1 h-10 border border-slate-100 rounded-2xl px-4 text-[11px] font-bold uppercase outline-none focus:border-blue-500 bg-slate-50/50 hover:bg-white"
+                  className="flex-1 h-10 border border-slate-100 rounded-lg px-4 text-[11px] font-bold uppercase outline-none focus:border-blue-500 bg-slate-50/50 hover:bg-white"
                 >
                   <option value="">-- SELECT SALES ACCOUNT --</option>
                   {accounts.filter(a => a.account_type === 'sales').map(acc => (
@@ -430,7 +430,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
               </label>
             </div>
 
-            <div className="p-10 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 relative group overflow-hidden">
+            <div className="p-10 bg-slate-50/50 rounded-lg border border-slate-100 relative group overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-[0.03] scale-[4] text-slate-900 group-hover:opacity-[0.05] transition-all duration-700">
                 <Activity />
               </div>
@@ -509,14 +509,14 @@ export default function ItemForm({ item = null, company, onSubmit, onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] py-5 rounded-[2rem] hover:bg-blue-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+              className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] py-5 rounded-lg hover:bg-blue-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
             >
               {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> {currentItem ? 'Commit Changes' : 'Initialize Object'}</>}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] rounded-[2rem] hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
+              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
             >
               Abort
             </button>

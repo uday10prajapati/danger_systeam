@@ -112,7 +112,7 @@ function Sidebar() {
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="bg-white border border-slate-200 text-slate-900 p-2.5 rounded-xl shadow-lg"
+          className="bg-white border border-slate-200 text-slate-900 p-2.5 rounded-lg shadow-lg"
         >
           {mobileMenuOpen ? <X size={20} /> : <LayoutDashboard size={20} />}
         </button>
@@ -125,7 +125,7 @@ function Sidebar() {
         {/* Brand Section */}
         <div className="h-20 flex items-center px-6 overflow-hidden">
           <div className="flex items-center gap-3">
-            <div className="min-w-[32px] w-8 h-8 bg-blue-600 rounded-2xl flex items-center justify-center">
+            <div className="min-w-[32px] w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <div className="grid grid-cols-2 gap-0.5">
                 <div className="w-1.5 h-1.5 bg-white rounded-full opacity-40"></div>
                 <div className="w-1.5 h-1.5 bg-white rounded-full transition-all"></div>
@@ -151,7 +151,7 @@ function Sidebar() {
                   <div key={item.id} className="space-y-1">
                     <button
                       onClick={() => toggleMenu(item.id)}
-                      className={`w-full flex items-center justify-between group p-3 rounded-xl transition-all duration-200 ${isChildActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      className={`w-full flex items-center justify-between group p-3 rounded-lg transition-all duration-200 ${isChildActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                         }`}
                     >
                       <div className="flex items-center">
@@ -169,9 +169,9 @@ function Sidebar() {
                             <button
                               key={child.id}
                               onClick={() => navigate(child.path)}
-                              className={`w-full flex items-center group p-2.5 rounded-2xl transition-all duration-200 ${childActive
-                                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                                  : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
+                              className={`w-full flex items-center group p-2.5 rounded-lg transition-all duration-200 ${childActive
+                                ? 'bg-blue-50 text-blue-600 font-semibold'
+                                : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
                                 }`}
                             >
                               <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-900'}`} />
@@ -190,9 +190,9 @@ function Sidebar() {
                 <button
                   key={item.id}
                   onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center group p-3 rounded-xl transition-all duration-200 relative ${active
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
+                  className={`w-full flex items-center group p-3 rounded-lg transition-all duration-200 relative ${active
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
                     }`}
                 >
                   {/* Active Indicator Bar */}
@@ -217,7 +217,7 @@ function Sidebar() {
         <div className="p-3 border-t border-slate-50">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center p-3 rounded-xl hover:bg-red-50 text-slate-500 hover:text-red-500 transition-all"
+            className="w-full flex items-center p-3 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-500 transition-all"
           >
             <LogOut size={18} />
             <span className="ml-3 text-sm font-medium">Log Out</span>
@@ -237,7 +237,7 @@ function Sidebar() {
           >
             <div className="flex items-center justify-between mb-8 px-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-2xl flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <div className="grid grid-cols-2 gap-0.5">
                     <div className="w-1.5 h-1.5 bg-white rounded-full opacity-40"></div>
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
@@ -247,7 +247,7 @@ function Sidebar() {
                 </div>
                 <h1 className="text-slate-900 font-bold text-xl">Danger Systeam</h1>
               </div>
-              <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 p-2 hover:bg-slate-50 rounded-2xl"><X size={20} /></button>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 p-2 hover:bg-slate-50 rounded-lg"><X size={20} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-1">
@@ -260,7 +260,7 @@ function Sidebar() {
                     <div key={item.id} className="space-y-1">
                       <button
                         onClick={() => toggleMenu(item.id)}
-                        className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all ${isChildActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'
+                        className={`w-full flex items-center justify-between p-3.5 rounded-lg transition-all ${isChildActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'
                           }`}
                       >
                         <div className="flex items-center">
@@ -278,7 +278,7 @@ function Sidebar() {
                               <button
                                 key={child.id}
                                 onClick={() => { navigate(child.path); setMobileMenuOpen(false); }}
-                                className={`w-full flex items-center p-3 rounded-2xl transition-all ${active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                                className={`w-full flex items-center p-3 rounded-lg transition-all ${active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
                                   }`}
                               >
                                 <child.icon size={18} />
@@ -297,7 +297,7 @@ function Sidebar() {
                   <button
                     key={item.id}
                     onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center p-3.5 rounded-xl transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`w-full flex items-center p-3.5 rounded-lg transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-500 hover:bg-slate-50'}`}
                   >
                     <item.icon size={20} />
                     <span className="ml-3 font-semibold text-sm">{item.title}</span>

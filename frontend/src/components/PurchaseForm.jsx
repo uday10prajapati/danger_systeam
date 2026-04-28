@@ -328,7 +328,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 sm:p-4 backdrop-blur-md">
-      <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
+      <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
 
         {/* Title Bar - Modern Design */}
         <div className="flex justify-between items-center bg-slate-900 text-white px-6 py-3">
@@ -336,7 +336,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
             <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></div>
             Purchase Entry
           </div>
-          <button onClick={onCancel} className="hover:bg-slate-800 text-slate-300 hover:text-white rounded-2xl p-1.5 transition-all active:scale-90">
+          <button onClick={onCancel} className="hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg p-1.5 transition-all active:scale-90">
             <X size={18} strokeWidth={3} />
           </button>
         </div>
@@ -361,7 +361,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     setShowSupplierDropdown(true);
                   }}
                   onFocus={() => setShowSupplierDropdown(true)}
-                  className="border border-slate-200 px-4 py-2 text-[13px] bg-white w-24 outline-none rounded-xl focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all uppercase font-black text-slate-900 shadow-sm text-center"
+                  className="border border-slate-200 px-4 py-2 text-[13px] bg-white w-24 outline-none rounded-lg focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all uppercase font-black text-slate-900 shadow-sm text-center"
                   placeholder="CODE"
                 />
                 <input
@@ -376,12 +376,12 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     }
                   }}
                   onFocus={() => setShowSupplierDropdown(true)}
-                  className="border border-slate-200 px-4 py-2 text-[13px] bg-white w-80 outline-none rounded-xl focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all uppercase font-black text-slate-900 shadow-sm"
+                  className="border border-slate-200 px-4 py-2 text-[13px] bg-white w-80 outline-none rounded-lg focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all uppercase font-black text-slate-900 shadow-sm"
                   placeholder="SEARCH SUPPLIER NAME..."
                 />
 
                 {showSupplierDropdown && (
-                  <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-64 overflow-y-auto z-40 rounded-2xl mt-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-64 overflow-y-auto z-40 rounded-lg mt-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0 rounded-t-2xl">
                       <span className="text-white text-[10px] font-black uppercase tracking-widest px-2">Suppliers</span>
                       <X size={16} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowSupplierDropdown(false)} />
@@ -400,9 +400,9 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 ml-auto text-[11px] bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm font-black uppercase tracking-widest">
-                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded-xl transition-all ${paymentType === 'cash' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Cash</button>
-                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded-xl transition-all ${paymentType === 'credit' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Credit</button>
+              <div className="flex items-center gap-2 ml-auto text-[11px] bg-white border border-slate-200 p-1.5 rounded-lg shadow-sm font-black uppercase tracking-widest">
+                <button onClick={() => setPaymentType('cash')} className={`px-4 py-1.5 rounded-lg transition-all ${paymentType === 'cash' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Cash</button>
+                <button onClick={() => setPaymentType('credit')} className={`px-4 py-1.5 rounded-lg transition-all ${paymentType === 'credit' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Credit</button>
               </div>
             </div>
 
@@ -414,7 +414,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   type="text"
                   value={billNo}
                   onChange={(e) => setBillNo(e.target.value)}
-                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-emerald-600 text-white w-32 outline-none rounded-xl font-mono font-black text-center shadow-sm focus:ring-2 focus:ring-emerald-400"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-emerald-600 text-white w-32 outline-none rounded-lg font-mono font-black text-center shadow-sm focus:ring-2 focus:ring-emerald-400"
                 />
               </div>
 
@@ -424,7 +424,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   type="date"
                   value={invoiceDate}
                   onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="border border-slate-200 px-4 py-2 text-[12px] bg-white w-40 outline-none rounded-xl font-bold shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="border border-slate-200 px-4 py-2 text-[12px] bg-white w-40 outline-none rounded-lg font-bold shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                 />
               </div>
 
@@ -434,7 +434,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   type="text"
                   value={gadiNumber}
                   onChange={(e) => setGadiNumber(e.target.value)}
-                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-36 outline-none rounded-xl font-black uppercase shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-36 outline-none rounded-lg font-black uppercase shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                   placeholder="GADI NO"
                 />
               </div>
@@ -448,7 +448,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   type="text"
                   value={driverName}
                   onChange={(e) => setDriverName(e.target.value)}
-                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-44 outline-none rounded-xl font-black uppercase shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-44 outline-none rounded-lg font-black uppercase shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="DRIVER NAME"
                 />
               </div>
@@ -458,7 +458,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   type="text"
                   value={mobileNumber}
                   onChange={(e) => setMobileNumber(e.target.value)}
-                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-40 outline-none rounded-xl font-black uppercase shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="border border-slate-200 px-4 py-1.5 text-[13px] bg-white w-40 outline-none rounded-lg font-black uppercase shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="MOBILE NO"
                 />
               </div>
@@ -471,7 +471,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                 <select
                   value={taxType}
                   onChange={(e) => setTaxType(e.target.value)}
-                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-white w-44 outline-none rounded-xl font-black shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer"
+                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-white w-44 outline-none rounded-lg font-black shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer"
                 >
                   <option value="CGST/SGST">LOCAL (CGST/SGST)</option>
                   <option value="IGST">INTERSTATE (IGST)</option>
@@ -484,7 +484,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                   type="text"
                   value={company?.state_name ? `${company.state_name} (${company.state_code})` : 'GUJARAT (24)'}
                   readOnly
-                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-slate-50 w-44 outline-none rounded-xl font-bold text-slate-600 shadow-sm"
+                  className="border border-slate-200 px-4 py-1.5 text-[12px] bg-slate-50 w-44 outline-none rounded-lg font-bold text-slate-600 shadow-sm"
                 />
               </div>
             </div>
@@ -599,7 +599,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
             <div
               ref={itemDropdownRef}
               style={{ position: 'fixed', top: `${dropdownPos.top + 5}px`, left: dropdownPos.left || 0, width: dropdownPos.width || 400 }}
-              className="bg-white border border-slate-200 shadow-lg max-h-80 overflow-y-auto z-[9999] rounded-2xl animate-in fade-in zoom-in-95 duration-200"
+              className="bg-white border border-slate-200 shadow-lg max-h-80 overflow-y-auto z-[9999] rounded-lg animate-in fade-in zoom-in-95 duration-200"
             >
               <div ref={dropdownListRef}>
                 <div className="p-3 border-b bg-slate-900 flex justify-between font-black text-white text-[10px] uppercase tracking-widest sticky top-0 items-center rounded-t-2xl">
@@ -670,7 +670,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
               {/* FINAL BIG TOTAL */}
               <div className="flex flex-col items-end gap-0 pl-4 justify-center">
                 <span className="font-black text-emerald-700 text-[7px] uppercase tracking-[0.2em] opacity-70">Net Payable</span>
-                <div className="bg-emerald-600 text-white px-4 py-1 rounded-2xl shadow-md border border-emerald-500 flex items-center h-8">
+                <div className="bg-emerald-600 text-white px-4 py-1 rounded-lg shadow-md border border-emerald-500 flex items-center h-8">
                   <span className="text-[18px] font-black font-mono tracking-tighter">₹{netAmount.toFixed(2)}</span>
                 </div>
               </div>
@@ -680,10 +680,10 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
         {/* Action Bar */}
         <div className="bg-emerald-50 p-4 border-t border-emerald-100 flex items-center justify-end gap-3 shadow-sm">
-          <button onClick={onCancel} className="px-6 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-black shadow-sm rounded-xl transition-all active:scale-95 text-[9px] uppercase tracking-widest">
+          <button onClick={onCancel} className="px-6 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-black shadow-sm rounded-lg transition-all active:scale-95 text-[9px] uppercase tracking-widest">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-black shadow-md rounded-xl transition-all active:scale-95 text-[10px] uppercase tracking-widest">
+          <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-black shadow-md rounded-lg transition-all active:scale-95 text-[10px] uppercase tracking-widest">
             {loading ? 'Processing...' : 'Confirm & Save'}
           </button>
         </div>

@@ -128,15 +128,15 @@ export default function VillageMaster() {
                   onClick={() => setShowForm(false)}
                   className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
                >
-                  <div className="p-2 bg-white rounded-2xl border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
+                  <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
                   Back to Registry
                </button>
 
-               <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10 overflow-hidden relative">
+               <div className="bg-white rounded-lg border border-slate-100 shadow-xl p-10 overflow-hidden relative">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 blur-2xl"></div>
 
                   <div className="flex items-center gap-4 mb-10">
-                     <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg">
+                     <div className="p-4 bg-blue-600 text-white rounded-lg shadow-lg">
                         {isEditing ? <Edit2 size={24} /> : <Plus size={24} />}
                      </div>
                      <div>
@@ -153,7 +153,7 @@ export default function VillageMaster() {
                               type="text"
                               value={formData.villageCode}
                               onChange={(e) => setFormData({ ...formData, villageCode: e.target.value })}
-                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                               required
                            />
                         </div>
@@ -163,7 +163,7 @@ export default function VillageMaster() {
                               type="text"
                               value={formData.villageName}
                               onChange={(e) => setFormData({ ...formData, villageName: e.target.value })}
-                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm italic"
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm italic"
                               placeholder="Enter Nomenclature..."
                               required
                            />
@@ -177,7 +177,7 @@ export default function VillageMaster() {
                               type="text"
                               value={formData.talukaName}
                               onChange={(e) => setFormData({ ...formData, talukaName: e.target.value })}
-                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                               placeholder="Taluka Region"
                            />
                         </div>
@@ -187,7 +187,7 @@ export default function VillageMaster() {
                               type="text"
                               value={formData.districtName}
                               onChange={(e) => setFormData({ ...formData, districtName: e.target.value })}
-                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                               placeholder="District Zone"
                            />
                         </div>
@@ -197,7 +197,7 @@ export default function VillageMaster() {
                         <button
                            type="submit"
                            disabled={loading}
-                           className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold text-sm hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+                           className="w-full py-4 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
                         >
                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
                            {isEditing ? 'Synchronize Record' : 'Commit Registry'}
@@ -224,7 +224,7 @@ export default function VillageMaster() {
                   <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Village Registry</h1>
                </div>
                <div className="flex items-center gap-4 w-full md:w-auto">
-                  <div className="flex-1 md:flex-none flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+                  <div className="flex-1 md:flex-none flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
                      <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
                      <input
                         type="text"
@@ -236,7 +236,7 @@ export default function VillageMaster() {
                   </div>
                   <button
                      onClick={handleCreateNew}
-                     className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                     className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
                   >
                      <Plus size={20} />
                      Register Node
@@ -246,7 +246,7 @@ export default function VillageMaster() {
 
             {/* Global Messages */}
             {message && (
-               <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 shadow-sm border ${message.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+               <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 shadow-sm border ${message.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                   }`}>
                   {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
                   <p className="text-sm font-bold">{message.text}</p>
@@ -255,39 +255,39 @@ export default function VillageMaster() {
 
             {/* Info Shards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+               <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Village Nodes</p>
-                     <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600"><MapPin size={18} /></div>
+                     <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600"><MapPin size={18} /></div>
                   </div>
                   <h3 className="text-2xl font-black text-slate-800">{villages.length}</h3>
                </div>
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+               <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Clusters</p>
-                     <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600"><Navigation size={18} /></div>
+                     <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600"><Navigation size={18} /></div>
                   </div>
                   <h3 className="text-2xl font-black text-slate-800">{[...new Set(villages.map(v => v.talukaName))].length}</h3>
                </div>
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+               <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">District Zones</p>
-                     <div className="p-2.5 bg-violet-50 rounded-xl text-violet-600"><Globe size={18} /></div>
+                     <div className="p-2.5 bg-violet-50 rounded-lg text-violet-600"><Globe size={18} /></div>
                   </div>
                   <h3 className="text-2xl font-black text-slate-800">{[...new Set(villages.map(v => v.districtName))].length}</h3>
                </div>
             </div>
 
             {/* Registry Table */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+            <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
                <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-slate-50 rounded-xl text-slate-400"><Database size={18} /></div>
+                     <div className="p-2 bg-slate-50 rounded-lg text-slate-400"><Database size={18} /></div>
                      <h2 className="text-lg font-bold text-slate-800">Operational Node Registry</h2>
                   </div>
                   <button
                      onClick={loadVillages}
-                     className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                     className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                   >
                      <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
                   </button>
@@ -318,7 +318,7 @@ export default function VillageMaster() {
                         ) : filteredVillages.length === 0 ? (
                            <tr>
                               <td colSpan="6" className="py-20 text-center">
-                                 <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-4 text-slate-200"><FileText size={32} /></div>
+                                 <div className="w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center mx-auto mb-4 text-slate-200"><FileText size={32} /></div>
                                  <p className="text-slate-400 font-bold">No registry entries found.</p>
                                  <button onClick={handleCreateNew} className="text-blue-600 text-xs font-bold uppercase mt-4 hover:underline">Register New Node</button>
                               </td>
@@ -331,7 +331,7 @@ export default function VillageMaster() {
                                  </td>
                                  <td className="px-6 py-6">
                                     <div className="flex items-center gap-4">
-                                       <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                       <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
                                           <Building2 size={18} />
                                        </div>
                                        <div>
@@ -340,7 +340,7 @@ export default function VillageMaster() {
                                     </div>
                                  </td>
                                  <td className="px-6 py-6 text-center">
-                                    <span className="bg-slate-50 px-3 py-1 rounded-2xl text-xs font-bold text-slate-500 border border-slate-100">
+                                    <span className="bg-slate-50 px-3 py-1 rounded-lg text-xs font-bold text-slate-500 border border-slate-100">
                                        {v.villageCode.toString().padStart(4, '0')}
                                     </span>
                                  </td>
@@ -352,8 +352,8 @@ export default function VillageMaster() {
                                  </td>
                                  <td className="px-10 py-6 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                                       <button onClick={() => handleEdit(v)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 rounded-xl shadow-sm hover:shadow-lg transition-all"><Edit2 size={16} /></button>
-                                       <button onClick={() => handleDelete(v.id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-100 rounded-xl shadow-sm hover:shadow-lg transition-all"><Trash2 size={16} /></button>
+                                       <button onClick={() => handleEdit(v)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 rounded-lg shadow-sm hover:shadow-lg transition-all"><Edit2 size={16} /></button>
+                                       <button onClick={() => handleDelete(v.id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-100 rounded-lg shadow-sm hover:shadow-lg transition-all"><Trash2 size={16} /></button>
                                     </div>
                                  </td>
                               </tr>

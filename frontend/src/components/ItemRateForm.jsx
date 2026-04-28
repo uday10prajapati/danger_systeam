@@ -23,7 +23,7 @@ const FormInput = ({ className = "", error, ...props }) => (
   <div className="space-y-1.5 flex-1 group">
     <div className="relative">
       <input
-        className={`w-full h-12 px-5 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50 transition-all rounded-2xl font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
+        className={`w-full h-12 px-5 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50 transition-all rounded-lg font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
         {...props}
       />
     </div>
@@ -109,7 +109,7 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
     : '0.0';
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
+    <div className="bg-white rounded-lg border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full -mr-32 -mt-32 blur-3xl shadow-inner"></div>
 
       <div className="relative z-10">
@@ -124,7 +124,7 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
         </div>
 
         {errors.length > 0 && (
-          <div className="mb-8 p-5 bg-rose-50 border border-rose-100 rounded-2xl flex gap-4 animate-in slide-in-from-top duration-300">
+          <div className="mb-8 p-5 bg-rose-50 border border-rose-100 rounded-lg flex gap-4 animate-in slide-in-from-top duration-300">
             <AlertCircle className="text-rose-500 shrink-0" size={20} />
             <ul className="text-[10px] font-black text-rose-700 uppercase tracking-widest space-y-1">
               {errors.map((err, i) => <li key={i}>• {err}</li>)}
@@ -147,7 +147,7 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
                   value={formData.item_id}
                   onChange={handleChange}
                   disabled={loading || !!rate}
-                  className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 appearance-none cursor-pointer hover:bg-slate-50 transition-all uppercase tracking-widest disabled:bg-slate-100 disabled:text-slate-400"
+                  className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-lg outline-none font-bold text-slate-700 appearance-none cursor-pointer hover:bg-slate-50 transition-all uppercase tracking-widest disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   <option value="">SCAN OR SELECT SYSTEM ID...</option>
                   {items.filter(i => i.is_active === 1).map(item => (
@@ -157,8 +157,8 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
                 <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
               </div>
               {selectedItem && (
-                <div className="mt-3 flex items-center gap-3 px-4 py-2 bg-[#F8FAFC] rounded-xl border border-slate-50">
-                  <div className="p-1.5 bg-white rounded-2xl shadow-sm text-blue-500"><Layers size={12} /></div>
+                <div className="mt-3 flex items-center gap-3 px-4 py-2 bg-[#F8FAFC] rounded-lg border border-slate-50">
+                  <div className="p-1.5 bg-white rounded-lg shadow-sm text-blue-500"><Layers size={12} /></div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     Classification: {selectedItem.category} | Logged Unit: {selectedItem.unit}
                   </span>
@@ -194,14 +194,14 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
 
             {/* Real-time ROI Analysis */}
             {formData.purchase_rate && formData.sale_rate && (
-              <div className="mt-10 p-10 rounded-[2.5rem] bg-slate-900 shadow-2xl shadow-slate-200 group relative overflow-hidden">
+              <div className="mt-10 p-10 rounded-lg bg-slate-900 shadow-2xl shadow-slate-200 group relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 text-slate-800 opacity-20 group-hover:rotate-45 transition-transform duration-700"><TrendingUp size={120} /></div>
                 <div className="relative z-10 grid grid-cols-2 gap-10">
                   <div>
                     <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 italic">Yield Gradient Index</p>
                     <div className="flex items-end gap-2">
                       <p className="text-4xl font-black text-white italic tracking-tighter">{margin}%</p>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-2xl ${parseFloat(margin) > 20 ? 'bg-emerald-500' : 'bg-rose-500'} text-white mb-1 uppercase`}>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${parseFloat(margin) > 20 ? 'bg-emerald-500' : 'bg-rose-500'} text-white mb-1 uppercase`}>
                         {parseFloat(margin) > 20 ? 'Optimal' : 'Low ROI'}
                       </span>
                     </div>
@@ -219,14 +219,14 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-[2rem] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-200"
+              className="flex-1 bg-blue-600 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-200"
             >
               {loading ? <RefreshCcw className="animate-spin" size={18} /> : <><Save size={18} /> Commit Tariff Manifest</>}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-bold rounded-[2rem] hover:bg-slate-50 hover:text-slate-800 transition-all uppercase text-[10px] tracking-widest"
+              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-bold rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all uppercase text-[10px] tracking-widest"
             >
               Abort
             </button>

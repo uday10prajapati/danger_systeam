@@ -174,7 +174,7 @@ export default function MemberForm({
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/40 shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-white/40 shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
       <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/5 rounded-full -mr-48 -mt-48 blur-[100px]"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-400/5 rounded-full -ml-48 -mb-48 blur-[100px]"></div>
 
@@ -187,14 +187,14 @@ export default function MemberForm({
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Legal Identity Management</p>
           </div>
           {onClose && (
-            <button onClick={onClose} className="p-3 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-2xl transition-all active:scale-90">
+            <button onClick={onClose} className="p-3 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-lg transition-all active:scale-90">
               <X size={20} />
             </button>
           )}
         </div>
 
         {message && (
-          <div className={`mb-8 p-5 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
+          <div className={`mb-8 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <span className="text-sm font-black italic">{message.text}</span>
@@ -225,7 +225,7 @@ export default function MemberForm({
                         onChange={handleChange}
                         onBlur={(e) => handleCodeFetch(e.target.value)}
                         placeholder="000"
-                        className={`w-full pl-10 pr-4 py-3 bg-slate-50 border ${localEditId ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100'} focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-black text-slate-700 text-sm`}
+                        className={`w-full pl-10 pr-4 py-3 bg-slate-50 border ${localEditId ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100'} focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-black text-slate-700 text-sm`}
                       />
                     </div>
                   </div>
@@ -240,7 +240,7 @@ export default function MemberForm({
                         onChange={handleChange}
                         required
                         placeholder="Enter Gujarati/Local Name"
-                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-black text-slate-700 text-sm"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-black text-slate-700 text-sm"
                       />
                     </div>
                   </div>
@@ -256,7 +256,7 @@ export default function MemberForm({
                       value={formData.engName}
                       onChange={handleChange}
                       placeholder="Legal Name in English"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-bold text-slate-600 text-sm"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-600 text-sm"
                     />
                   </div>
                 </div>
@@ -293,7 +293,7 @@ export default function MemberForm({
                       name="villageCode"
                       value={formData.villageCode}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
                     >
                       <option value="">Select Village</option>
                       {villageList.map(v => (
@@ -311,7 +311,7 @@ export default function MemberForm({
                         value={formData.phoneNo}
                         onChange={handleChange}
                         placeholder="Primary Number"
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm font-mono tracking-tighter"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm font-mono tracking-tighter"
                       />
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export default function MemberForm({
                       onChange={handleChange}
                       rows="2"
                       placeholder="Locality, Sector, Street Details"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-xl outline-none transition-all font-medium text-slate-600 text-sm"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-emerald-500 rounded-lg outline-none transition-all font-medium text-slate-600 text-sm"
                     />
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export default function MemberForm({
                     name="bankName"
                     value={formData.bankName}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
                   >
                     <option value="">{t('memberMaster.selectBankMaster')}</option>
                     {bankList.map(b => (
@@ -373,7 +373,7 @@ export default function MemberForm({
                     value={formData.ifscCode}
                     onChange={handleChange}
                     placeholder="IFSC0000XXX"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold uppercase"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-lg outline-none transition-all font-mono text-slate-700 font-bold uppercase"
                   />
                 </div>
               </div>
@@ -388,14 +388,14 @@ export default function MemberForm({
                     value={formData.fullAcNumber}
                     onChange={handleChange}
                     placeholder="00000000000"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-amber-500 rounded-lg outline-none transition-all font-mono text-slate-700 font-bold"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Protocols</label>
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 flex items-center">
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-1 flex items-center">
                   <input
                     type="checkbox"
                     id="is_active"
@@ -406,14 +406,14 @@ export default function MemberForm({
                   />
                   <label
                     htmlFor="is_active"
-                    className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-2xl transition-all ${formData.is_active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'text-slate-400'
+                    className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-lg transition-all ${formData.is_active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'text-slate-400'
                       }`}
                   >
                     Active
                   </label>
                   <label
                     htmlFor="is_active"
-                    className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-2xl transition-all ${!formData.is_active ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-400'
+                    className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-lg transition-all ${!formData.is_active ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-400'
                       }`}
                     onClick={() => setFormData(p => ({ ...p, is_active: false }))}
                   >
@@ -432,7 +432,7 @@ export default function MemberForm({
                   value={formData.nominalMember}
                   onChange={handleChange}
                   placeholder="Nominal Status / ID"
-                  className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                  className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                 />
               </div>
               <div className="space-y-1.5">
@@ -441,7 +441,7 @@ export default function MemberForm({
                   name="accountType"
                   value={formData.accountType}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-xl outline-none transition-all font-bold text-slate-700 text-sm"
+                  className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 focus:bg-white focus:border-amber-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                 >
                   <option value="">Default</option>
                   <option value="Savings">Savings</option>
@@ -460,7 +460,7 @@ export default function MemberForm({
                     value={formData.bardanOpening}
                     onChange={handleChange}
                     placeholder="0.00"
-                    className="w-full pl-12 pr-4 py-3 bg-blue-50/30 border border-blue-100 focus:bg-white focus:border-blue-500 rounded-xl outline-none transition-all font-mono text-slate-700 font-bold"
+                    className="w-full pl-12 pr-4 py-3 bg-blue-50/30 border border-blue-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-mono text-slate-700 font-bold"
                   />
                 </div>
               </div>
@@ -471,14 +471,14 @@ export default function MemberForm({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+              className="flex-1 bg-blue-600 text-white font-black py-4 rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
             >
               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={18} /> {localEditId || editingMember ? 'Synchronize Record' : 'Create Identity'}</>}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-10 py-4 bg-white border border-slate-100 text-slate-400 font-black rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all text-sm uppercase tracking-widest"
+              className="px-10 py-4 bg-white border border-slate-100 text-slate-400 font-black rounded-lg hover:bg-slate-50 hover:text-slate-600 transition-all text-sm uppercase tracking-widest"
             >
               Abort
             </button>

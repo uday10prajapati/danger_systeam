@@ -189,7 +189,7 @@ export default function CashBook() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-2xl hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
+          className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
         >
           <Plus size={18} strokeWidth={3} />
           {t('cashBook.addEntry', 'Inject Capital / Debit')}
@@ -198,7 +198,7 @@ export default function CashBook() {
 
       {/* Stats Cards - Sleek Grayscale */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-900 group hover:bg-slate-900 transition-all duration-300">
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-slate-900 group hover:bg-slate-900 transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Cash Influx</p>
@@ -210,7 +210,7 @@ export default function CashBook() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-500 group hover:bg-slate-800 transition-all duration-300">
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-slate-500 group hover:bg-slate-800 transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Cash Outflow</p>
@@ -222,7 +222,7 @@ export default function CashBook() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-black group hover:bg-black transition-all duration-300 relative overflow-hidden">
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-black group hover:bg-black transition-all duration-300 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50/10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700"></div>
           <div className="flex justify-between items-start relative z-10">
             <div>
@@ -236,7 +236,7 @@ export default function CashBook() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg border-l-8 border-slate-300 group hover:bg-slate-600 transition-all duration-300">
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-slate-300 group hover:bg-slate-600 transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Total Records</p>
@@ -249,7 +249,7 @@ export default function CashBook() {
 
       {/* Daily Summary Ribbon */}
       {dailySummary.length > 0 && (
-        <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
           <div className="bg-slate-900 p-4 border-b border-black">
             <h2 className="text-[10px] font-black text-white uppercase tracking-[0.3em] italic flex items-center gap-2">
               <div className="w-4 h-1 bg-white"></div>
@@ -293,7 +293,7 @@ export default function CashBook() {
       )}
 
       {/* Global Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl shadow-md border border-slate-100 flex flex-wrap gap-4 items-end">
+      <div className="bg-white p-4 rounded-lg shadow-md border border-slate-100 flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[250px]">
           <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Global Audit Search</span>
           <div className="relative group">
@@ -303,7 +303,7 @@ export default function CashBook() {
               placeholder="SEARCH BY DESCRIPTION OR REFERENCE..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs"
+              className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs"
             />
           </div>
         </div>
@@ -314,7 +314,7 @@ export default function CashBook() {
               type="date"
               value={dateRange.startDate}
               onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-2xl focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
+              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
             />
           </div>
           <div>
@@ -323,12 +323,12 @@ export default function CashBook() {
               type="date"
               value={dateRange.endDate}
               onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-2xl focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
+              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
             />
           </div>
           <button
             onClick={handleDateChange}
-            className="px-6 py-2.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg h-[41px]"
+            className="px-6 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-black font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg h-[41px]"
           >
             {t('common.filter', 'EXECUTE')}
           </button>
@@ -336,7 +336,7 @@ export default function CashBook() {
       </div>
 
       {/* Main Ledger Table */}
-      <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+      <div className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-200">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-900 text-white">
@@ -367,9 +367,9 @@ export default function CashBook() {
                     <td className="px-6 py-4 text-[10px] text-slate-400 font-black uppercase tracking-widest">{entry.reference_no || 'MANUAL_POS'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.1em] border-2 ${entry.reference_type === 'sale' ? 'bg-slate-100 text-black border-black' :
-                          entry.reference_type === 'sale_return' ? 'bg-black text-white border-black' :
-                            entry.reference_type === 'purchase' ? 'bg-slate-50 text-slate-600 border-slate-200' :
-                              'bg-white text-slate-400 border-slate-100'
+                        entry.reference_type === 'sale_return' ? 'bg-black text-white border-black' :
+                          entry.reference_type === 'purchase' ? 'bg-slate-50 text-slate-600 border-slate-200' :
+                            'bg-white text-slate-400 border-slate-100'
                         }`}>
                         {entry.reference_type}
                       </span>
@@ -395,7 +395,7 @@ export default function CashBook() {
       {/* Manual Entry Form Modal - High Contrast Industrial */}
       {showForm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden border border-slate-700">
+          <div className="bg-white rounded-lg shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden border border-slate-700">
             {/* Modal Header */}
             <div className="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center">
               <div>
@@ -404,7 +404,7 @@ export default function CashBook() {
               </div>
               <button
                 onClick={() => setShowForm(false)}
-                className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-xl transition-all active:scale-90"
+                className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-lg transition-all active:scale-90"
               >
                 <X size={20} strokeWidth={3} />
               </button>
@@ -412,12 +412,12 @@ export default function CashBook() {
 
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               {error && (
-                <div className="p-4 bg-red-50 text-red-700 rounded-xl border-l-4 border-red-800 font-bold text-xs uppercase tracking-widest italic">
+                <div className="p-4 bg-red-50 text-red-700 rounded-lg border-l-4 border-red-800 font-bold text-xs uppercase tracking-widest italic">
                   Critical Error: {error}
                 </div>
               )}
               {success && (
-                <div className="p-4 bg-slate-900 text-white rounded-xl border-l-4 border-white font-black text-xs uppercase tracking-[0.2em] animate-pulse">
+                <div className="p-4 bg-slate-900 text-white rounded-lg border-l-4 border-white font-black text-xs uppercase tracking-[0.2em] animate-pulse">
                   Transaction Verified: {success}
                 </div>
               )}
@@ -431,7 +431,7 @@ export default function CashBook() {
                       type="date"
                       value={formData.transaction_date}
                       onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
                     />
                   </div>
                 </div>
@@ -443,7 +443,7 @@ export default function CashBook() {
                     placeholder="E.G., MISC OFFICE OVERHEADS, CAPITAL INJECTION..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12 placeholder:text-slate-300"
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12 placeholder:text-slate-300"
                   />
                 </div>
 
@@ -456,7 +456,7 @@ export default function CashBook() {
                       step="0.01"
                       value={formData.cash_in}
                       onChange={(e) => setFormData({ ...formData, cash_in: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
+                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
                     />
                   </div>
                   <div>
@@ -467,7 +467,7 @@ export default function CashBook() {
                       step="0.01"
                       value={formData.cash_out}
                       onChange={(e) => setFormData({ ...formData, cash_out: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
+                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
                     />
                   </div>
                 </div>
@@ -479,7 +479,7 @@ export default function CashBook() {
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows="3"
                     placeholder="OPTIONAL CONTEXTUAL DATA..."
-                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-black transition-all bg-slate-50 font-bold text-xs uppercase placeholder:text-slate-200"
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-bold text-xs uppercase placeholder:text-slate-200"
                   />
                 </div>
               </div>
@@ -488,14 +488,14 @@ export default function CashBook() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 px-6 py-4 border-2 border-slate-100 text-slate-400 rounded-xl hover:bg-slate-50 font-black uppercase tracking-widest text-[10px] transition-all"
+                  className="flex-1 px-6 py-4 border-2 border-slate-100 text-slate-400 rounded-lg hover:bg-slate-50 font-black uppercase tracking-widest text-[10px] transition-all"
                 >
                   ABORT
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-3 px-8 py-4 bg-black text-white rounded-xl hover:bg-slate-800 disabled:opacity-50 font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl transition-all active:scale-95"
+                  className="flex-3 px-8 py-4 bg-black text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl transition-all active:scale-95"
                 >
                   {loading ? 'PROCESSING...' : 'COMMIT TRANSACTION'}
                 </button>

@@ -72,13 +72,13 @@ export default function GSTCalculator({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-4">
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800">💰 GST Calculation</h3>
         <span className={`text-sm font-medium px-3 py-1 rounded-full ${isIntraState
-            ? 'bg-blue-100 text-blue-800'
-            : 'bg-orange-100 text-orange-800'
+          ? 'bg-blue-100 text-blue-800'
+          : 'bg-orange-100 text-orange-800'
           }`}>
           {isIntraState ? '📍 Intra-State (CGST+SGST)' : '✈️ Inter-State (IGST)'}
         </span>
@@ -95,7 +95,7 @@ export default function GSTCalculator({
             value={gstPercent}
             onChange={(e) => onGSTChange && onGSTChange({ ...gstData, gst_percent: Number(e.target.value) })}
             disabled={readOnly}
-            className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
           >
             <option value="">-- Select GST % --</option>
             {allowedPercentages.map((pct) => (
@@ -115,14 +115,14 @@ export default function GSTCalculator({
             type="text"
             value={Number(taxableAmount).toFixed(2)}
             disabled
-            className="w-full px-3 py-2 border border-gray-300 rounded-2xl bg-gray-100 text-gray-700"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
           />
         </div>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm">
+        <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <AlertCircle size={18} />
           {error}
         </div>
@@ -131,7 +131,7 @@ export default function GSTCalculator({
       {/* GST Breakup Display */}
       {gstData && showBreakup && (
         <div className="space-y-3 mb-4">
-          <div className="bg-gray-50 rounded-2xl p-3">
+          <div className="bg-gray-50 rounded-lg p-3">
             {/* CGST Row */}
             {gstData.cgst_percent > 0 && (
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
@@ -186,7 +186,7 @@ export default function GSTCalculator({
           </div>
 
           {/* Final Amount Section */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border-2 border-green-300">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-300">
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-700 text-sm">Taxable Amount</span>
               <span className="text-gray-800 font-medium">

@@ -320,7 +320,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 sm:p-4 backdrop-blur-md">
-      <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
+      <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] flex flex-col border border-slate-200 overflow-hidden font-sans">
 
         {/* Header Ribbon - Modern Design */}
         <div className="flex justify-between items-center bg-slate-900 text-white px-6 py-3">
@@ -328,7 +328,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
             <div className="w-2.5 h-2.5 bg-violet-400 rounded-full"></div>
             Sale Entry
           </div>
-          <button onClick={onCancel} className="hover:bg-violet-100 text-slate-600 hover:text-violet-700 rounded-2xl p-1.5 transition-all active:scale-90">
+          <button onClick={onCancel} className="hover:bg-violet-100 text-slate-600 hover:text-violet-700 rounded-lg p-1.5 transition-all active:scale-90">
             <X size={18} strokeWidth={3} />
           </button>
         </div>
@@ -344,15 +344,15 @@ export default function SaleForm({ onSubmit, onCancel }) {
             <div className="flex flex-wrap gap-x-8 gap-y-3 items-center px-2">
               <div className="flex items-center gap-3">
                 <span className="font-black text-slate-600 uppercase tracking-widest text-[9px] w-14 text-right">Bill No :</span>
-                <input type="text" value={billNo} onChange={e => setBillNo(e.target.value)} className="border border-slate-200 px-4 h-8 text-xs bg-violet-600 text-white w-32 outline-none rounded-xl font-mono font-black text-center shadow-sm focus:ring-2 focus:ring-violet-400" />
+                <input type="text" value={billNo} onChange={e => setBillNo(e.target.value)} className="border border-slate-200 px-4 h-8 text-xs bg-violet-600 text-white w-32 outline-none rounded-lg font-mono font-black text-center shadow-sm focus:ring-2 focus:ring-violet-400" />
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-black text-slate-600 uppercase tracking-widest text-[9px]">Date :</span>
-                <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className="border border-slate-200 px-4 h-8 text-[11px] bg-white w-40 outline-none rounded-xl font-bold shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+                <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className="border border-slate-200 px-4 h-8 text-[11px] bg-white w-40 outline-none rounded-lg font-bold shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
               </div>
-              <div className="flex items-center gap-2 ml-auto text-[10px] bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm font-black uppercase tracking-widest h-9">
-                <button onClick={() => setSalesType('cash')} className={`px-4 py-1.5 rounded-xl transition-all h-full ${salesType === 'cash' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Cash</button>
-                <button onClick={() => setSalesType('credit')} className={`px-4 py-1.5 rounded-xl transition-all h-full ${salesType === 'credit' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Credit</button>
+              <div className="flex items-center gap-2 ml-auto text-[10px] bg-white border border-slate-200 p-1.5 rounded-lg shadow-sm font-black uppercase tracking-widest h-9">
+                <button onClick={() => setSalesType('cash')} className={`px-4 py-1.5 rounded-lg transition-all h-full ${salesType === 'cash' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Cash</button>
+                <button onClick={() => setSalesType('credit')} className={`px-4 py-1.5 rounded-lg transition-all h-full ${salesType === 'credit' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>Credit</button>
               </div>
             </div>
 
@@ -365,7 +365,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
                   value={memberSearchText}
                   onChange={e => { setMemberSearchText(e.target.value); setShowMemberDropdown(true); }}
                   onFocus={() => setShowMemberDropdown(true)}
-                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-28 outline-none rounded-xl font-black text-center uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-28 outline-none rounded-lg font-black text-center uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
                   placeholder="CODE"
                 />
                 <input
@@ -380,11 +380,11 @@ export default function SaleForm({ onSubmit, onCancel }) {
                     }
                   }}
                   onFocus={() => setShowMemberDropdown(true)}
-                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-64 outline-none rounded-xl font-black text-slate-900 uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                  className="border border-slate-200 px-4 h-8 text-xs bg-white w-64 outline-none rounded-lg font-black text-slate-900 uppercase shadow-sm focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
                   placeholder="NAME OR SEARCH..."
                 />
                 {showMemberDropdown && (
-                  <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-56 overflow-y-auto z-50 rounded-2xl mt-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-16 bg-white border border-slate-200 shadow-lg w-[400px] max-h-56 overflow-y-auto z-50 rounded-lg mt-1 animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-2 border-b bg-slate-900 flex justify-between items-center sticky top-0 rounded-t-2xl">
                       <span className="text-white text-[9px] font-black uppercase tracking-widest px-2">Accounts (Suppliers)</span>
                       <X size={14} className="text-slate-400 cursor-pointer hover:text-red-500 rounded p-0.5 transition-colors" onClick={() => setShowMemberDropdown(false)} />
@@ -513,7 +513,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
           {/* Item Selector Dropdown */}
           {showItemDropdown && (
-            <div ref={itemDropdownRef} style={{ position: 'fixed', top: `${dropdownPos.top}px`, left: dropdownPos.left, width: dropdownPos.width }} className="bg-white border border-slate-200 shadow-lg max-h-72 overflow-y-auto z-[9999] rounded-2xl animate-in slide-in-from-top-1 duration-200">
+            <div ref={itemDropdownRef} style={{ position: 'fixed', top: `${dropdownPos.top}px`, left: dropdownPos.left, width: dropdownPos.width }} className="bg-white border border-slate-200 shadow-lg max-h-72 overflow-y-auto z-[9999] rounded-lg animate-in slide-in-from-top-1 duration-200">
               <div ref={dropdownListRef}>
                 <div className="bg-slate-900 text-white p-3 text-[9px] font-black uppercase tracking-widest flex justify-between items-center sticky top-0 rounded-t-2xl">
                   <span>Select Item</span>
@@ -559,7 +559,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
               </div>
               <div className="flex flex-col items-end pr-2 justify-center">
                 <span className="text-[8px] font-black text-violet-700 uppercase tracking-[0.3em] mb-1">NET PAYABLE ₹</span>
-                <div className="bg-violet-600 text-white px-6 py-2 rounded-2xl h-12 flex items-center font-black font-mono text-[24px] shadow-md tracking-tighter border border-violet-500">
+                <div className="bg-violet-600 text-white px-6 py-2 rounded-lg h-12 flex items-center font-black font-mono text-[24px] shadow-md tracking-tighter border border-violet-500">
                   ₹{netAmount.toFixed(2)}
                 </div>
               </div>
@@ -569,8 +569,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
         {/* Global Action Bar */}
         <div className="bg-violet-50 p-4 border-t border-violet-100 flex justify-end gap-3 shadow-sm">
-          <button onClick={onCancel} className="px-8 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-black rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm">Cancel</button>
-          <button onClick={handleSave} disabled={loading} className="px-12 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-400 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 shadow-md">{loading ? 'Processing...' : 'Confirm & Post Entry'}</button>
+          <button onClick={onCancel} className="px-8 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-black rounded-lg text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm">Cancel</button>
+          <button onClick={handleSave} disabled={loading} className="px-12 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-400 text-white font-black rounded-lg text-xs uppercase tracking-widest transition-all active:scale-95 shadow-md">{loading ? 'Processing...' : 'Confirm & Post Entry'}</button>
         </div>
       </div>
     </div>

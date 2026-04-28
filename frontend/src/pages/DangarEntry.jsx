@@ -5,7 +5,7 @@ import {
   Calendar, Info, AlertCircle, FileText,
   User, Box, Calculator, Truck,
   CheckCircle, History, Edit3, ChevronRight, Eye,
-  TrendingDown, CreditCard, TrendingUp 
+  TrendingDown, CreditCard, TrendingUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { sabhasadMasterApi, dangarEntryApi, bardanEntryApi } from '../api';
@@ -189,15 +189,15 @@ const DangarEntry = () => {
 
     const totalMan = totalKG / 20;
     const grossQuintal = totalKG / 100;
-    
+
     // Bardan weight deduction (Gun weight)
     const gunWeight = parseFloat(formData.gun) || 0;
     const totalBardanDeductionKG = (parseFloat(bagCountFromWeights) || 0) * gunWeight;
-    
+
     // Net KGs for calculation
     const netKG = Math.max(0, totalKG - totalBardanDeductionKG);
     const netQuintal = netKG / 100;
-    
+
     // Gross amount before kapat/penalties
     const grossAmount = netKG * (parseFloat(formData.rate) || 0);
 
@@ -379,13 +379,13 @@ const DangarEntry = () => {
             </div>
             <button
               onClick={() => setShowHistory(false)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest"
+              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest"
             >
               <X size={16} /> Exit History
             </button>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-xl rounded-[3rem] border border-white shadow-2xl overflow-hidden">
+          <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -417,8 +417,8 @@ const DangarEntry = () => {
                     <td className="px-10 py-6 text-right font-black text-slate-800 text-lg italic">{row.net_quintal}</td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                        <button className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"><Printer size={16} /></button>
-                        <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        <button className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><Printer size={16} /></button>
+                        <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -447,8 +447,8 @@ const DangarEntry = () => {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white shadow-sm">
-            <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-lg border border-white shadow-sm">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
               <History size={20} />
             </div>
             <div className="text-left">
@@ -460,7 +460,7 @@ const DangarEntry = () => {
 
         {/* Status Messaging */}
         {message && (
-          <div className={`mb-8 p-5 rounded-[2rem] flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          <div className={`mb-8 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <span className="text-sm font-black italic tracking-tight uppercase tracking-widest">{message.text}</span>
@@ -471,7 +471,7 @@ const DangarEntry = () => {
 
           {/* Main Form Area (Left) */}
           <div className="lg:col-span-8 space-y-8">
-            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-white shadow-2xl space-y-8 relative overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-lg border border-white shadow-2xl space-y-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 -mr-10 -mt-10 select-none pointer-events-none">
                 <Database size={240} />
               </div>
@@ -483,7 +483,7 @@ const DangarEntry = () => {
                   <div className="relative group">
                     <Box className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <select
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase tracking-wider"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase tracking-wider"
                       value={formData.bookType}
                       onChange={(e) => setFormData({ ...formData, bookType: e.target.value })}
                     >
@@ -502,7 +502,7 @@ const DangarEntry = () => {
                     <input
                       type="text"
                       readOnly
-                      className="w-full pl-14 pr-6 py-4 bg-slate-100/50 border border-slate-100 rounded-2xl outline-none font-black text-sm text-slate-400 italic"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-100/50 border border-slate-100 rounded-lg outline-none font-black text-sm text-slate-400 italic"
                       value={formData.srNo}
                     />
                   </div>
@@ -515,7 +515,7 @@ const DangarEntry = () => {
                     <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <input
                       type="date"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700"
                       value={formData.date}
                       onChange={(e) => {
                         const date = new Date(e.target.value);
@@ -533,15 +533,15 @@ const DangarEntry = () => {
                 <div className="md:col-span-4 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
                     <span>Protocol Season</span>
-                    <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-2xl border border-emerald-100 text-[8px] animate-pulse">VERIFIED</span>
+                    <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 text-[8px] animate-pulse">VERIFIED</span>
                   </label>
-                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-2xl cursor-not-allowed">
+                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-lg cursor-not-allowed">
                     {['winter', 'summer'].map(s => (
                       <button
                         key={s}
                         type="button"
                         disabled
-                        className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.season === s
+                        className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${formData.season === s
                           ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
                           : 'text-slate-300'
                           }`}
@@ -563,9 +563,9 @@ const DangarEntry = () => {
                     <span>Sabhasad Identity Vector</span>
                     {selectedMember && (
                       <div className="flex gap-2">
-                        <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-2xl border border-blue-100">{selectedMember.village_name}</span>
+                        <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">{selectedMember.village_name}</span>
                         {selectedMember.bank_name && (
-                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-2xl border border-slate-100 uppercase">{selectedMember.bank_name}</span>
+                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase">{selectedMember.bank_name}</span>
                         )}
                       </div>
                     )}
@@ -573,7 +573,7 @@ const DangarEntry = () => {
                   <div className="relative group">
                     <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <select
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic tracking-wider"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic tracking-wider"
                       value={formData.member_id}
                       onChange={(e) => handleMemberChange(e.target.value)}
                     >
@@ -597,9 +597,9 @@ const DangarEntry = () => {
                 <div className="md:col-span-4 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
                     <span>Quality Vector</span>
-                    <span className="text-amber-500 bg-amber-50 px-2 py-0.5 rounded-2xl border border-amber-100 text-[8px]">GRADED</span>
+                    <span className="text-amber-500 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 text-[8px]">GRADED</span>
                   </label>
-                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-2xl">
+                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-lg">
                     {[
                       { key: '1st', label: '1st Class' },
                       { key: '2nd', label: '2nd Class' },
@@ -609,7 +609,7 @@ const DangarEntry = () => {
                         key={q.key}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, quality_class: q.key }))}
-                        className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${formData.quality_class === q.key
+                        className={`flex-1 py-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${formData.quality_class === q.key
                           ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                           : 'text-slate-400 hover:text-slate-600'
                           }`}
@@ -626,7 +626,7 @@ const DangarEntry = () => {
                   <div className="relative group">
                     <Box className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <select
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic tracking-wider"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic tracking-wider"
                       value={formData.item_id}
                       onChange={(e) => setFormData({ ...formData, item_id: e.target.value })}
                     >
@@ -647,7 +647,7 @@ const DangarEntry = () => {
                     <Truck className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <input
                       type="text"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
                       placeholder="E.G. GJ-01-XX-1234"
                       value={formData.vehicleNo}
                       onChange={(e) => setFormData({ ...formData, vehicleNo: e.target.value.toUpperCase() })}
@@ -662,7 +662,7 @@ const DangarEntry = () => {
                 <div className="relative group">
                   <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                   <textarea
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
                     placeholder="ADDITIONAL TRANSACTION CONTEXT..."
                     value={formData.remark}
                     onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
@@ -671,10 +671,10 @@ const DangarEntry = () => {
               </div>
 
               {/* Composite Payload Dashboard */}
-              <div className="mt-12 bg-slate-900/5 rounded-[2.5rem] border border-slate-100 p-8">
+              <div className="mt-12 bg-slate-900/5 rounded-lg border border-slate-100 p-8">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 bg-white border border-slate-100 rounded-3xl flex items-center justify-center text-slate-800 shadow-xl">
+                    <div className="w-16 h-16 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-800 shadow-xl">
                       <TrendingUp size={32} className="text-blue-600" />
                     </div>
                     <div>
@@ -685,25 +685,25 @@ const DangarEntry = () => {
 
                   <div className="flex flex-wrap items-center gap-4">
                     {/* Unit Selector & Price Preview */}
-                    <div className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-                      <select 
-                        className="bg-slate-50 border-none outline-none px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-600"
+                    <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm flex items-center gap-3">
+                      <select
+                        className="bg-slate-50 border-none outline-none px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-600"
                         value={display_unit}
                         onChange={(e) => setDisplayUnit(e.target.value)}
                       >
-                         <option value="kg">Per KG</option>
-                         <option value="man">Per MAN (20kg)</option>
-                         <option value="quintal">Per QUINTAL</option>
+                        <option value="kg">Per KG</option>
+                        <option value="man">Per MAN (20kg)</option>
+                        <option value="quintal">Per QUINTAL</option>
                       </select>
-                      <div className="px-4 py-2 bg-blue-50 rounded-xl min-w-[200px]">
+                      <div className="px-4 py-2 bg-blue-50 rounded-lg min-w-[200px]">
                         <p className="text-[7px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1 italic text-center">Payload Valuation Summary</p>
                         <div className="flex items-center justify-center gap-1.5 text-xs font-black text-blue-700 italic">
-                           <span>{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)}</span>
-                           <span className="text-[8px] uppercase">{display_unit}</span>
-                           <span className="text-slate-400 font-normal ml-0.5">x</span>
-                           <span>₹{display_unit === 'man' ? (parseFloat(formData.rate) * 20).toFixed(2) : (display_unit === 'quintal' ? (parseFloat(formData.rate) * 100).toFixed(2) : formData.rate)}</span>
-                           <span className="text-slate-400 font-normal">=</span>
-                           <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-lg shadow-sm">₹{formData.gross_amount}</span>
+                          <span>{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)}</span>
+                          <span className="text-[8px] uppercase">{display_unit}</span>
+                          <span className="text-slate-400 font-normal ml-0.5">x</span>
+                          <span>₹{display_unit === 'man' ? (parseFloat(formData.rate) * 20).toFixed(2) : (display_unit === 'quintal' ? (parseFloat(formData.rate) * 100).toFixed(2) : formData.rate)}</span>
+                          <span className="text-slate-400 font-normal">=</span>
+                          <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-lg shadow-sm">₹{formData.gross_amount}</span>
                         </div>
                       </div>
                     </div>
@@ -717,10 +717,10 @@ const DangarEntry = () => {
           <div className="lg:col-span-4 space-y-8">
 
             {/* Weight Matrix */}
-            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[3rem] border border-white shadow-2xl flex flex-col h-[520px]">
+            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-lg border border-white shadow-2xl flex flex-col h-[520px]">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:scale-110 transition-transform shadow-inner">
+                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-110 transition-transform shadow-inner">
                     <Calculator size={20} />
                   </div>
                   <div>
@@ -730,7 +730,7 @@ const DangarEntry = () => {
                 </div>
                 <button
                   onClick={handleAddRow}
-                  className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-90"
+                  className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-90"
                 >
                   <Plus size={18} />
                 </button>
@@ -752,7 +752,7 @@ const DangarEntry = () => {
                     <div className="col-span-8 relative">
                       <input
                         type="number"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3.5 text-sm font-black text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all shadow-inner font-mono italic"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-5 py-3.5 text-sm font-black text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all shadow-inner font-mono italic"
                         value={row.wgt}
                         autoFocus={idx === weightRows.length - 1 && idx > 0}
                         onChange={(e) => handleWeightChange(row.id, e.target.value)}
@@ -768,7 +768,7 @@ const DangarEntry = () => {
                     <div className="col-span-2 text-right">
                       <button
                         onClick={() => handleRemoveRow(row.id)}
-                        className="p-2.5 text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all rounded-xl active:scale-75"
+                        className="p-2.5 text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all rounded-lg active:scale-75"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -788,93 +788,93 @@ const DangarEntry = () => {
 
 
             {/* Fiscal Shard */}
-            <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl space-y-6 relative overflow-hidden group">
+            <div className="bg-slate-900 p-8 rounded-lg text-white shadow-2xl space-y-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 text-blue-500/5 -mr-16 -mt-16 group-hover:scale-110 transition-transform"><Calculator size={200} /></div>
 
               <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.4em] italic mb-2 relative z-10">Calculated Fiscal State</h3>
 
               <div className="space-y-6 relative z-10">
-                  <div className="grid grid-cols-1 gap-5">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rem. Bardan</p>
-                        <input
-                          type="number"
-                          readOnly
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                          value={formData.bardan}
-                        />
-                        {selectedMember && (
-                          <div className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
-                            Bal: {bardanBalance}
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Net KG</p>
-                        <input
-                          type="number"
-                          readOnly
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                          value={formData.total_kg}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rate (per KG)</p>
-                        <input
-                          type="number"
-                          readOnly
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                          value={formData.rate}
-                        />
-                      </div>
+                <div className="grid grid-cols-1 gap-5">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rem. Bardan</p>
+                      <input
+                        type="number"
+                        readOnly
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                        value={formData.bardan}
+                      />
+                      {selectedMember && (
+                        <div className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
+                          Bal: {bardanBalance}
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Net KG</p>
+                      <input
+                        type="number"
+                        readOnly
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                        value={formData.total_kg}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rate (per KG)</p>
+                      <input
+                        type="number"
+                        readOnly
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                        value={formData.rate}
+                      />
                     </div>
                   </div>
+                </div>
 
-                <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 space-y-5">                   {[
-                    { label: 'Gross Net (KG)', val: (formData.total_kg - formData.less_bardan).toFixed(2), color: 'slate-500' },
-                    { label: 'Gross Amount (₹)', val: `₹${formData.gross_amount}`, color: 'blue-400' },
-                    { label: t('dangarEntry.lessBardan'), val: `- ₹0.00 (${formData.less_bardan}kg Gun)`, color: 'rose-500' },
-                    { 
-                      label: `${formData.quality_class} Rate (per 1kg)`, 
-                      val: `₹${formData.rate}`, 
-                      color: 'blue-300' 
-                    },
-                    { label: 'Kapat (Deductions)', val: `- ₹${formData.total_deduction}`, color: 'rose-400' },
-                    { label: 'Bardan Penalty', val: `- ₹${formData.remaining_bardan_deduction}`, color: 'rose-600', highlight: true },
-                    { 
-                      label: 'Net Payable (₹)', 
-                      val: `₹${formData.amount}`, 
-                      color: 'emerald-400', 
-                      size: 'text-5xl', 
-                      highlight: true 
-                    }
-                  ].map((calc, i) => (
-                    <div key={i} className={`flex justify-between items-center group/row py-2 ${calc.size ? 'mt-4 border-t border-white/10 pt-6' : ''}`}>
-                      <p className={`text-[10px] font-black uppercase tracking-widest italic font-mono ${calc.highlight ? 'text-amber-500' : 'text-slate-500'}`}>{calc.label}</p>
-                      <p className={`${calc.size || 'text-base'} font-black italic font-mono tracking-tighter ${calc.highlight ? 'text-white' : `text-${calc.color}`}`}>
-                        {calc.val}
-                      </p>
-                    </div>
-                  ))}
+                <div className="bg-white/5 rounded-lg p-6 border border-white/10 space-y-5">                   {[
+                  { label: 'Gross Net (KG)', val: (formData.total_kg - formData.less_bardan).toFixed(2), color: 'slate-500' },
+                  { label: 'Gross Amount (₹)', val: `₹${formData.gross_amount}`, color: 'blue-400' },
+                  { label: t('dangarEntry.lessBardan'), val: `- ₹0.00 (${formData.less_bardan}kg Gun)`, color: 'rose-500' },
+                  {
+                    label: `${formData.quality_class} Rate (per 1kg)`,
+                    val: `₹${formData.rate}`,
+                    color: 'blue-300'
+                  },
+                  { label: 'Kapat (Deductions)', val: `- ₹${formData.total_deduction}`, color: 'rose-400' },
+                  { label: 'Bardan Penalty', val: `- ₹${formData.remaining_bardan_deduction}`, color: 'rose-600', highlight: true },
+                  {
+                    label: 'Net Payable (₹)',
+                    val: `₹${formData.amount}`,
+                    color: 'emerald-400',
+                    size: 'text-5xl',
+                    highlight: true
+                  }
+                ].map((calc, i) => (
+                  <div key={i} className={`flex justify-between items-center group/row py-2 ${calc.size ? 'mt-4 border-t border-white/10 pt-6' : ''}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-widest italic font-mono ${calc.highlight ? 'text-amber-500' : 'text-slate-500'}`}>{calc.label}</p>
+                    <p className={`${calc.size || 'text-base'} font-black italic font-mono tracking-tighter ${calc.highlight ? 'text-white' : `text-${calc.color}`}`}>
+                      {calc.val}
+                    </p>
+                  </div>
+                ))}
                 </div>
               </div>
 
               <div className="flex gap-4">
-                 <button
+                <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                 >
-                   <Save size={20} />
-                   Commit Transaction
-                 </button>
-                 <button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  <Save size={20} />
+                  Commit Transaction
+                </button>
+                <button
                   onClick={loadHistory}
-                  className="w-20 bg-white/5 hover:bg-white/10 text-white py-6 rounded-[2rem] font-black border border-white/10 flex items-center justify-center transition-all active:scale-95"
-                 >
-                   <History size={20} />
-                 </button>
+                  className="w-20 bg-white/5 hover:bg-white/10 text-white py-6 rounded-lg font-black border border-white/10 flex items-center justify-center transition-all active:scale-95"
+                >
+                  <History size={20} />
+                </button>
               </div>
             </div>
 
@@ -882,7 +882,7 @@ const DangarEntry = () => {
         </div>
 
         {/* Action Command Interface */}
-        <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-[3rem] border border-white shadow-xl flex flex-wrap justify-center gap-5">
+        <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-lg border border-white shadow-xl flex flex-wrap justify-center gap-5">
           {[
             { label: 'Display Logs', icon: Search, color: 'slate', action: loadHistory, sub: 'Manifest history' },
             { label: 'Commit Entry', icon: Save, color: 'emerald', action: handleSave, sub: 'Save vector' },
@@ -892,7 +892,7 @@ const DangarEntry = () => {
             <button
               key={i}
               onClick={btn.action}
-              className={`flex items-center gap-4 px-10 py-5 rounded-[1.5rem] tracking-widest transition-all shadow-xl active:scale-95 border-b-4 overflow-hidden relative group ${btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
+              className={`flex items-center gap-4 px-10 py-5 rounded-lg tracking-widest transition-all shadow-xl active:scale-95 border-b-4 overflow-hidden relative group ${btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
                 btn.color === 'rose' ? 'bg-rose-600 text-white border-rose-800 hover:bg-rose-700' :
                   btn.color === 'emerald' ? 'bg-emerald-600 text-white border-emerald-800 hover:bg-emerald-700' :
                     'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'

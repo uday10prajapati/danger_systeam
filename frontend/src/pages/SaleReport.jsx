@@ -190,20 +190,20 @@ export default function SaleReport() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-              <button onClick={() => setViewType('report')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}>
+            <div className="flex gap-1.5 p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm">
+              <button onClick={() => setViewType('report')} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}>
                 <UserCheck size={14} /> Report
               </button>
-              <button onClick={() => setViewType('summary')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button onClick={() => setViewType('summary')} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-slate-400 hover:text-slate-600'}`}>
                 <Tags size={14} /> Summary
               </button>
             </div>
 
             <div className="flex gap-2">
-              <button onClick={exportToExcel} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-2xl transition-all shadow-sm active:scale-95">
+              <button onClick={exportToExcel} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all shadow-sm active:scale-95">
                 <Download size={18} />
               </button>
-              <button onClick={fetchData} className="p-3.5 bg-blue-600 text-white rounded-2xl transition-all shadow-lg shadow-blue-100 active:scale-95">
+              <button onClick={fetchData} className="p-3.5 bg-blue-600 text-white rounded-lg transition-all shadow-lg shadow-blue-100 active:scale-95">
                 <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
               </button>
             </div>
@@ -223,13 +223,13 @@ export default function SaleReport() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-1">{stat.label}</p>
                 <h5 className="text-2xl font-bold tracking-tighter text-slate-800">{stat.val}</h5>
               </div>
-              <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+              <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
             </div>
           ))}
         </div>
 
         {/* Command Deck Toolbar */}
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
           <div className="flex-1 min-w-[350px]">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Identity Search Audit</span>
             <div className="relative group">
@@ -239,22 +239,22 @@ export default function SaleReport() {
                 placeholder="SEARCH CLIENTS, PRODUCTS OR INVOICES..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm h-full">
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+          <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
             <ArrowRight size={14} className="text-slate-200" />
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
           </div>
 
-          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Sync Revenue</button>
+          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Sync Revenue</button>
         </div>
 
         {/* Revenue Manifest Canvas */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[700px] relative">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[700px] relative">
 
           <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-50">
             <div className="flex items-center gap-3">
@@ -304,7 +304,7 @@ export default function SaleReport() {
                             <tr onClick={() => toggleGroup(group.name)} className="bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all border-l-[6px] border-emerald-600 group">
                               <td className="px-10 py-6">
                                 <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-xl transition-all ${expandedGroups[group.name] ? 'bg-emerald-600 text-white' : 'bg-white text-slate-300 group-hover:text-emerald-600 shadow-sm'}`}>
+                                  <div className={`p-2 rounded-lg transition-all ${expandedGroups[group.name] ? 'bg-emerald-600 text-white' : 'bg-white text-slate-300 group-hover:text-emerald-600 shadow-sm'}`}>
                                     {expandedGroups[group.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                   </div>
                                   <div>
@@ -317,7 +317,7 @@ export default function SaleReport() {
                               <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
                               <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(group.total)}</td>
                               <td className="px-8 py-6 text-center">
-                                <button onClick={(e) => exportGroupToExcel(e, group, 'report')} className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 shadow-sm mx-auto active:scale-95">
+                                <button onClick={(e) => exportGroupToExcel(e, group, 'report')} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-emerald-600 shadow-sm mx-auto active:scale-95">
                                   <Download size={18} />
                                 </button>
                               </td>
@@ -333,7 +333,7 @@ export default function SaleReport() {
                                   </div>
                                 </td>
                                 <td className="px-8 py-5 text-center">
-                                  <div className={`px-3 py-1 rounded-2xl text-[9px] font-bold uppercase tracking-widest inline-block ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                  <div className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest inline-block ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                                     {s.payment_type?.toUpperCase() || 'CASH'}
                                   </div>
                                 </td>
@@ -357,7 +357,7 @@ export default function SaleReport() {
                             <tr onClick={() => toggleGroup(cat.name)} className="bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all border-l-[6px] border-slate-900 group">
                               <td className="px-10 py-6">
                                 <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-xl transition-all ${expandedGroups[cat.name] ? 'bg-slate-900 text-white' : 'bg-white text-slate-300 group-hover:text-slate-900 shadow-sm'}`}>
+                                  <div className={`p-2 rounded-lg transition-all ${expandedGroups[cat.name] ? 'bg-slate-900 text-white' : 'bg-white text-slate-300 group-hover:text-slate-900 shadow-sm'}`}>
                                     {expandedGroups[cat.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                   </div>
                                   <div>
@@ -370,7 +370,7 @@ export default function SaleReport() {
                               <td className="px-8 py-6 text-right text-slate-300 font-bold text-xs">—</td>
                               <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(cat.total)}</td>
                               <td className="px-8 py-6 text-center">
-                                <button onClick={(e) => exportGroupToExcel(e, cat, 'summary')} className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm mx-auto active:scale-95">
+                                <button onClick={(e) => exportGroupToExcel(e, cat, 'summary')} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm mx-auto active:scale-95">
                                   <Download size={18} />
                                 </button>
                               </td>
@@ -409,7 +409,7 @@ export default function SaleReport() {
           {/* Dashboard Insight Footer */}
           <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Revenue Stream: Optimal</span>
+              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Revenue Stream: Optimal</span>
               <span className="flex items-center gap-2"><Layout size={12} /> Repository Status: Validated</span>
             </div>
             <div className="flex items-center gap-3 font-mono">

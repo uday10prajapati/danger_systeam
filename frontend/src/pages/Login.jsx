@@ -116,7 +116,7 @@ function Login() {
                {/* Left Content Shard - Visual Identity */}
                <div className="hidden lg:flex flex-col gap-5 animate-in fade-in slide-in-from-left duration-700">
                   <div className="space-y-2">
-                     <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-100 rotate-3 transform hover:rotate-0 transition-all">
+                     <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-xl shadow-blue-100 rotate-3 transform hover:rotate-0 transition-all">
                         <ShoppingBag size={24} strokeWidth={2.5} />
                      </div>
                      <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-[1.1]">
@@ -135,7 +135,7 @@ function Login() {
                         { icon: Zap, text: "Instantaneous fiscal reporting", color: "text-amber-500" }
                      ].map((item, idx) => (
                         <div key={idx} className="flex items-center gap-3 group">
-                           <div className={`p-1.5 rounded-2xl bg-white border border-slate-100 shadow-sm group-hover:shadow-md transition-all ${item.color}`}>
+                           <div className={`p-1.5 rounded-lg bg-white border border-slate-100 shadow-sm group-hover:shadow-md transition-all ${item.color}`}>
                               <item.icon size={14} strokeWidth={3} />
                            </div>
                            <span className="text-slate-500 font-black text-[9px] uppercase tracking-wider">{item.text}</span>
@@ -146,7 +146,7 @@ function Login() {
 
                {/* Right Card - Login Interaction Node */}
                <div className="w-full max-w-[340px] mx-auto animate-in zoom-in-95 duration-700">
-                  <div className="bg-white/90 backdrop-blur-3xl p-7 rounded-[2rem] border border-white shadow-2xl shadow-slate-200/40">
+                  <div className="bg-white/90 backdrop-blur-3xl p-7 rounded-lg border border-white shadow-2xl shadow-slate-200/40">
 
                      <div className="mb-5">
                         <p className="text-[8px] font-black text-blue-600 uppercase tracking-[0.4em] mb-1 italic text-center lg:text-left">Authentication Portal</p>
@@ -155,7 +155,7 @@ function Login() {
 
                      <form onSubmit={handleSubmit} className="space-y-4">
                         {error && (
-                           <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in duration-300">
+                           <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in duration-300">
                               <AlertCircle size={14} strokeWidth={3} /> {error}
                            </div>
                         )}
@@ -169,7 +169,7 @@ function Login() {
                                  onChange={(e) => setEmail(e.target.value)}
                                  onFocus={() => setFocusedField('email')}
                                  onBlur={handleEmailBlur}
-                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-xl outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
+                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-lg outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
                                  placeholder="admin@danger-systeam.com"
                                  required
                               />
@@ -184,7 +184,7 @@ function Login() {
                                  onChange={(e) => setSelectedYear(e.target.value)}
                                  onFocus={() => setFocusedField('year')}
                                  onBlur={() => setFocusedField('')}
-                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-xl outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner appearance-none cursor-pointer"
+                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-lg outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner appearance-none cursor-pointer"
                                  required
                               >
                                  {financialYears.length > 0 ? (
@@ -210,7 +210,7 @@ function Login() {
                                  onChange={(e) => setPassword(e.target.value)}
                                  onFocus={() => setFocusedField('password')}
                                  onBlur={() => setFocusedField('')}
-                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-xl outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
+                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-lg outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
                                  placeholder="••••••••"
                                  required
                               />
@@ -238,7 +238,7 @@ function Login() {
                         <button
                            type="submit"
                            disabled={loading}
-                           className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-3 mt-1 disabled:grayscale"
+                           className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-3 mt-1 disabled:grayscale"
                         >
                            {loading ? (
                               <>

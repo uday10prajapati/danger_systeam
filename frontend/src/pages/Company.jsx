@@ -371,14 +371,14 @@ function CompanySetup() {
             {!isEditing && company ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
               >
                 <Edit3 size={18} /> {t('company.editProfile', 'Edit Profile')}
               </button>
             ) : (
               <button
                 onClick={() => company ? setIsEditing(false) : navigate('/dashboard')}
-                className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
               >
                 <X size={18} /> {t('common.cancel', 'Cancel')}
               </button>
@@ -388,14 +388,14 @@ function CompanySetup() {
 
         {/* Status Alerts */}
         {success && (
-          <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-700 animate-in slide-in-from-top duration-300">
+          <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3 text-emerald-700 animate-in slide-in-from-top duration-300">
             <CheckCircle size={20} />
             <p className="text-sm font-bold text-emerald-800">{t('company.saveSuccess', 'Changes saved successfully!')}</p>
           </div>
         )}
 
         {errors.length > 0 && (
-          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-700 animate-in slide-in-from-top duration-300">
+          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-3 text-rose-700 animate-in slide-in-from-top duration-300">
             <AlertCircle size={20} className="mt-0.5" />
             <div>
               <p className="text-sm font-bold text-rose-800 mb-1">{t('company.pleaseFixErrors', 'Please fix the following errors:')}</p>
@@ -412,11 +412,11 @@ function CompanySetup() {
 
             {/* Main Info Card */}
             <div className="lg:col-span-2 space-y-8">
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 group overflow-hidden relative">
+              <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-10 group overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/20 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
 
                 <div className="flex flex-col md:flex-row items-center gap-8 mb-10 relative z-10 text-center md:text-left">
-                  <div className="w-24 h-24 bg-slate-50 border-2 border-slate-100 rounded-3xl flex items-center justify-center text-slate-400">
+                  <div className="w-24 h-24 bg-slate-50 border-2 border-slate-100 rounded-lg flex items-center justify-center text-slate-400">
                     {company.logo_url ? (
                       <img src={company.logo_url} alt="Logo" className="w-full h-full object-contain p-4" />
                     ) : (
@@ -426,14 +426,14 @@ function CompanySetup() {
                   <div>
                     <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{company.company_name}</h2>
                     <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-3">
-                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                         <Shield size={14} className="text-blue-500" /> {company.gst_number || t('company.noGst', 'No GST Number')}
                       </span>
-                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                         <Globe size={14} className="text-emerald-500" /> {company.currency} ({t('company.operationalCurrency', 'Operational Currency')})
                       </span>
                       {company.company_account_no && (
-                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                           <CreditCard size={14} className="text-violet-500" /> A/C: {company.company_account_no}
                         </span>
                       )}
@@ -444,7 +444,7 @@ function CompanySetup() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 relative z-10">
                   <div className="space-y-6">
                     <div className="flex gap-4">
-                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                      <div className="p-2.5 bg-slate-50 rounded-lg text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
                         <MapPin size={20} />
                       </div>
                       <div>
@@ -453,7 +453,7 @@ function CompanySetup() {
                       </div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                      <div className="p-2.5 bg-slate-50 rounded-lg text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
                         <Mail size={20} />
                       </div>
                       <div>
@@ -465,7 +465,7 @@ function CompanySetup() {
 
                   <div className="space-y-6">
                     <div className="flex gap-4">
-                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                      <div className="p-2.5 bg-slate-50 rounded-lg text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
                         <Phone size={20} />
                       </div>
                       <div>
@@ -474,7 +474,7 @@ function CompanySetup() {
                       </div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
+                      <div className="p-2.5 bg-slate-50 rounded-lg text-slate-400 group-hover:text-blue-500 transition-colors h-fit">
                         <Calendar size={20} />
                       </div>
                       <div className="flex-1">
@@ -482,7 +482,7 @@ function CompanySetup() {
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('company.fiscalYear', 'Fiscal Year')}</p>
                           <button
                             onClick={openYearForm}
-                            className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-2 py-0.5 rounded-2xl transition-all"
+                            className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-2 py-0.5 rounded-lg transition-all"
                           >
                             Manage
                           </button>
@@ -496,17 +496,17 @@ function CompanySetup() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+              <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-10">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-lg font-bold text-slate-800">{t('company.quickNavigation', 'Quick Navigation')}</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="flex items-center justify-between p-5 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 rounded-[1.5rem] transition-all group/it shadow-none hover:shadow-sm"
+                    className="flex items-center justify-between p-5 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 rounded-lg transition-all group/it shadow-none hover:shadow-sm"
                   >
                     <div className="flex items-center gap-4 text-left">
-                      <div className="p-3 bg-white text-slate-400 group-hover/it:text-blue-600 rounded-xl shadow-sm transition-colors"><Activity size={18} /></div>
+                      <div className="p-3 bg-white text-slate-400 group-hover/it:text-blue-600 rounded-lg shadow-sm transition-colors"><Activity size={18} /></div>
                       <div>
                         <p className="text-sm font-bold text-slate-800">{t('company.overviewDashboard', 'Overview Dashboard')}</p>
                         <p className="text-xs text-slate-400 font-medium mt-0.5">{t('company.controlCenter', 'Control center and insights')}</p>
@@ -516,10 +516,10 @@ function CompanySetup() {
                   </button>
                   <button
                     onClick={() => navigate('/items')}
-                    className="flex items-center justify-between p-5 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 rounded-[1.5rem] transition-all group/it shadow-none hover:shadow-sm"
+                    className="flex items-center justify-between p-5 bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 rounded-lg transition-all group/it shadow-none hover:shadow-sm"
                   >
                     <div className="flex items-center gap-4 text-left">
-                      <div className="p-3 bg-white text-slate-400 group-hover/it:text-emerald-600 rounded-xl shadow-sm transition-colors"><Database size={18} /></div>
+                      <div className="p-3 bg-white text-slate-400 group-hover/it:text-emerald-600 rounded-lg shadow-sm transition-colors"><Database size={18} /></div>
                       <div>
                         <p className="text-sm font-bold text-slate-800">{t('modules.itemMaster', 'Item Master')}</p>
                         <p className="text-xs text-slate-400 font-medium mt-0.5">{t('company.manageProducts', 'Manage products and stock')}</p>
@@ -534,12 +534,12 @@ function CompanySetup() {
             {/* Sidebar Details */}
             <div className="space-y-8">
               {/* Fiscal Registry Card */}
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+              <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-10">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-lg font-bold text-slate-800 italic">Fiscal Registry</h3>
                   <button
                     onClick={openYearForm}
-                    className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                    className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                   >
                     <Plus size={16} />
                   </button>
@@ -554,19 +554,19 @@ function CompanySetup() {
                     <p className="text-xs text-slate-400 text-center py-6 font-medium italic">No fiscal cycles registered.</p>
                   ) : (
                     financialYears.map(fy => (
-                      <div key={fy.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all group">
+                      <div key={fy.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-transparent hover:border-blue-100 transition-all group">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-blue-500 shadow-sm transition-all"><Calendar size={14} /></div>
+                          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-300 group-hover:text-blue-500 shadow-sm transition-all"><Calendar size={14} /></div>
                           <span className="text-sm font-black text-slate-700 tracking-tight">{fy.year_label}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => startEditYear(fy)}
-                            className="p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
+                            className="p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           >
                             <Edit3 size={12} />
                           </button>
-                          <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-2xl ${fy.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                          <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg ${fy.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                             {fy.is_active ? 'Active' : 'Archived'}
                           </span>
                         </div>
@@ -577,7 +577,7 @@ function CompanySetup() {
               </div>
 
               {/* System Status Card */}
-              <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
+              <div className="bg-slate-900 rounded-lg p-10 text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                 <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3 italic">
                   <div className="w-4 h-0.5 bg-blue-500"></div> {t('company.systemStatus')}
@@ -602,7 +602,7 @@ function CompanySetup() {
           </div>
         ) : (
           /* Edit / Creation Form */
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 animate-in slide-in-from-bottom duration-500">
+          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-10 animate-in slide-in-from-bottom duration-500">
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
               {/* Core Identity */}
@@ -622,7 +622,7 @@ function CompanySetup() {
                     value={formData.company_name}
                     onChange={handleChange}
                     placeholder="e.g. Danger Systeam Pvt Ltd"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                   />
                 </div>
               </div>
@@ -637,7 +637,7 @@ function CompanySetup() {
                     value={formData.gst_number}
                     onChange={handleChange}
                     placeholder="GSTIN Number"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                   />
                 </div>
               </div>
@@ -652,7 +652,7 @@ function CompanySetup() {
                     value={formData.company_account_no || ''}
                     onChange={handleChange}
                     placeholder="e.g. 1234567890"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-violet-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-violet-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                   />
                 </div>
               </div>
@@ -674,7 +674,7 @@ function CompanySetup() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="billing@superstore.com"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                   />
                 </div>
               </div>
@@ -689,7 +689,7 @@ function CompanySetup() {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="+91 00000 00000"
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                   />
                 </div>
               </div>
@@ -704,7 +704,7 @@ function CompanySetup() {
                     onChange={handleChange}
                     placeholder="Street address, City, Pincode"
                     rows="3"
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm resize-none"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm resize-none"
                   ></textarea>
                 </div>
               </div>
@@ -722,16 +722,16 @@ function CompanySetup() {
                   name="currency"
                   value={formData.currency}
                   onChange={handleChange}
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
                 >
                   {currencyOptions.map(curr => <option key={curr} value={curr}>{curr} - International Standard</option>)}
                 </select>
               </div>
 
               <div className="md:col-span-2 space-y-4">
-                <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg border border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-100 text-amber-600 rounded-2xl"><Calendar size={18} /></div>
+                    <div className="p-2 bg-amber-100 text-amber-600 rounded-lg"><Calendar size={18} /></div>
                     <div>
                       <p className="text-xs font-bold text-slate-700">Financial Cycle Registry</p>
                       <p className="text-[10px] text-slate-400 font-medium">Manage multiple fiscal nodes for this organization.</p>
@@ -740,7 +740,7 @@ function CompanySetup() {
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Direct Entry</span>
                 </div>
 
-                <div className="bg-white border border-slate-100 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                <div className="bg-white border border-slate-100 rounded-lg p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                   <div className="md:col-span-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Cycle Label</label>
                     <input
@@ -748,7 +748,7 @@ function CompanySetup() {
                       value={newYear.label}
                       onChange={e => setNewYear({ ...newYear, label: e.target.value })}
                       placeholder="e.g. 2026-27"
-                      className="w-full mt-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-500 font-bold text-slate-700 text-sm"
+                      className="w-full mt-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 font-bold text-slate-700 text-sm"
                     />
                   </div>
                   <div>
@@ -757,7 +757,7 @@ function CompanySetup() {
                       type="date"
                       value={newYear.start}
                       onChange={e => setNewYear({ ...newYear, start: e.target.value })}
-                      className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-xs"
+                      className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-xs"
                     />
                   </div>
                   <div>
@@ -766,7 +766,7 @@ function CompanySetup() {
                       type="date"
                       value={newYear.end}
                       onChange={e => setNewYear({ ...newYear, end: e.target.value })}
-                      className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-xs"
+                      className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-xs"
                     />
                   </div>
                   <div className="md:col-span-4 flex gap-2 justify-end pt-1">
@@ -774,7 +774,7 @@ function CompanySetup() {
                       <button
                         type="button"
                         onClick={cancelYearEdit}
-                        className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50"
+                        className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50"
                       >
                         Cancel
                       </button>
@@ -782,7 +782,7 @@ function CompanySetup() {
                     <button
                       type="button"
                       onClick={handleAddYear}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black flex items-center gap-2"
+                      className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-black flex items-center gap-2"
                     >
                       <Plus size={14} /> {editingYear ? 'Update Year' : 'Add Year'}
                     </button>
@@ -794,7 +794,7 @@ function CompanySetup() {
                     <div
                       key={fy.id}
                       onClick={() => selectFinancialYear(fy)}
-                      className={`p-4 bg-white border rounded-2xl flex items-center justify-between group transition-all shadow-sm cursor-pointer ${String(selectedFinancialYearId) === String(fy.id) ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-100 hover:border-blue-200'}`}
+                      className={`p-4 bg-white border rounded-lg flex items-center justify-between group transition-all shadow-sm cursor-pointer ${String(selectedFinancialYearId) === String(fy.id) ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-100 hover:border-blue-200'}`}
                     >
                       <div>
                         <p className="text-xs font-black text-slate-800">{fy.year_label}</p>
@@ -805,7 +805,7 @@ function CompanySetup() {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); startEditYear(fy); }}
-                        className="p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
+                        className="p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                       >
                         <Edit3 size={14} />
                       </button>
@@ -814,7 +814,7 @@ function CompanySetup() {
                 </div>
 
                 {(formData.financial_year_start || formData.financial_year_end) && (
-                  <div className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                  <div className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
                     Selected Financial Dates: {formData.financial_year_start || 'N/A'} to {formData.financial_year_end || 'N/A'}
                   </div>
                 )}
@@ -825,7 +825,7 @@ function CompanySetup() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-[2rem] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+                  className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
                 >
                   {loading ? (
                     <RefreshCw className="animate-spin" size={20} />

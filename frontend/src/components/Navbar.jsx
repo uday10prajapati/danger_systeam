@@ -29,7 +29,7 @@ function Navbar({ backendStatus }) {
 
       {/* Search Bar */}
       <div className="flex-1 max-w-xl">
-        <div className="flex items-center gap-3 bg-slate-50 rounded-2xl px-5 py-3 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all border border-slate-100">
+        <div className="flex items-center gap-3 bg-slate-50 rounded-lg px-5 py-3 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all border border-slate-100">
           <Search className="w-5 h-5 text-slate-400" />
           <input
             type="text"
@@ -43,19 +43,19 @@ function Navbar({ backendStatus }) {
       <div className="flex items-center gap-6 ml-6">
 
         {/* Financial Year Badge */}
-        <div className="flex bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
+        <div className="flex bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg">
           <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest italic">{currentUser.financial_year || '2026-27'}</span>
         </div>
 
         {/* Language Selector */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
           <button
             onClick={() => changeLanguage('en')}
-            className={`px-3 py-1.5 rounded-2xl text-[10px] font-bold transition-all ${i18n.language === 'en' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${i18n.language === 'en' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >EN</button>
           <button
             onClick={() => changeLanguage('gu')}
-            className={`px-3 py-1.5 rounded-2xl text-[10px] font-bold transition-all ${i18n.language === 'gu' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${i18n.language === 'gu' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >GU</button>
         </div>
 
@@ -70,14 +70,14 @@ function Navbar({ backendStatus }) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-4 w-80 bg-white border border-slate-100 rounded-2xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200 shadow-blue-100/20">
+            <div className="absolute right-0 mt-4 w-80 bg-white border border-slate-100 rounded-lg shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200 shadow-blue-100/20">
               <h4 className="text-sm font-bold text-slate-800 mb-4 px-2">Notifications</h4>
               <div className="space-y-1">
                 {[
                   { title: 'New Order Received', text: 'Order #412 has been placed.', time: '2 mins ago', unread: true },
                   { title: 'Low Stock Alert', text: 'Apples are below threshold.', time: '1h ago', unread: false },
                 ].map((n, i) => (
-                  <div key={i} className={`flex gap-3 p-3 rounded-xl transition-colors cursor-pointer ${n.unread ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
+                  <div key={i} className={`flex gap-3 p-3 rounded-lg transition-colors cursor-pointer ${n.unread ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
                     <div className={`w-2 h-2 rounded-full mt-1.5 ${n.unread ? 'bg-blue-600' : 'bg-transparent'}`} />
                     <div>
                       <p className="text-xs font-bold text-slate-800">{n.title}</p>
@@ -112,17 +112,17 @@ function Navbar({ backendStatus }) {
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 mt-4 w-64 bg-white border border-slate-100 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right shadow-blue-100/20">
-              <button className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all text-xs font-bold">
+            <div className="absolute right-0 mt-4 w-64 bg-white border border-slate-100 rounded-lg shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right shadow-blue-100/20">
+              <button className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-50 transition-all text-xs font-bold">
                 <UserIcon size={18} /> Profile Details
               </button>
-              <button className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all text-xs font-bold">
+              <button className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-50 transition-all text-xs font-bold">
                 <Settings size={18} /> Settings
               </button>
               <div className="h-px bg-slate-50 my-1 mx-2"></div>
               <button
                 onClick={() => { localStorage.removeItem('user'); navigate('/login'); }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl text-rose-500 hover:bg-rose-50 transition-all text-xs font-bold"
+                className="w-full flex items-center gap-3 p-3 rounded-lg text-rose-500 hover:bg-rose-50 transition-all text-xs font-bold"
               >
                 <LogOut size={18} /> Log Out
               </button>

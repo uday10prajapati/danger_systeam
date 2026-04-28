@@ -19,11 +19,11 @@ const ModulePage = ({ title, description }) => {
             </div>
 
             {/* Development Banner - High Contrast Industrial */}
-            <div className="bg-white rounded-[2.5rem] shadow-2xl border-4 border-black overflow-hidden relative group">
+            <div className="bg-white rounded-lg shadow-2xl border-4 border-black overflow-hidden relative group">
                <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 border border-slate-100 group-hover:scale-110 transition-transform duration-1000"></div>
 
                <div className="p-12 relative z-10 flex flex-col items-center text-center">
-                  <div className="p-6 bg-slate-900 rounded-3xl text-white shadow-2xl mb-8 border border-slate-800 rotate-3 group-hover:rotate-0 transition-transform">
+                  <div className="p-6 bg-slate-900 rounded-lg text-white shadow-2xl mb-8 border border-slate-800 rotate-3 group-hover:rotate-0 transition-transform">
                      <Activity size={48} strokeWidth={1} className="animate-pulse" />
                   </div>
 
@@ -33,11 +33,11 @@ const ModulePage = ({ title, description }) => {
                   </p>
 
                   <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-                     <div className="p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 text-left">
+                     <div className="p-4 bg-slate-50 rounded-lg border-2 border-slate-100 text-left">
                         <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block mb-1">State</span>
                         <span className="text-[10px] font-black text-slate-900 uppercase italic">In_Progress</span>
                      </div>
-                     <div className="p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 text-left">
+                     <div className="p-4 bg-slate-50 rounded-lg border-2 border-slate-100 text-left">
                         <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block mb-1">Authorization</span>
                         <span className="text-[10px] font-black text-slate-900 uppercase italic">Admin_Only</span>
                      </div>

@@ -123,8 +123,8 @@ function UserMaster() {
   if (!company) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
-          <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500 mx-auto mb-6">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500 mx-auto mb-6">
             <AlertCircle size={40} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('userMaster.noCompanyFound', 'No Company Found')}</h2>
@@ -134,13 +134,13 @@ function UserMaster() {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => navigate('/company')}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-95"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-100 transition-all active:scale-95"
             >
               {t('company.goToCompanySetup', 'Go to Company Setup')}
             </button>
             <button
               onClick={loadCompany}
-              className="w-full py-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-2xl transition-all"
+              className="w-full py-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-lg transition-all"
             >
               {t('userMaster.refresh', 'Refresh System')}
             </button>
@@ -158,7 +158,7 @@ function UserMaster() {
             onClick={() => { setShowForm(false); setEditingUserId(null); }}
             className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
           >
-            <div className="p-2 bg-white rounded-2xl border border-slate-200 group-hover:border-slate-800 transition-all">
+            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all">
               <X size={16} />
             </div>
             {t('userMaster.backToUsers', 'Back to User Master')}
@@ -188,7 +188,7 @@ function UserMaster() {
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('userMaster.userMaster', 'System User Repository')}</h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+            <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
               <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
               <input
                 type="text"
@@ -200,7 +200,7 @@ function UserMaster() {
             </div>
             <button
               onClick={handleCreateUser}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
             >
               <Plus size={20} />
               {t('userMaster.createUser', 'Add New User')}
@@ -210,7 +210,7 @@ function UserMaster() {
 
         {/* Global Messages */}
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
@@ -219,40 +219,40 @@ function UserMaster() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.company', 'Organization')}</p>
-              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Building2 size={16} /></div>
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Building2 size={16} /></div>
             </div>
             <p className="text-lg font-bold text-slate-800 truncate">{company.company_name}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.totalUsers', 'User Count')}</p>
-              <div className="p-2 bg-slate-50 rounded-xl text-slate-600"><Users size={16} /></div>
+              <div className="p-2 bg-slate-50 rounded-lg text-slate-600"><Users size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">{users.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.activeUsers', 'Active Node')}</p>
-              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><UserCheck size={16} /></div>
+              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><UserCheck size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-emerald-600">{users.filter(u => u.is_active).length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-rose-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-rose-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.inactiveUsers', 'Offline')}</p>
-              <div className="p-2 bg-rose-50 rounded-xl text-rose-600"><UserMinus size={16} /></div>
+              <div className="p-2 bg-rose-50 rounded-lg text-rose-600"><UserMinus size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-rose-600">{users.filter(u => !u.is_active).length}</p>
           </div>
         </div>
 
         {/* User Table Card */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
           <div className="p-8 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex gap-1.5 p-1 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex gap-1.5 p-1 bg-slate-50 rounded-lg border border-slate-100">
               {[
                 { id: 'all', label: t('userMaster.allUsers', 'Operational List') },
                 { id: 'active', label: t('userMaster.activeOnly', 'Active Only') },
@@ -261,7 +261,7 @@ function UserMaster() {
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id)}
-                  className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                  className={`px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                     }`}
                 >
                   {tab.label}
@@ -269,7 +269,7 @@ function UserMaster() {
               ))}
             </div>
             <div className="flex items-center gap-3">
-              <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
+              <button className="p-2.5 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
               <button className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-widest hover:underline">
                 <Command size={14} /> Bulk Actions
               </button>
@@ -307,7 +307,7 @@ function UserMaster() {
                     <tr key={user.id} className="group hover:bg-slate-50/50 transition-colors">
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-linear-to-br transition-transform group-hover:scale-110 ${user.is_active ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500'
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm bg-linear-to-br transition-transform group-hover:scale-110 ${user.is_active ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500'
                             }`}>
                             {user.username.charAt(0).toUpperCase()}
                           </div>
@@ -318,9 +318,9 @@ function UserMaster() {
                         </div>
                       </td>
                       <td className="px-10 py-6">
-                        <span className={`px-3 py-1 rounded-2xl text-[10px] font-bold uppercase tracking-wider border ${user.role === 'hod' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                            user.role === 'manager' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                              'bg-amber-50 text-amber-600 border-amber-100'
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${user.role === 'hod' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                          user.role === 'manager' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            'bg-amber-50 text-amber-600 border-amber-100'
                           }`}>
                           {user.role}
                         </span>
@@ -340,14 +340,14 @@ function UserMaster() {
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                           <button
                             onClick={() => handleEditUser(user.id)}
-                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-xl transition-all shadow-sm"
+                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-lg transition-all shadow-sm"
                             title={t('userMaster.editUser')}
                           >
                             <Edit3 size={16} />
                           </button>
                           <button
                             onClick={() => handleDeactivateUser(user.id, user.is_active)}
-                            className={`p-2.5 bg-white border border-slate-200 rounded-xl transition-all shadow-sm ${user.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-600' : 'text-emerald-500 hover:bg-emerald-50 border-emerald-200'
+                            className={`p-2.5 bg-white border border-slate-200 rounded-lg transition-all shadow-sm ${user.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-600' : 'text-emerald-500 hover:bg-emerald-50 border-emerald-200'
                               }`}
                           >
                             <Power size={16} />

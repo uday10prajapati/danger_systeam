@@ -125,30 +125,30 @@ export default function ProfitLoss() {
                </div>
 
                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="flex gap-1.5 p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm">
                      <button
                         onClick={() => setViewMode('summary')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'summary' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
+                        className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'summary' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
                            }`}
                      >Summary</button>
                      <button
                         onClick={() => { setViewMode('monthly'); fetchMonthlyData(); }}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'monthly' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
+                        className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'monthly' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
                            }`}
                      >Heatmap</button>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm h-full">
-                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+                  <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
+                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
                      <ArrowRight size={14} className="text-slate-200" />
-                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
                   </div>
 
                   <div className="flex gap-2">
-                     <button className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-2xl transition-all shadow-sm active:scale-95">
+                     <button className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all shadow-sm active:scale-95">
                         <Printer size={18} />
                      </button>
-                     <button onClick={fetchProfitLoss} className="p-3.5 bg-blue-600 text-white rounded-2xl transition-all shadow-lg shadow-blue-100 active:scale-95">
+                     <button onClick={fetchProfitLoss} className="p-3.5 bg-blue-600 text-white rounded-lg transition-all shadow-lg shadow-blue-100 active:scale-95">
                         <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
                      </button>
                   </div>
@@ -165,7 +165,7 @@ export default function ProfitLoss() {
 
                   {/* High-Performance Outcome Shard */}
                   {plData && (
-                     <div className={`relative overflow-hidden p-8 rounded-[2rem] shadow-sm border border-slate-100 group transition-all ${plData.netProfit >= 0 ? 'bg-white' : 'bg-slate-900 border-slate-800'
+                     <div className={`relative overflow-hidden p-8 rounded-lg shadow-sm border border-slate-100 group transition-all ${plData.netProfit >= 0 ? 'bg-white' : 'bg-slate-900 border-slate-800'
                         }`}>
                         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50/20 rounded-full -mr-48 -mt-48 blur-3xl opacity-50 group-hover:scale-110 transition-transform duration-1000"></div>
 
@@ -188,7 +188,7 @@ export default function ProfitLoss() {
                            </div>
 
                            <div className="text-center md:text-right space-y-1.5">
-                              <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto md:ml-auto border border-white/10 ${plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600 border-slate-100' : 'bg-rose-600 text-white border-rose-500'
+                              <div className={`w-14 h-14 rounded-lg flex items-center justify-center mx-auto md:ml-auto border border-white/10 ${plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600 border-slate-100' : 'bg-rose-600 text-white border-rose-500'
                                  }`}>
                                  {plData.netProfit >= 0 ? <CheckCircle2 size={28} /> : <TrendingDown size={28} />}
                               </div>
@@ -203,7 +203,7 @@ export default function ProfitLoss() {
                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                         {/* Expenditure Deck */}
-                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
+                        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
                            <div className="bg-slate-900 p-6 flex justify-between items-center relative overflow-hidden">
                               <div className="absolute inset-0 bg-linear-to-r from-rose-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                               <div className="relative z-10">
@@ -216,7 +216,7 @@ export default function ProfitLoss() {
                            <div className="flex-1 divide-y divide-slate-50">
                               <div className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
                                  <div className="flex items-center gap-3">
-                                    <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><ShoppingBag size={16} /></div>
+                                    <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><ShoppingBag size={16} /></div>
                                     <div>
                                        <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">Net Purchases</p>
                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inventory Values</p>
@@ -228,7 +228,7 @@ export default function ProfitLoss() {
                               {plData.expenseAccounts?.map((acc, i) => (
                                  <div key={i} className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                       <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><CreditCard size={16} /></div>
+                                       <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><CreditCard size={16} /></div>
                                        <div>
                                           <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{acc.account_name}</p>
                                           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Indirect Overheads</p>
@@ -254,7 +254,7 @@ export default function ProfitLoss() {
                         </div>
 
                         {/* Income Deck */}
-                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
+                        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
                            <div className="bg-slate-900 p-6 flex justify-between items-center relative overflow-hidden">
                               <div className="absolute inset-0 bg-linear-to-r from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                               <div className="relative z-10">
@@ -267,7 +267,7 @@ export default function ProfitLoss() {
                            <div className="flex-1 divide-y divide-slate-50">
                               <div className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
                                  <div className="flex items-center gap-3">
-                                    <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><TrendingUp size={16} /></div>
+                                    <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><TrendingUp size={16} /></div>
                                     <div>
                                        <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">Net Sales</p>
                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inwards Revenue</p>
@@ -279,7 +279,7 @@ export default function ProfitLoss() {
                               {plData.incomeAccounts?.map((acc, i) => (
                                  <div key={i} className="p-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                       <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400"><DollarSign size={16} /></div>
+                                       <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><DollarSign size={16} /></div>
                                        <div>
                                           <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{acc.account_name}</p>
                                           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Secondary Inflow</p>
@@ -308,7 +308,7 @@ export default function ProfitLoss() {
 
                   {/* Verification Deck */}
                   {plData && (
-                     <div className="bg-slate-900 p-3 rounded-[1.5rem] flex flex-col md:flex-row shadow-2xl relative overflow-hidden">
+                     <div className="bg-slate-900 p-3 rounded-lg flex flex-col md:flex-row shadow-2xl relative overflow-hidden">
                         <div className="absolute inset-0 bg-linear-to-r from-blue-600/5 to-transparent"></div>
                         <div className="flex-1 p-6 md:border-r border-white/5 flex justify-between items-center group">
                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Expenditure</span>
@@ -333,7 +333,7 @@ export default function ProfitLoss() {
 
                   {/* Timeline Matrix */}
                   {viewMode === 'monthly' && (
-                     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-700">
+                     <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-700">
                         <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm relative overflow-hidden">
                            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-50/50 rounded-full -mr-48 -mt-48 blur-3xl opacity-50"></div>
                            <div className="relative z-10">
@@ -361,14 +361,14 @@ export default function ProfitLoss() {
                                           <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
                                              <td className="px-10 py-6">
                                                 <div className="flex items-center gap-6">
-                                                   <span className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[11px] font-bold text-white shadow-lg">{(i + 1).toString().padStart(2, '0')}</span>
+                                                   <span className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-[11px] font-bold text-white shadow-lg">{(i + 1).toString().padStart(2, '0')}</span>
                                                    <p className="text-lg font-bold text-slate-800 uppercase italic tracking-tighter">{monthNames[m.month - 1]}</p>
                                                 </div>
                                              </td>
                                              <td className="px-10 py-6 text-right font-bold text-slate-500 font-mono italic">₹{formatCurrency(m.netSales)}</td>
                                              <td className="px-10 py-6 text-right font-bold text-slate-300 font-mono italic">₹{formatCurrency(m.netCOGS)}</td>
                                              <td className="px-10 py-6 text-right">
-                                                <span className={`px-5 py-2.5 rounded-2xl italic font-bold text-lg tracking-tighter ${m.grossProfit >= 0 ? 'bg-white text-slate-800 border-2 border-slate-800 shadow-sm' : 'bg-rose-50 text-rose-600 border border-rose-100 italic'}`}>
+                                                <span className={`px-5 py-2.5 rounded-lg italic font-bold text-lg tracking-tighter ${m.grossProfit >= 0 ? 'bg-white text-slate-800 border-2 border-slate-800 shadow-sm' : 'bg-rose-50 text-rose-600 border border-rose-100 italic'}`}>
                                                    ₹{formatCurrency(m.grossProfit)}
                                                 </span>
                                              </td>
@@ -404,12 +404,12 @@ export default function ProfitLoss() {
                         { label: 'Expense Absorption', val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={20} />, color: 'indigo' },
                         { label: 'Fiscal Health Index', val: plData?.netProfit >= 0 ? 'Optimal Surplus' : 'Risk Warning', icon: <ShieldCheck size={20} />, color: plData?.netProfit >= 0 ? 'emerald' : 'rose' }
                      ].map((stat, i) => (
-                        <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
+                        <div key={i} className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
                            <div>
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">{stat.label}</p>
                               <h5 className={`text-3xl font-bold tracking-tighter italic ${stat.color === 'rose' ? 'text-rose-600 animate-pulse' : 'text-slate-800'}`}>{stat.val}</h5>
                            </div>
-                           <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                           <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
                         </div>
                      ))}
                   </div>
@@ -420,7 +420,7 @@ export default function ProfitLoss() {
             {/* Global Registry Footer */}
             <div className="max-w-[1600px] mx-auto mt-12 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.5em] italic">
                <div className="flex items-center gap-6">
-                  <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Mode: Active</span>
+                  <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Mode: Active</span>
                   <span className="flex items-center gap-2"><Layout size={12} /> Repository: Synchronized</span>
                </div>
                <div>System Chrono: {new Date().toISOString()}</div>

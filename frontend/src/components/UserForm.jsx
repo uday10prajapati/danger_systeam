@@ -164,7 +164,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   }
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10 animate-in slide-in-from-bottom duration-500 overflow-hidden relative">
+    <div className="bg-white rounded-lg border border-slate-100 shadow-xl p-10 animate-in slide-in-from-bottom duration-500 overflow-hidden relative">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/20 rounded-full -mr-32 -mt-32 blur-3xl"></div>
 
       <div className="relative z-10">
@@ -173,7 +173,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         </h2>
 
         {message && (
-          <div className={`mb-8 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
@@ -199,7 +199,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                     value={formData.username}
                     onChange={handleChange}
                     placeholder="e.g. alex_stone"
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.username ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.username ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm`}
                   />
                 </div>
                 {errors.username && <p className="text-[10px] text-rose-500 font-bold ml-1">{errors.username}</p>}
@@ -215,7 +215,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="alex@organization.com"
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.email ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border ${errors.email ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm`}
                   />
                 </div>
                 {errors.email && <p className="text-[10px] text-rose-500 font-bold ml-1">{errors.email}</p>}
@@ -231,7 +231,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder={userId ? t('userMaster.leaveBlankToKeepCurrent', 'Keep current key') : '********'}
-                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-50 border ${errors.password ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm`}
+                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-50 border ${errors.password ? 'border-rose-400' : 'border-slate-200'} focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm`}
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors">
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -248,7 +248,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm appearance-none cursor-pointer"
                   >
                     <option value="cashier">{t('userMaster.cashier', 'Cashier (Standard)')}</option>
                     <option value="manager">{t('userMaster.manager', 'Manager (Analytic)')}</option>
@@ -276,12 +276,12 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                     key={module.id}
                     type="button"
                     onClick={() => handleModuleToggle(module.id)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${isSelected
-                        ? `bg-${module.color}-50 border-${module.color}-200 shadow-sm ring-1 ring-${module.color}-100`
-                        : 'bg-white border-slate-100 hover:border-slate-300'
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${isSelected
+                      ? `bg-${module.color}-50 border-${module.color}-200 shadow-sm ring-1 ring-${module.color}-100`
+                      : 'bg-white border-slate-100 hover:border-slate-300'
                       }`}
                   >
-                    <div className={`p-2 rounded-xl border ${isSelected ? `bg-white text-${module.color}-600 border-${module.color}-100` : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                    <div className={`p-2 rounded-lg border ${isSelected ? `bg-white text-${module.color}-600 border-${module.color}-100` : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
                       {module.icon}
                     </div>
                     <span className={`text-[10px] font-bold uppercase tracking-tight ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
@@ -293,14 +293,14 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg border border-slate-100">
             <input
               type="checkbox"
               id="is_active"
               name="is_active"
               checked={formData.is_active}
               onChange={handleChange}
-              className="w-5 h-5 rounded-2xl border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
             <label htmlFor="is_active" className="text-xs font-bold text-slate-600 cursor-pointer">
               {t('userMaster.userActive', 'Identity is currently operational and authorized for system entry')}
@@ -311,14 +311,14 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+              className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
             >
               {loading ? <Loader className="animate-spin" size={20} /> : <><Save size={20} /> {userId ? 'Commit Changes' : 'Initialize Identity'}</>}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="px-8 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 hover:text-slate-800 transition-all"
+              className="px-8 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all"
             >
               {t('common.cancel', 'Abort')}
             </button>

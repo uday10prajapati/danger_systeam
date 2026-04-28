@@ -178,9 +178,9 @@ export default function DeductionConsole() {
          <div className="max-w-7xl mx-auto space-y-6">
 
             {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex justify-between items-center">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex justify-between items-center">
                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
                      <Database size={24} />
                   </div>
                   <div>
@@ -189,13 +189,13 @@ export default function DeductionConsole() {
                   </div>
                </div>
                <div className="flex gap-3">
-                  <button onClick={() => setShowMembersModal(true)} className="px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm">
+                  <button onClick={() => setShowMembersModal(true)} className="px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm">
                      <Plus size={16} /> Add Targets
                   </button>
                   <button
                      onClick={() => { setDeductionPayload(prev => ({ ...prev, target_identifier: 'all' })); setShowDeductionModal(true); preloadIdentityInsights(selectedIdentities); }}
                      disabled={selectedIdentities.length === 0}
-                     className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50"
+                     className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50"
                   >
                      <Database size={16} /> Process Kapat
                   </button>
@@ -204,7 +204,7 @@ export default function DeductionConsole() {
 
             {/* Extraction Matrix Table */}
             {selectedIdentities.length > 0 ? (
-               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+               <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                   <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
                      <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
                         <UserCheck className="text-blue-600" size={18} /> Extraction Matrix
@@ -242,8 +242,8 @@ export default function DeductionConsole() {
                   </div>
                </div>
             ) : (
-               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-16 flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 mb-4"><Database size={28} /></div>
+               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-16 flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 mb-4"><Database size={28} /></div>
                   <p className="text-sm font-medium text-slate-500">No identities added to matrix.</p>
                </div>
             )}
@@ -387,8 +387,8 @@ export default function DeductionConsole() {
                                     </div>
                                     {deducted !== 0 && Math.abs(closing) > 0.01 && (
                                        <div className={`text-[10px] font-mono font-black italic mt-0.5 ${isActive ? 'text-blue-100' :
-                                             closing < 0 ? 'text-rose-600' :
-                                                closing > 0 ? 'text-emerald-600' : 'text-slate-400'
+                                          closing < 0 ? 'text-rose-600' :
+                                             closing > 0 ? 'text-emerald-600' : 'text-slate-400'
                                           }`}>
                                           {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                        </div>
@@ -404,33 +404,33 @@ export default function DeductionConsole() {
                            );
                         })}
 
-                         {/* Bardan row - last row in table */}
-                         {deductionPayload.target_identifier &&
-                          deductionPayload.target_identifier.startsWith('account-') &&
-                          activeAccountStats.bardan_penalty > 0 && (
-                            <div
-                              className="grid border-b-2 border-amber-300 bg-amber-50"
-                              style={{ gridTemplateColumns: '36px 72px 1fr 110px 100px' }}
-                            >
-                              <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-black text-amber-500">B</div>
-                              <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-mono font-black text-amber-700">---</div>
-                              <div className="border-r border-amber-200 px-3 py-1.5 text-[11px] font-black text-amber-800">
-                                Bardan Penalty
-                                <span className="ml-2 text-[9px] font-bold text-amber-500 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
-                                  {activeAccountStats.bardan_balance} bags
-                                </span>
+                        {/* Bardan row - last row in table */}
+                        {deductionPayload.target_identifier &&
+                           deductionPayload.target_identifier.startsWith('account-') &&
+                           activeAccountStats.bardan_penalty > 0 && (
+                              <div
+                                 className="grid border-b-2 border-amber-300 bg-amber-50"
+                                 style={{ gridTemplateColumns: '36px 72px 1fr 110px 100px' }}
+                              >
+                                 <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-black text-amber-500">B</div>
+                                 <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-mono font-black text-amber-700">---</div>
+                                 <div className="border-r border-amber-200 px-3 py-1.5 text-[11px] font-black text-amber-800">
+                                    Bardan Penalty
+                                    <span className="ml-2 text-[9px] font-bold text-amber-500 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                                       {activeAccountStats.bardan_balance} bags
+                                    </span>
+                                 </div>
+                                 <div className="border-r border-amber-200 px-3 py-1.5 text-right text-[11px] font-mono font-black text-amber-700">
+                                    {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                 </div>
+                                 <div className="px-2 py-0.5 flex items-center">
+                                    <span className="w-full text-right text-[11px] font-mono font-black text-amber-700 px-1.5">
+                                       {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                 </div>
                               </div>
-                              <div className="border-r border-amber-200 px-3 py-1.5 text-right text-[11px] font-mono font-black text-amber-700">
-                                {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                              </div>
-                              <div className="px-2 py-0.5 flex items-center">
-                                <span className="w-full text-right text-[11px] font-mono font-black text-amber-700 px-1.5">
-                                  {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                            </div>
-                         )}
-                      </div>
+                           )}
+                     </div>
 
                      {/* Total footer */}
                      <div className="border-t-2 border-slate-400 bg-slate-100 shrink-0 flex items-center justify-between px-4 py-1.5">
@@ -458,7 +458,7 @@ export default function DeductionConsole() {
          {/* â”€â”€ TARGET SELECTOR MODAL â”€â”€ */}
          {showMembersModal && (
             <div className="fixed inset-0 z-[100] flex justify-center items-center p-6 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)}>
-               <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh] border border-slate-200" onClick={e => e.stopPropagation()}>
+               <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col h-[85vh] border border-slate-200" onClick={e => e.stopPropagation()}>
                   <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
                      <h2 className="text-xl font-bold tracking-tight">Identity Matrix Selector</h2>
                      <button onClick={() => setShowMembersModal(false)} className="text-slate-300 hover:text-white"><X size={18} /></button>
@@ -466,19 +466,19 @@ export default function DeductionConsole() {
                   <div className="p-6 bg-white border-b border-slate-200 space-y-4">
                      <input type="text" placeholder="Search Identity..." value={identitySearch}
                         onChange={e => setIdentitySearch(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500" />
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:border-blue-500" />
                      <div className="flex gap-2">
-                        <button onClick={() => setIdentityTab('sabhasad')} className={`flex-1 py-3 text-xs font-bold rounded-xl ${identityTab === 'sabhasad' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Members</button>
-                        <button onClick={() => setIdentityTab('account')} className={`flex-1 py-3 text-xs font-bold rounded-xl ${identityTab === 'account' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Ledgers</button>
+                        <button onClick={() => setIdentityTab('sabhasad')} className={`flex-1 py-3 text-xs font-bold rounded-lg ${identityTab === 'sabhasad' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Members</button>
+                        <button onClick={() => setIdentityTab('account')} className={`flex-1 py-3 text-xs font-bold rounded-lg ${identityTab === 'account' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Ledgers</button>
                      </div>
                   </div>
-                   <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-3 bg-slate-50 content-start auto-rows-min">
+                  <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-3 bg-slate-50 content-start auto-rows-min">
                      {identityTab === 'sabhasad' ? (
                         members.filter(m => String(m.member_code).includes(identitySearch) || m.member_name.toLowerCase().includes(identitySearch.toLowerCase())).map(m => {
                            const isSel = selectedIdentities.some(i => i.id === m.id && i.type === 'member');
                            return (
                               <div key={m.id} onClick={() => toggleIdentitySelection(m.id, 'member', m.member_name, m.member_code)}
-                                 className={`p-4 bg-white border rounded-xl cursor-pointer flex items-center gap-4 ${isSel ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'}`}>
+                                 className={`p-4 bg-white border rounded-lg cursor-pointer flex items-center gap-4 ${isSel ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'}`}>
                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-300'}`}><CheckCircle size={16} /></div>
                                  <div className="flex-1 min-w-0">
                                     <h3 className="text-sm font-bold truncate">{m.member_name}</h3>
@@ -492,7 +492,7 @@ export default function DeductionConsole() {
                            const isSel = selectedIdentities.some(i => i.id === a.id && i.type === 'account');
                            return (
                               <div key={a.id} onClick={() => toggleIdentitySelection(a.id, 'account', a.account_name, a.account_code || a.id)}
-                                 className={`p-4 bg-white border rounded-xl cursor-pointer flex items-center gap-4 ${isSel ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-slate-200 hover:border-slate-300'}`}>
+                                 className={`p-4 bg-white border rounded-lg cursor-pointer flex items-center gap-4 ${isSel ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-slate-200 hover:border-slate-300'}`}>
                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSel ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-300'}`}><CheckCircle size={16} /></div>
                                  <div className="flex-1 min-w-0">
                                     <h3 className="text-sm font-bold truncate">{a.account_name}</h3>
@@ -504,7 +504,7 @@ export default function DeductionConsole() {
                      )}
                   </div>
                   <div className="p-6 bg-white border-t border-slate-200">
-                     <button onClick={confirmSelection} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-blue-600 transition-colors flex items-center justify-center gap-3">
+                     <button onClick={confirmSelection} className="w-full py-4 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors flex items-center justify-center gap-3">
                         Confirm Selection <ArrowRight size={18} />
                      </button>
                   </div>

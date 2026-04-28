@@ -198,23 +198,23 @@ export default function Rojmel() {
                </div>
 
                <div className="flex gap-3">
-                  <button onClick={fetchRojmel} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-2xl transition-all shadow-sm active:scale-95">
+                  <button onClick={fetchRojmel} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all shadow-sm active:scale-95">
                      <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
                   </button>
-                  <button onClick={handleDownloadPDF} className="flex items-center gap-3 px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95">
+                  <button onClick={handleDownloadPDF} className="flex items-center gap-3 px-8 py-3.5 bg-blue-600 text-white rounded-lg font-bold uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95">
                      <Download size={16} strokeWidth={3} /> Download Report
                   </button>
                </div>
             </div>
 
             {/* Command Deck Toolbar */}
-            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-center gap-10">
+            <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-center gap-10">
 
                <div className="flex items-center gap-8 border-r border-slate-100 pr-10">
                   <label className="flex items-center gap-3 cursor-pointer group">
                      <div className="relative w-6 h-6">
                         <input type="checkbox" checked={showSubledger} onChange={(e) => setShowSubledger(e.target.checked)} className="peer hidden" />
-                        <div className="w-6 h-6 border-2 border-slate-100 rounded-2xl peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all group-hover:border-blue-200"></div>
+                        <div className="w-6 h-6 border-2 border-slate-100 rounded-lg peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all group-hover:border-blue-200"></div>
                         <X size={14} className="absolute top-1 left-1 text-white opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={4} />
                      </div>
                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic group-hover:text-slate-600">Show Subledger</span>
@@ -223,7 +223,7 @@ export default function Rojmel() {
                   <label className="flex items-center gap-3 cursor-pointer group">
                      <div className="relative w-6 h-6">
                         <input type="checkbox" checked={printItemDetails} onChange={(e) => setPrintItemDetails(e.target.checked)} className="peer hidden" />
-                        <div className="w-6 h-6 border-2 border-slate-100 rounded-2xl peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all group-hover:border-blue-200"></div>
+                        <div className="w-6 h-6 border-2 border-slate-100 rounded-lg peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all group-hover:border-blue-200"></div>
                         <X size={14} className="absolute top-1 left-1 text-white opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={4} />
                      </div>
                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic group-hover:text-slate-600">Item Details</span>
@@ -232,12 +232,12 @@ export default function Rojmel() {
 
                <div className="flex items-center gap-4">
                   <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic leading-none">Journal Timeline:</span>
-                  <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
-                     <button disabled={!navDates.prev} onClick={() => setDate(navDates.prev)} className="p-2.5 bg-white text-slate-400 hover:text-blue-600 rounded-xl disabled:opacity-30 disabled:pointer-events-none shadow-sm transition-all active:scale-90">
+                  <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 shadow-inner">
+                     <button disabled={!navDates.prev} onClick={() => setDate(navDates.prev)} className="p-2.5 bg-white text-slate-400 hover:text-blue-600 rounded-lg disabled:opacity-30 disabled:pointer-events-none shadow-sm transition-all active:scale-90">
                         <ChevronLeft size={18} strokeWidth={3} />
                      </button>
                      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-transparent px-4 py-2 text-xs font-bold text-slate-600 outline-none font-mono" />
-                     <button disabled={!navDates.next} onClick={() => setDate(navDates.next)} className="p-2.5 bg-white text-slate-400 hover:text-blue-600 rounded-xl disabled:opacity-30 disabled:pointer-events-none shadow-sm transition-all active:scale-90">
+                     <button disabled={!navDates.next} onClick={() => setDate(navDates.next)} className="p-2.5 bg-white text-slate-400 hover:text-blue-600 rounded-lg disabled:opacity-30 disabled:pointer-events-none shadow-sm transition-all active:scale-90">
                         <ChevronRight size={18} strokeWidth={3} />
                      </button>
                   </div>
@@ -245,12 +245,12 @@ export default function Rojmel() {
 
                <div className="ml-auto text-right">
                   <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1 italic leading-none">Previous Ledger Node</p>
-                  <p className="text-xs font-bold text-slate-400 font-mono bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 italic">{formatDate(new Date(new Date(date).getTime() - 86400000))}</p>
+                  <p className="text-xs font-bold text-slate-400 font-mono bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 italic">{formatDate(new Date(new Date(date).getTime() - 86400000))}</p>
                </div>
             </div>
 
             {/* Ledger Core Container */}
-            <div id="rojmel-container" className="bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] rounded-[3rem] overflow-hidden border border-slate-100 flex flex-col min-h-[700px] print:shadow-none print:border-black print:rounded-none">
+            <div id="rojmel-container" className="bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] rounded-lg overflow-hidden border border-slate-100 flex flex-col min-h-[700px] print:shadow-none print:border-black print:rounded-none">
 
                {/* Ledger Master Headers */}
                <div className="grid grid-cols-2 text-center border-b border-slate-100 relative">
@@ -259,7 +259,7 @@ export default function Rojmel() {
                   <div className="py-8 bg-emerald-50/10 flex flex-col items-center justify-center relative overflow-hidden group">
                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
                      <div className="flex items-center gap-2.5 mb-1.5 relative z-10">
-                        <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl"><Plus size={16} /></div>
+                        <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-lg"><Plus size={16} /></div>
                         <h2 className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.4em] italic">Jama (Receipts)</h2>
                      </div>
                      <p className="text-xs font-bold text-slate-800 tracking-tight uppercase relative z-10">Incoming Capital Stream</p>
@@ -268,7 +268,7 @@ export default function Rojmel() {
                   <div className="py-8 bg-blue-50/10 flex flex-col items-center justify-center relative overflow-hidden group">
                      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
                      <div className="flex items-center gap-2.5 mb-1.5 relative z-10">
-                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl"><ShoppingBag size={16} /></div>
+                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-lg"><ShoppingBag size={16} /></div>
                         <h2 className="text-[9px] font-black text-blue-600 uppercase tracking-[0.4em] italic">Udhar (Payments)</h2>
                      </div>
                      <p className="text-xs font-bold text-slate-800 tracking-tight uppercase relative z-10">Outgoing Liquidity Flow</p>
@@ -322,7 +322,7 @@ export default function Rojmel() {
 
                                  {/* Subledger Shard */}
                                  {showSubledger && row.isGST && row.subledger?.length > 0 && (
-                                    <div className="bg-[#F8FAFC]/50 px-10 py-3 space-y-2 border-l-4 border-emerald-500 m-2 rounded-xl">
+                                    <div className="bg-[#F8FAFC]/50 px-10 py-3 space-y-2 border-l-4 border-emerald-500 m-2 rounded-lg">
                                        {row.subledger.map((sub, sIdx) => (
                                           <div key={sIdx} className="flex justify-between items-center text-[10px] font-bold italic tracking-tight">
                                              <span className="text-slate-400 flex items-center gap-2"><ArrowRight size={10} /> {sub.description}</span>
@@ -336,7 +336,7 @@ export default function Rojmel() {
                         })}
                      </div>
                      {data?.totals && (
-                        <div className="mt-6 bg-[#F8FAFC] p-6 rounded-3xl border border-slate-100 flex justify-between items-center relative overflow-hidden group border-l-4 border-l-emerald-600">
+                        <div className="mt-6 bg-[#F8FAFC] p-6 rounded-lg border border-slate-100 flex justify-between items-center relative overflow-hidden group border-l-4 border-l-emerald-600">
                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
                            <div>
                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-0.5 italic">Consolidated Intake</p>
@@ -378,7 +378,7 @@ export default function Rojmel() {
 
                                  {/* Subledger Shard */}
                                  {showSubledger && row.isGST && row.subledger?.length > 0 && (
-                                    <div className="bg-[#F8FAFC]/50 px-10 py-3 space-y-2 border-l-4 border-blue-500 m-2 rounded-xl">
+                                    <div className="bg-[#F8FAFC]/50 px-10 py-3 space-y-2 border-l-4 border-blue-500 m-2 rounded-lg">
                                        {row.subledger.map((sub, sIdx) => (
                                           <div key={sIdx} className="flex justify-between items-center text-[10px] font-bold italic tracking-tight">
                                              <span className="text-slate-400 flex items-center gap-2"><ArrowRight size={10} /> {sub.description}</span>
@@ -392,7 +392,7 @@ export default function Rojmel() {
                         })}
                      </div>
                      {data?.totals && (
-                        <div className="mt-6 bg-[#F8FAFC] p-6 rounded-3xl border border-slate-100 flex justify-between items-center relative overflow-hidden group border-l-4 border-l-blue-600">
+                        <div className="mt-6 bg-[#F8FAFC] p-6 rounded-lg border border-slate-100 flex justify-between items-center relative overflow-hidden group border-l-4 border-l-blue-600">
                            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
                            <div>
                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-0.5 italic">Consolidated Outflow</p>
@@ -409,18 +409,18 @@ export default function Rojmel() {
             </div>
 
             {/* Floating Command Hub - Airy Glassmorphic Shard */}
-            <div className="mt-8 bg-white/80 backdrop-blur-xl p-3 border border-slate-200/50 shadow-[0_30px_70px_rgba(0,0,0,0.08)] rounded-[2.5rem] flex items-center gap-2 z-50 print:hidden">
+            <div className="mt-8 bg-white/80 backdrop-blur-xl p-3 border border-slate-200/50 shadow-[0_30px_70px_rgba(0,0,0,0.08)] rounded-lg flex items-center gap-2 z-50 print:hidden">
 
-               <div className="flex gap-2 p-1 bg-slate-50/50 rounded-[2rem] border border-slate-100">
+               <div className="flex gap-2 p-1 bg-slate-50/50 rounded-lg border border-slate-100">
                   <button
                      onClick={() => { setEditingEntry(null); setActiveModal('credit'); }}
-                     className="bg-emerald-600 text-white pl-4 pr-6 py-3 rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-100 flex items-center gap-2 transition-all hover:bg-emerald-700 active:scale-95"
+                     className="bg-emerald-600 text-white pl-4 pr-6 py-3 rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-100 flex items-center gap-2 transition-all hover:bg-emerald-700 active:scale-95"
                   >
                      <ArrowUpRight size={14} strokeWidth={3} /> Jama (Receipt)
                   </button>
                   <button
                      onClick={() => { setEditingEntry(null); setActiveModal('debit'); }}
-                     className="bg-blue-600 text-white pl-4 pr-6 py-3 rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-blue-100 flex items-center gap-2 transition-all hover:bg-blue-700 active:scale-95"
+                     className="bg-blue-600 text-white pl-4 pr-6 py-3 rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-blue-100 flex items-center gap-2 transition-all hover:bg-blue-700 active:scale-95"
                   >
                      <ArrowDownLeft size={14} strokeWidth={3} /> Udhar (Payment)
                   </button>
@@ -431,19 +431,19 @@ export default function Rojmel() {
                <div className="flex gap-2">
                   <button
                      onClick={() => setActiveModal('purchase')}
-                     className="bg-white border border-slate-100 text-indigo-600 hover:bg-indigo-50 px-6 py-3 rounded-2xl font-bold uppercase text-[9px] tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
+                     className="bg-white border border-slate-100 text-indigo-600 hover:bg-indigo-50 px-6 py-3 rounded-lg font-bold uppercase text-[9px] tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
                   >
                      <Box size={14} /> Procure
                   </button>
                   <button
                      onClick={() => setActiveModal('sales')}
-                     className="bg-white border border-slate-100 text-violet-600 hover:bg-violet-50 px-6 py-3 rounded-2xl font-bold uppercase text-[9px] tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
+                     className="bg-white border border-slate-100 text-violet-600 hover:bg-violet-50 px-6 py-3 rounded-lg font-bold uppercase text-[9px] tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
                   >
                      <ShoppingBag size={14} /> Sell
                   </button>
                   <button
                      onClick={() => setActiveModal('jv')}
-                     className="bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 px-6 py-3 rounded-2xl font-bold uppercase text-[9px] tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
+                     className="bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 px-6 py-3 rounded-lg font-bold uppercase text-[9px] tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
                   >
                      <FileSpreadsheet size={14} /> Journal
                   </button>
@@ -454,15 +454,15 @@ export default function Rojmel() {
                <div className="flex gap-1 pr-2">
                   <button
                      onClick={() => setDate(new Date().toISOString().split('T')[0])}
-                     className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all active:rotate-[-45deg] group"
+                     className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all active:rotate-[-45deg] group"
                      title="Reset Timeline Node"
                   >
                      <HistoryIcon className="w-5 h-5 transition-transform group-hover:scale-110" />
                   </button>
-                  <div className="flex gap-2 p-1 bg-slate-50/50 rounded-[2rem] border border-slate-100 ml-4 italic">
+                  <div className="flex gap-2 p-1 bg-slate-50/50 rounded-lg border border-slate-100 ml-4 italic">
                      <button
                         onClick={handleDownloadPDF}
-                        className="bg-white text-indigo-600 p-3 rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm border border-slate-100"
+                        className="bg-white text-indigo-600 p-3 rounded-lg hover:bg-slate-50 transition-all active:scale-95 shadow-sm border border-slate-100"
                         title="Download Daily PDF"
                      >
                         <Download size={20} strokeWidth={3} />

@@ -186,17 +186,17 @@ export default function AccountLedger() {
                   </h1>
                </div>
 
-               <div className="flex items-center gap-4 bg-white/50 backdrop-blur-xl p-2 rounded-[2rem] border border-white shadow-sm transition-all hover:shadow-md">
+               <div className="flex items-center gap-4 bg-white/50 backdrop-blur-xl p-2 rounded-lg border border-white shadow-sm transition-all hover:shadow-md">
                   <button
                      onClick={() => setView('ledger')}
-                     className={`px-8 py-3 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'ledger' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
+                     className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'ledger' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
                         }`}
                   >
                      <Activity size={14} /> Transaction Mode
                   </button>
                   <button
                      onClick={() => { setView('trial-balance'); fetchTrialBalance(); }}
-                     className={`px-8 py-3 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'trial-balance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
+                     className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'trial-balance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
                         }`}
                   >
                      <Layout size={14} /> Trial Summary
@@ -208,7 +208,7 @@ export default function AccountLedger() {
                <div className="space-y-10">
 
                   {/* Intelligence Control Shard */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm relative print:hidden">
+                  <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm relative print:hidden">
                      <div className="flex flex-wrap items-end justify-between gap-10">
                         <div className="flex-1 flex flex-wrap items-end gap-6 relative">
                            {/* Node ID Input */}
@@ -225,7 +225,7 @@ export default function AccountLedger() {
                                     }}
                                     onFocus={() => setShowMemberDropdown(true)}
                                     placeholder="ID"
-                                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-2xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all font-bold uppercase text-[11px]"
+                                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all font-bold uppercase text-[11px]"
                                  />
                               </div>
                            </div>
@@ -244,14 +244,14 @@ export default function AccountLedger() {
                                     }}
                                     onFocus={() => setShowMemberDropdown(true)}
                                     placeholder="IDENTIFY ENTITY..."
-                                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-2xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all font-bold uppercase text-[11px]"
+                                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all font-bold uppercase text-[11px]"
                                  />
                               </div>
                            </div>
 
                            {/* Dropdown - Glassmorphic Airy Style */}
                            {showMemberDropdown && accounts.length > 0 && (
-                              <div className="absolute top-[85px] left-0 right-0 bg-white/95 backdrop-blur-2xl border border-white shadow-2xl rounded-[2rem] overflow-hidden z-[100] animate-in zoom-in-95">
+                              <div className="absolute top-[85px] left-0 right-0 bg-white/95 backdrop-blur-2xl border border-white shadow-2xl rounded-lg overflow-hidden z-[100] animate-in zoom-in-95">
                                  <div className="max-h-64 overflow-y-auto">
                                     {filteredAccounts.map((acc) => (
                                        <div
@@ -273,11 +273,11 @@ export default function AccountLedger() {
                            <div className="flex flex-wrap items-end gap-4">
                               <div>
                                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal Start</span>
-                                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onBlur={handleDateChange} className="bg-slate-50 border-none rounded-2xl px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
+                                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onBlur={handleDateChange} className="bg-slate-50 border-none rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
                               </div>
                               <div>
                                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal End</span>
-                                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onBlur={handleDateChange} className="bg-slate-50 border-none rounded-2xl px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
+                                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onBlur={handleDateChange} className="bg-slate-50 border-none rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
                               </div>
                            </div>
                         </div>
@@ -285,7 +285,7 @@ export default function AccountLedger() {
                         <div className="flex gap-4">
                            <button
                               onClick={handlePrint}
-                              className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-3"
+                              className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-3"
                            >
                               <Printer size={18} /> Print Statement
                            </button>
@@ -302,10 +302,10 @@ export default function AccountLedger() {
                               { label: 'Cumulative Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), icon: <TrendingDown size={20} />, color: 'amber' },
                               { label: 'Net Liquidity Position', val: parseFloat(accountBalance.running_balance || 0), icon: <DollarSign size={20} />, color: 'emerald', special: true },
                            ].map((shard, i) => (
-                              <div key={i} className={`bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative group hover:shadow-lg transition-all ${shard.special && shard.val < 0 ? 'bg-rose-50/30' : ''}`}>
+                              <div key={i} className={`bg-white p-8 rounded-lg border border-slate-100 shadow-sm relative group hover:shadow-lg transition-all ${shard.special && shard.val < 0 ? 'bg-rose-50/30' : ''}`}>
                                  <div className="flex justify-between items-start mb-6">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{shard.label}</p>
-                                    <div className={`p-3 bg-${shard.color}-50 text-${shard.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{shard.icon}</div>
+                                    <div className={`p-3 bg-${shard.color}-50 text-${shard.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{shard.icon}</div>
                                  </div>
                                  <p className={`text-3xl font-bold tracking-tighter ${shard.special ? (shard.val >= 0 ? 'text-emerald-600' : 'text-rose-600') : 'text-slate-800'}`}>
                                     ₹{shard.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -315,7 +315,7 @@ export default function AccountLedger() {
                         </div>
 
                         {/* Operational Table Canvas */}
-                        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
+                        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
                            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-[#F8FAFC]/50 backdrop-blur-sm">
                               <div>
                                  <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">{selectedAccount.account_name}</h2>
@@ -379,74 +379,74 @@ export default function AccountLedger() {
                   ) : (
                      <>
                         {/* Transaction Shard Registry - Default View */}
-                        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative animate-in slide-in-from-bottom duration-500">
-                          <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm flex justify-between items-center">
-                            <div>
-                               <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">Institutional Registry</h2>
-                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Select nomenclature node for deep shard audit</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                               <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-tighter shadow-sm flex items-center gap-2">
-                                  <Database size={10} /> Total Nodes: {filteredAccounts.length}
-                               </span>
-                            </div>
-                          </div>
+                        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative animate-in slide-in-from-bottom duration-500">
+                           <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm flex justify-between items-center">
+                              <div>
+                                 <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">Institutional Registry</h2>
+                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Select nomenclature node for deep shard audit</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                 <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-tighter shadow-sm flex items-center gap-2">
+                                    <Database size={10} /> Total Nodes: {filteredAccounts.length}
+                                 </span>
+                              </div>
+                           </div>
 
-                          <div className="flex-1 overflow-x-auto scroller-airy">
-                            <table className="w-full text-left">
-                              <thead className="bg-[#F8FAFC]">
-                                <tr>
-                                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nomenclature</th>
-                                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Registry Class</th>
-                                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-right">Audit Status</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-50">
-                                {filteredAccounts.length === 0 ? (
-                                   <tr>
-                                      <td colSpan="3" className="py-32 text-center text-slate-200 font-black uppercase text-[10px] tracking-[0.4em] italic">No shards matched nomenclature</td>
-                                   </tr>
-                                ) : (
-                                  filteredAccounts.map(acc => (
-                                    <tr 
-                                      key={acc.id} 
-                                      onClick={() => handleSelectAccount(acc)}
-                                      className="group hover:bg-blue-50/30 cursor-pointer transition-all duration-300"
-                                    >
-                                      <td className="px-10 py-5">
-                                         <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase italic tracking-tight">{acc.account_name}</span>
-                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">SHA_ID: #{acc.id}</span>
-                                         </div>
-                                      </td>
-                                      <td className="px-10 py-5">
-                                         <span className="px-3 py-1 bg-white border border-slate-100 rounded-2xl text-[9px] font-black text-slate-400 uppercase tracking-tighter group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">{acc.account_type}</span>
-                                      </td>
-                                      <td className="px-10 py-5 text-right">
-                                         <button className="p-2.5 bg-slate-50 text-slate-300 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:scale-110 shadow-sm">
-                                            <ChevronRight size={18} />
-                                         </button>
-                                      </td>
+                           <div className="flex-1 overflow-x-auto scroller-airy">
+                              <table className="w-full text-left">
+                                 <thead className="bg-[#F8FAFC]">
+                                    <tr>
+                                       <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nomenclature</th>
+                                       <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Registry Class</th>
+                                       <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-right">Audit Status</th>
                                     </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
+                                 </thead>
+                                 <tbody className="divide-y divide-slate-50">
+                                    {filteredAccounts.length === 0 ? (
+                                       <tr>
+                                          <td colSpan="3" className="py-32 text-center text-slate-200 font-black uppercase text-[10px] tracking-[0.4em] italic">No shards matched nomenclature</td>
+                                       </tr>
+                                    ) : (
+                                       filteredAccounts.map(acc => (
+                                          <tr
+                                             key={acc.id}
+                                             onClick={() => handleSelectAccount(acc)}
+                                             className="group hover:bg-blue-50/30 cursor-pointer transition-all duration-300"
+                                          >
+                                             <td className="px-10 py-5">
+                                                <div className="flex flex-col">
+                                                   <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase italic tracking-tight">{acc.account_name}</span>
+                                                   <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">SHA_ID: #{acc.id}</span>
+                                                </div>
+                                             </td>
+                                             <td className="px-10 py-5">
+                                                <span className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-tighter group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">{acc.account_type}</span>
+                                             </td>
+                                             <td className="px-10 py-5 text-right">
+                                                <button className="p-2.5 bg-slate-50 text-slate-300 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:scale-110 shadow-sm">
+                                                   <ChevronRight size={18} />
+                                                </button>
+                                             </td>
+                                          </tr>
+                                       ))
+                                    )}
+                                 </tbody>
+                              </table>
+                           </div>
                         </div>
-                      </>
+                     </>
                   )}
                </div>
             )}
 
             {view === 'trial-balance' && (
-               <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-700">
+               <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-700">
                   <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-[#F8FAFC]/50 backdrop-blur-sm">
                      <div>
                         <h2 className="text-2xl font-bold text-slate-800 tracking-tight uppercase italic">Global Settlement Summary</h2>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Consolidated Institutional Trial Balance</p>
                      </div>
-                     <button className="flex items-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-100 hover:scale-105 transition-all">
+                     <button className="flex items-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-100 hover:scale-105 transition-all">
                         <Download size={16} /> Data Export
                      </button>
                   </div>
@@ -496,13 +496,13 @@ export default function AccountLedger() {
          {/* Modern High-Monochrome Print Modal */}
          {showPrintModal && selectedAccount && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-2xl flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-300">
-               <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-white">
+               <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-white">
                   <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                      <div>
                         <h2 className="text-xl font-bold text-slate-800 tracking-tight">Print Deployment Protocol</h2>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedAccount.account_name} / Statement</p>
                      </div>
-                     <button onClick={() => setShowPrintModal(false)} className="p-3 bg-white text-slate-400 hover:text-rose-600 rounded-2xl shadow-sm hover:scale-110 transition-all active:scale-95"><X size={24} /></button>
+                     <button onClick={() => setShowPrintModal(false)} className="p-3 bg-white text-slate-400 hover:text-rose-600 rounded-lg shadow-sm hover:scale-110 transition-all active:scale-95"><X size={24} /></button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-16 bg-white" id="printable-ledger">
@@ -528,15 +528,15 @@ export default function AccountLedger() {
                      </div>
 
                      <div className="grid grid-cols-3 gap-8 mb-16">
-                        <div className="bg-black p-8 rounded-3xl text-white">
+                        <div className="bg-black p-8 rounded-lg text-white">
                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-2">GROSS DEBIT</p>
                            <p className="text-3xl font-bold tracking-tighter italic">₹{parseFloat(accountBalance.total_debit || 0).toLocaleString('en-IN')}</p>
                         </div>
-                        <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                        <div className="bg-slate-50 p-8 rounded-lg border border-slate-100">
                            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-2">GROSS CREDIT</p>
                            <p className="text-3xl font-bold text-slate-400 tracking-tighter italic">₹{parseFloat(accountBalance.total_credit || 0).toLocaleString('en-IN')}</p>
                         </div>
-                        <div className={`p-8 rounded-3xl border-4 ${parseFloat(accountBalance.running_balance) >= 0 ? 'border-black' : 'border-rose-600'}`}>
+                        <div className={`p-8 rounded-lg border-4 ${parseFloat(accountBalance.running_balance) >= 0 ? 'border-black' : 'border-rose-600'}`}>
                            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-2">NET SETTLEMENT</p>
                            <p className={`text-3xl font-black tracking-tighter italic ${parseFloat(accountBalance.running_balance) >= 0 ? 'text-black' : 'text-rose-600'}`}>₹{Math.abs(parseFloat(accountBalance.running_balance || 0)).toLocaleString('en-IN')}</p>
                         </div>
@@ -573,7 +573,7 @@ export default function AccountLedger() {
                   </div>
 
                   <div className="p-8 bg-slate-900 flex justify-between items-center">
-                     <button onClick={() => window.print()} className="bg-white text-black px-12 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:scale-105 transition-all">EXECUTE_PRINT</button>
+                     <button onClick={() => window.print()} className="bg-white text-black px-12 py-4 rounded-lg font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:scale-105 transition-all">EXECUTE_PRINT</button>
                      <button onClick={() => setShowPrintModal(false)} className="text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors">ABORT_PROTOCOL</button>
                   </div>
                </div>

@@ -168,17 +168,17 @@ export default function BarcodeScannerPage() {
                   <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Barcode Command Deck</h1>
                </div>
                <div className="flex items-center gap-4">
-                  <div className="flex gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="flex gap-1.5 p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm">
                      <button
                         onClick={() => setActiveTab('scan')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'scan' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
+                        className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'scan' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
                            }`}
                      >
                         Live Scanner
                      </button>
                      <button
                         onClick={() => setActiveTab('manage')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'manage' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
+                        className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'manage' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
                            }`}
                      >
                         Manifest Control
@@ -189,10 +189,10 @@ export default function BarcodeScannerPage() {
 
             {/* Dynamic Metric Grid - UserMaster Style */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
+               <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total SKU Registry</p>
-                     <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform"><Database size={18} /></div>
+                     <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg group-hover:scale-110 transition-transform"><Database size={18} /></div>
                   </div>
                   <p className="text-2xl font-bold text-slate-800 tracking-tighter">{stats.total}</p>
                   <div className="mt-3 flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">
@@ -200,10 +200,10 @@ export default function BarcodeScannerPage() {
                   </div>
                </div>
 
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
+               <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monitized Shards</p>
-                     <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform"><CheckCircle size={18} /></div>
+                     <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg group-hover:scale-110 transition-transform"><CheckCircle size={18} /></div>
                   </div>
                   <p className="text-2xl font-bold text-slate-800 tracking-tighter">{stats.withBarcode}</p>
                   <div className="mt-3 flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">
@@ -211,10 +211,10 @@ export default function BarcodeScannerPage() {
                   </div>
                </div>
 
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-rose-200 transition-all">
+               <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-rose-200 transition-all">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unassigned Vectors</p>
-                     <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl group-hover:scale-110 transition-transform"><AlertCircle size={18} /></div>
+                     <div className="p-2.5 bg-rose-50 text-rose-600 rounded-lg group-hover:scale-110 transition-transform"><AlertCircle size={18} /></div>
                   </div>
                   <p className="text-2xl font-bold text-rose-600 tracking-tighter italic">{stats.withoutBarcode}</p>
                   <div className="mt-3 flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">
@@ -224,12 +224,12 @@ export default function BarcodeScannerPage() {
             </div>
 
             {/* Core Component Canvas */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[650px] relative">
+            <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[650px] relative">
 
                {/* Status Overlay Banners */}
                {(successMessage || errorMessage) && (
                   <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4">
-                     <div className={`p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-500 ${successMessage ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white'
+                     <div className={`p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-500 ${successMessage ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white'
                         }`}>
                         {successMessage ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
                         <p className="text-[10px] font-black uppercase tracking-widest">{successMessage || errorMessage}</p>
@@ -251,7 +251,7 @@ export default function BarcodeScannerPage() {
                            </div>
 
                            <div className="relative group">
-                              <div className="absolute -inset-1 bg-linear-to-r from-blue-600 to-indigo-600 rounded-[2rem] blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
+                              <div className="absolute -inset-1 bg-linear-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
                               <div className="relative">
                                  <BarcodeScanner
                                     companyId={company.id}
@@ -259,7 +259,7 @@ export default function BarcodeScannerPage() {
                                     onScanError={handleScanError}
                                     autoFocus={true}
                                     placeholder="READY TO PROCESS OPTICAL PATTERNS..."
-                                    className="w-full h-16 bg-white border border-slate-200 rounded-[1.5rem] px-8 text-lg font-bold italic tracking-tight uppercase focus:border-blue-500 transition-all outline-none shadow-sm placeholder:text-slate-200"
+                                    className="w-full h-16 bg-white border border-slate-200 rounded-lg px-8 text-lg font-bold italic tracking-tight uppercase focus:border-blue-500 transition-all outline-none shadow-sm placeholder:text-slate-200"
                                  />
                               </div>
                            </div>
@@ -280,10 +280,10 @@ export default function BarcodeScannerPage() {
                            </h3>
                            {scannedItems.length > 0 && (
                               <div className="flex gap-3">
-                                 <button onClick={exportScannedData} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-100 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
+                                 <button onClick={exportScannedData} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-100 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
                                     <Download size={14} /> Export Manifest
                                  </button>
-                                 <button onClick={clearScannedItems} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-100 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-rose-600 hover:border-rose-600 transition-all shadow-sm">
+                                 <button onClick={clearScannedItems} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-100 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-rose-600 hover:border-rose-600 transition-all shadow-sm">
                                     <Trash2 size={14} /> Flush Buffer
                                  </button>
                               </div>
@@ -310,9 +310,9 @@ export default function BarcodeScannerPage() {
                                        <tr key={idx} className="group hover:bg-slate-50/50 transition-colors animate-in slide-in-from-right duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
                                           <td className="px-8 py-5 font-bold text-slate-800 text-xs italic tracking-tighter">#{item.item_code}</td>
                                           <td className="px-8 py-5 font-bold text-slate-600 text-sm">{item.item_name}</td>
-                                          <td className="px-8 py-5"><span className="px-3 py-1 bg-slate-900 text-white text-[10px] font-mono font-bold rounded-2xl tracking-widest">{item.barcode}</span></td>
+                                          <td className="px-8 py-5"><span className="px-3 py-1 bg-slate-900 text-white text-[10px] font-mono font-bold rounded-lg tracking-widest">{item.barcode}</span></td>
                                           <td className="px-8 py-5 text-center">
-                                             <span className={`text-[10px] font-bold px-3 py-1 rounded-2xl border ${item.current_stock > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                             <span className={`text-[10px] font-bold px-3 py-1 rounded-lg border ${item.current_stock > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
                                                 {item.current_stock} UNTs
                                              </span>
                                           </td>
@@ -339,13 +339,13 @@ export default function BarcodeScannerPage() {
                                  value={searchTerm}
                                  onChange={(e) => setSearchTerm(e.target.value)}
                                  placeholder="ISOLATE SHARD BY NOMENCLATURE OR UNIQUE ID..."
-                                 className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest placeholder:text-slate-200 shadow-sm"
+                                 className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest placeholder:text-slate-200 shadow-sm"
                               />
                            </div>
                         </div>
-                        <div className="flex gap-2 p-1 bg-slate-50 rounded-xl border border-slate-100">
-                           <button className="px-5 py-2.5 bg-white text-blue-600 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-sm">Comprehensive List</button>
-                           <button className="px-5 py-2.5 text-slate-400 hover:text-slate-600 rounded-2xl text-[10px] font-bold uppercase tracking-widest">Awaiting Identity</button>
+                        <div className="flex gap-2 p-1 bg-slate-50 rounded-lg border border-slate-100">
+                           <button className="px-5 py-2.5 bg-white text-blue-600 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm">Comprehensive List</button>
+                           <button className="px-5 py-2.5 text-slate-400 hover:text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-widest">Awaiting Identity</button>
                         </div>
                      </div>
 
@@ -354,7 +354,7 @@ export default function BarcodeScannerPage() {
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3 italic">
                            <div className="w-10 h-0.5 bg-indigo-600"></div> Total Object Repository <span className="text-slate-300 font-mono">[{allItems.length}]</span>
                         </h3>
-                        <div className="overflow-x-auto rounded-[2.5rem] border border-slate-50 shadow-inner">
+                        <div className="overflow-x-auto rounded-lg border border-slate-50 shadow-inner">
                            <table className="w-full text-left">
                               <thead className="bg-[#F8FAFC]">
                                  <tr>
@@ -377,7 +377,7 @@ export default function BarcodeScannerPage() {
                                              <p className="font-bold text-slate-800 text-sm uppercase italic tracking-tight">{item.item_name}</p>
                                           </td>
                                           <td className="px-10 py-6">
-                                             <div className={`px-4 py-2 rounded-xl border font-mono text-[11px] font-bold w-fit ${item.barcode ? 'bg-slate-900 text-white border-slate-800 tracking-[0.2em]' : 'bg-slate-50 text-slate-300 border-slate-100 italic'
+                                             <div className={`px-4 py-2 rounded-lg border font-mono text-[11px] font-bold w-fit ${item.barcode ? 'bg-slate-900 text-white border-slate-800 tracking-[0.2em]' : 'bg-slate-50 text-slate-300 border-slate-100 italic'
                                                 }`}>
                                                 {item.barcode || 'NULL_PATTERN'}
                                              </div>

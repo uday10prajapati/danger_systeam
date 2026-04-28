@@ -98,12 +98,12 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
    return (
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 font-sans animate-in fade-in duration-300">
 
-         <div className="bg-white rounded-[2.5rem] w-full max-w-5xl shadow-2xl flex flex-col border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-500 relative">
+         <div className="bg-white rounded-lg w-full max-w-5xl shadow-2xl flex flex-col border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-500 relative">
 
             {/* Light Header Shard */}
             <div className="bg-slate-50 p-5 px-8 flex justify-between items-center border-b border-slate-100">
                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-600">
+                  <div className="w-11 h-11 bg-indigo-600/10 rounded-lg flex items-center justify-center text-indigo-600">
                      <ArrowRightLeft size={22} strokeWidth={3} />
                   </div>
                   <div>
@@ -111,14 +111,14 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 italic">Inter-Account Logic Shard</p>
                   </div>
                </div>
-               <button onClick={onClose} className="hover:bg-red-50 text-slate-400 hover:text-red-600 p-2.5 rounded-xl transition-all active:scale-95">
+               <button onClick={onClose} className="hover:bg-red-50 text-slate-400 hover:text-red-600 p-2.5 rounded-lg transition-all active:scale-95">
                   <X size={20} strokeWidth={3} />
                </button>
             </div>
 
             {/* Global Metadata Strip */}
             <div className="p-4 px-8 bg-white flex items-center justify-between border-b border-slate-50">
-               <div className="flex items-center gap-4 bg-[#F8FAFC] p-2 px-5 rounded-2xl border border-slate-50">
+               <div className="flex items-center gap-4 bg-[#F8FAFC] p-2 px-5 rounded-lg border border-slate-50">
                   <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Node Date :</span>
                   <input
                      type="date"
@@ -154,7 +154,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      </div>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }}
-                        className="bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                        className="bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
                      >
                         <Plus size={12} strokeWidth={4} /> Add Credit
                      </button>
@@ -193,7 +193,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                               {item && (
                                  <button
                                     onClick={(e) => { e.stopPropagation(); removeItem('credit', i); }}
-                                    className={`p-1.5 rounded-2xl opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
+                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
                                  >
                                     <Trash2 size={14} />
                                  </button>
@@ -219,7 +219,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      </div>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }}
-                        className="bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                        className="bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
                      >
                         <Plus size={12} strokeWidth={4} /> Add Debit
                      </button>
@@ -258,7 +258,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                               {item && (
                                  <button
                                     onClick={(e) => { e.stopPropagation(); removeItem('debit', i); }}
-                                    className={`p-1.5 rounded-2xl opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
+                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
                                  >
                                     <Trash2 size={14} />
                                  </button>
@@ -278,11 +278,11 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
             {/* Terminal Actions */}
             <div className="bg-slate-50 border-t border-slate-100 p-6 px-10 flex justify-end gap-5">
-               <button onClick={onClose} className="px-8 py-3.5 bg-white border border-slate-200 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:text-slate-600 shadow-sm transition-all active:scale-95">Cancel Operation</button>
+               <button onClick={onClose} className="px-8 py-3.5 bg-white border border-slate-200 text-slate-400 rounded-lg font-black uppercase text-[10px] tracking-widest hover:text-slate-600 shadow-sm transition-all active:scale-95">Cancel Operation</button>
                <button
                   onClick={handleSave}
                   disabled={totalCredit === 0 || totalCredit !== totalDebit}
-                  className="bg-indigo-600 text-white px-10 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-3"
+                  className="bg-indigo-600 text-white px-10 py-3.5 rounded-lg font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-3"
                >
                   {totalCredit > 0 && totalCredit === totalDebit && <CheckCircle2 size={16} strokeWidth={3} />}
                   Commit Fiscal Voucher
@@ -430,27 +430,27 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
    return (
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
-         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-500">
+         <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-500">
             <div className={`bg-${themeColor}-600 p-5 px-7 flex justify-between items-center`}>
                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-white/20 rounded-2xl flex items-center justify-center text-white">
+                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center text-white">
                      <Database size={18} strokeWidth={3} />
                   </div>
                   <span className="text-[11px] font-black uppercase text-white tracking-[0.2em] italic">{title}</span>
                </div>
-               <button onClick={onClose} className="bg-white/10 hover:bg-white/20 text-white rounded-xl p-2 transition-all"><X size={16} strokeWidth={3} /></button>
+               <button onClick={onClose} className="bg-white/10 hover:bg-white/20 text-white rounded-lg p-2 transition-all"><X size={16} strokeWidth={3} /></button>
             </div>
 
             <div className="p-7 space-y-5 bg-white relative">
-               <div className="flex items-center justify-between bg-[#F8FAFC] p-4 border border-slate-50 rounded-2xl">
+               <div className="flex items-center justify-between bg-[#F8FAFC] p-4 border border-slate-50 rounded-lg">
                   <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Voucher Timeline :</span>
                   <span className="font-mono font-black text-slate-800 text-[10px] tracking-widest">{date}</span>
                </div>
 
                {/* Account Discovery */}
                <div className="relative group">
-                  <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-xl border border-slate-50 group-focus-within:border-indigo-100 transition-all">
-                     <div className="p-2 bg-white rounded-2xl shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14} /></div>
+                  <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-lg border border-slate-50 group-focus-within:border-indigo-100 transition-all">
+                     <div className="p-2 bg-white rounded-lg shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14} /></div>
                      <div className="flex-1 grid grid-cols-12 gap-3" ref={dropdownRef}>
                         <div className="col-span-3 border-r border-slate-100 pr-3">
                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic text-center">Node ID</p>
@@ -482,7 +482,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                   </div>
 
                   {showDropdown && (
-                     <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 shadow-2xl z-[1300] max-h-48 overflow-y-auto rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                     <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 shadow-2xl z-[1300] max-h-48 overflow-y-auto rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="bg-slate-900 text-white p-2.5 px-5 text-[7px] font-black uppercase tracking-[0.4em] flex justify-between items-center sticky top-0 italic">
                            <span>Identity Cluster Feed</span>
                            <X size={10} className="cursor-pointer" onClick={() => setShowDropdown(false)} />
@@ -508,8 +508,8 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                {/* Member Selection - Dynamic Shard */}
                {selectedAccount?.is_subledger === 1 && (
                   <div className="relative animate-in slide-in-from-left duration-300">
-                     <div className="flex items-center gap-4 bg-indigo-50/30 p-4 rounded-xl border border-indigo-100 transition-all shadow-sm">
-                        <div className="p-2 bg-white rounded-2xl shadow-sm text-indigo-500"><Users size={14} /></div>
+                     <div className="flex items-center gap-4 bg-indigo-50/30 p-4 rounded-lg border border-indigo-100 transition-all shadow-sm">
+                        <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500"><Users size={14} /></div>
                         <div className="flex-1">
                            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-0.5 italic">Member Assignment (Subledger Required)</p>
                            <input
@@ -525,7 +525,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                      </div>
 
                      {showMemberDropdown && memberSearch.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-indigo-100 shadow-2xl z-[1300] max-h-40 overflow-y-auto rounded-xl overflow-hidden divide-y divide-indigo-50">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-indigo-100 shadow-2xl z-[1300] max-h-40 overflow-y-auto rounded-lg overflow-hidden divide-y divide-indigo-50">
                            {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase()) || m.member_code.toString().includes(memberSearch)).map(m => (
                               <div
                                  key={m.id}
@@ -553,7 +553,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         type="number"
                         value={amount}
                         onChange={e => setAmount(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-xl outline-none font-black text-indigo-600 focus:border-indigo-100 text-lg font-mono tracking-tighter shadow-sm"
+                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-lg outline-none font-black text-indigo-600 focus:border-indigo-100 text-lg font-mono tracking-tighter shadow-sm"
                         placeholder="0.00"
                      />
                   </div>
@@ -563,7 +563,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         type="text"
                         value={refNo}
                         onChange={e => setRefNo(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-xl outline-none font-black text-slate-700 focus:border-indigo-100 text-[10px] shadow-sm tracking-widest uppercase italic"
+                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-lg outline-none font-black text-slate-700 focus:border-indigo-100 text-[10px] shadow-sm tracking-widest uppercase italic"
                         placeholder="REF_ID"
                      />
                   </div>
@@ -574,7 +574,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                   <textarea
                      value={particulars}
                      onChange={e => setParticulars(e.target.value)}
-                     className="w-full bg-[#F8FAFC] border border-slate-50 px-5 py-3 rounded-xl outline-none uppercase font-bold text-slate-600 h-16 resize-none focus:border-indigo-100 shadow-sm italic text-[10px]"
+                     className="w-full bg-[#F8FAFC] border border-slate-50 px-5 py-3 rounded-lg outline-none uppercase font-bold text-slate-600 h-16 resize-none focus:border-indigo-100 shadow-sm italic text-[10px]"
                      placeholder="AUTOGEN_IF_EMPTY..."
                   />
                </div>
@@ -582,7 +582,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
             <div className="bg-[#F8FAFC] p-6 px-7 flex justify-end gap-3 border-t border-slate-50 shadow-inner">
                <button onClick={onClose} className="px-6 py-3 text-[9px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">Cancel</button>
-               <button onClick={handleSubmit} className={`bg-${themeColor}-600 text-white px-8 py-3 text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale`} disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}>
+               <button onClick={handleSubmit} className={`bg-${themeColor}-600 text-white px-8 py-3 text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale`} disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}>
                   {initialData ? 'Update Node' : 'Initialize Node'}
                </button>
             </div>

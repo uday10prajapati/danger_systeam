@@ -182,13 +182,13 @@ export default function ItemRate() {
   if (!company && !loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
-          <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6"><Database size={40} /></div>
+        <div className="bg-white rounded-lg border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-lg flex items-center justify-center mx-auto mb-6"><Database size={40} /></div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Registry Offline</h2>
           <p className="text-slate-500 font-medium mb-8 leading-relaxed">The price configuration sharding is unauthorized. Please initialize company context.</p>
           <div className="flex flex-col gap-3">
-            <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest leading-none">Setup Company Profile</button>
-            <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-2xl transition-all text-sm uppercase tracking-widest leading-none">Retry Auth</button>
+            <button onClick={() => navigate('/company')} className="w-full py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest leading-none">Setup Company Profile</button>
+            <button onClick={loadCompany} className="w-full py-4 bg-slate-50 text-slate-600 font-bold rounded-lg transition-all text-sm uppercase tracking-widest leading-none">Retry Auth</button>
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function ItemRate() {
             onClick={() => { setShowForm(false); setEditingRate(null); }}
             className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
           >
-            <div className="p-2 bg-white rounded-2xl border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
+            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all"><X size={16} /></div>
             Back to Tariff Registry
           </button>
           <ItemRateForm
@@ -232,7 +232,7 @@ export default function ItemRate() {
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('itemRate.title', 'Price Gradients')}</h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+            <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
               <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
               <input
                 type="text"
@@ -244,7 +244,7 @@ export default function ItemRate() {
             </div>
             <button
               onClick={() => { setEditingRate(null); setShowForm(true); }}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
             >
               <Plus size={20} />
               Initialize Tariff
@@ -254,49 +254,49 @@ export default function ItemRate() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Tariffs</p>
-              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Layers size={16} /></div>
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Layers size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">{rates.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Nodes</p>
-              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><CheckCircle size={16} /></div>
+              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><CheckCircle size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-emerald-600">{rateEntries.filter(r => Number(r.is_active) === 1).length}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-violet-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Inventory</p>
-              <div className="p-2 bg-violet-50 rounded-xl text-violet-600"><Box size={16} /></div>
+              <div className="p-2 bg-violet-50 rounded-lg text-violet-600"><Box size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">{new Set(rates.filter(r => r.is_active === 1).map(r => r.item_id)).size}</p>
           </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:border-amber-200 transition-all">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-amber-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Frequency</p>
-              <div className="p-2 bg-amber-50 rounded-xl text-amber-600"><Activity size={16} /></div>
+              <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><Activity size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-slate-800">NOD-7</p>
           </div>
         </div>
 
         {/* Registry Card */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
           <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Scale size={18} /></div>
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Scale size={18} /></div>
               <h2 className="text-lg font-bold text-slate-800">Tariff Manifest Registry</h2>
             </div>
-            <div className="flex items-center p-1 bg-slate-50 rounded-xl">
+            <div className="flex items-center p-1 bg-slate-50 rounded-lg">
               {['active', 'inactive', 'all'].map(status => (
                 <button
                   key={status}
                   onClick={() => handleStatusFilter(status)}
-                  className={`px-5 py-1.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${selectedStatus === status ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                  className={`px-5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${selectedStatus === status ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                     }`}
                 >
                   {status}
@@ -312,7 +312,7 @@ export default function ItemRate() {
             </div>
           ) : filteredRates.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-24 text-center">
-              <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-6"><TrendingUp size={40} /></div>
+              <div className="w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center text-slate-200 mb-6"><TrendingUp size={40} /></div>
               <h3 className="text-lg font-bold text-slate-400 mb-2">Zero datasets isolated</h3>
               <p className="text-slate-300 text-sm max-w-xs mx-auto mb-8 font-medium">Verify your search context or initialize a new tariff record.</p>
             </div>
@@ -334,7 +334,7 @@ export default function ItemRate() {
                     <tr key={rate.id} className="group hover:bg-blue-50/20 transition-all duration-300">
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                          <div className="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
                             {(rate.item_name || '?')[0]}
                           </div>
                           <div>
@@ -366,8 +366,8 @@ export default function ItemRate() {
                       </td>
                       <td className="px-10 py-6">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                          {!rate.is_pending_rate && <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-xl transition-all"><History size={16} /></button>}
-                          <button onClick={() => handleEdit(rate)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-xl transition-all"><Edit2 size={16} /></button>
+                          {!rate.is_pending_rate && <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-lg transition-all"><History size={16} /></button>}
+                          <button onClick={() => handleEdit(rate)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-lg transition-all"><Edit2 size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -382,10 +382,10 @@ export default function ItemRate() {
       {/* History Modal - Airy Style */}
       {showHistory && priceHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg ring-4 ring-indigo-500/5"><History size={20} /></div>
+                <div className="p-3 bg-indigo-600 text-white rounded-lg shadow-lg ring-4 ring-indigo-500/5"><History size={20} /></div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-800">Chronological Audit</h3>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Historical Ledger Gradients</p>
@@ -395,10 +395,10 @@ export default function ItemRate() {
             </div>
             <div className="p-8 max-h-[500px] overflow-y-auto space-y-4">
               {priceHistory.map((h, i) => (
-                <div key={i} className="group relative bg-[#F8FAFC] p-6 rounded-3xl border border-slate-100 hover:border-indigo-200 transition-all">
+                <div key={i} className="group relative bg-[#F8FAFC] p-6 rounded-lg border border-slate-100 hover:border-indigo-200 transition-all">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter italic">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                    <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-2xl ${h.status === 'Active' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100'}`}>{h.status}</span>
+                    <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg ${h.status === 'Active' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100'}`}>{h.status}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -414,7 +414,7 @@ export default function ItemRate() {
               ))}
             </div>
             <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button onClick={() => setShowHistory(false)} className="px-10 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-black transition-all uppercase text-[10px] tracking-[0.2em] shadow-xl">Close Audit</button>
+              <button onClick={() => setShowHistory(false)} className="px-10 py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-black transition-all uppercase text-[10px] tracking-[0.2em] shadow-xl">Close Audit</button>
             </div>
           </div>
         </div>

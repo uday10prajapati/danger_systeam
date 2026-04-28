@@ -137,7 +137,7 @@ export default function StockReport() {
                <div className="flex items-center gap-4">
                   <button
                      onClick={fetchStockReport}
-                     className="flex items-center gap-2 bg-blue-600 px-8 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                     className="flex items-center gap-2 bg-blue-600 px-8 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
                   >
                      <SyncIcon size={18} className={loading ? 'animate-spin' : ''} />
                      Re-Sync Inventory
@@ -156,7 +156,7 @@ export default function StockReport() {
                   <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
                      <div className="flex justify-between items-start mb-4">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{stat.label}</p>
-                        <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                        <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
                      </div>
                      <p className={`text-4xl font-bold text-slate-800 tracking-tighter ${i === 3 && stat.val > 0 ? 'text-rose-600 animate-pulse' : ''}`}>{stat.val}</p>
                   </div>
@@ -164,7 +164,7 @@ export default function StockReport() {
             </div>
 
             {/* Global Toolbar - Controller Shard */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+            <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
                <div className="flex-1 min-w-[350px]">
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Nomenclature Vector Search</span>
                   <div className="relative group">
@@ -174,7 +174,7 @@ export default function StockReport() {
                         placeholder="SEARCH BY ITEM CODE OR NOMENCLATURE..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                        className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
                      />
                   </div>
                </div>
@@ -186,7 +186,7 @@ export default function StockReport() {
                      <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="w-full pl-14 pr-10 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest appearance-none cursor-pointer"
+                        className="w-full pl-14 pr-10 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest appearance-none cursor-pointer"
                      >
                         <option value="ALL">ALL REPOSITORY ITEMS</option>
                         <option value="LOW">INSUFFICIENT STOCK ONLY</option>
@@ -198,16 +198,16 @@ export default function StockReport() {
 
                <button
                   onClick={fetchStockReport}
-                  className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]"
+                  className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]"
                >Execute Audit</button>
             </div>
 
             {/* Procurement Alert Shard */}
             {lowStockData.length > 0 && (
-               <div className="bg-rose-600 p-6 rounded-[2.5rem] mb-10 flex items-center justify-between text-white shadow-xl relative overflow-hidden group">
+               <div className="bg-rose-600 p-6 rounded-lg mb-10 flex items-center justify-between text-white shadow-xl relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl opacity-50 group-hover:scale-110 transition-transform duration-1000"></div>
                   <div className="flex items-center gap-6 relative z-10">
-                     <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center animate-pulse"><AlertTriangle size={28} /></div>
+                     <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center animate-pulse"><AlertTriangle size={28} /></div>
                      <div>
                         <h3 className="text-xl font-bold tracking-tight italic uppercase">Critical Procurement Alert</h3>
                         <p className="text-[10px] font-bold text-rose-100 uppercase tracking-widest italic opacity-80">
@@ -217,13 +217,13 @@ export default function StockReport() {
                   </div>
                   <button
                      onClick={() => setFilterStatus('LOW')}
-                     className="px-8 py-3 bg-white text-rose-600 rounded-xl font-bold uppercase text-[10px] tracking-widest shadow-lg hover:bg-slate-50 transition-all active:scale-95 relative z-10"
+                     className="px-8 py-3 bg-white text-rose-600 rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-lg hover:bg-slate-50 transition-all active:scale-95 relative z-10"
                   >Isolate Vulnerabilities</button>
                </div>
             )}
 
             {/* Global Stock Registry Manifest */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
+            <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
 
                <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-50">
                   <div className="flex items-center gap-3">
@@ -272,7 +272,7 @@ export default function StockReport() {
                                     </div>
                                  </td>
                                  <td className="px-8 py-6">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-2xl">{item.category || 'N/A'}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1 rounded-lg">{item.category || 'N/A'}</span>
                                  </td>
                                  <td className="px-8 py-6 text-center font-bold text-slate-500 font-mono text-sm leading-none">+{formatNumber(item.total_purchased)}</td>
                                  <td className="px-8 py-6 text-center font-bold text-slate-400 font-mono text-sm leading-none italic">-{formatNumber(item.total_sold)}</td>
@@ -281,7 +281,7 @@ export default function StockReport() {
                                  </td>
                                  <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">{formatNumber(item.reorder_level)}</td>
                                  <td className="px-8 py-6 text-center">
-                                    <div className={`px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest inline-flex items-center gap-2 border ${item.stock_status === 'LOW' ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                    <div className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest inline-flex items-center gap-2 border ${item.stock_status === 'LOW' ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                        }`}>
                                        <div className={`w-1.5 h-1.5 rounded-full ${item.stock_status === 'LOW' ? 'bg-rose-600' : 'bg-emerald-600'}`}></div>
                                        {item.stock_status === 'LOW' ? 'CRITICAL' : 'OPTIMAL'}
@@ -293,7 +293,7 @@ export default function StockReport() {
                                           setSelectedItem(item);
                                           fetchItemHistory(item.id);
                                        }}
-                                       className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm mx-auto active:scale-90"
+                                       className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm mx-auto active:scale-90"
                                     >
                                        <History size={18} />
                                     </button>
@@ -308,7 +308,7 @@ export default function StockReport() {
                {/* Dashboard Insight Footer */}
                <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
                   <div className="flex items-center gap-6">
-                     <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
+                     <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
                      <span className="flex items-center gap-2"><Layout size={12} /> Nodes Scanning: {stockData.length}</span>
                   </div>
                   <div className="flex items-center gap-3 font-mono">
@@ -323,13 +323,13 @@ export default function StockReport() {
          {/* History Audit Modal - Premium Glassmorphic */}
          {showHistory && selectedItem && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 z-[1000] animate-in fade-in duration-300">
-               <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
+               <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
 
                   {/* Modal Header Shard */}
                   <div className="bg-slate-900 p-10 flex justify-between items-center relative overflow-hidden">
                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32"></div>
                      <div className="relative z-10 flex items-center gap-6">
-                        <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-white"><History size={32} /></div>
+                        <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white"><History size={32} /></div>
                         <div>
                            <h2 className="text-2xl font-bold text-white tracking-tight italic uppercase">Nomenclature Audit Log</h2>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">
@@ -339,7 +339,7 @@ export default function StockReport() {
                      </div>
                      <button
                         onClick={() => setShowHistory(false)}
-                        className="relative z-10 bg-white/10 hover:bg-white/20 text-white p-3 rounded-2xl transition-all active:scale-95"
+                        className="relative z-10 bg-white/10 hover:bg-white/20 text-white p-3 rounded-lg transition-all active:scale-95"
                      >
                         <X size={20} />
                      </button>
@@ -368,7 +368,7 @@ export default function StockReport() {
                                        {new Date(h.transaction_date).toLocaleDateString('en-GB')}
                                     </td>
                                     <td className="px-6 py-4">
-                                       <span className={`px-3 py-1 rounded-2xl font-bold text-[9px] uppercase tracking-widest border ${h.transaction_type.includes('IN') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-700 border-slate-100'
+                                       <span className={`px-3 py-1 rounded-lg font-bold text-[9px] uppercase tracking-widest border ${h.transaction_type.includes('IN') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-700 border-slate-100'
                                           }`}>
                                           {h.transaction_type}
                                        </span>
@@ -394,7 +394,7 @@ export default function StockReport() {
                      </div>
                      <button
                         onClick={() => setShowHistory(false)}
-                        className="bg-slate-900 text-white px-10 py-3 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95"
+                        className="bg-slate-900 text-white px-10 py-3 rounded-lg shadow-xl hover:bg-black transition-all active:scale-95"
                      >Close Audit Window</button>
                   </div>
                </div>

@@ -226,7 +226,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center z-[1000] p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col border border-slate-300 overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl flex flex-col border border-slate-300 overflow-hidden animate-in zoom-in-95 duration-300">
 
         {/* Header - Fixed to 9vh */}
         <div className={`h-[9vh] bg-slate-700 text-white px-6 flex justify-between items-center border-b border-white/10 shrink-0`}>
@@ -410,7 +410,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                           className="w-full px-4 py-1.5 text-xs outline-none bg-transparent font-bold disabled:cursor-not-allowed"
                         />
                         {showMemberDropdown && activeRowId === row.id && row.description.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-2xl z-[100] max-h-48 overflow-y-auto rounded-2xl divide-y divide-slate-50">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-2xl z-[100] max-h-48 overflow-y-auto rounded-lg divide-y divide-slate-50">
                             {selectedAccount?.is_subledger ? (
                               members.filter(m => m.member_name.toLowerCase().includes(row.description.toLowerCase()) || m.member_code.toString().includes(row.description)).map(m => (
                                 <div

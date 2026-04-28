@@ -138,7 +138,7 @@ export default function MemberMaster() {
             onClick={() => { setShowForm(false); setEditingMember(null); }}
             className="group mb-8 flex items-center gap-3 text-slate-400 hover:text-slate-800 font-black text-[10px] uppercase tracking-widest transition-all"
           >
-            <div className="p-2 bg-white rounded-xl border border-slate-100 group-hover:border-slate-800 transition-all shadow-sm">
+            <div className="p-2 bg-white rounded-lg border border-slate-100 group-hover:border-slate-800 transition-all shadow-sm">
               <X size={14} />
             </div>
             Exit Registry Form
@@ -168,7 +168,7 @@ export default function MemberMaster() {
             <h1 className="text-4xl font-black text-slate-800 tracking-tighter leading-none">Sabhasad Master</h1>
           </div>
           <div className="flex items-center gap-5">
-            <div className="hidden sm:flex items-center gap-4 bg-white/60 backdrop-blur-md rounded-2xl px-6 py-4 border border-white shadow-sm focus-within:border-blue-500 focus-within:bg-white transition-all group">
+            <div className="hidden sm:flex items-center gap-4 bg-white/60 backdrop-blur-md rounded-lg px-6 py-4 border border-white shadow-sm focus-within:border-blue-500 focus-within:bg-white transition-all group">
               <Search size={18} className="text-slate-400 group-focus-within:text-blue-600" />
               <input
                 type="text"
@@ -180,7 +180,7 @@ export default function MemberMaster() {
             </div>
             <button
               onClick={handleCreateMember}
-              className="flex items-center gap-3 bg-blue-600 px-8 py-5 rounded-[1.5rem] text-xs font-black text-white hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 uppercase tracking-widest"
+              className="flex items-center gap-3 bg-blue-600 px-8 py-5 rounded-lg text-xs font-black text-white hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 uppercase tracking-widest"
             >
               <Plus size={20} />
               Register Node
@@ -190,7 +190,7 @@ export default function MemberMaster() {
 
         {/* Status Indicators */}
         {message && (
-          <div className={`mb-8 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          <div className={`mb-8 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <span className="text-sm font-black italic tracking-tight">{message.text}</span>
@@ -199,7 +199,7 @@ export default function MemberMaster() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-sm hover:shadow-xl transition-all group">
+          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-sm hover:shadow-xl transition-all group">
             <div className="flex justify-between items-start mb-6">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Organizational Root</p>
               <Building2 size={20} className="text-blue-500 group-hover:scale-110 transition-transform" />
@@ -207,7 +207,7 @@ export default function MemberMaster() {
             <p className="text-xl font-black text-slate-800 truncate leading-tight uppercase">{company.company_name}</p>
           </div>
 
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-sm hover:shadow-xl transition-all group">
+          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-sm hover:shadow-xl transition-all group">
             <div className="flex justify-between items-start mb-6">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Active Registry Nodes</p>
               <UserCheck size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
@@ -215,7 +215,7 @@ export default function MemberMaster() {
             <p className="text-4xl font-black text-slate-800 leading-none">{members.filter(m => m.is_active).length}</p>
           </div>
 
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-sm hover:shadow-xl transition-all group">
+          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-sm hover:shadow-xl transition-all group">
             <div className="flex justify-between items-start mb-6">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Archived Records</p>
               <UserMinus size={20} className="text-rose-400 group-hover:scale-110 transition-transform" />
@@ -223,7 +223,7 @@ export default function MemberMaster() {
             <p className="text-4xl font-black text-slate-600 leading-none">{members.filter(m => !m.is_active).length}</p>
           </div>
 
-          <div className="bg-white p-8 rounded-[2.5rem] border border-blue-50 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+          <div className="bg-white p-8 rounded-lg border border-blue-50 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 text-blue-50/50 rotate-12 scale-150"><Shield size={100} /></div>
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-6">
@@ -236,7 +236,7 @@ export default function MemberMaster() {
         </div>
 
         {/* Global Registry Table */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-[3rem] border border-white shadow-2xl overflow-hidden mb-20 animate-in slide-in-from-bottom-10 duration-1000">
+        <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden mb-20 animate-in slide-in-from-bottom-10 duration-1000">
           <div className="px-10 py-8 border-b border-white/50 flex flex-col md:flex-row items-center justify-between gap-6 bg-white/40">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-50 rounded-[1.25rem] flex items-center justify-center text-blue-600 border border-blue-100">
@@ -247,12 +247,12 @@ export default function MemberMaster() {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Real-time Node Status Monitoring</p>
               </div>
             </div>
-            <div className="flex items-center p-1.5 bg-slate-100/50 rounded-2xl gap-1">
+            <div className="flex items-center p-1.5 bg-slate-100/50 rounded-lg gap-1">
               {['all', 'active', 'inactive'].map((filt) => (
                 <button
                   key={filt}
                   onClick={() => setStatusFilter(filt)}
-                  className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === filt ? 'bg-white text-slate-900 shadow-xl scale-105' : 'text-slate-400 hover:text-slate-600'
+                  className={`px-6 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === filt ? 'bg-white text-slate-900 shadow-xl scale-105' : 'text-slate-400 hover:text-slate-600'
                     }`}
                 >
                   {filt}
@@ -268,11 +268,11 @@ export default function MemberMaster() {
             </div>
           ) : filteredMembers.length === 0 ? (
             <div className="p-32 text-center">
-              <div className="w-24 h-24 bg-slate-50 flex items-center justify-center rounded-[3rem] mx-auto mb-8 border border-slate-100 text-slate-200 scale-110">
+              <div className="w-24 h-24 bg-slate-50 flex items-center justify-center rounded-lg mx-auto mb-8 border border-slate-100 text-slate-200 scale-110">
                 <UserMinus size={48} />
               </div>
               <p className="text-slate-400 font-black uppercase tracking-widest text-xs mb-10 italic italic">No matching identity discovered</p>
-              <button onClick={handleCreateMember} className="px-12 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95">
+              <button onClick={handleCreateMember} className="px-12 py-5 bg-blue-600 text-white rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95">
                 Register Initial Point
               </button>
             </div>
@@ -293,13 +293,13 @@ export default function MemberMaster() {
                     <tr key={member.id} className="group hover:bg-white/60 transition-all duration-500">
                       <td className="px-10 py-8">
                         <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-800 font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-2xl group-hover:shadow-blue-100 group-hover:scale-110">
+                          <div className="w-14 h-14 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-800 font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-2xl group-hover:shadow-blue-100 group-hover:scale-110">
                             {member.member_name ? member.member_name[0] : '#'}
                           </div>
                           <div className="space-y-1">
                             <p className="text-base font-black text-slate-800 group-hover:text-blue-600 transition-colors uppercase tracking-tight leading-none">{member.member_name}</p>
                             <div className="flex items-center gap-3">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-2xl text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 <Hash size={10} /> {member.member_code}
                               </span>
                               <span className="text-[11px] font-bold text-slate-400 italic">{member.eng_name || '-'}</span>
@@ -322,7 +322,7 @@ export default function MemberMaster() {
                       <td className="px-10 py-8">
                         <div className="space-y-2">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-50 rounded-xl text-amber-600 border border-amber-100 shadow-sm">
+                            <div className="p-2 bg-amber-50 rounded-lg text-amber-600 border border-amber-100 shadow-sm">
                               <Building2 size={14} />
                             </div>
                             <div>
@@ -333,7 +333,7 @@ export default function MemberMaster() {
                         </div>
                       </td>
                       <td className="px-10 py-8">
-                        <div className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border shadow-sm ${member.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-400 border-rose-100'
+                        <div className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all border shadow-sm ${member.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-400 border-rose-100'
                           }`}>
                           <div className={`w-2 h-2 rounded-full ${member.is_active ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-500/20' : 'bg-rose-400'}`} />
                           {member.is_active ? 'Online' : 'Archived'}
@@ -341,13 +341,13 @@ export default function MemberMaster() {
                       </td>
                       <td className="px-10 py-8">
                         <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-10 group-hover:translate-x-0 duration-500">
-                          <button onClick={() => handleEditMember(member)} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 rounded-2xl transition-all active:scale-90">
+                          <button onClick={() => handleEditMember(member)} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 rounded-lg transition-all active:scale-90">
                             <Edit3 size={18} />
                           </button>
-                          <button onClick={() => handleStatusToggle(member)} className={`p-3.5 bg-white border border-slate-100 rounded-2xl transition-all active:scale-90 shadow-sm ${member.is_active ? 'text-slate-400 hover:text-rose-500 hover:border-rose-200' : 'text-slate-400 hover:text-emerald-500 hover:border-emerald-200'}`}>
+                          <button onClick={() => handleStatusToggle(member)} className={`p-3.5 bg-white border border-slate-100 rounded-lg transition-all active:scale-90 shadow-sm ${member.is_active ? 'text-slate-400 hover:text-rose-500 hover:border-rose-200' : 'text-slate-400 hover:text-emerald-500 hover:border-emerald-200'}`}>
                             <Power size={18} />
                           </button>
-                          <button onClick={() => handleDelete(member.id)} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-200 rounded-2xl transition-all active:scale-90">
+                          <button onClick={() => handleDelete(member.id)} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-200 rounded-lg transition-all active:scale-90">
                             <Trash2 size={18} />
                           </button>
                         </div>

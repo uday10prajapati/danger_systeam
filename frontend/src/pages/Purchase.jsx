@@ -160,7 +160,7 @@ export default function Purchase() {
                </div>
                <button
                   onClick={() => setShowForm(true)}
-                  className="flex items-center gap-2 bg-indigo-600 px-8 py-3.5 rounded-2xl text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
+                  className="flex items-center gap-2 bg-indigo-600 px-8 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
                >
                   <Plus size={20} />
                   {t('purchase.createNewPurchase', 'Initialize Inward')}
@@ -178,7 +178,7 @@ export default function Purchase() {
                   <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
                      <div className="flex justify-between items-start mb-4">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{stat.label}</p>
-                        <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                        <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
                      </div>
                      <p className="text-4xl font-bold text-slate-800 tracking-tighter">{stat.val}</p>
                   </div>
@@ -186,7 +186,7 @@ export default function Purchase() {
             </div>
 
             {/* Command Deck Toolbar */}
-            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+            <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
                <div className="flex-1 min-w-[350px]">
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Manifest Isolation Search</span>
                   <div className="relative group">
@@ -196,22 +196,22 @@ export default function Purchase() {
                         placeholder={t('purchase.searchByInvoiceOrSupplier', 'ISOLATE MANIFEST BY INVOICE, SUPPLIER OR ACCOUNT CODE...')}
                         value={searchTerm}
                         onChange={handleSearch}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                        className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
                      />
                   </div>
                </div>
 
-               <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm h-full">
-                  <input type="date" value={dateRange.startDate} onChange={(e) => handleDateChange('startDate', e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+               <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
+                  <input type="date" value={dateRange.startDate} onChange={(e) => handleDateChange('startDate', e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
                   <ArrowRight size={14} className="text-slate-200" />
-                  <input type="date" value={dateRange.endDate} onChange={(e) => handleDateChange('endDate', e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+                  <input type="date" value={dateRange.endDate} onChange={(e) => handleDateChange('endDate', e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
                </div>
 
-               <button onClick={() => fetchPurchases(company.id)} className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Sync Registry</button>
+               <button onClick={() => fetchPurchases(company.id)} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Sync Registry</button>
             </div>
 
             {/* Procurement Registry Manifest */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
+            <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
 
                <div className="px-8 py-5 border-b border-slate-50 flex justify-between items-center">
                   <div className="flex items-center gap-3">
@@ -259,7 +259,7 @@ export default function Purchase() {
                                     <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">ACCOUNT: {purchase.account_code || 'UNTAGGED'}</p>
                                  </td>
                                  <td className="px-8 py-6 text-center">
-                                    <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-bold text-slate-400 uppercase tracking-widest">{purchase.item_count} NODES</span>
+                                    <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest">{purchase.item_count} NODES</span>
                                  </td>
                                  <td className="px-8 py-6 text-right font-bold text-slate-800 italic text-base">₹{parseFloat(purchase.total_amount).toLocaleString('en-IN')}</td>
                                  <td className="px-8 py-6 text-center">
@@ -269,7 +269,7 @@ export default function Purchase() {
                                     </div>
                                  </td>
                                  <td className="px-8 py-6 text-center text-xs">
-                                    <button onClick={() => viewPurchaseDetails(purchase.id)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold uppercase tracking-widest text-[9px] hover:bg-black transition-all active:scale-90 shadow-md flex items-center gap-2 mx-auto">
+                                    <button onClick={() => viewPurchaseDetails(purchase.id)} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold uppercase tracking-widest text-[9px] hover:bg-black transition-all active:scale-90 shadow-md flex items-center gap-2 mx-auto">
                                        Details <ChevronRight size={14} />
                                     </button>
                                  </td>
@@ -283,7 +283,7 @@ export default function Purchase() {
                {/* Dashboard Insight Footer */}
                <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
                   <div className="flex items-center gap-6">
-                     <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
+                     <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
                      <span className="flex items-center gap-2"><Layout size={12} /> Manifest Density: {purchases.length}</span>
                   </div>
                   <div className="flex items-center gap-3 font-mono">
@@ -298,13 +298,13 @@ export default function Purchase() {
          {/* Audit Detail Modal - Premium Glassmorphic */}
          {showDetails && selectedPurchase && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 z-[1000] animate-in fade-in duration-300">
-               <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
+               <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
 
                   {/* Modal Header Shard */}
                   <div className="bg-slate-900 p-10 flex justify-between items-center relative overflow-hidden">
                      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full -mr-32 -mt-32"></div>
                      <div className="relative z-10 flex items-center gap-6">
-                        <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-white"><Database size={32} /></div>
+                        <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white"><Database size={32} /></div>
                         <div>
                            <h2 className="text-2xl font-bold text-white tracking-tight italic uppercase">Nomenclature Inward Log</h2>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">
@@ -313,13 +313,13 @@ export default function Purchase() {
                         </div>
                      </div>
                      <div className="flex gap-3 relative z-10">
-                        <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-2xl transition-all active:scale-95"><Printer size={20} /></button>
-                        <button onClick={() => setShowDetails(false)} className="bg-white/10 hover:bg-red-500/20 text-white p-3 rounded-2xl transition-all active:scale-95"><X size={20} /></button>
+                        <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-lg transition-all active:scale-95"><Printer size={20} /></button>
+                        <button onClick={() => setShowDetails(false)} className="bg-white/10 hover:bg-red-500/20 text-white p-3 rounded-lg transition-all active:scale-95"><X size={20} /></button>
                      </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-10 scroller-airy">
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10 bg-[#F8FAFC]/50 p-8 rounded-[2rem] border border-slate-100">
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10 bg-[#F8FAFC]/50 p-8 rounded-lg border border-slate-100">
                         <div>
                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Timeline Node</p>
                            <p className="text-sm font-bold text-slate-800 italic uppercase">{new Date(selectedPurchase.invoice_date).toLocaleDateString('en-GB')}</p>
@@ -342,7 +342,7 @@ export default function Purchase() {
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-4">
                            <div className="w-8 h-0.5 bg-slate-200"></div> Nomenclature Payload
                         </h4>
-                        <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                        <div className="bg-white rounded-lg border border-slate-100 overflow-hidden shadow-sm">
                            <table className="w-full text-left">
                               <thead className="bg-[#F8FAFC]">
                                  <tr className="uppercase text-[9px] font-bold text-slate-400 tracking-widest italic border-b border-slate-100">
@@ -374,7 +374,7 @@ export default function Purchase() {
                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Base Value</span>
                            <span className="text-sm font-black italic text-slate-500">₹{(parseFloat(selectedPurchase.total_amount) * 0.82).toFixed(2)}</span>
                         </div>
-                        <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden w-full md:w-96 border-4 border-white">
+                        <div className="bg-slate-900 p-10 rounded-lg text-white shadow-2xl relative overflow-hidden w-full md:w-96 border-4 border-white">
                            <div className="absolute inset-0 bg-linear-to-r from-indigo-600/10 to-transparent"></div>
                            <div className="flex justify-between items-end relative z-10">
                               <div>

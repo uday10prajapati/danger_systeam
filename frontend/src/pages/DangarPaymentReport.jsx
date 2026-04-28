@@ -249,19 +249,19 @@ const DangarPaymentReport = () => {
 
             <button
               onClick={openExportModal}
-              className="flex items-center gap-2 bg-amber-500 text-white px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-100"
+              className="flex items-center gap-2 bg-amber-500 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-100"
             >
               <FileText size={16} /> TXT
             </button>
             <button
               onClick={exportExcel}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+              className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
             >
               <Download size={16} /> Excel
             </button>
             <button
               onClick={exportPDF}
-              className="flex items-center gap-2 bg-rose-600 text-white px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-100"
+              className="flex items-center gap-2 bg-rose-600 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-100"
             >
               <FileText size={16} /> PDF
             </button>
@@ -269,7 +269,7 @@ const DangarPaymentReport = () => {
         </div>
 
         {/* Dynamic Filter Consolidation */}
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-xl mb-10">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-lg border border-white shadow-xl mb-10">
           <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-6 items-end">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Start Period</label>
@@ -277,7 +277,7 @@ const DangarPaymentReport = () => {
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                 <input
                   type="date"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700"
                   value={filters.startDate}
                   onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                 />
@@ -289,7 +289,7 @@ const DangarPaymentReport = () => {
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                 <input
                   type="date"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700"
                   value={filters.endDate}
                   onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
                 />
@@ -300,7 +300,7 @@ const DangarPaymentReport = () => {
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                 <select
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
                   value={filters.memberId}
                   onChange={(e) => setFilters({ ...filters, memberId: e.target.value })}
                 >
@@ -314,7 +314,7 @@ const DangarPaymentReport = () => {
               <div className="relative">
                 <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                 <select
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
                   value={filters.itemId}
                   onChange={(e) => setFilters({ ...filters, itemId: e.target.value })}
                 >
@@ -326,7 +326,7 @@ const DangarPaymentReport = () => {
             <button
               onClick={fetchReport}
               disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-lg font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
             >
               {loading ? <Clock className="animate-spin" size={16} /> : <Filter size={16} />}
               Generate Report
@@ -336,7 +336,7 @@ const DangarPaymentReport = () => {
 
         {/* Summary Cards */}
         {error && (
-          <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest">
+          <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-6 py-4 rounded-lg text-xs font-black uppercase tracking-widest">
             {error}
           </div>
         )}
@@ -347,8 +347,8 @@ const DangarPaymentReport = () => {
             { label: 'Kapat (Deduction)', val: `₹${summary.totalDeduction.toFixed(2)}`, icon: Filter, color: 'rose' },
             { label: 'Final Payable', val: `₹${summary.totalFinal.toFixed(2)}`, icon: CheckCircle, color: 'emerald' },
           ].map((shard, i) => (
-            <div key={i} className="bg-white p-5 rounded-[2rem] border border-white shadow-sm flex items-center gap-4 hover:shadow-md transition-all group">
-              <div className={`p-3 bg-${shard.color}-50 text-${shard.color}-600 rounded-2xl group-hover:scale-110 transition-transform shrink-0`}>
+            <div key={i} className="bg-white p-5 rounded-lg border border-white shadow-sm flex items-center gap-4 hover:shadow-md transition-all group">
+              <div className={`p-3 bg-${shard.color}-50 text-${shard.color}-600 rounded-lg group-hover:scale-110 transition-transform shrink-0`}>
                 <shard.icon size={20} />
               </div>
               <div>
@@ -360,7 +360,7 @@ const DangarPaymentReport = () => {
         </div>
 
         {/* Manifest Table */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-[3rem] border border-white shadow-2xl overflow-hidden min-h-[400px]">
+        <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden min-h-[400px]">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -466,7 +466,7 @@ const DangarPaymentReport = () => {
       {/* "" Export TXT Modal """"""""""""""""""""""""""""""""""""""""""" */}
       {txtModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-6">
               <div className="flex items-center justify-between">
@@ -474,7 +474,7 @@ const DangarPaymentReport = () => {
                   <p className="text-[9px] font-black text-amber-100 uppercase tracking-[0.25em] mb-1">Bank Batch File</p>
                   <h2 className="text-xl font-black text-white tracking-tight">Export TXT "" Configure Narration</h2>
                 </div>
-                <button onClick={() => setTxtModal(false)} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+                <button onClick={() => setTxtModal(false)} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                   <X size={20} />
                 </button>
               </div>
@@ -491,7 +491,7 @@ const DangarPaymentReport = () => {
                   value={narration}
                   onChange={e => setNarration(e.target.value)}
                   placeholder="e.g. PMS MILK PAYMENT MARCH -2026"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm font-mono"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm font-mono"
                 />
                 <p className="text-[9px] text-slate-400 font-bold">{narration.length}/67 chars (max) "" will be space-padded to fill 67</p>
               </div>
@@ -499,7 +499,7 @@ const DangarPaymentReport = () => {
               {/* Live Preview */}
               <div className="space-y-2">
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Line Preview (102 chars)</p>
-                <div className="bg-slate-900 rounded-2xl p-4 overflow-x-auto">
+                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto">
                   <pre className="text-[10px] text-amber-300 font-mono whitespace-pre leading-relaxed">
                     {/* Debit header: 51 + 00000 + company account */}
                     {`5100000${companyAccount}${'0'.repeat(16)}`.padEnd(102, ' ').slice(0, 102)}{`\n`}
@@ -514,16 +514,16 @@ const DangarPaymentReport = () => {
 
               {/* Summary */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-50 rounded-2xl p-4 text-center">
+                <div className="bg-slate-50 rounded-lg p-4 text-center">
                   <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Total Lines</p>
                   <p className="text-lg font-black text-slate-800">{data.length + 1}</p>
                   <p className="text-[9px] text-slate-400">(1 header + {data.length} members)</p>
                 </div>
-                <div className="bg-slate-50 rounded-2xl p-4 text-center">
+                <div className="bg-slate-50 rounded-lg p-4 text-center">
                   <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Chars/Line</p>
                   <p className="text-lg font-black text-slate-800">102</p>
                 </div>
-                <div className="bg-amber-50 rounded-2xl p-4 text-center">
+                <div className="bg-amber-50 rounded-lg p-4 text-center">
                   <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest">Total Payable</p>
                   <p className="text-lg font-black text-amber-700">
                     ₹{data.reduce((s, r) => s + parseFloat(r.final_amount || 0), 0).toFixed(2)}
@@ -536,14 +536,14 @@ const DangarPaymentReport = () => {
             <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
               <button
                 onClick={() => setTxtModal(false)}
-                className="px-6 py-3 text-sm font-black text-slate-600 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all"
+                className="px-6 py-3 text-sm font-black text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={doExportTxt}
                 disabled={!narration.trim()}
-                className="flex items-center gap-2 px-8 py-3 text-sm font-black text-white bg-amber-500 hover:bg-amber-600 rounded-2xl transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-100"
+                className="flex items-center gap-2 px-8 py-3 text-sm font-black text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-100"
               >
                 <Download size={16} /> Generate &amp; Download TXT
               </button>

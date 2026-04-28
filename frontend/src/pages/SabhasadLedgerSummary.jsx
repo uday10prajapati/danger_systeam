@@ -188,13 +188,13 @@ export default function SabhasadLedgerSummary() {
           <div className="flex items-center gap-4">
             <button
               onClick={handlePrint}
-              className="px-8 py-3.5 bg-white border border-slate-100 text-slate-600 rounded-3xl hover:text-indigo-600 hover:border-indigo-100 transition-all font-black uppercase text-[10px] tracking-widest shadow-sm active:scale-95 flex items-center gap-2"
+              className="px-8 py-3.5 bg-white border border-slate-100 text-slate-600 rounded-lg hover:text-indigo-600 hover:border-indigo-100 transition-all font-black uppercase text-[10px] tracking-widest shadow-sm active:scale-95 flex items-center gap-2"
             >
               <Printer size={16} /> Audit Print
             </button>
             <button
               onClick={fetchReportData}
-              className="px-10 py-3.5 bg-indigo-600 text-white rounded-3xl hover:bg-indigo-700 transition-all font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 active:scale-95 flex items-center gap-2"
+              className="px-10 py-3.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 active:scale-95 flex items-center gap-2"
             >
               <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} /> Sync Report
             </button>
@@ -202,18 +202,18 @@ export default function SabhasadLedgerSummary() {
         </div>
 
         {/* Intelligence Control Shard - Modern Dual Field Search */}
-        <div className="bg-white p-8 md:p-10 rounded-[3.5rem] border border-slate-50 shadow-sm mb-10 print:hidden relative">
+        <div className="bg-white p-8 md:p-10 rounded-lg border border-slate-50 shadow-sm mb-10 print:hidden relative">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
 
             {/* Temporal Selection - col-span-3 */}
             <div className="md:col-span-3 grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">Start Epoch</span>
-                <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="w-full px-4 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-mono text-[10px] font-black text-slate-700" />
+                <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="w-full px-4 py-3.5 bg-slate-50 border-none rounded-lg outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-mono text-[10px] font-black text-slate-700" />
               </div>
               <div className="space-y-2">
                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">End Epoch</span>
-                <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="w-full px-4 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-mono text-[10px] font-black text-slate-700" />
+                <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="w-full px-4 py-3.5 bg-slate-50 border-none rounded-lg outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-mono text-[10px] font-black text-slate-700" />
               </div>
             </div>
 
@@ -231,12 +231,12 @@ export default function SabhasadLedgerSummary() {
                   onChange={(e) => { setAccCode(e.target.value); setShowAccDrop(true); }}
                   onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }}
                   placeholder="ACC_ID"
-                  className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-black text-[10px] uppercase italic text-slate-700"
+                  className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-none rounded-lg outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-black text-[10px] uppercase italic text-slate-700"
                 />
               </div>
 
               {showAccDrop && (
-                <div className="absolute top-[85px] left-0 right-0 bg-white/95 backdrop-blur-xl border border-indigo-50 shadow-2xl rounded-3xl overflow-hidden z-[100] animate-in zoom-in-95">
+                <div className="absolute top-[85px] left-0 right-0 bg-white/95 backdrop-blur-xl border border-indigo-50 shadow-2xl rounded-lg overflow-hidden z-[100] animate-in zoom-in-95">
                   <div className="p-3 bg-slate-50/50 flex justify-between items-center border-b border-slate-50"><span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Account Registry Match</span><X size={12} className="cursor-pointer text-slate-300 hover:text-rose-500" onClick={() => setShowAccDrop(false)} /></div>
                   <div className="max-h-48 overflow-y-auto">
                     <div onClick={() => handleSelectAcc(null)} className="px-6 py-3.5 hover:bg-slate-50 cursor-pointer font-black text-[10px] text-indigo-600 italic uppercase">-- ALL_REGISTRY_ACCOUNTS --</div>
@@ -263,7 +263,7 @@ export default function SabhasadLedgerSummary() {
                     onChange={(e) => { setMemCode(e.target.value); setShowMemDrop(true); }}
                     onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }}
                     placeholder="ID"
-                    className="w-full pl-10 pr-2 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-black text-[10px] text-slate-700"
+                    className="w-full pl-10 pr-2 py-3.5 bg-slate-50 border-none rounded-lg outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-black text-[10px] text-slate-700"
                   />
                 </div>
                 <div className="flex-1 relative group">
@@ -274,13 +274,13 @@ export default function SabhasadLedgerSummary() {
                     onChange={(e) => { setMemName(e.target.value); setShowMemDrop(true); }}
                     onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }}
                     placeholder="SEARCH_IDENTITY..."
-                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-black text-[10px] uppercase text-slate-700"
+                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-none rounded-lg outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-black text-[10px] uppercase text-slate-700"
                   />
                 </div>
               </div>
 
               {showMemDrop && (
-                <div className="absolute top-[85px] left-0 right-0 bg-white/95 backdrop-blur-xl border border-indigo-50 shadow-2xl rounded-3xl overflow-hidden z-[100] animate-in zoom-in-95">
+                <div className="absolute top-[85px] left-0 right-0 bg-white/95 backdrop-blur-xl border border-indigo-50 shadow-2xl rounded-lg overflow-hidden z-[100] animate-in zoom-in-95">
                   <div className="p-3 bg-slate-50/50 flex justify-between items-center border-b border-slate-50"><span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Sabhasad Registry Match</span><X size={12} className="cursor-pointer text-slate-300 hover:text-rose-500" onClick={() => setShowMemDrop(false)} /></div>
                   <div className="max-h-56 overflow-y-auto">
                     <div onClick={() => handleSelectMem(null)} className="px-6 py-3.5 hover:bg-slate-50 cursor-pointer font-black text-[10px] text-indigo-600 italic uppercase">-- ALL_REGISTERED_MEMBERS --</div>
@@ -298,7 +298,7 @@ export default function SabhasadLedgerSummary() {
             {/* Suppress Zero - col-span-2 */}
             <div className="md:col-span-2 flex items-center h-[52px] xl:pl-4">
               <label className="flex items-center gap-3 cursor-pointer group">
-                <div className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all shadow-sm ${hideZeroBalance ? 'bg-indigo-600 border-indigo-600 ring-4 ring-indigo-50' : 'bg-white border-slate-100 hover:border-indigo-100'}`}>
+                <div className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all shadow-sm ${hideZeroBalance ? 'bg-indigo-600 border-indigo-600 ring-4 ring-indigo-50' : 'bg-white border-slate-100 hover:border-indigo-100'}`}>
                   <input type="checkbox" checked={hideZeroBalance} onChange={(e) => setHideZeroBalance(e.target.checked)} className="hidden" />
                   {hideZeroBalance && <Activity size={14} className="text-white" strokeWidth={3} />}
                 </div>
@@ -319,10 +319,10 @@ export default function SabhasadLedgerSummary() {
             { label: 'Aggregate Credit Node', val: totals.credit, icon: <TrendingDown size={18} />, color: 'amber' },
             { label: 'Net Liquidity Position', val: totals.closing_balance, icon: <ShieldCheck size={18} />, color: 'emerald', special: true }
           ].map((stat, i) => (
-            <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm relative group hover:border-indigo-100 transition-all">
+            <div key={i} className="bg-white p-8 rounded-lg border border-slate-50 shadow-sm relative group hover:border-indigo-100 transition-all">
               <div className="flex justify-between items-start mb-6">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
               </div>
               <p className={`text-2xl font-bold tracking-tighter ${stat.special ? 'text-emerald-600' : 'text-slate-800'}`}>
                 ₹{parseFloat(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -403,7 +403,7 @@ export default function SabhasadLedgerSummary() {
 
           <div className="mt-auto p-12 bg-slate-50/50 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic border-t border-slate-50">
             <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl shadow-sm"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div> SHARDS: {data.length}</span>
+              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div> SHARDS: {data.length}</span>
             </div>
             <div className="flex items-center gap-4">
               <span>SYSTEM_DATE: {new Date().toLocaleDateString()}</span>
