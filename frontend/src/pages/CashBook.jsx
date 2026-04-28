@@ -21,11 +21,13 @@ export default function CashBook() {
     description: '',
     cash_in: 0,
     cash_out: 0,
-    notes: ''
+    notes: '',
+    member_id: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
     loadCompany();
@@ -35,8 +37,20 @@ export default function CashBook() {
     if (company?.id) {
       fetchCashBook();
       fetchBalance();
+      fetchMembers();
     }
   }, [company]);
+
+  const fetchMembers = async () => {
+    try {
+      const response = await axios.get(`/api/members/company/${company.id}`);
+      if (response.data.success) {
+        setMembers(response.data.data);
+      }
+    } catch (err) {
+      console.error('Fetch members error:', err);
+    }
+  };
 
   const loadCompany = async () => {
     try {
@@ -127,7 +141,8 @@ export default function CashBook() {
           description: formData.description,
           cash_in: parseFloat(formData.cash_in) || 0,
           cash_out: parseFloat(formData.cash_out) || 0,
-          notes: formData.notes
+          notes: formData.notes,
+          member_id: formData.member_id || null
         },
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
@@ -139,7 +154,8 @@ export default function CashBook() {
           description: '',
           cash_in: 0,
           cash_out: 0,
-          notes: ''
+          notes: '',
+          member_id: ''
         });
         setTimeout(() => {
           setShowForm(false);
@@ -445,6 +461,22 @@ export default function CashBook() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12 placeholder:text-slate-300"
                   />
+                </div>
+
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Link to Sabhasad (Optional)</span>
+                  <select
+                    value={formData.member_id}
+                    onChange={(e) => setFormData({ ...formData, member_id: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
+                  >
+                    <option value="">General (No Member)</option>
+                    {members.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.member_code} - {m.member_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

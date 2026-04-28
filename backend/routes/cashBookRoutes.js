@@ -20,25 +20,39 @@ router.post('/manual', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Company ID and User ID required' });
     }
 
-    const { transaction_date, description, cash_in, cash_out, notes } = req.body;
+    const { transaction_date, description, cash_in, cash_out, notes, entries } = req.body;
 
-    if (!transaction_date || !description) {
-      return res.status(400).json({ success: false, error: 'Date and description required' });
+    if (!transaction_date || (!description && (!entries || entries.length === 0))) {
+      return res.status(400).json({ success: false, error: 'Date and entry details required' });
     }
 
-    if ((!cash_in || cash_in === 0) && (!cash_out || cash_out === 0)) {
-      return res.status(400).json({ success: false, error: 'Either cash_in or cash_out must be provided' });
-    }
-
-    // UNIFIED SINGLE-ENTRY LOGIC (No mandatory cash account required)
     const referenceNo = `CB-${Date.now()}`;
     const transactionDate = transaction_date;
-    
-    // 1. Insert Entry for the Target Account (if provided)
+
+    // BATCH MODE: Multiple sub-entries
+    if (entries && entries.length > 0) {
+      for (const entry of entries) {
+        await query(`
+          INSERT INTO account_ledger (
+            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+            reference_no, description, debit, credit, notes, created_by, financial_year
+          ) VALUES (?, ?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          companyId,
+          entry.account_id || req.body.account_id || null,
+          entry.member_id || null,
+          transactionDate, referenceNo, entry.description || description,
+          parseFloat(entry.cash_out || 0),
+          parseFloat(entry.cash_in || 0),
+          entry.notes || '', userId, '2026-27'
+        ]);
+      }
+      return res.status(201).json({ success: true, data: { reference_no: referenceNo } });
+    }
+
+    // SINGLE MODE: Legacy support
     let mainResult = null;
     if (req.body.account_id || req.body.member_id) {
-       // Debit the account if money is going OUT to them
-       // Credit the account if money is coming IN from them
        mainResult = await query(`
          INSERT INTO account_ledger (
            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 

@@ -2119,27 +2119,41 @@ export async function getOpeningBalance(companyId, forDate) {
 export async function getAccountLedger(accountId, startDate, endDate) {
   let whereClause = "al.account_id = ?";
   let params = [accountId];
+  let isMemberRequest = String(accountId).startsWith('M');
 
-  // Handle Member ID prefix
-  if (String(accountId).startsWith('M')) {
+  if (isMemberRequest) {
     const memberId = accountId.substring(1);
     whereClause = "al.member_id = ?";
     params = [memberId];
   }
 
-  const sql = `
-    SELECT 
-      al.id,
-      al.transaction_date,
-      COALESCE(al.transaction_type, al.reference_type, 'JV') as transaction_type,
-      al.reference_no,
-      COALESCE(al.debit, al.debit_amount, 0) as debit,
-      COALESCE(al.credit, al.credit_amount, 0) as credit,
-      COALESCE(al.description, al.notes, '') as description
-    FROM account_ledger al
-    WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
-    ORDER BY al.transaction_date ASC, al.created_at ASC
-  `;
+  // If general account, we group by reference_no to show a "Mix Entry"
+  const sql = isMemberRequest 
+    ? `
+      SELECT 
+        al.id, al.transaction_date, 
+        COALESCE(al.transaction_type, al.reference_type, 'JV') as transaction_type,
+        al.reference_no,
+        COALESCE(al.debit, al.debit_amount, 0) as debit,
+        COALESCE(al.credit, al.credit_amount, 0) as credit,
+        COALESCE(al.description, al.notes, '') as description
+      FROM account_ledger al
+      WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
+      ORDER BY al.transaction_date ASC, al.created_at ASC
+    `
+    : `
+      SELECT 
+        MIN(al.id) as id, al.transaction_date, 
+        MAX(COALESCE(al.transaction_type, al.reference_type, 'JV')) as transaction_type,
+        al.reference_no,
+        SUM(COALESCE(al.debit, al.debit_amount, 0)) as debit,
+        SUM(COALESCE(al.credit, al.credit_amount, 0)) as credit,
+        MAX(COALESCE(al.description, al.notes, '')) as description
+      FROM account_ledger al
+      WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
+      GROUP BY al.transaction_date, al.reference_no
+      ORDER BY al.transaction_date ASC, id ASC
+    `;
   
   params.push(startDate, endDate);
   return await query(sql, params);

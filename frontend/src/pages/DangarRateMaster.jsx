@@ -229,7 +229,7 @@ export default function DangarRateMaster() {
                         </div>
                         <div className="absolute left-0 top-full mt-2 w-56 p-3 bg-slate-900 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 shadow-2xl border border-white/10 translate-y-2 group-hover:translate-y-0">
                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">Standardization Protocol</p>
-                           <p className="text-[10px] font-bold text-slate-300 italic leading-tight">Attention: All tariffs MUST be configured based on 1.00 Kgs baseline ONLY.</p>
+                           <p className="text-[10px] font-bold text-slate-300 italic leading-tight">Attention: All tariffs MUST be configured based on 100.00 Kgs (1 Quintal) baseline ONLY.</p>
                         </div>
                      </div>
                   </div>
@@ -241,9 +241,9 @@ export default function DangarRateMaster() {
                         <tr className="bg-[#F8FAFC]">
                            <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Commodity</th>
                            <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">SKU</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">1st Class (1kg)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30 font-black">2nd Class (1kg)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30 font-black">3rd Class (1kg)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">1st Class (100kg)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30 font-black">2nd Class (100kg)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30 font-black">3rd Class (100kg)</th>
                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Ops</th>
                         </tr>
                      </thead>

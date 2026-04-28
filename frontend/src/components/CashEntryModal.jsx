@@ -192,27 +192,32 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
         extractedMemberId = subEntries[0].member_id || parseInt(subEntries[0].code) || null;
       }
 
+      const standardDesc = formData.description || `Cash ${isCredit ? 'In' : 'Out'} - ${searchText || 'Member adv ac'}`;
+
+      const batchEntries = subEntries
+        .filter(r => r.amount && parseFloat(r.amount) > 0)
+        .map(r => ({
+          account_id: finalAccountId,
+          member_id: r.member_id || null,
+          description: standardDesc,
+          cash_in: isCredit ? parseFloat(r.amount) : 0,
+          cash_out: isCredit ? 0 : parseFloat(r.amount),
+          notes: r.description // Store the member name/sub-note in 'notes' instead
+        }));
+
       const payload = {
         transaction_date: formData.transaction_date,
         account_id: finalAccountId,
-        member_id: extractedMemberId,
-        description: formData.description || `Cash ${isCredit ? 'In' : 'Out'} - ${searchText}`,
-        cash_in: isCredit ? parseFloat(formData.amount) : 0,
-        cash_out: isCredit ? 0 : parseFloat(formData.amount),
-        notes: subEntries.filter(r => r.description).map(r => `${r.description}: ${r.amount}`).join('; ')
+        description: standardDesc,
+        entries: batchEntries
       };
-
-      const ledgerDesc = subEntries
-        .filter(r => r.description)
-        .map(r => r.description)
-        .join('; ') || formData.description || 'Cash Transaction';
 
       if (editId) {
         await axios.patch(`/api/cash-book/${editId}`, payload, {
           headers: { 'x-company-id': company.id }
         });
       } else {
-        const res = await axios.post(`/api/cash-book/manual`, payload, {
+        await axios.post(`/api/cash-book/manual`, payload, {
           headers: { 'x-company-id': company.id, 'x-user-id': 1 }
         });
       }
@@ -254,15 +259,23 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
           {/* Top Form Fields */}
           <div className="space-y-2">
-            {/* Date Row */}
+            {/* Date & Account Balance Row */}
             <div className="flex items-center gap-4">
-              <label className="w-24 text-xs font-bold text-slate-700">Date:</label>
-              <input
-                type="date"
-                value={formData.transaction_date}
-                onChange={e => setFormData({ ...formData, transaction_date: e.target.value })}
-                className="w-40 px-3 py-1.5 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
-              />
+              <div className="flex items-center gap-2">
+                <label className="w-24 text-xs font-bold text-slate-700">Date:</label>
+                <input
+                  type="date"
+                  value={formData.transaction_date}
+                  onChange={e => setFormData({ ...formData, transaction_date: e.target.value })}
+                  className="w-40 px-3 py-1.5 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                />
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-tighter whitespace-nowrap">Total Balance:</label>
+                <div className="min-w-[120px] px-3 py-1.5 border border-slate-200 rounded text-sm font-bold text-slate-400 bg-slate-50/50 flex items-center h-[32px]">
+                  {selectedAccount ? `₹${selectedAccount.closing_balance.toLocaleString('en-IN')}` : '₹0.00'}
+                </div>
+              </div>
             </div>
 
             {/* Account Row */}
@@ -303,14 +316,14 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
               </div>
             </div>
 
-            {/* Balance & Receipt Row */}
+            {/* Current Entry Balance & Receipt Row */}
             <div className="flex items-center gap-4">
               <div className="w-24 shrink-0">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-tighter">Balance:</label>
               </div>
               <div className="flex-1 flex gap-4">
-                <div className="w-40 px-3 py-1.5 border border-slate-200 rounded text-sm font-black text-slate-500 bg-slate-50 flex items-center h-[30px]">
-                  {selectedAccount ? `₹${selectedAccount.closing_balance.toLocaleString('en-IN')}` : '₹0.00'}
+                <div className="w-40 px-3 py-1.5 border-2 border-blue-100 rounded text-sm font-black text-blue-600 bg-blue-50/50 flex items-center h-[34px] shadow-sm">
+                  ₹{parseFloat(formData.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="text-xs font-bold text-slate-700 ml-4">Receipt No:</label>
@@ -320,7 +333,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                     onChange={e => setFormData({ ...formData, reference_no: e.target.value })}
                     className="w-32 px-3 py-1.5 border border-slate-300 rounded text-sm uppercase outline-none focus:border-blue-500 font-mono font-bold"
                   />
-                  <span className="text-[10px] font-bold text-blue-500 italic ml-2">Vector ID: 0Y</span>
+                  <span className="text-[10px] font-black text-blue-500 italic ml-2">Vector ID: 0Y</span>
                 </div>
               </div>
             </div>

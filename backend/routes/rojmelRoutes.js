@@ -64,14 +64,21 @@ router.get('/', async (req, res) => {
     if (netBalanceOp > 0) opening = { side: 'jama', amount: netBalanceOp };
     else if (netBalanceOp < 0) opening = { side: 'udhar', amount: Math.abs(netBalanceOp) };
 
-    // 2. Fetch Ledger entries (Cash perspective: Member Credit = In, Member Debit = Out)
+    // 2. Fetch Ledger entries (Cash perspective)
+    // GROUP BY reference_no to show "Mix Entry" for batch payments
     const txSql = `
-      SELECT id, reference_no, reference_type, description, notes, 
-             COALESCE(credit, credit_amount, 0) as cash_in, 
-             COALESCE(debit, debit_amount, 0) as cash_out 
+      SELECT 
+        MIN(id) as id, 
+        reference_no, 
+        MAX(reference_type) as reference_type, 
+        MAX(description) as description, 
+        MAX(notes) as notes, 
+        SUM(COALESCE(credit, credit_amount, 0)) as cash_in, 
+        SUM(COALESCE(debit, debit_amount, 0)) as cash_out 
       FROM account_ledger 
       WHERE company_id = ? AND transaction_date = ? 
       AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
+      GROUP BY reference_no
       ORDER BY id ASC
     `;
     const transactions = await query(txSql, [companyId, date]);

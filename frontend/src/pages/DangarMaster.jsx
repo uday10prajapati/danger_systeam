@@ -187,7 +187,7 @@ export default function DangarMaster() {
                     <th className="px-8 py-6">Ref. SR</th>
                     <th className="px-8 py-6">Resource Descriptor</th>
                     <th className="px-8 py-6 text-right">Net Volume</th>
-                    <th className="px-8 py-6 text-right">Unit Rate</th>
+                    <th className="px-8 py-6 text-right">Unit Rate (Qt)</th>
                     <th className="px-8 py-6 text-right">Fiscal Value</th>
                     <th className="px-8 py-6">Vehicle / Remark</th>
                     <th className="px-8 py-6 text-center">Status</th>

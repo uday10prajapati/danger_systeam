@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Search, Printer, Download, Filter,
   Calendar, User, Box, ArrowRight, TrendingUp,
-  CreditCard, ChevronDown, ChevronRight, CheckCircle, Clock, X,
+  CreditCard, ChevronDown, ChevronRight, CheckCircle, Clock, X, Shield ,
   Table
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -90,10 +90,11 @@ const DangarPaymentReport = () => {
         const s = rows.reduce((acc, r) => ({
           totalQuintal: acc.totalQuintal + parseFloat(r.total_quintal || 0),
           totalRateAmount: acc.totalRateAmount + parseFloat(r.rate_amount || 0),
-          totalDeduction: acc.totalDeduction + parseFloat(r.deduction_amount || 0),
+          totalDeduction: acc.totalDeduction + parseFloat(r.total_kapat || 0),
+          totalBardanPenalty: acc.totalBardanPenalty + parseFloat(r.bardan_penalty || 0),
           totalFinal: acc.totalFinal + parseFloat(r.final_amount || 0),
           count: acc.count + 1,
-        }), { totalQuintal: 0, totalRateAmount: 0, totalDeduction: 0, totalFinal: 0, count: 0 });
+        }), { totalQuintal: 0, totalRateAmount: 0, totalDeduction: 0, totalBardanPenalty: 0, totalFinal: 0, count: 0 });
 
         setSummary(s);
       } else {
@@ -118,9 +119,10 @@ const DangarPaymentReport = () => {
       'Member Name': r.member_name,
       'Account No.': r.full_ac_number || '',
       'Total KG': parseFloat(r.total_kg || 0),
-      'Rate/KG': parseFloat(r.rate_per_kg || 0),
+      'Rate/Qt': parseFloat(r.rate_per_kg || 0),
       'Rate Amount': parseFloat(r.rate_amount || 0),
       'Total Kapat': parseFloat(r.total_kapat || 0),
+      'Bag Penalty': parseFloat(r.bardan_penalty || 0),
       'Final Amount': parseFloat(r.final_amount || 0),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -153,12 +155,13 @@ const DangarPaymentReport = () => {
       parseFloat(r.rate_per_kg || 0).toFixed(2),
       parseFloat(r.rate_amount || 0).toFixed(2),
       parseFloat(r.total_kapat || 0).toFixed(2),
+      parseFloat(r.bardan_penalty || 0).toFixed(2),
       parseFloat(r.final_amount || 0).toFixed(2),
     ]);
 
     autoTable(doc, {
       startY: 28,
-      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total KG', 'Rate/KG', 'Rate Amt', 'Kapat', 'Final Amt']],
+      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total KG', 'Rate/Qt', 'Rate Amt', 'Kapat', 'Bag Penalty', 'Final Amt']],
       body: tableRows,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [30, 30, 60], textColor: 255, fontStyle: 'bold' },
@@ -175,7 +178,7 @@ const DangarPaymentReport = () => {
         8: { halign: 'right', cellWidth: 22 },
       },
       foot: [['', '', '', 'TOTAL', summary.totalQuintal.toFixed(2) + ' Qt', '',
-        summary.totalRateAmount.toFixed(2), summary.totalDeduction.toFixed(2), summary.totalFinal.toFixed(2)]],
+        summary.totalRateAmount.toFixed(2), summary.totalDeduction.toFixed(2), summary.totalBardanPenalty.toFixed(2), summary.totalFinal.toFixed(2)]],
       footStyles: { fillColor: [20, 20, 50], textColor: 255, fontStyle: 'bold' },
     });
     doc.save('dangar_payment_' + filters.startDate + '_' + filters.endDate + '.pdf');
@@ -204,12 +207,15 @@ const DangarPaymentReport = () => {
       const names = missing.map(r => r.member_name).join(', ');
       if (!window.confirm(missing.length + ' member(s) have no bank account. They export with 0000000000000. Continue?')) return;
     }
-    lines.push(('51' + '00000' + fw(companyAccount, 13) + '0000000000000000').padEnd(LINE, ' ').slice(0, LINE));
-    // Credit: 2+5+12+16+67 = 102 (capped)
-    // acct: full account number as-is (no padding, no cap)
-    // amt: 16 chars, zero-padded left
-    // msg: 66 chars, space-padded right
     const msg = fw(narration, 67, ' ', true);
+    
+    // Calculate total sum of all members (Absolute value to avoid leading minus sign)
+    const totalAmountPaise = Math.abs(Math.round(data.reduce((sum, row) => sum + parseFloat(row.final_amount || 0), 0) * 100));
+    const totalAmtStr = fw(totalAmountPaise, 16);
+
+    // Header (51): 2 (code) + 5 (zeros) + 13 (company acct) + 16 (total amt) + 66 (narration) = 102
+    lines.push(('51' + '00000' + fw(companyAccount, 12) + totalAmtStr + msg).padEnd(LINE, ' ').slice(0, LINE));
+
     data.forEach(function (row) {
       var acct = String(row.full_ac_number || '').slice(0, 12);
       var paise = Math.abs(Math.round(parseFloat(row.final_amount || 0) * 100));
@@ -343,8 +349,8 @@ const DangarPaymentReport = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {[
             { label: 'Total Volume', val: `${summary.totalQuintal.toFixed(2)} Qt`, icon: Box, color: 'blue' },
-            { label: 'Rate Amount', val: `₹${summary.totalRateAmount.toFixed(2)}`, icon: CreditCard, color: 'indigo' },
             { label: 'Kapat (Deduction)', val: `₹${summary.totalDeduction.toFixed(2)}`, icon: Filter, color: 'rose' },
+            { label: 'Bag Penalty', val: `₹${summary.totalBardanPenalty?.toFixed(2) || '0.00'}`, icon: Shield, color: 'amber' },
             { label: 'Final Payable', val: `₹${summary.totalFinal.toFixed(2)}`, icon: CheckCircle, color: 'emerald' },
           ].map((shard, i) => (
             <div key={i} className="bg-white p-5 rounded-lg border border-white shadow-sm flex items-center gap-4 hover:shadow-md transition-all group">
@@ -369,10 +375,10 @@ const DangarPaymentReport = () => {
                   <th className="px-6 py-5">Member Code</th>
                   <th className="px-6 py-5">Member Name</th>
                   <th className="px-6 py-5 text-right">Qty (Qt)</th>
-                  <th className="px-6 py-5 text-right">Rate/KG</th>
+                  <th className="px-6 py-5 text-right">Rate/Qt</th>
                   <th className="px-6 py-5 text-right text-indigo-500">Rate Amount</th>
                   <th className="px-6 py-5 text-right text-rose-500">Kapat</th>
-                  <th className="px-6 py-5 text-right">Bardan Bags</th>
+                  <th className="px-6 py-5 text-right text-amber-600">Bag Penalty</th>
                   <th className="px-6 py-5 text-right text-emerald-600">Final Amount</th>
                 </tr>
               </thead>
@@ -408,7 +414,7 @@ const DangarPaymentReport = () => {
                           <p className="text-[9px] text-slate-400 font-bold">{row.entry_count} entries</p>
                         </td>
                         <td className="px-6 py-4 text-right font-black text-slate-600 italic text-sm">{row.total_quintal} Qt</td>
-                        <td className="px-6 py-4 text-right font-black text-slate-500 italic text-sm">₹{row.rate_per_kg}/KG</td>
+                        <td className="px-6 py-4 text-right font-black text-slate-500 italic text-sm">₹{row.rate_per_kg}/Qt</td>
                         <td className="px-6 py-4 text-right font-black text-indigo-600 italic text-sm">₹{row.rate_amount}</td>
                         {/* Kapat cell "" clickable to expand sub-rows */}
                         <td className="px-6 py-4 text-right">
@@ -422,7 +428,10 @@ const DangarPaymentReport = () => {
                             ₹{row.total_kapat}
                           </button>
                         </td>
-                        <td className="px-6 py-4 text-right font-black text-slate-500 text-sm">{row.bardan_remaining}</td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="text-sm font-black text-amber-600 italic">₹{row.bardan_penalty}</p>
+                          <p className="text-[9px] text-slate-400 font-bold">{row.bardan_remaining} bags</p>
+                        </td>
                         <td className="px-6 py-4 text-right">
                           <span className="text-base font-black italic tracking-tighter text-emerald-600">₹{row.final_amount}</span>
                         </td>
@@ -501,10 +510,10 @@ const DangarPaymentReport = () => {
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Line Preview (102 chars)</p>
                 <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto">
                   <pre className="text-[10px] text-amber-300 font-mono whitespace-pre leading-relaxed">
-                    {/* Debit header: 51 + 00000 + company account */}
-                    {`5100000${companyAccount}${'0'.repeat(16)}`.padEnd(102, ' ').slice(0, 102)}{`\n`}
+                    {/* Debit header: 51 + 00000 + company account + Total Amount + Narration */}
+                    {`5100000${String(companyAccount).padStart(12, '0').slice(-12)}${String(Math.abs(Math.round(data.reduce((s, r) => s + parseFloat(r.final_amount || 0), 0) * 100))).padStart(16, '0').slice(-16)}${narration.slice(0, 67).padEnd(67, ' ')}`.slice(0, 102)}{`\n`}
                     {/* Credit sample: 01 + 00000 + member full_ac_number + amount + narration */}
-                    {`0100000${String(data[0]?.full_ac_number || '').padStart(13, '0').slice(-13)}${String(Math.round(parseFloat(data[0]?.final_amount || 0) * 100)).padStart(15, '0').slice(-15)}${narration.slice(0, 67).padEnd(67, ' ')}`.slice(0, 102)}
+                    {`0100000${String(data[0]?.full_ac_number || '').padStart(12, '0').slice(-12)}${String(Math.round(parseFloat(data[0]?.final_amount || 0) * 100)).padStart(16, '0').slice(-16)}${narration.slice(0, 67).padEnd(67, ' ')}`.slice(0, 102)}
                   </pre>
                 </div>
                 <p className="text-[9px] text-slate-400 italic font-bold">

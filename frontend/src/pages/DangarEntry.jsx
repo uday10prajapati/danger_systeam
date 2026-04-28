@@ -199,7 +199,8 @@ const DangarEntry = () => {
     const netQuintal = netKG / 100;
 
     // Gross amount before kapat/penalties
-    const grossAmount = netKG * (parseFloat(formData.rate) || 0);
+    // NOTE: rate is now per QUINTAL (100kg)
+    const grossAmount = netQuintal * (parseFloat(formData.rate) || 0);
 
     // Calculate current deductions (Kapat)
     let totalKapatDeduction = 0;

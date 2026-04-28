@@ -24,6 +24,12 @@ export default function SabhasadLedgerSummary() {
   const [memberId, setMemberId] = useState('all');
   const [hideZeroBalance, setHideZeroBalance] = useState(false);
 
+  // Audit Modal States
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditMember, setAuditMember] = useState(null);
+  const [auditTransactions, setAuditTransactions] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
   // Search/Auto-Fetch States
   const [accCode, setAccCode] = useState('');
   const [accName, setAccName] = useState('');
@@ -104,6 +110,29 @@ export default function SabhasadLedgerSummary() {
       console.error('Fetch report error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openAudit = async (mem) => {
+    setAuditMember(mem);
+    setShowAuditModal(true);
+    setAuditLoading(true);
+    try {
+      const response = await axios.get(`/api/account-ledger`, {
+        params: {
+          memberId: mem.member_id,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        },
+        headers: { 'x-company-id': company.id }
+      });
+      if (response.data.success) {
+        setAuditTransactions(response.data.data);
+      }
+    } catch (error) {
+      console.error('Audit fetch error:', error);
+    } finally {
+      setAuditLoading(false);
     }
   };
 
@@ -353,7 +382,8 @@ export default function SabhasadLedgerSummary() {
                   <th className="px-10 py-6 text-right border-r border-slate-50/50">Open Pos</th>
                   <th className="px-10 py-6 text-right text-indigo-500 border-r border-slate-50/50">Debit (+)</th>
                   <th className="px-10 py-6 text-right text-amber-500 border-r border-slate-50/50">Credit (-)</th>
-                  <th className="px-10 py-6 text-right">Close Pos</th>
+                  <th className="px-10 py-6 text-right border-r border-slate-50/50">Close Pos</th>
+                  <th className="px-10 py-6 text-center">Audit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -386,14 +416,23 @@ export default function SabhasadLedgerSummary() {
                           }`}>
                           ₹{parseFloat(row.closing_balance).toLocaleString('en-IN')}
                         </td>
+                        <td className="px-10 py-5 text-center">
+                          <button
+                            onClick={() => openAudit(row)}
+                            className="p-3 bg-white border border-slate-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group-hover:scale-110 active:scale-95"
+                          >
+                            <Activity size={16} strokeWidth={3} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     <tr className="bg-slate-900 text-white font-black italic">
-                      <td colSpan="4" className="px-10 py-8 text-xs tracking-[0.4em] uppercase text-indigo-400">Master Integrity Summary</td>
+                      <td colSpan="4" className="px-10 py-8 text-xs tracking-[0.4em] uppercase text-indigo-400 font-black">Master Integrity Summary</td>
                       <td className="px-10 py-8 text-right text-lg tracking-tighter text-slate-400">₹{parseFloat(totals.opening_balance).toLocaleString('en-IN')}</td>
                       <td className="px-10 py-8 text-right text-lg tracking-tighter text-indigo-400">₹{parseFloat(totals.debit).toLocaleString('en-IN')}</td>
                       <td className="px-10 py-8 text-right text-lg tracking-tighter text-amber-400">₹{parseFloat(totals.credit).toLocaleString('en-IN')}</td>
                       <td className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400">₹{parseFloat(totals.closing_balance).toLocaleString('en-IN')}</td>
+                      <td></td>
                     </tr>
                   </>
                 )}
@@ -413,6 +452,63 @@ export default function SabhasadLedgerSummary() {
           </div>
         </div>
       </div>
+
+      {/* Audit Detailed Modal */}
+      {showAuditModal && auditMember && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="bg-slate-900 text-white p-8 flex justify-between items-center">
+              <div>
+                <div className="flex items-center gap-3 text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 italic">
+                  <Activity size={12} /> Detailed Transaction Analysis
+                </div>
+                <h2 className="text-2xl font-black uppercase italic tracking-tight">{auditMember.member_name} <span className="text-slate-500 ml-2">#{auditMember.member_code}</span></h2>
+              </div>
+              <button onClick={() => setShowAuditModal(false)} className="w-12 h-12 flex items-center justify-center bg-slate-800 hover:bg-rose-600 rounded-2xl transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-8 max-h-[70vh] overflow-y-auto scroller-airy bg-slate-50/50">
+              {auditLoading ? (
+                <div className="py-20 text-center"><RefreshCcw className="animate-spin mx-auto text-indigo-200 mb-4" size={40} /><p className="font-black uppercase text-[10px] tracking-widest text-slate-300">Retrieving Ledger Shards...</p></div>
+              ) : auditTransactions.length === 0 ? (
+                <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200"><p className="font-black uppercase text-[10px] tracking-widest text-slate-300">No Transactions Identified in this Period</p></div>
+              ) : (
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Description</th>
+                        <th className="px-6 py-4">Reference</th>
+                        <th className="px-6 py-4 text-right">Debit (+)</th>
+                        <th className="px-6 py-4 text-right">Credit (-)</th>
+                        <th className="px-6 py-4 text-right">Running</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 font-bold text-xs uppercase">
+                      {auditTransactions.map((tx, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 text-slate-400 font-mono italic">{new Date(tx.transaction_date).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 text-slate-800 tracking-tight">{tx.description}</td>
+                          <td className="px-6 py-4 text-slate-300 text-[10px]">{tx.reference_no}</td>
+                          <td className="px-6 py-4 text-right text-indigo-600 font-black">₹{(parseFloat(tx.debit) || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-amber-500 font-black">₹{(parseFloat(tx.credit) || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right font-black italic text-slate-400">---</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-4">
+              <button onClick={() => setShowAuditModal(false)} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-slate-200">Close Audit Shard</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{
         __html: `

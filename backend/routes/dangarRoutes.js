@@ -167,8 +167,8 @@ router.get('/payment-report', async (req, res) => {
       const entries        = dangarMap[row.member_id] || [];
       const totalKg        = entries.reduce((s, e) => s + parseFloat(e.total_kg          || 0), 0);
       const totalQuintal   = entries.reduce((s, e) => s + parseFloat(e.net_quintal       || 0), 0);
-      // rate_amount — total_kg × rate (rate is per KG, not per quintal)
-      const rateAmount     = entries.reduce((s, e) => s + parseFloat(e.total_kg || 0) * parseFloat(e.rate || 0), 0);
+      // rate_amount — total_quintal × rate (rate is now per QUINTAL)
+      const rateAmount     = entries.reduce((s, e) => s + parseFloat(e.net_quintal || 0) * parseFloat(e.rate || 0), 0);
       const deduction      = entries.reduce((s, e) => s + parseFloat(e.deduction_amount  || 0), 0);
       // Rate is stored per KG in dangar_entry.rate (see DangarRateMaster)
       const weightedRate   = entries.length > 0
@@ -178,11 +178,11 @@ router.get('/payment-report', async (req, res) => {
       const bardanIssued    = parseFloat(bardanIssuedMap[row.member_code]   || 0);
       const bardanReturned  = parseFloat(bardanReturnedMap[row.member_code] || 0);
       const bardanRemaining = Math.max(0, bardanIssued - bardanReturned);
-      const bardanAmount    = bardanIssued * pricePerBardan;
+      const bardanPenalty   = bardanRemaining * pricePerBardan;
 
       const totalKapat  = (kapatMap[row.member_id] || []).reduce((s, k) => s + parseFloat(k.amount || 0), 0);
-      // Final Amount = Rate Amount − Total Kapat (clear, auditable formula)
-      const finalAmount = rateAmount - totalKapat;
+      // Final Amount = Rate Amount - Total Kapat - Bardan Penalty
+      const finalAmount = rateAmount - totalKapat - bardanPenalty;
 
       return {
         member_id:        row.member_id,
@@ -200,7 +200,7 @@ router.get('/payment-report', async (req, res) => {
         bardan_issued:    bardanIssued,
         bardan_returned:  bardanReturned,
         bardan_remaining: bardanRemaining,
-        bardan_amount:    bardanAmount.toFixed(2),
+        bardan_penalty:   bardanPenalty.toFixed(2),
         kapat_entries:    kapatMap[row.member_id] || [],
         entries:          entries,
       };
