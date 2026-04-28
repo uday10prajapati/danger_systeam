@@ -2,6 +2,7 @@ import express from 'express';
 import { query, queryOne, execute } from '../db.js';
 import { validateAccount } from '../validators/accountValidator.js';
 import { generateNextMemberCode } from '../utils/memberCodeGenerator.js';
+import { generateAccountCode } from '../utils/protocolCodeGenerator.js';
 
 const router = express.Router();
 
@@ -23,20 +24,51 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ==================== GET LAST ACCOUNT CODE ====================
-router.get('/last-code', async (req, res) => {
+// ==================== GET NEXT ACCOUNT CODE ====================
+router.get('/next-code', async (req, res) => {
   try {
     const company_id = req.headers['x-company-id'];
+    const { type } = req.query;
+    if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
+    if (!type) return res.status(400).json({ success: false, error: 'Account Type required' });
+
+    const nextCode = await generateAccountCode(company_id, type);
+    res.json({ success: true, nextCode });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== GET NEXT ACCOUNT ID (Type-Specific Sequence) ====================
+router.get('/next-id', async (req, res) => {
+  try {
+    const { type } = req.query;
+    const company_id = req.headers['x-company-id'];
+    if (!type) return res.status(400).json({ success: false, error: 'Account Type required' });
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
 
+    const prefix = {
+      'assets': 'A', 'liabilities': 'L', 'customer': 'C', 'supplier': 'S',
+      'bank': 'BN', 'cash': 'CS', 'capital': 'CP', 'revenue': 'R',
+      'expense': 'E', 'purchase': 'P', 'sales': 'SL'
+    }[type.trim().toLowerCase()] || 'X';
+
     const result = await queryOne(
-      `SELECT MAX(CAST(account_code AS UNSIGNED)) as last_code 
-       FROM accounts 
-       WHERE company_id = ? AND account_code REGEXP '^[0-9]+$'`,
-      [company_id]
+      `SELECT account_code FROM accounts 
+       WHERE company_id = ? AND account_code LIKE ? 
+       ORDER BY CAST(SUBSTRING(account_code, ?) AS UNSIGNED) DESC LIMIT 1`,
+      [company_id, `${prefix}%`, prefix.length + 1]
     );
 
-    res.json({ success: true, lastCode: result?.last_code || 0 });
+    let nextNumber = 1;
+    if (result && result.account_code) {
+      const currentNumber = parseInt(result.account_code.replace(prefix, ''), 10);
+      if (!isNaN(currentNumber)) {
+        nextNumber = currentNumber + 1;
+      }
+    }
+
+    res.json({ success: true, nextId: nextNumber });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -45,7 +77,12 @@ router.get('/last-code', async (req, res) => {
 // ==================== CREATE ACCOUNT ====================
 router.post('/', async (req, res) => {
   try {
-    const { company_id, account_code, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+    let { company_id, account_code, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+
+    // Auto-generate account code if missing
+    if (!account_code || account_code === '') {
+      account_code = await generateAccountCode(company_id, account_type);
+    }
 
     // Credit balances are stored as negative numbers internally to differentiate
     let final_opening_balance = parseFloat(opening_balance || 0);
@@ -134,11 +171,12 @@ router.get('/company/:company_id', async (req, res) => {
 
     let sql = `
        SELECT 
-         CAST(a.id AS CHAR) as id, a.account_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
+         CAST(a.id AS CHAR) as id, a.account_code, m.member_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
          a.opening_balance, a.is_active, a.is_subledger, a.is_system, a.created_at, a.updated_at,
          COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_debit,
          COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_credit
        FROM accounts a
+       LEFT JOIN member_master m ON a.id = m.account_id
        WHERE a.company_id = ? AND a.is_deleted = 0
     `;
     let params = [company_id];
@@ -432,6 +470,94 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete account error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to purge account' });
+  }
+});
+
+// ==================== GET ACCOUNT PROTOCOL AUDIT ====================
+router.get('/:id/audit', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { memberQuery } = req.query;
+    
+    // 1. Get Account Info
+    const account = await queryOne('SELECT * FROM accounts WHERE id = ?', [id]);
+    if (!account) return res.status(404).json({ success: false, error: 'Protocol Node not found' });
+
+    // 2. Resolve target member/identity
+    let targetMember = null;
+    if (memberQuery) {
+      // Search by Account P-code, Member Code, or Name
+      targetMember = await queryOne(
+        `SELECT m.id, COALESCE(m.member_code, a.account_code) as member_code, a.account_code, 
+                COALESCE(m.member_name, a.account_name) as member_name 
+         FROM accounts a
+         LEFT JOIN member_master m ON a.id = m.account_id
+         WHERE a.account_code = ? OR m.member_code = ? OR a.account_name LIKE ? LIMIT 1`,
+        [memberQuery, memberQuery, `%${memberQuery}%`]
+      );
+    } else {
+      // Default to the member linked directly to this account
+      targetMember = await queryOne(
+        `SELECT m.id, m.member_code, a.account_name as member_name FROM member_master m 
+         LEFT JOIN accounts a ON m.account_id = a.id
+         WHERE a.id = ?`, 
+        [id]
+      );
+    }
+
+    let dangarEntries = [];
+    let bardanEntries = [];
+    let ledgerEntries = [];
+
+    // Define search identifiers
+    const memberId = targetMember?.id || 0;
+    const codes = [
+       targetMember?.member_code, 
+       targetMember?.account_code, 
+       memberQuery
+    ].filter(Boolean);
+
+    if (targetMember || memberQuery) {
+      // 3. Fetch Dangar entries (linked via member_id or member code)
+      dangarEntries = await query(
+        `SELECT de.*, im.item_name, mm.member_name FROM dangar_entry de 
+         LEFT JOIN item_master im ON de.item_id = im.id
+         LEFT JOIN member_master mm ON de.member_id = mm.id
+         WHERE de.member_id = ? OR de.member_id IN (SELECT id FROM member_master WHERE member_code IN (?))
+         ORDER BY de.entry_date DESC`,
+        [memberId, codes.length > 0 ? codes : ['__NONE__']]
+      );
+
+      // 4. Fetch Bardan entries (linked via code)
+      bardanEntries = await query(
+        `SELECT * FROM bardan_entry WHERE code IN (?) ORDER BY entry_date DESC`,
+        [codes.length > 0 ? codes : ['__NONE__']]
+      );
+
+      // 5. Fetch Account Ledger entries
+      if (targetMember) {
+        ledgerEntries = await query(
+          `SELECT * FROM account_ledger 
+           WHERE account_id = ? AND (member_id = ? OR member_id IS NULL)
+           ORDER BY (COALESCE(transaction_date, created_at)) DESC`,
+          [id, memberId]
+        );
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        account,
+        resolvedMember: targetMember,
+        dangar: dangarEntries,
+        bardan: bardanEntries,
+        ledger: ledgerEntries
+      }
+    });
+  } catch (error) {
+    console.error('Audit Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

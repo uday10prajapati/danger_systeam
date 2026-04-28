@@ -128,15 +128,15 @@ export async function initializeDatabase() {
       `);
 
       // Migration for accounts (ensure account_code, is_subledger, is_system exist)
-      try {
-        await connection.query("ALTER TABLE accounts ADD COLUMN account_code VARCHAR(50)");
-      } catch (e) {}
-      try {
-        await connection.query("ALTER TABLE accounts ADD COLUMN is_subledger TINYINT(1) DEFAULT 0");
-      } catch (e) {}
-      try {
-        await connection.query("ALTER TABLE accounts ADD COLUMN is_system TINYINT(1) DEFAULT 0");
-      } catch (e) {}
+      try { await connection.query("ALTER TABLE accounts ADD COLUMN account_code VARCHAR(50)"); } catch (e) {}
+      try { await connection.query("ALTER TABLE accounts ADD COLUMN is_subledger TINYINT(1) DEFAULT 0"); } catch (e) {}
+      try { await connection.query("ALTER TABLE accounts ADD COLUMN is_system TINYINT(1) DEFAULT 0"); } catch (e) {}
+      
+      // Migration for bardan tables
+      try { await connection.query("ALTER TABLE bardan_entry ADD COLUMN account_id INT DEFAULT NULL"); } catch (e) {}
+      try { await connection.query("ALTER TABLE bardan_entry ADD COLUMN member_id INT DEFAULT NULL"); } catch (e) {}
+      try { await connection.query("ALTER TABLE jama_bardan_entry ADD COLUMN account_id INT DEFAULT NULL"); } catch (e) {}
+      try { await connection.query("ALTER TABLE jama_bardan_entry ADD COLUMN member_id INT DEFAULT NULL"); } catch (e) {}
 
       // Create Item Master table
       await connection.query(`
@@ -789,6 +789,7 @@ export async function initializeDatabase() {
           net_quintal DECIMAL(15, 2) DEFAULT 0,
           rate DECIMAL(12, 2) DEFAULT 0,
           amount DECIMAL(15, 2) DEFAULT 0,
+          weight_unit VARCHAR(20) DEFAULT 'kg',
           created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -804,6 +805,12 @@ export async function initializeDatabase() {
       } catch (e) {}
       try {
         await connection.query("ALTER TABLE dangar_entry ADD COLUMN amount DECIMAL(15, 2) DEFAULT 0");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE dangar_entry ADD COLUMN weight_unit VARCHAR(20) DEFAULT 'kg'");
+      } catch (e) {}
+      try {
+        await connection.query("ALTER TABLE dangar_entry ADD COLUMN total_deduction DECIMAL(15, 2) DEFAULT 0");
       } catch (e) {}
 
       // Create Dangar Weights table
@@ -2132,12 +2139,20 @@ export async function getAccountLedger(accountId, startDate, endDate) {
 export async function getAccountBalance(accountId, upToDate = null) {
   let whereClause = "al.account_id = ?";
   let params = [accountId];
+  let openingBalance = 0;
 
-  // Handle Member ID prefix
+  // 1. Get Opening Balance from Master tables
   if (String(accountId).startsWith('M')) {
     const memberId = accountId.substring(1);
+    const member = await queryOne('SELECT opening_balance FROM member_master WHERE id = ?', [memberId]);
+    openingBalance = parseFloat(member?.opening_balance || 0);
     whereClause = "al.member_id = ?";
     params = [memberId];
+  } else {
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
+    openingBalance = parseFloat(account?.opening_balance || 0);
+    whereClause = "al.account_id = ?";
+    params = [accountId];
   }
 
   const dateCondition = upToDate ? `AND al.transaction_date <= ?` : '';
@@ -2147,16 +2162,19 @@ export async function getAccountBalance(accountId, upToDate = null) {
     SELECT 
       COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
       COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit,
-      COALESCE(SUM(COALESCE(debit, debit_amount, 0) - COALESCE(credit, credit_amount, 0)), 0) as running_balance
+      COALESCE(SUM(COALESCE(debit, debit_amount, 0) - COALESCE(credit, credit_amount, 0)), 0) as ledger_balance
     FROM account_ledger al
     WHERE ${whereClause} ${dateCondition}
   `;
 
   const result = await query(sql, params);
-  if (!result || result.length === 0) {
-    return { total_debit: 0, total_credit: 0, running_balance: 0 };
-  }
-  return result[0];
+  const ledgerData = (result && result.length > 0) ? result[0] : { total_debit: 0, total_credit: 0, ledger_balance: 0 };
+  
+  return {
+    total_debit: ledgerData.total_debit,
+    total_credit: ledgerData.total_credit,
+    running_balance: openingBalance + parseFloat(ledgerData.ledger_balance)
+  };
 }
 
 export async function getAccountLedgerWithRunningBalance(accountId, startDate, endDate) {

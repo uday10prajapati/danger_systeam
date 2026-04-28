@@ -22,7 +22,8 @@ export default function AccountMaster() {
   const [message, setMessage] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchCode, setSearchCode] = useState('');
+  const [searchName, setSearchName] = useState('');
 
   // Balance Modal state
   const [balanceModal, setBalanceModal] = useState({
@@ -130,11 +131,12 @@ export default function AccountMaster() {
   };
 
   const filteredAccounts = (Array.isArray(accounts) ? accounts : []).filter(acc => {
-    const matchesSearch =
-      acc.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      acc.account_code?.toString().includes(searchQuery);
+    const matchesCode = searchCode === '' || 
+      acc.account_code?.toString().includes(searchCode) ||
+      acc.id?.toString().includes(searchCode);
+    const matchesName = searchName === '' || acc.account_name.toLowerCase().includes(searchName.toLowerCase());
     const matchesBalanceType = balanceTypeFilter === 'all' || acc.balance_type === balanceTypeFilter;
-    return matchesSearch && matchesBalanceType;
+    return matchesCode && matchesName && matchesBalanceType;
   });
 
   const handleDownloadCSV = () => {
@@ -207,15 +209,27 @@ export default function AccountMaster() {
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Ledger Repository</h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Seach by entity name or ID..."
-                className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium"
-              />
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+                <Hash size={16} className="text-slate-300 group-focus-within:text-blue-500" />
+                <input
+                  type="text"
+                  value={searchCode}
+                  onChange={(e) => setSearchCode(e.target.value)}
+                  placeholder="ID"
+                  className="bg-transparent border-none outline-none text-xs text-slate-600 w-16 placeholder:text-slate-300 font-bold font-mono"
+                />
+              </div>
+              <div className="flex items-center gap-3 bg-white rounded-2xl px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+                <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
+                <input
+                  type="text"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  placeholder="Search nomenclature name..."
+                  className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium italic"
+                />
+              </div>
             </div>
             <button
               onClick={handleDownloadCSV}
@@ -343,7 +357,7 @@ export default function AccountMaster() {
                             <p className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors uppercase leading-none">{acc.account_name}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded-md text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                <Hash size={9} /> {acc.account_code || acc.id}
+                                <Hash size={9} /> {acc.account_code} | ID #{acc.id}
                               </span>
                               <p className="text-[10px] font-medium text-slate-400 leading-none">{acc.email || 'NO_DIGITAL_HANDLE'}</p>
                             </div>

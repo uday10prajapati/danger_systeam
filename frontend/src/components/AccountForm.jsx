@@ -46,20 +46,40 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   const [message, setMessage] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [nextId, setNextId] = useState(null);
 
+  const fetchNextCode = async (type) => {
+    try {
+      const response = await axios.get(`/api/accounts/next-code?type=${type}`, { 
+        headers: { 'x-company-id': companyId } 
+      });
+      if (response.data.success) {
+        setFormData(prev => ({ ...prev, account_code: response.data.nextCode }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch next account code", err);
+    }
+  };
+
+  const fetchNextId = async (type) => {
+    try {
+      const response = await axios.get(`/api/accounts/next-id?type=${type}`, {
+        headers: { 'x-company-id': companyId }
+      });
+      if (response.data.success) {
+        setNextId(response.data.nextId);
+      }
+    } catch (err) {
+      console.error("Failed to fetch next ID", err);
+    }
+  };
 
   React.useEffect(() => {
-    if (!initialData) {
-      axios.get('/api/accounts/last-code', { headers: { 'x-company-id': companyId } })
-        .then(res => {
-          if (res.data.success) {
-            const nextCode = (parseInt(res.data.lastCode) || 0) + 1;
-            setFormData(prev => ({ ...prev, account_code: nextCode.toString() }));
-          }
-        })
-        .catch(err => console.error("Failed to fetch last account code", err));
+    if (!initialData && formData.account_type) {
+      fetchNextId(formData.account_type);
+      fetchNextCode(formData.account_type);
     }
-  }, [initialData, companyId]);
+  }, [initialData, companyId, formData.account_type]);
 
   const accountTypes = [
     { value: 'customer', label: t('accountMaster.customer'), icon: <User size={14}/>, color: 'blue' },
@@ -151,9 +171,27 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
               <div className="w-6 h-0.5 bg-indigo-600"></div> Profile context
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="col-span-1">
-                <FormLabel icon={Hash}>Entity Code</FormLabel>
+                <FormLabel icon={Hash}>Structural ID</FormLabel>
+                <div className="h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3 group hover:bg-white transition-all">
+                  <span className="text-[10px] font-black text-slate-300">#</span>
+                  <span className="text-sm font-black text-slate-800 italic">
+                    {initialData?.id || nextId || '...'}
+                  </span>
+                  {!initialData && (
+                    <span className="ml-auto text-[7px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter animate-pulse">Auto-Fetch</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="col-span-1">
+                <div className="flex justify-between items-center pr-1">
+                  <FormLabel icon={Tag}>Entity Code</FormLabel>
+                   {!initialData && (
+                    <span className="text-[7px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter">Autogen</span>
+                   )}
+                </div>
                 <FormInput
                   name="account_code"
                   value={formData.account_code}
@@ -181,7 +219,6 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
                      name="account_type"
                      value={formData.account_type}
                      onChange={handleChange}
-                     disabled={initialData?.id}
                      className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 appearance-none cursor-pointer group-hover:bg-slate-50 transition-all uppercase tracking-widest"
                    >
                      {accountTypes.map(type => (

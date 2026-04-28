@@ -30,7 +30,8 @@ import {
   Database,
   ArrowLeftRight,
   MessageSquare,
-  Shield
+  Shield,
+  Fingerprint
 } from 'lucide-react'
 
 function Sidebar() {
@@ -60,6 +61,8 @@ function Sidebar() {
         { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
         { id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
         { id: 'narrations', title: 'Narration Master', icon: MessageSquare, path: '/narrations' },
+        { id: 'protocol-registry', title: 'Protocol Audit', icon: Fingerprint, path: '/protocol-registry' },
+        { id: 'dangar-payment-report', title: 'Dangar Payment Report', icon: FileText, path: '/dangar-payment-report' },
         { id: 'dangar-master', title: 'Dangar Master', icon: Shield, path: '/dangar-master' },
       ]
     },

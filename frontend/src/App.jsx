@@ -32,6 +32,8 @@ import DeductionConsole from './pages/DeductionConsole'
 import BardanPortfolio from './pages/BardanPortfolio'
 import NarrationMaster from './pages/NarrationMaster'
 import DangarMaster from './pages/DangarMaster'
+import ProtocolRegistry from './pages/ProtocolRegistry'
+import DangarPaymentReport from './pages/DangarPaymentReport'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 
@@ -112,10 +114,12 @@ function AppContent() {
               <Route path="/village" element={<Village />} />
               <Route path="/dangar-entry" element={<DangarEntry />} />
               <Route path="/dangar-rates" element={<DangarRateMaster />} />
+              <Route path="/dangar-payment-report" element={<DangarPaymentReport />} />
               <Route path="/kapat" element={<DeductionConsole />} />
               <Route path="/bardan-portfolio" element={<BardanPortfolio />} />
               <Route path="/narrations" element={<NarrationMaster />} />
               <Route path="/dangar-master" element={<DangarMaster />} />
+              <Route path="/protocol-registry" element={<ProtocolRegistry />} />
               
               {/* Transactions */}
               <Route path="/sales" element={<Sale />} />

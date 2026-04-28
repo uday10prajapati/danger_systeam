@@ -370,9 +370,10 @@ export default function DeductionConsole() {
                         ) : selectedIdentities.map((item, idx) => {
                            const key = `${item.type}-${item.id}`;
                            const isActive = key === deductionPayload.target_identifier;
-                           const bal = Number(item.total_debit || 0) - Number(item.total_credit || 0);
+                           const bal = Number(item.total_credit || 0) - Number(item.total_debit || 0);
                            const deducted = parseFloat(item.deduction_amount) || 0;
-                           const closing = bal - deducted;
+                           const closing = bal + deducted; // Kapat is a Credit (Jama) to the member account
+                           
                            return (
                               <div key={key}
                                  onClick={async () => {
@@ -386,10 +387,19 @@ export default function DeductionConsole() {
                                  <div className={`border-r py-1.5 text-center text-[11px] font-bold ${isActive ? 'border-blue-500 text-blue-100' : 'border-slate-200 text-slate-400'}`}>{idx + 1}</div>
                                  <div className={`border-r py-1.5 text-center text-[11px] font-mono font-black ${isActive ? 'border-blue-500 text-white' : 'border-slate-200 text-slate-700'}`}>{String(item.code || '').padStart(4, '0')}</div>
                                  <div className={`border-r px-3 py-1.5 text-[11px] font-bold truncate ${isActive ? 'border-blue-500 text-white' : 'border-slate-200 text-slate-800'}`}>{item.name}</div>
-                                 <div className={`border-r px-3 py-1.5 flex items-center justify-end ${isActive ? 'border-blue-500' : 'border-slate-200'}`}>
-                                    <div className={`text-[12px] font-mono font-black ${isActive ? 'text-white' : bal < 0 ? 'text-rose-600' : bal > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
+                                 <div className={`border-r px-3 py-1.5 flex flex-col items-end justify-center ${isActive ? 'border-blue-500' : 'border-slate-200'}`}>
+                                    <div className={`text-[11px] font-mono font-black ${isActive ? 'text-white' : bal < 0 ? 'text-rose-600' : bal > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
                                        {bal > 0 ? '+' : bal < 0 ? '-' : ''}{Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </div>
+                                    {deducted !== 0 && Math.abs(closing) > 0.01 && (
+                                       <div className={`text-[10px] font-mono font-black italic mt-0.5 ${
+                                          isActive ? 'text-blue-100' : 
+                                          closing < 0 ? 'text-rose-600' : 
+                                          closing > 0 ? 'text-emerald-600' : 'text-slate-400'
+                                       }`}>
+                                          {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                       </div>
+                                    )}
                                  </div>
                                  <div className="px-2 py-0.5 flex items-center" onClick={e => e.stopPropagation()}>
                                     <input type="number" value={item.deduction_amount || ''}

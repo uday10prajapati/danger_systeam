@@ -174,10 +174,6 @@ export default function DangarRateMaster() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
                <div>
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
-                     <Shield size={12} />
-                     <span>{t('modules.management', 'Management')} / Tariff Configuration</span>
-                  </div>
                   <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Year Wise Dangar Rate</h1>
                </div>
                <div className="flex items-center gap-4">
@@ -223,9 +219,20 @@ export default function DangarRateMaster() {
 
             {/* Content Table */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-               <div className="p-8 border-b border-slate-50 flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><TrendingUp size={18} /></div>
-                  <h2 className="text-lg font-bold text-slate-800 italic">Tariff Matrix - Fiscal Period {financialYear}</h2>
+               <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><TrendingUp size={18} /></div>
+                     <h2 className="text-lg font-bold text-slate-800 italic">Tariff Matrix - Fiscal Period {financialYear}</h2>
+                     <div className="group relative">
+                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center cursor-help transition-all hover:bg-amber-600 hover:text-white">
+                           <span className="text-[10px] font-black">!</span>
+                        </div>
+                        <div className="absolute left-0 top-full mt-2 w-56 p-3 bg-slate-900 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 shadow-2xl border border-white/10 translate-y-2 group-hover:translate-y-0">
+                           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">Standardization Protocol</p>
+                           <p className="text-[10px] font-bold text-slate-300 italic leading-tight">Attention: All tariffs MUST be configured based on 1.00 Kgs baseline ONLY.</p>
+                        </div>
+                     </div>
+                  </div>
                </div>
 
                <div className="overflow-x-auto">
@@ -234,9 +241,9 @@ export default function DangarRateMaster() {
                         <tr className="bg-[#F8FAFC]">
                            <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Commodity</th>
                            <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">SKU</th>
-                           <th className="px-6 py-5 text-[ Berkshire-100] text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">1st Class (₹)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30 font-black">2nd Class (₹)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30 font-black">3rd Class (₹)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">1st Class (1kg)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30 font-black">2nd Class (1kg)</th>
+                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30 font-black">3rd Class (1kg)</th>
                            <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Ops</th>
                         </tr>
                      </thead>

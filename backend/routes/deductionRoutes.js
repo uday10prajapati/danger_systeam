@@ -230,14 +230,14 @@ router.delete('/targets/:type/:id', async (req, res) => {
 // POST execute batch deduction (Now commits live to account_ledger)
 router.post('/execute-batch', async (req, res) => {
   try {
-    const { date, target_identifier, identities, master_id, remark, global_amount } = req.body;
+    const { date, target_identifier, identities, master_id, remark, global_amount, sabhasad_id } = req.body;
     const companyId = req.headers['x-company-id'];
 
-    if (!master_id) return res.status(400).json({ success: false, error: 'Deduction Rule required' });
-
-    // Get the Deduction Rule (Master) to find the ledger_account_id
-    const rule = await queryOne('SELECT ledger_account_id, name FROM deduction_master WHERE id = ?', [master_id]);
-    if (!rule || !rule.ledger_account_id) return res.status(400).json({ success: false, error: 'Invalid Deduction Rule or missing account mapping' });
+    const kapatAccs = await query(
+      "SELECT id, account_name FROM accounts WHERE (account_name LIKE '%Kapat%' OR account_name LIKE '%Deduction%') AND company_id = ? LIMIT 1", 
+      [companyId]
+    );
+    const fallbackRule = kapatAccs.length > 0 ? { ledger_account_id: kapatAccs[0].id, name: kapatAccs[0].account_name } : null;
 
     // Determine target list
     let targets = [];
@@ -258,19 +258,39 @@ router.post('/execute-batch', async (req, res) => {
        const amount = parseFloat(target.deduction_amount || global_amount || 0);
        if (amount <= 0) continue;
 
-       // Create Debit Entry for the member/account in the specific Kapat Account
+       // Verify we have a ledger account for this entry
+       let finalAccountId = null;
+       if (target.type === 'account') {
+         finalAccountId = target.id;
+       } else if (target.type === 'member') {
+         finalAccountId = fallbackRule?.ledger_account_id;
+       }
+
+       if (!finalAccountId) {
+         return res.status(400).json({ 
+           success: false, 
+           error: `No ledger account mapped for ${target.name}. Please create a "Kapat Account" in Account Master for member deductions.` 
+         });
+       }
+
+       // Kapat (Deduction) is typically a Credit (Jama) for the member/account
+       const entryType = target.entry_type || 'Cr'; 
+       const isCr = entryType === 'Cr';
+
+       // Create Entry for the member/account
        await query(`
          INSERT INTO account_ledger (
            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
            reference_no, description, debit, credit, notes, created_by, financial_year
-         ) VALUES (?, ?, ?, ?, 'deduction', 'deduction_batch', ?, ?, ?, 0, ?, ?, ?)
+         ) VALUES (?, ?, ?, ?, 'deduction', 'deduction_batch', ?, ?, ?, ?, ?, ?, ?)
        `, [
           companyId, 
-          rule.ledger_account_id, 
-          target.type === 'member' ? target.id : null,
+          finalAccountId, 
+          target.type === 'member' ? target.id : (sabhasad_id || null),
           date, referenceNo, 
-          `${rule.name}: ${remark || ''}`,
-          amount, 
+          `Kapat (Deduction) - ${target.name}`,
+          isCr ? 0 : amount, 
+          isCr ? amount : 0,
           remark || '', 
           req.headers['x-user-id'] || 1, 
           '2026-27'
@@ -279,23 +299,24 @@ router.post('/execute-batch', async (req, res) => {
        // --- Bardan Penalty Auto-Settlement Logic ---
        if (target.type === 'member') {
          try {
-           const member = await queryOne('SELECT member_name, member_code, bardan_opening FROM member_master WHERE id = ?', [target.id]);
+           const memberRes = await query('SELECT member_name, member_code, bardan_opening FROM member_master WHERE id = ?', [target.id]);
+           const member = memberRes.length > 0 ? memberRes[0] : null;
            if (member) {
              const code = member.member_code;
-             const taken = await queryOne('SELECT SUM(qty) as total FROM bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
-             const returned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+             const takenRes = await query('SELECT SUM(qty) as total FROM bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+             const returnedRes = await query('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+             
+             const taken = takenRes.length > 0 ? takenRes[0] : null;
+             const returned = returnedRes.length > 0 ? returnedRes[0] : null;
              
              const bardan_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(returned?.total || 0);
              
              if (bardan_balance > 0) {
-               const priceData = await queryOne('SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ?', [companyId]);
+               const priceDataRes = await query('SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ?', [companyId]);
+               const priceData = priceDataRes.length > 0 ? priceDataRes[0] : null;
                const price = parseFloat(priceData?.price_per_bardan || 0);
                
                if (price > 0) {
-                 // Calculate how many bags are 'paid for' by this deduction
-                 // If the deduction amount is specifically meant to cover the penalty
-                 // We'll clear up to the balance if amount is sufficient.
-                 // Business Rule: If amount >= penalty, clear all. Otherwise clear proportional.
                  const penalty = bardan_balance * price;
                  let bagsToClear = 0;
                  

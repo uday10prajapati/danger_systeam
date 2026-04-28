@@ -56,7 +56,7 @@ export default function AccountLedger() {
    const fetchAccounts = async () => {
       try {
          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`,
+            `/api/accounts/company/${company.id}`,
             { headers: { 'x-company-id': company.id } }
          );
          if (response.data.data) {
@@ -71,7 +71,7 @@ export default function AccountLedger() {
       try {
          setLoading(true);
          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/account-ledger/account/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+            `/api/account-ledger/account/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
             { headers: { 'x-company-id': company.id } }
          );
          if (response.data.success) {
@@ -87,7 +87,7 @@ export default function AccountLedger() {
    const fetchAccountBalance = async (accountId) => {
       try {
          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/account-ledger/balance/${accountId}`,
+            `/api/account-ledger/balance/${accountId}`,
             { headers: { 'x-company-id': company.id } }
          );
          if (response.data.success) {
@@ -102,7 +102,7 @@ export default function AccountLedger() {
       try {
          setLoading(true);
          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/account-ledger/trial-balance`,
+            `/api/account-ledger/trial-balance`,
             { headers: { 'x-company-id': company.id } }
          );
          if (response.data.success) {
@@ -377,15 +377,64 @@ export default function AccountLedger() {
                         </div>
                      </>
                   ) : (
-                     <div className="py-48 flex flex-col items-center justify-center bg-white rounded-[4rem] border border-slate-100 border-dashed">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-6 border border-slate-100">
-                           <Layout size={32} strokeWidth={1} />
+                     <>
+                        {/* Transaction Shard Registry - Default View */}
+                        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative animate-in slide-in-from-bottom duration-500">
+                          <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm flex justify-between items-center">
+                            <div>
+                               <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">Institutional Registry</h2>
+                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Select nomenclature node for deep shard audit</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-tighter shadow-sm flex items-center gap-2">
+                                  <Database size={10} /> Total Nodes: {filteredAccounts.length}
+                               </span>
+                            </div>
+                          </div>
+
+                          <div className="flex-1 overflow-x-auto scroller-airy">
+                            <table className="w-full text-left">
+                              <thead className="bg-[#F8FAFC]">
+                                <tr>
+                                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nomenclature</th>
+                                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Registry Class</th>
+                                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-right">Audit Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-50">
+                                {filteredAccounts.length === 0 ? (
+                                   <tr>
+                                      <td colSpan="3" className="py-32 text-center text-slate-200 font-black uppercase text-[10px] tracking-[0.4em] italic">No shards matched nomenclature</td>
+                                   </tr>
+                                ) : (
+                                  filteredAccounts.map(acc => (
+                                    <tr 
+                                      key={acc.id} 
+                                      onClick={() => handleSelectAccount(acc)}
+                                      className="group hover:bg-blue-50/30 cursor-pointer transition-all duration-300"
+                                    >
+                                      <td className="px-10 py-5">
+                                         <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase italic tracking-tight">{acc.account_name}</span>
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">SHA_ID: #{acc.id}</span>
+                                         </div>
+                                      </td>
+                                      <td className="px-10 py-5">
+                                         <span className="px-3 py-1 bg-white border border-slate-100 rounded-2xl text-[9px] font-black text-slate-400 uppercase tracking-tighter group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">{acc.account_type}</span>
+                                      </td>
+                                      <td className="px-10 py-5 text-right">
+                                         <button className="p-2.5 bg-slate-50 text-slate-300 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:scale-110 shadow-sm">
+                                            <ChevronRight size={18} />
+                                         </button>
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                        <p className="text-sm font-black text-slate-300 uppercase tracking-[0.4em] italic text-center">
-                           Awaiting Entity Identification Protocol<br />
-                           <span className="text-[10px] opacity-50 tracking-widest font-bold">Select from search matrix above</span>
-                        </p>
-                     </div>
+                      </>
                   )}
                </div>
             )}

@@ -125,7 +125,7 @@ export default function SabhasadLedgerSummary() {
   // Auto-Fetch Effects
   useEffect(() => {
     if (accCode && accountId === 'all') {
-      const match = accounts.find(a => String(a.id) === accCode);
+      const match = accounts.find(a => String(a.id) === accCode && a.is_subledger);
       if (match) handleSelectAcc(match);
     } else if (!accCode && accountId !== 'all') {
       handleSelectAcc(null);
@@ -142,6 +142,7 @@ export default function SabhasadLedgerSummary() {
   }, [memCode]);
 
   const filteredAccs = accounts.filter(a =>
+    a.is_subledger &&
     (accCode ? String(a.id).includes(accCode) : true) &&
     (accName ? a.account_name.toLowerCase().includes(accName.toLowerCase()) : true)
   );
@@ -218,7 +219,10 @@ export default function SabhasadLedgerSummary() {
 
             {/* Account Search Shard - col-span-3 */}
             <div className="md:col-span-3 relative space-y-2">
-              <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">Nomenclature Registry</span>
+              <div className="flex justify-between items-center px-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nomenclature Registry</span>
+                <span className="text-[8px] font-black text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full uppercase tracking-tighter">Sub-Ledger Only</span>
+              </div>
               <div className="relative group">
                 <Hash size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" />
                 <input

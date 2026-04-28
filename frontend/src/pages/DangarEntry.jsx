@@ -5,7 +5,7 @@ import {
   Calendar, Info, AlertCircle, FileText,
   User, Box, Calculator, Truck,
   CheckCircle, History, Edit3, ChevronRight, Eye,
-  TrendingDown, CreditCard
+  TrendingDown, CreditCard, TrendingUp 
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { sabhasadMasterApi, dangarEntryApi, bardanEntryApi } from '../api';
@@ -49,6 +49,7 @@ const DangarEntry = () => {
   const [bardanPrice, setBardanPrice] = useState(0);
   const [seasons, setSeasons] = useState([]);
   const [currentSeason, setCurrentSeason] = useState(null);
+  const [display_unit, setDisplayUnit] = useState('quintal'); // kg, man, quintal
 
   const [deductions, setDeductions] = useState([]);
   const [deductionMasters, setDeductionMasters] = useState([]);
@@ -183,51 +184,59 @@ const DangarEntry = () => {
     // Automatically sync the return bags in the form
     const calculatedBardanReturn = bagCountFromWeights;
 
-    const totalKG = weightRows.reduce((acc, row) => acc + (parseFloat(row.wgt) || 0), 0);
+    // Calculate Total KG (Standardized to KG only for individual nodes)
+    let totalKG = weightRows.reduce((acc, row) => acc + (parseFloat(row.wgt) || 0), 0);
+
     const totalMan = totalKG / 20;
     const grossQuintal = totalKG / 100;
-    const bardanWeightKG = (parseFloat(bagCountFromWeights) || 0) * (parseFloat(formData.gun) || 0);
-    const lessBardanQuintal = bardanWeightKG / 100;
-    const netQuintal = Math.max(0, grossQuintal - lessBardanQuintal);
-    const grossAmount = netQuintal * (parseFloat(formData.rate) || 0);
+    
+    // Bardan weight deduction (Gun weight)
+    const gunWeight = parseFloat(formData.gun) || 0;
+    const totalBardanDeductionKG = (parseFloat(bagCountFromWeights) || 0) * gunWeight;
+    
+    // Net KGs for calculation
+    const netKG = Math.max(0, totalKG - totalBardanDeductionKG);
+    const netQuintal = netKG / 100;
+    
+    // Gross amount before kapat/penalties
+    const grossAmount = netKG * (parseFloat(formData.rate) || 0);
 
-    // Calculate current deductions
-    let totalDeduction = 0;
+    // Calculate current deductions (Kapat)
+    let totalKapatDeduction = 0;
     const updatedDeductions = deductions.map(d => {
       let calcAmt = 0;
       if (d.type === 'fixed') calcAmt = parseFloat(d.value) || 0;
       else if (d.type === 'per_unit') calcAmt = netQuintal * (parseFloat(d.value) || 0);
       else if (d.type === 'percentage') calcAmt = (grossAmount * (parseFloat(d.value) || 0)) / 100;
 
-      totalDeduction += calcAmt;
+      totalKapatDeduction += calcAmt;
       return { ...d, calculated_amount: calcAmt.toFixed(2) };
     });
 
-    const finalAmt = grossAmount - totalDeduction;
-
-    // Remaining Bardan Deduction (calculate based on full fetched balance minus what we are returning now)
+    // Bardan Penalty (Unreturned bags)
     const remainingBardan = Math.max(0, bardanBalance - bagCountFromWeights);
     const activePrice = parseFloat(formData.active_bardan_price) || bardanPrice;
-    const bardanDeductionValue = remainingBardan * activePrice;
+    const bardanPenaltyAmount = remainingBardan * activePrice;
 
-    // Ultimate Net Payable - Penalty is shown as info only, settled in Kapat Console
-    const netPayable = finalAmt;
+    // Ultimate Net Payable - Penalty is shown as info only, NOT subtracted here
+    const netPayable = grossAmount - totalKapatDeduction;
 
     setFormData(prev => ({
       ...prev,
       total_kg: totalKG.toFixed(2),
       total_man: totalMan.toFixed(2),
       gross_quintal: grossQuintal.toFixed(2),
-      less_bardan: lessBardanQuintal.toFixed(2),
+      less_bardan: totalBardanDeductionKG.toFixed(2),
       net_quintal: netQuintal.toFixed(2),
       amount: netPayable.toFixed(2),
       gross_amount: grossAmount.toFixed(2),
-      total_deduction: totalDeduction.toFixed(2),
-      remaining_bardan_deduction: bardanDeductionValue.toFixed(2),
+      total_deduction: totalKapatDeduction.toFixed(2),
+      remaining_bardan_deduction: bardanPenaltyAmount.toFixed(2),
       remaining_bardan_bags: remainingBardan,
       returned_bags: bagCountFromWeights,
       bardan: remainingBardan,
-      active_bardan_price: activePrice
+      active_bardan_price: activePrice,
+      weight_unit: 'kg'
     }));
 
     // update calculation results in state without triggering extra effect if possible
@@ -296,7 +305,8 @@ const DangarEntry = () => {
         entry_date: formData.date,
         created_by: user.id || 1,
         weights: weightRows,
-        deductions: deductions
+        deductions: deductions,
+        weight_unit: 'kg'
       };
 
       const res = await dangarEntryApi.create(payload);
@@ -660,21 +670,43 @@ const DangarEntry = () => {
                 </div>
               </div>
 
-              {/* Sabhasad Detail Preview */}
+              {/* Composite Payload Dashboard */}
               <div className="mt-12 bg-slate-900/5 rounded-[2.5rem] border border-slate-100 p-8">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="flex items-center gap-5">
                     <div className="w-16 h-16 bg-white border border-slate-100 rounded-3xl flex items-center justify-center text-slate-800 shadow-xl">
-                      <User size={32} />
+                      <TrendingUp size={32} className="text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-slate-800 leading-none italic uppercase">{t('dangarEntry.sabhasadDetails')}</h3>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1">Real-time Node Status Monitor</p>
+                      <h3 className="text-xl font-black text-slate-800 leading-none italic uppercase">Composite Payload</h3>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Tri-Unit Synchronization Active</p>
                     </div>
                   </div>
-                  <div className="bg-white px-8 py-5 rounded-3xl border border-slate-100 shadow-sm text-center">
-                    <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1 italic">Aggregate Node Volume</p>
-                    <p className="text-3xl font-black text-slate-800 tracking-tighter leading-none italic">{formData.net_quintal} <span className="text-[10px]">QT</span></p>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Unit Selector & Price Preview */}
+                    <div className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                      <select 
+                        className="bg-slate-50 border-none outline-none px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-600"
+                        value={display_unit}
+                        onChange={(e) => setDisplayUnit(e.target.value)}
+                      >
+                         <option value="kg">Per KG</option>
+                         <option value="man">Per MAN (20kg)</option>
+                         <option value="quintal">Per QUINTAL</option>
+                      </select>
+                      <div className="px-4 py-2 bg-blue-50 rounded-xl min-w-[200px]">
+                        <p className="text-[7px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1 italic text-center">Payload Valuation Summary</p>
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-black text-blue-700 italic">
+                           <span>{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)}</span>
+                           <span className="text-[8px] uppercase">{display_unit}</span>
+                           <span className="text-slate-400 font-normal ml-0.5">x</span>
+                           <span>₹{display_unit === 'man' ? (parseFloat(formData.rate) * 20).toFixed(2) : (display_unit === 'quintal' ? (parseFloat(formData.rate) * 100).toFixed(2) : formData.rate)}</span>
+                           <span className="text-slate-400 font-normal">=</span>
+                           <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-lg shadow-sm">₹{formData.gross_amount}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -707,7 +739,9 @@ const DangarEntry = () => {
               <div className="flex-1 overflow-y-auto pr-2 scroller-airy space-y-3 mb-6">
                 <div className="grid grid-cols-12 gap-4 px-2 italic text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                   <div className="col-span-2 text-center">No</div>
-                  <div className="col-span-10">Vector Magnitude (KG)</div>
+                  <div className="col-span-10 px-4">
+                    <span>Vector Magnitude (KG)</span>
+                  </div>
                 </div>
 
                 {weightRows.map((row, idx) => (
@@ -760,61 +794,87 @@ const DangarEntry = () => {
               <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.4em] italic mb-2 relative z-10">Calculated Fiscal State</h3>
 
               <div className="space-y-6 relative z-10">
-                <div className="grid grid-cols-1 gap-5">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rem. Bardan</p>
-                      <input
-                        type="number"
-                        readOnly
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                        value={formData.bardan}
-                      />
-                      {selectedMember && (
-                        <div className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
-                          Bal: {bardanBalance}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">{t('dangarEntry.gun')}</p>
-                      <input
-                        type="number"
-                        readOnly
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                        value={formData.gun}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rate (₹)</p>
-                      <input
-                        type="number"
-                        readOnly
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                        value={formData.active_bardan_price}
-                      />
+                  <div className="grid grid-cols-1 gap-5">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rem. Bardan</p>
+                        <input
+                          type="number"
+                          readOnly
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                          value={formData.bardan}
+                        />
+                        {selectedMember && (
+                          <div className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
+                            Bal: {bardanBalance}
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Net KG</p>
+                        <input
+                          type="number"
+                          readOnly
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                          value={formData.total_kg}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rate (per KG)</p>
+                        <input
+                          type="number"
+                          readOnly
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
+                          value={formData.rate}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 space-y-5">
-                  {[
-                    { label: t('dangarEntry.grossQuintal'), val: formData.gross_quintal, color: 'slate-500' },
-                    { label: 'Total Man (20kg)', val: formData.total_man, color: 'amber-500' },
-                    { label: t('dangarEntry.lessBardan'), val: `${formData.less_bardan} (${formData.returned_bags} Bags)`, color: 'rose-500' },
-                    { label: `${formData.quality_class} Class Rate (₹)`, val: formData.rate, color: 'blue-500' },
-                    { label: t('dangarEntry.netQuintal'), val: formData.net_quintal, color: 'white', size: 'text-3xl', highlight: true },
-                    { label: `Penalty: Unreturned (${formData.bardan || 0} x ₹${formData.active_bardan_price || bardanPrice})`, val: `₹${formData.remaining_bardan_deduction || '0.00'}`, color: 'rose-400' },
-                    { label: 'Total Amount (₹)', val: formData.amount, color: 'emerald-400', size: 'text-4xl', highlight: true }
+                <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 space-y-5">                   {[
+                    { label: 'Gross Net (KG)', val: (formData.total_kg - formData.less_bardan).toFixed(2), color: 'slate-500' },
+                    { label: 'Gross Amount (₹)', val: `₹${formData.gross_amount}`, color: 'blue-400' },
+                    { label: t('dangarEntry.lessBardan'), val: `- ₹0.00 (${formData.less_bardan}kg Gun)`, color: 'rose-500' },
+                    { 
+                      label: `${formData.quality_class} Rate (per 1kg)`, 
+                      val: `₹${formData.rate}`, 
+                      color: 'blue-300' 
+                    },
+                    { label: 'Kapat (Deductions)', val: `- ₹${formData.total_deduction}`, color: 'rose-400' },
+                    { label: 'Bardan Penalty', val: `- ₹${formData.remaining_bardan_deduction}`, color: 'rose-600', highlight: true },
+                    { 
+                      label: 'Net Payable (₹)', 
+                      val: `₹${formData.amount}`, 
+                      color: 'emerald-400', 
+                      size: 'text-5xl', 
+                      highlight: true 
+                    }
                   ].map((calc, i) => (
-                    <div key={i} className="flex justify-between items-center group/row">
-                      <p className={`text-[10px] font-black uppercase tracking-widest italic font-mono ${calc.highlight ? 'text-blue-500' : 'text-slate-600'}`}>{calc.label}</p>
+                    <div key={i} className={`flex justify-between items-center group/row py-2 ${calc.size ? 'mt-4 border-t border-white/10 pt-6' : ''}`}>
+                      <p className={`text-[10px] font-black uppercase tracking-widest italic font-mono ${calc.highlight ? 'text-amber-500' : 'text-slate-500'}`}>{calc.label}</p>
                       <p className={`${calc.size || 'text-base'} font-black italic font-mono tracking-tighter ${calc.highlight ? 'text-white' : `text-${calc.color}`}`}>
                         {calc.val}
                       </p>
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="flex gap-4">
+                 <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                 >
+                   <Save size={20} />
+                   Commit Transaction
+                 </button>
+                 <button
+                  onClick={loadHistory}
+                  className="w-20 bg-white/5 hover:bg-white/10 text-white py-6 rounded-[2rem] font-black border border-white/10 flex items-center justify-center transition-all active:scale-95"
+                 >
+                   <History size={20} />
+                 </button>
               </div>
             </div>
 
@@ -825,7 +885,6 @@ const DangarEntry = () => {
         <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-[3rem] border border-white shadow-xl flex flex-wrap justify-center gap-5">
           {[
             { label: 'Display Logs', icon: Search, color: 'slate', action: loadHistory, sub: 'Manifest history' },
-            ,
             { label: 'Commit Entry', icon: Save, color: 'emerald', action: handleSave, sub: 'Save vector' },
             { label: 'Generate Slip', icon: Printer, color: 'slate', sub: 'Print physical log' },
             { label: 'Abort State', icon: X, color: 'rose', action: resetForm, sub: 'Clear cache' },

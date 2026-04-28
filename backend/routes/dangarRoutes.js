@@ -1,5 +1,6 @@
 import express from 'express';
 import { query, queryOne, execute } from '../db.js';
+import { generateDangarEntryCode } from '../utils/protocolCodeGenerator.js';
 
 const router = express.Router();
 
@@ -79,19 +80,12 @@ router.post('/', async (req, res) => {
     const { 
       bookType, date, member_id, item_id, remark, vehicleNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate, amount, created_by, weights, deductions = [], remaining_bardan_bags, returned_bags,
-      quality_class
+      rate, amount, total_deduction, created_by, weights, deductions = [], remaining_bardan_bags, returned_bags,
+      quality_class, weight_unit
     } = req.body;
 
-    // 1. Precise SR No Generation (Isolate by Company/Year)
-    const lastEntry = await queryOne(`
-      SELECT id FROM dangar_entry 
-      WHERE company_id = ? AND financial_year = ? 
-      ORDER BY id DESC LIMIT 1
-    `, [companyId, currentFinancialYear]);
-    
-    const nextSr = (lastEntry?.id || 0) + 1;
-    const srNo = `${bookType?.[0]?.toUpperCase() || 'D'}${String(nextSr).padStart(5, '0')}`;
+    // 1. Precise SR No Generation (Protocol D00001)
+    const srNo = await generateDangarEntryCode(companyId);
 
     // 2. Commit Header State
     const result = await execute(`
@@ -99,13 +93,13 @@ router.post('/', async (req, res) => {
         company_id, financial_year, book_type, sr_no, entry_date, 
         member_id, item_id, remark, vehicle_no, quality_class,
         total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-        rate, amount, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        rate, amount, total_deduction, weight_unit, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       companyId, currentFinancialYear, bookType, srNo, date,
       member_id, item_id, remark, vehicleNo, quality_class || '1st',
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate || 0, amount || 0, created_by || 1
+      rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', created_by || 1
     ]);
 
     const entryId = result.insertId || result.lastID;

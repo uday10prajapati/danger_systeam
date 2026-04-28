@@ -1,5 +1,6 @@
 import express from 'express';
 import { query, queryOne, execute } from '../db.js';
+import { generateBardanEntryCode } from '../utils/protocolCodeGenerator.js';
 
 const router = express.Router();
 
@@ -68,21 +69,28 @@ router.post('/', async (req, res) => {
     
     console.log('📝 Jama Bardan POST Body:', req.body);
 
-    const { 
+    let { 
       bookType, pavtiNo, date, memNominal, code, name, qty, option, remark, dayQty, totalQty, gridRows 
     } = req.body;
+
+    if (!pavtiNo || pavtiNo === '') {
+      pavtiNo = await generateBardanEntryCode(companyId);
+    }
+
+    // Resolve IDs
+    const member = await queryOne('SELECT id, account_id FROM member_master WHERE member_code = ? AND company_id = ?', [code, companyId]);
 
     console.log('📦 Committing Jama Bardan Entry:', { companyId, financialYear, code, qty });
     const result = await execute(`
       INSERT INTO jama_bardan_entry (
         company_id, financial_year, book_type, pavti_no, entry_date, 
         mem_nominal, code, name, qty, option_type, remark,
-        day_qty, total_qty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        day_qty, total_qty, member_id, account_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       companyId, financialYear, bookType, pavtiNo, date,
       memNominal, code, name, qty || 0, option, remark,
-      dayQty || 0, totalQty || 0
+      dayQty || 0, totalQty || 0, member?.id || null, member?.account_id || null
     ]);
 
     const entryId = result.insertId || result.lastID;
