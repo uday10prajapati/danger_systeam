@@ -59,9 +59,10 @@ router.get('/payment-report', async (req, res) => {
     // 1. Member-level credits from account_ledger (dangar purchase credits)
     const ledgerRows = await query(`
       SELECT
-        mm.id          AS member_id,
+        mm.id             AS member_id,
         mm.member_code,
         mm.member_name,
+        mm.full_ac_number,
         SUM(al.credit) AS total_credit,
         SUM(al.debit)  AS total_debit,
         COUNT(al.id)   AS entry_count
@@ -70,9 +71,36 @@ router.get('/payment-report', async (req, res) => {
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, mm.member_code, mm.member_name
+      GROUP BY mm.id, mm.member_code, mm.member_name, mm.full_ac_number
       ORDER BY mm.member_code ASC
     `, [companyId, ...dateParams]);
+
+    // 1b. Individual kapat (deduction) entries per member — for sub-rows
+    const kapatDateFilter = startDate && endDate ? 'AND al.transaction_date BETWEEN ? AND ?' : '';
+    const kapatRows = await query(`
+      SELECT
+        al.member_id,
+        al.transaction_date,
+        al.description,
+        al.credit         AS amount,
+        al.reference_no,
+        acc.account_name
+      FROM account_ledger al
+      LEFT JOIN accounts acc ON al.account_id = acc.id
+      WHERE al.company_id = ?
+        AND al.member_id IS NOT NULL
+        AND al.transaction_type = 'deduction'
+        ${kapatDateFilter}
+      ORDER BY al.transaction_date DESC
+    `, [companyId, ...dateParams]);
+
+    // Group kapat entries by member_id
+    const kapatMap = {};
+    kapatRows.forEach(k => {
+      if (!kapatMap[k.member_id]) kapatMap[k.member_id] = [];
+      kapatMap[k.member_id].push(k);
+    });
+
 
     // 2. Dangar entry details per member (sr_no, qty, rate, kapat)
     const dangDateFilter = startDate && endDate ? 'AND de.entry_date BETWEEN ? AND ?' : '';
@@ -95,7 +123,7 @@ router.get('/payment-report', async (req, res) => {
       ORDER BY de.entry_date ASC, de.id ASC
     `, [companyId, ...dangParams]);
 
-    // 3. Bardan (bag) balance per member code
+    // 3. Bardan issued per member code
     const bardanRows = await query(`
       SELECT
         be.code            AS member_code,
@@ -105,8 +133,27 @@ router.get('/payment-report', async (req, res) => {
       GROUP BY be.code
     `, [companyId]);
 
-    const bardanMap = {};
-    bardanRows.forEach(b => { bardanMap[b.member_code] = parseFloat(b.total_bardan_issued || 0); });
+    // 3b. Bardan returned (jama) per member code
+    const jamaBardanRows = await query(`
+      SELECT
+        jbe.code           AS member_code,
+        SUM(jbe.qty)       AS total_bardan_returned
+      FROM jama_bardan_entry jbe
+      WHERE jbe.company_id = ?
+      GROUP BY jbe.code
+    `, [companyId]);
+
+    const bardanIssuedMap  = {};
+    const bardanReturnedMap = {};
+    bardanRows.forEach(b    => { bardanIssuedMap[b.member_code]   = parseFloat(b.total_bardan_issued   || 0); });
+    jamaBardanRows.forEach(j => { bardanReturnedMap[j.member_code] = parseFloat(j.total_bardan_returned || 0); });
+
+    // 4. Bardan price (company-wide)
+    const bardanPriceRow = await queryOne(
+      'SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ? LIMIT 1',
+      [companyId]
+    );
+    const pricePerBardan = parseFloat(bardanPriceRow?.price_per_bardan || 0);
 
     // Index dangar rows by member_id
     const dangarMap = {};
@@ -117,30 +164,48 @@ router.get('/payment-report', async (req, res) => {
 
     // Build final report rows
     const report = ledgerRows.map(row => {
-      const entries    = dangarMap[row.member_id] || [];
-      const totalKg    = entries.reduce((s, e) => s + parseFloat(e.total_kg || 0), 0);
-      const rateAmount = entries.reduce((s, e) => s + parseFloat(e.rate_amount || 0), 0);
-      const deduction  = entries.reduce((s, e) => s + parseFloat(e.deduction_amount || 0), 0);
-      // Net payable = total credit from ledger − total debit (expenses, kapat already applied)
-      const netCredit  = parseFloat(row.total_credit || 0);
-      const netDebit   = parseFloat(row.total_debit  || 0);
-      const finalAmount = netCredit - netDebit;
+      const entries        = dangarMap[row.member_id] || [];
+      const totalKg        = entries.reduce((s, e) => s + parseFloat(e.total_kg          || 0), 0);
+      const totalQuintal   = entries.reduce((s, e) => s + parseFloat(e.net_quintal       || 0), 0);
+      // rate_amount — total_kg × rate (rate is per KG, not per quintal)
+      const rateAmount     = entries.reduce((s, e) => s + parseFloat(e.total_kg || 0) * parseFloat(e.rate || 0), 0);
+      const deduction      = entries.reduce((s, e) => s + parseFloat(e.deduction_amount  || 0), 0);
+      // Rate is stored per KG in dangar_entry.rate (see DangarRateMaster)
+      const weightedRate   = entries.length > 0
+        ? entries.reduce((s, e) => s + parseFloat(e.rate || 0), 0) / entries.length
+        : 0;
+
+      const bardanIssued    = parseFloat(bardanIssuedMap[row.member_code]   || 0);
+      const bardanReturned  = parseFloat(bardanReturnedMap[row.member_code] || 0);
+      const bardanRemaining = Math.max(0, bardanIssued - bardanReturned);
+      const bardanAmount    = bardanIssued * pricePerBardan;
+
+      const totalKapat  = (kapatMap[row.member_id] || []).reduce((s, k) => s + parseFloat(k.amount || 0), 0);
+      // Final Amount = Rate Amount − Total Kapat (clear, auditable formula)
+      const finalAmount = rateAmount - totalKapat;
 
       return {
         member_id:        row.member_id,
         member_code:      row.member_code,
         member_name:      row.member_name,
+        full_ac_number:   row.full_ac_number || '',
         entry_count:      row.entry_count,
         total_kg:         totalKg.toFixed(2),
-        // Use ledger as ground-truth for amounts
-        rate_amount:      rateAmount > 0 ? rateAmount.toFixed(2) : netCredit.toFixed(2),
+        total_quintal:    totalQuintal > 0 ? totalQuintal.toFixed(2) : (totalKg / 100).toFixed(2),
+        rate_per_kg:      weightedRate.toFixed(2),
+        rate_amount:      rateAmount.toFixed(2),
         deduction_amount: deduction.toFixed(2),
-        net_debit:        netDebit.toFixed(2),
+        total_kapat:      totalKapat.toFixed(2),
         final_amount:     finalAmount.toFixed(2),
-        bardan_issued:    bardanMap[row.member_code] || 0,
+        bardan_issued:    bardanIssued,
+        bardan_returned:  bardanReturned,
+        bardan_remaining: bardanRemaining,
+        bardan_amount:    bardanAmount.toFixed(2),
+        kapat_entries:    kapatMap[row.member_id] || [],
         entries:          entries,
       };
     });
+
 
     res.json({ success: true, data: report });
   } catch (error) {

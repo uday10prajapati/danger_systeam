@@ -80,6 +80,7 @@ export async function initializeDatabase() {
           phone VARCHAR(20) NOT NULL,
           email VARCHAR(100) NOT NULL UNIQUE,
           gst_number VARCHAR(15),
+          company_account_no VARCHAR(100),
           financial_year_start DATE NOT NULL,
           financial_year_end DATE NOT NULL,
           currency VARCHAR(3) DEFAULT 'INR',
@@ -89,6 +90,8 @@ export async function initializeDatabase() {
           is_active INT DEFAULT 1
         )
       `);
+      // Migration: add company_account_no if missing
+      try { await connection.query(`ALTER TABLE company ADD COLUMN company_account_no VARCHAR(100)`); } catch(e) {}
 
       // Create Users table
       await connection.query(`

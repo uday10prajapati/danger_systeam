@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Plus, X, Database, Layout, CheckCircle, UserCheck, ArrowRight, User } from 'lucide-react';
 import api, { sabhasadMasterApi } from '../api';
 
@@ -31,8 +31,8 @@ export default function DeductionConsole() {
    useEffect(() => {
       if (deductionPayload.target_identifier && deductionPayload.target_identifier.startsWith('account-')) {
          const accId = deductionPayload.target_identifier.split('-')[1];
-         api.get(`/account-ledger/account-stats/${accId}`, { 
-            params: { ...accountStatsRange, memberId: deductionPayload.sabhasad_id } 
+         api.get(`/account-ledger/account-stats/${accId}`, {
+            params: { ...accountStatsRange, memberId: deductionPayload.sabhasad_id }
          })
             .then(res => {
                if (res.data.success) setActiveAccountStats(res.data.data);
@@ -249,7 +249,7 @@ export default function DeductionConsole() {
             )}
          </div>
 
-         {/* ── KAPAT ENTRY MODAL ── */}
+         {/* â”€â”€ KAPAT ENTRY MODAL â”€â”€ */}
          {showDeductionModal && (
             <div className="fixed inset-0 z-[100] flex justify-center items-center p-4">
                <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeductionModal(false)} />
@@ -258,7 +258,7 @@ export default function DeductionConsole() {
                   {/* Title bar */}
                   <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-3 py-1.5 flex justify-between items-center shrink-0">
                      <span className="text-xs font-bold tracking-wide">Kapat Entry</span>
-                     <button onClick={() => setShowDeductionModal(false)} className="w-5 h-5 bg-white/20 hover:bg-red-500 flex items-center justify-center rounded-sm text-xs font-black transition-colors">✕</button>
+                     <button onClick={() => setShowDeductionModal(false)} className="w-5 h-5 bg-white/20 hover:bg-red-500 flex items-center justify-center rounded-sm text-xs font-black transition-colors">X</button>
                   </div>
 
                   {/* Form fields */}
@@ -275,7 +275,7 @@ export default function DeductionConsole() {
                      </div>
                      <div className="flex items-center gap-2">
                         <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">{isSubledger ? 'Sabhasad :' : 'Narration :'}</label>
-                        {/* Code box — small, auto-fills name on change */}
+                        {/* Code box â€” small, auto-fills name on change */}
                         <input
                            type="text"
                            value={deductionPayload.sabhasad_code || ''}
@@ -302,7 +302,7 @@ export default function DeductionConsole() {
                            className="w-20 px-2 bg-white border border-slate-300 rounded-sm text-xs font-mono font-black text-slate-800 outline-none focus:border-blue-500 h-7 text-center"
                            placeholder="Code"
                         />
-                        {/* Name box — auto-filled, editable */}
+                        {/* Name box â€” auto-filled, editable */}
                         <input
                            type="text"
                            value={deductionPayload.sabhasad_name || ''}
@@ -335,12 +335,6 @@ export default function DeductionConsole() {
                               <span className="text-emerald-700 text-[8px] uppercase leading-none mb-0.5">Jama</span>
                               <span className="text-emerald-900 leading-none">{parseFloat(activeAccountStats.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                            </div>
-                           {activeAccountStats.bardan_penalty > 0 && (
-                              <div className="flex flex-col items-end px-2 py-0.5 bg-amber-50 border border-amber-200 rounded min-w-[80px]">
-                                 <span className="text-amber-700 text-[8px] uppercase leading-none mb-0.5">Bardan ({activeAccountStats.bardan_balance})</span>
-                                 <span className="text-amber-900 leading-none">{parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                              </div>
-                           )}
                            <div className="flex flex-col items-end px-2 py-0.5 bg-rose-50 border border-rose-200 rounded min-w-[80px]">
                               <span className="text-rose-700 text-[8px] uppercase leading-none mb-0.5">Total Udhar</span>
                               <span className="text-rose-900 leading-none">{parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -373,7 +367,7 @@ export default function DeductionConsole() {
                            const bal = Number(item.total_credit || 0) - Number(item.total_debit || 0);
                            const deducted = parseFloat(item.deduction_amount) || 0;
                            const closing = bal + deducted; // Kapat is a Credit (Jama) to the member account
-                           
+
                            return (
                               <div key={key}
                                  onClick={async () => {
@@ -392,11 +386,10 @@ export default function DeductionConsole() {
                                        {bal > 0 ? '+' : bal < 0 ? '-' : ''}{Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </div>
                                     {deducted !== 0 && Math.abs(closing) > 0.01 && (
-                                       <div className={`text-[10px] font-mono font-black italic mt-0.5 ${
-                                          isActive ? 'text-blue-100' : 
-                                          closing < 0 ? 'text-rose-600' : 
-                                          closing > 0 ? 'text-emerald-600' : 'text-slate-400'
-                                       }`}>
+                                       <div className={`text-[10px] font-mono font-black italic mt-0.5 ${isActive ? 'text-blue-100' :
+                                             closing < 0 ? 'text-rose-600' :
+                                                closing > 0 ? 'text-emerald-600' : 'text-slate-400'
+                                          }`}>
                                           {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                        </div>
                                     )}
@@ -410,7 +403,34 @@ export default function DeductionConsole() {
                               </div>
                            );
                         })}
-                     </div>
+
+                         {/* Bardan row - last row in table */}
+                         {deductionPayload.target_identifier &&
+                          deductionPayload.target_identifier.startsWith('account-') &&
+                          activeAccountStats.bardan_penalty > 0 && (
+                            <div
+                              className="grid border-b-2 border-amber-300 bg-amber-50"
+                              style={{ gridTemplateColumns: '36px 72px 1fr 110px 100px' }}
+                            >
+                              <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-black text-amber-500">B</div>
+                              <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-mono font-black text-amber-700">---</div>
+                              <div className="border-r border-amber-200 px-3 py-1.5 text-[11px] font-black text-amber-800">
+                                Bardan Penalty
+                                <span className="ml-2 text-[9px] font-bold text-amber-500 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                                  {activeAccountStats.bardan_balance} bags
+                                </span>
+                              </div>
+                              <div className="border-r border-amber-200 px-3 py-1.5 text-right text-[11px] font-mono font-black text-amber-700">
+                                {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </div>
+                              <div className="px-2 py-0.5 flex items-center">
+                                <span className="w-full text-right text-[11px] font-mono font-black text-amber-700 px-1.5">
+                                  {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                         )}
+                      </div>
 
                      {/* Total footer */}
                      <div className="border-t-2 border-slate-400 bg-slate-100 shrink-0 flex items-center justify-between px-4 py-1.5">
@@ -435,7 +455,7 @@ export default function DeductionConsole() {
             </div>
          )}
 
-         {/* ── TARGET SELECTOR MODAL ── */}
+         {/* â”€â”€ TARGET SELECTOR MODAL â”€â”€ */}
          {showMembersModal && (
             <div className="fixed inset-0 z-[100] flex justify-center items-center p-6 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)}>
                <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh] border border-slate-200" onClick={e => e.stopPropagation()}>
@@ -452,7 +472,7 @@ export default function DeductionConsole() {
                         <button onClick={() => setIdentityTab('account')} className={`flex-1 py-3 text-xs font-bold rounded-xl ${identityTab === 'account' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Ledgers</button>
                      </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-3 bg-slate-50">
+                   <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-3 bg-slate-50 content-start auto-rows-min">
                      {identityTab === 'sabhasad' ? (
                         members.filter(m => String(m.member_code).includes(identitySearch) || m.member_name.toLowerCase().includes(identitySearch.toLowerCase())).map(m => {
                            const isSel = selectedIdentities.some(i => i.id === m.id && i.type === 'member');

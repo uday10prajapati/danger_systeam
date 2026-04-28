@@ -77,6 +77,7 @@ export function registerCompanyRoutes(app) {
         phone,
         email,
         gst_number,
+        company_account_no,
         financial_year_start,
         financial_year_end,
         currency,
@@ -85,15 +86,16 @@ export function registerCompanyRoutes(app) {
 
       const result = await execute(
         `INSERT INTO company (
-          company_name, address, phone, email, gst_number,
+          company_name, address, phone, email, gst_number, company_account_no,
           financial_year_start, financial_year_end, currency, logo_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           company_name.trim(),
           address.trim(),
           phone,
           email.toLowerCase(),
           gst_number || null,
+          company_account_no || null,
           financial_year_start,
           financial_year_end,
           currency.toUpperCase(),
@@ -156,6 +158,7 @@ export function registerCompanyRoutes(app) {
         phone,
         email,
         gst_number,
+        company_account_no,
         financial_year_start,
         financial_year_end,
         currency,
@@ -165,7 +168,8 @@ export function registerCompanyRoutes(app) {
       await execute(
         `UPDATE company SET
           company_name = ?, address = ?, phone = ?, email = ?,
-          gst_number = ?, financial_year_start = ?, financial_year_end = ?,
+          gst_number = ?, company_account_no = ?,
+          financial_year_start = ?, financial_year_end = ?,
           currency = ?, logo_url = ?
         WHERE id = ?`,
         [
@@ -174,6 +178,7 @@ export function registerCompanyRoutes(app) {
           phone,
           email.toLowerCase(),
           gst_number || null,
+          company_account_no || null,
           financial_year_start,
           financial_year_end,
           currency.toUpperCase(),

@@ -3,7 +3,7 @@ import {
   Building2, Phone, Mail, MapPin,
   Calendar, Database, Activity, CheckCircle,
   AlertCircle, Edit3, ArrowLeft, ChevronRight,
-  Globe, Shield, Save, X, Trash2, RefreshCw, Plus
+  Globe, Shield, Save, X, Trash2, RefreshCw, Plus, CreditCard
 } from 'lucide-react'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +21,7 @@ function CompanySetup() {
     phone: '',
     email: '',
     gst_number: '',
+    company_account_no: '',
     financial_year_start: '',
     financial_year_end: '',
     currency: 'INR',
@@ -431,6 +432,11 @@ function CompanySetup() {
                       <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
                         <Globe size={14} className="text-emerald-500" /> {company.currency} ({t('company.operationalCurrency', 'Operational Currency')})
                       </span>
+                      {company.company_account_no && (
+                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                          <CreditCard size={14} className="text-violet-500" /> A/C: {company.company_account_no}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -632,6 +638,21 @@ function CompanySetup() {
                     onChange={handleChange}
                     placeholder="GSTIN Number"
                     className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">Company Bank Account No.</label>
+                <div className="relative group">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-600 transition-colors" size={18} />
+                  <input
+                    type="text"
+                    name="company_account_no"
+                    value={formData.company_account_no || ''}
+                    onChange={handleChange}
+                    placeholder="e.g. 1234567890"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-violet-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-sm"
                   />
                 </div>
               </div>
