@@ -51,7 +51,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // CREATE
-router.post("/api/village", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { villageCode, villageName, talukaName, districtName, noOfVillage } = req.body;
     const result = await query(

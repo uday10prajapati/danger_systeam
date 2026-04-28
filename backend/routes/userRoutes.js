@@ -435,19 +435,31 @@ export function registerUserRoutes(app) {
         });
       }
 
-      // Verify year exists for this company
-      const yearInfo = await queryOne(
+      // Verify year exists for this company — auto-create if it's the first login
+      let yearInfo = await queryOne(
         'SELECT year_label FROM financial_years WHERE company_id = ? AND year_label = ? AND is_active = 1',
         [user.company_id, financial_year]
       );
 
       if (!yearInfo) {
-        // Auto-create year if it's the first login? Or just throw error.
-        // User said "if year in db than it login", so we should throw error if not found.
-        return res.status(401).json({
-          success: false,
-          error: `Financial year ${financial_year} not configured for this company.`
-        });
+        // Check if ANY year exists
+        const anyYear = await queryOne(
+          'SELECT year_label FROM financial_years WHERE company_id = ? ORDER BY year_label DESC LIMIT 1',
+          [user.company_id]
+        );
+        if (!anyYear) {
+          // First time: auto-create default year
+          await execute(
+            'INSERT INTO financial_years (company_id, year_label, start_date, end_date, is_active) VALUES (?, ?, ?, ?, 1)',
+            [user.company_id, '2026-27', '2026-04-01', '2027-03-31']
+          );
+          yearInfo = { year_label: '2026-27' };
+        } else {
+          return res.status(401).json({
+            success: false,
+            error: `Financial year ${financial_year} not found. Available: ${anyYear.year_label}`
+          });
+        }
       }
 
       // Check if user is active

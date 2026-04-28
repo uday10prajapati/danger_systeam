@@ -12,24 +12,26 @@ const DangarPaymentReport = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: '2026-04-01',
     endDate: new Date().toISOString().split('T')[0],
     memberId: '',
     itemId: ''
   });
   const [summary, setSummary] = useState({
     totalQty: 0,
-    totalGross: 0,
+    totalRateAmount: 0,
     totalDeduction: 0,
-    totalNet: 0,
+    totalExpense: 0,
+    totalFinal: 0,
     count: 0
   });
+  const [error, setError] = useState('');
 
   const [members, setMembers] = useState([]);
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    fetchInitialData();
+    fetchInitialData().then(() => fetchReport());
   }, []);
 
   const fetchInitialData = async () => {
@@ -48,30 +50,49 @@ const DangarPaymentReport = () => {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const companyId = JSON.parse(localStorage.getItem('company') || '{}').id;
-      
-      const res = await dangarEntryApi.getAll(companyId, filters.startDate, filters.endDate);
-      if (res.data.success) {
-        let filtered = res.data.data;
-        if (filters.memberId) filtered = filtered.filter(row => row.member_id === parseInt(filters.memberId));
-        if (filters.itemId) filtered = filtered.filter(row => row.item_id === parseInt(filters.itemId));
-        
-        setData(filtered);
-        
-        // Calculate Summary
-        const s = filtered.reduce((acc, row) => ({
-          totalQty: acc.totalQty + parseFloat(row.total_kg || 0),
-          totalGross: acc.totalGross + (parseFloat(row.total_kg || 0) * parseFloat(row.rate || 0)),
-          totalDeduction: acc.totalDeduction + parseFloat(row.total_deduction || 0),
-          totalNet: acc.totalNet + parseFloat(row.amount || 0),
-          count: acc.count + 1
-        }), { totalQty: 0, totalGross: 0, totalDeduction: 0, totalNet: 0, count: 0 });
-        
-        setSummary(s);
+      setError('');
+
+      const company   = JSON.parse(localStorage.getItem('company') || '{}');
+      const user      = JSON.parse(localStorage.getItem('user')    || '{}');
+      const companyId = company.id || user.company_id;
+
+      if (!companyId) {
+        setError('Company not found. Please log in again.');
+        return;
       }
-    } catch (error) {
-      console.error('Report fetch error:', error);
+
+      // Use the dedicated payment-report endpoint (account_ledger + dangar_entry + bardan_entry)
+      const res = await api.get('/dangar-entry/payment-report', {
+        params: { companyId, startDate: filters.startDate, endDate: filters.endDate }
+      });
+      console.log('📊 Payment report response:', res.data);
+
+      if (res.data.success) {
+        let rows = res.data.data || [];
+
+        // Client-side member filter
+        if (filters.memberId) {
+          rows = rows.filter(r => String(r.member_id) === String(filters.memberId));
+        }
+
+        setData(rows);
+
+        const s = rows.reduce((acc, r) => ({
+          totalQty:        acc.totalQty        + parseFloat(r.total_kg        || 0),
+          totalRateAmount: acc.totalRateAmount + parseFloat(r.rate_amount     || 0),
+          totalDeduction:  acc.totalDeduction  + parseFloat(r.deduction_amount|| 0),
+          totalExpense:    acc.totalExpense     + parseFloat(r.net_debit       || 0),
+          totalFinal:      acc.totalFinal       + parseFloat(r.final_amount    || 0),
+          count:           acc.count + 1,
+        }), { totalQty: 0, totalRateAmount: 0, totalDeduction: 0, totalExpense: 0, totalFinal: 0, count: 0 });
+
+        setSummary(s);
+      } else {
+        setError(res.data.error || 'Failed to load report.');
+      }
+    } catch (err) {
+      console.error('Report fetch error:', err);
+      setError('Server error: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -179,21 +200,27 @@ const DangarPaymentReport = () => {
           </div>
         </div>
 
-        {/* Position Metrics Shards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {/* Summary Cards */}
+        {error && (
+          <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest">
+            ⚠ {error}
+          </div>
+        )}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
           {[
-            { label: 'Total Volume', val: `${summary.totalQty.toFixed(2)} KG`, icon: Box, color: 'blue' },
-            { label: 'Gross Exposure', val: `₹${summary.totalGross.toFixed(0)}`, icon: CreditCard, color: 'indigo' },
-            { label: 'Kapat Retention', val: `₹${summary.totalDeduction.toFixed(0)}`, icon: Filter, color: 'rose' },
-            { label: 'Total Payable', val: `₹${summary.totalNet.toFixed(0)}`, icon: CheckCircle, color: 'emerald' },
+            { label: 'Total Volume',      val: `${summary.totalQty.toFixed(2)} KG`,          icon: Box,         color: 'blue'   },
+            { label: 'Rate Amount',       val: `₹${summary.totalRateAmount.toFixed(2)}`,      icon: CreditCard,  color: 'indigo' },
+            { label: 'Kapat (Deduction)', val: `₹${summary.totalDeduction.toFixed(2)}`,       icon: Filter,      color: 'rose'   },
+            { label: 'Other Expense',     val: `₹${summary.totalExpense.toFixed(2)}`,         icon: ArrowRight,  color: 'amber'  },
+            { label: 'Final Payable',     val: `₹${summary.totalFinal.toFixed(2)}`,           icon: CheckCircle, color: 'emerald'},
           ].map((shard, i) => (
-            <div key={i} className="bg-white p-6 rounded-[2rem] border border-white shadow-sm flex items-center gap-5 hover:shadow-md transition-all group">
-              <div className={`p-4 bg-${shard.color}-50 text-${shard.color}-600 rounded-2xl group-hover:scale-110 transition-transform`}>
-                <shard.icon size={24} />
+            <div key={i} className="bg-white p-5 rounded-[2rem] border border-white shadow-sm flex items-center gap-4 hover:shadow-md transition-all group">
+              <div className={`p-3 bg-${shard.color}-50 text-${shard.color}-600 rounded-2xl group-hover:scale-110 transition-transform shrink-0`}>
+                <shard.icon size={20} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 italic">{shard.label}</p>
-                <p className="text-xl font-black text-slate-800 italic tracking-tighter leading-none">{shard.val}</p>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 italic">{shard.label}</p>
+                <p className="text-lg font-black text-slate-800 italic tracking-tighter leading-none">{shard.val}</p>
               </div>
             </div>
           ))}
@@ -205,52 +232,63 @@ const DangarPaymentReport = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  <th className="px-8 py-6">Sr No</th>
-                  <th className="px-8 py-6">Date</th>
-                  <th className="px-8 py-6">Sabhasad Code</th>
-                  <th className="px-8 py-6">Sabhasad Name</th>
-                  <th className="px-8 py-6 text-right">Qty (KG)</th>
-                  <th className="px-8 py-6 text-right">Rate</th>
-                  <th className="px-8 py-6 text-right text-rose-500">Deduction</th>
-                  <th className="px-8 py-6 text-right text-emerald-600">Net Amount</th>
+                  <th className="px-6 py-5">#</th>
+                  <th className="px-6 py-5">Member Code</th>
+                  <th className="px-6 py-5">Member Name</th>
+                  <th className="px-6 py-5 text-right">Qty (KG)</th>
+                  <th className="px-6 py-5 text-right text-indigo-500">Rate Amount</th>
+                  <th className="px-6 py-5 text-right text-rose-500">Kapat</th>
+                  <th className="px-6 py-5 text-right text-amber-500">Expense</th>
+                  <th className="px-6 py-5 text-right">Bardan Bags</th>
+                  <th className="px-6 py-5 text-right text-emerald-600">Final Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan="8" className="px-8 py-32 text-center">
+                    <td colSpan="9" className="px-8 py-20 text-center">
+                      <div className="flex flex-col items-center gap-3 text-slate-300">
+                        <Clock size={40} className="animate-spin opacity-30" />
+                        <p className="text-xs font-black uppercase tracking-widest italic">Loading...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : data.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="px-8 py-32 text-center">
                       <div className="flex flex-col items-center gap-4 text-slate-300">
                         <FileText size={64} className="opacity-20" />
-                        <p className="text-xs font-black uppercase tracking-widest italic">No Transaction Data Discovered</p>
+                        <p className="text-xs font-black uppercase tracking-widest italic">No Transaction Data Found</p>
+                        <p className="text-[10px] text-slate-400">Make sure there are entries in the ledger for this period.</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   data.map((row, i) => (
-                    <tr key={i} className="group hover:bg-white transition-all cursor-default">
-                      <td className="px-8 py-5">
-                        <span className="text-indigo-600 font-black text-xs italic">#{row.sr_no}</span>
-                      </td>
-                      <td className="px-8 py-5 text-xs font-bold text-slate-500 font-mono">
-                        {new Date(row.entry_date).toLocaleDateString('en-GB')}
-                      </td>
-                      <td className="px-8 py-5 text-sm font-black text-slate-800 font-mono">{row.member_code}</td>
-                      <td className="px-8 py-5">
+                    <tr key={row.member_id} className="group hover:bg-indigo-50/30 transition-all cursor-default">
+                      <td className="px-6 py-4 text-xs font-black text-slate-400">{i + 1}</td>
+                      <td className="px-6 py-4 text-sm font-black text-slate-800 font-mono">{row.member_code}</td>
+                      <td className="px-6 py-4">
                         <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{row.member_name}</p>
+                        <p className="text-[9px] text-slate-400 font-bold">{row.entry_count} entries</p>
                       </td>
-                      <td className="px-8 py-5 text-right font-black text-slate-600 italic">{row.total_kg}</td>
-                      <td className="px-8 py-5 text-right font-black text-slate-500 italic">₹{row.rate}</td>
-                      <td className="px-8 py-5 text-right font-black text-rose-500 italic">₹{row.total_deduction || 0}</td>
-                      <td className="px-8 py-5 text-right text-emerald-600">
-                        <span className="text-base font-black italic tracking-tighter">₹{row.amount}</span>
+                      <td className="px-6 py-4 text-right font-black text-slate-600 italic text-sm">{row.total_kg}</td>
+                      <td className="px-6 py-4 text-right font-black text-indigo-600 italic text-sm">₹{row.rate_amount}</td>
+                      <td className="px-6 py-4 text-right font-black text-rose-500 italic text-sm">₹{row.deduction_amount}</td>
+                      <td className="px-6 py-4 text-right font-black text-amber-500 italic text-sm">₹{row.net_debit}</td>
+                      <td className="px-6 py-4 text-right font-black text-slate-500 text-sm">{row.bardan_issued}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-base font-black italic tracking-tighter text-emerald-600">₹{row.final_amount}</span>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
+
             </table>
           </div>
         </div>
+
 
       </div>
 

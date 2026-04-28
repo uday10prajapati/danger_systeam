@@ -14,7 +14,9 @@ i18n
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false
-    }
+    },
+    saveMissing: false,
+    initImmediate: false
   })
 
 export default i18n

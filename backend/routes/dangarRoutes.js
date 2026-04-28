@@ -43,6 +43,114 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET PAYMENT REPORT — aggregates account_ledger credits + dangar_entry + bardan_entry
+router.get('/payment-report', async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.query.companyId;
+    const { startDate, endDate } = req.query;
+
+    if (!companyId) {
+      return res.status(400).json({ success: false, error: 'Company Context Required' });
+    }
+
+    const dateFilter  = startDate && endDate ? 'AND al.transaction_date BETWEEN ? AND ?' : '';
+    const dateParams  = startDate && endDate ? [startDate, endDate] : [];
+
+    // 1. Member-level credits from account_ledger (dangar purchase credits)
+    const ledgerRows = await query(`
+      SELECT
+        mm.id          AS member_id,
+        mm.member_code,
+        mm.member_name,
+        SUM(al.credit) AS total_credit,
+        SUM(al.debit)  AS total_debit,
+        COUNT(al.id)   AS entry_count
+      FROM account_ledger al
+      JOIN member_master mm ON al.member_id = mm.id
+      WHERE al.company_id = ?
+        AND al.member_id IS NOT NULL
+        ${dateFilter}
+      GROUP BY mm.id, mm.member_code, mm.member_name
+      ORDER BY mm.member_code ASC
+    `, [companyId, ...dateParams]);
+
+    // 2. Dangar entry details per member (sr_no, qty, rate, kapat)
+    const dangDateFilter = startDate && endDate ? 'AND de.entry_date BETWEEN ? AND ?' : '';
+    const dangParams     = startDate && endDate ? [startDate, endDate] : [];
+
+    const dangarRows = await query(`
+      SELECT
+        de.member_id,
+        de.sr_no,
+        de.entry_date,
+        de.total_kg,
+        de.net_quintal,
+        de.rate,
+        de.amount       AS rate_amount,
+        de.total_deduction AS deduction_amount,
+        (de.amount - de.total_deduction) AS net_amount
+      FROM dangar_entry de
+      WHERE de.company_id = ?
+        ${dangDateFilter}
+      ORDER BY de.entry_date ASC, de.id ASC
+    `, [companyId, ...dangParams]);
+
+    // 3. Bardan (bag) balance per member code
+    const bardanRows = await query(`
+      SELECT
+        be.code            AS member_code,
+        SUM(be.qty)        AS total_bardan_issued
+      FROM bardan_entry be
+      WHERE be.company_id = ?
+      GROUP BY be.code
+    `, [companyId]);
+
+    const bardanMap = {};
+    bardanRows.forEach(b => { bardanMap[b.member_code] = parseFloat(b.total_bardan_issued || 0); });
+
+    // Index dangar rows by member_id
+    const dangarMap = {};
+    dangarRows.forEach(d => {
+      if (!dangarMap[d.member_id]) dangarMap[d.member_id] = [];
+      dangarMap[d.member_id].push(d);
+    });
+
+    // Build final report rows
+    const report = ledgerRows.map(row => {
+      const entries    = dangarMap[row.member_id] || [];
+      const totalKg    = entries.reduce((s, e) => s + parseFloat(e.total_kg || 0), 0);
+      const rateAmount = entries.reduce((s, e) => s + parseFloat(e.rate_amount || 0), 0);
+      const deduction  = entries.reduce((s, e) => s + parseFloat(e.deduction_amount || 0), 0);
+      // Net payable = total credit from ledger − total debit (expenses, kapat already applied)
+      const netCredit  = parseFloat(row.total_credit || 0);
+      const netDebit   = parseFloat(row.total_debit  || 0);
+      const finalAmount = netCredit - netDebit;
+
+      return {
+        member_id:        row.member_id,
+        member_code:      row.member_code,
+        member_name:      row.member_name,
+        entry_count:      row.entry_count,
+        total_kg:         totalKg.toFixed(2),
+        // Use ledger as ground-truth for amounts
+        rate_amount:      rateAmount > 0 ? rateAmount.toFixed(2) : netCredit.toFixed(2),
+        deduction_amount: deduction.toFixed(2),
+        net_debit:        netDebit.toFixed(2),
+        final_amount:     finalAmount.toFixed(2),
+        bardan_issued:    bardanMap[row.member_code] || 0,
+        entries:          entries,
+      };
+    });
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    console.error('Payment report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+
 // GET one dangar entry with weights
 router.get('/:id', async (req, res) => {
   try {
@@ -130,24 +238,40 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // 5. Commit to Unified Ledger (Reflect in Rojmel & Member Balance)
-    // In this flow, Dangar Entry acts as a cash purchase from the member
-    // So we CREDIT the member (they provided goods, we owe them/paid them)
-    
+    // 5. Commit to Unified Ledger
     // Fetch Item's Ledger Account Identity
     const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
     const purchaseAccountId = itemData?.purchase_account_id || null;
 
-    const ledgerDesc = `${bookType} Purchase - ${item_id} - ${net_quintal} Qt @ ${rate}`;
-    await execute(`
-      INSERT INTO account_ledger (
-        company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-        reference_id, reference_no, description, credit, financial_year
-      ) VALUES (?, ?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?)
-    `, [
-      companyId, purchaseAccountId, member_id, date, entryId, srNo, ledgerDesc, 
-      parseFloat(amount || 0), currentFinancialYear
-    ]);
+    const ledgerDesc = `${bookType} Purchase - ${net_quintal} Qt @ ${rate}`;
+    try {
+      if (purchaseAccountId) {
+        // Full ledger entry with purchase account
+        await execute(`
+          INSERT INTO account_ledger (
+            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+            reference_id, reference_no, description, credit, financial_year
+          ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+        `, [
+          companyId, purchaseAccountId, member_id, date, entryId, srNo, ledgerDesc, 
+          parseFloat(amount || 0), currentFinancialYear
+        ]);
+      } else {
+        // No purchase account configured on item — write ledger entry linked to member only
+        await execute(`
+          INSERT INTO account_ledger (
+            company_id, member_id, transaction_date, transaction_type, reference_type, 
+            reference_id, reference_no, description, credit, financial_year
+          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+        `, [
+          companyId, member_id, date, entryId, srNo, ledgerDesc, 
+          parseFloat(amount || 0), currentFinancialYear
+        ]);
+      }
+    } catch (ledgerErr) {
+      // Log but don't fail — dangar entry is already saved
+      console.warn('Ledger sync warning (non-fatal):', ledgerErr.message);
+    }
 
     // 6. Auto-Settle Bardan Balance (Jama Entry)
     // We credit the bags actually returned (returned_bags), not the remaining balance.

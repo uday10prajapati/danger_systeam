@@ -71,7 +71,14 @@ function Login() {
          })
 
          if (response.data.success) {
-            localStorage.setItem('user', JSON.stringify(response.data.user))
+            const userData = response.data.user;
+            localStorage.setItem('user', JSON.stringify(userData));
+            // Store company separately so all pages can do localStorage.getItem('company').id
+            localStorage.setItem('company', JSON.stringify({
+               id: userData.company_id,
+               company_name: userData.company_name,
+               financial_year: userData.financial_year
+            }));
             if (rememberMe) {
                localStorage.setItem('rememberEmail', email)
             }

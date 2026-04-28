@@ -781,6 +781,7 @@ export async function initializeDatabase() {
           item_id INT,
           remark TEXT,
           vehicle_no VARCHAR(100),
+          quality_class VARCHAR(50) DEFAULT '1st',
           total_kg DECIMAL(15, 2) DEFAULT 0,
           bardan INT DEFAULT 0,
           gun DECIMAL(10, 2) DEFAULT 0,
@@ -789,6 +790,7 @@ export async function initializeDatabase() {
           net_quintal DECIMAL(15, 2) DEFAULT 0,
           rate DECIMAL(12, 2) DEFAULT 0,
           amount DECIMAL(15, 2) DEFAULT 0,
+          total_deduction DECIMAL(15, 2) DEFAULT 0,
           weight_unit VARCHAR(20) DEFAULT 'kg',
           created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -798,6 +800,10 @@ export async function initializeDatabase() {
           FOREIGN KEY (item_id) REFERENCES item_master(id) ON DELETE SET NULL
         )
       `);
+      
+      try { await connection.query("ALTER TABLE dangar_entry ADD COLUMN quality_class VARCHAR(50) DEFAULT '1st'"); } catch(e) {}
+      try { await connection.query("ALTER TABLE dangar_entry ADD COLUMN total_deduction DECIMAL(15, 2) DEFAULT 0"); } catch(e) {}
+
 
       // Migration for dangar_entry (ensure columns added later are present)
       try {
