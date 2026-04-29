@@ -8,7 +8,7 @@ import {
   TrendingDown, TrendingUp, IndianRupee, Tag
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
+import api, { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
 
 const BardanPortfolio = () => {
   const { t } = useTranslation();

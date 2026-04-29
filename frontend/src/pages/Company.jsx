@@ -6,6 +6,9 @@ import {
   Globe, Shield, Save, X, Trash2, RefreshCw, Plus, CreditCard
 } from 'lucide-react'
 import api from '../api'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+
 
 
 function CompanySetup() {
