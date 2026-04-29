@@ -2126,11 +2126,18 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
   let params = [accountId, accountId];
   let isMemberRequest = String(accountId).startsWith('M');
 
-  if (isMemberRequest) {
+  if (parseInt(accountId) === 14) {
+    // SPECIAL: For Cash Account, fetch ALL Rojmel entries (historical and new)
+    // and ignore the specific 'cash_account_entry' side of double-entries to prevent doubling.
+    whereClause = "(al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+    params = []; // Reset params since our specialized whereClause doesn't use placeholders
+  } else if (isMemberRequest) {
     const actualMemberId = accountId.substring(1);
     whereClause = "(al.member_id = ? OR al.interest_member_id = ?)";
     params = [actualMemberId, actualMemberId];
-  } else if (memberId) {
+  }
+
+  if (memberId && memberId !== 'all') {
     whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
     params.push(memberId, memberId);
   }
@@ -2146,11 +2153,13 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
       GROUP_CONCAT(DISTINCT al.reference_no SEPARATOR ', ') as reference_no,
       SUM(CASE 
         WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0)
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.credit, al.credit_amount, 0) -- Flip for Dangar System
         ELSE COALESCE(al.debit, al.debit_amount, 0) 
       END) as debit,
       SUM(CASE 
         WHEN al.interest_account_id = ${targetAccountId} THEN 0 
         WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, al.debit_amount, 0) -- Flip for Dangar System
         ELSE COALESCE(al.credit, al.credit_amount, 0) 
       END) as credit,
       CASE 
@@ -2189,7 +2198,10 @@ export async function getAccountBalance(accountId, upToDate = null, memberId = n
   const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
 
   // 1. Get Opening Balance from Master tables
-  if (isMemberRequest) {
+  if (parseInt(accountId) === 14) {
+    whereClause = "(al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+    params = [];
+  } else if (isMemberRequest) {
     const actualMemberId = accountId.substring(1);
     const member = await queryOne('SELECT opening_balance FROM member_master WHERE id = ?', [actualMemberId]);
     openingBalance = parseFloat(member?.opening_balance || 0);

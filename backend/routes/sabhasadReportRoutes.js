@@ -32,12 +32,12 @@ router.get('/', async (req, res) => {
 
     let accountFilter = '';
     if (accountId && accountId !== 'all') {
-        accountFilter = ' AND account_id = ?';
+      accountFilter = ' AND account_id = ?';
     }
-    
+
     if (memberId && memberId !== 'all') {
-        conditions += ' AND m.id = ?';
-        params.push(memberId);
+      conditions += ' AND m.id = ?';
+      params.push(memberId);
     }
 
     // Query to get all members and their specific ledger metrics
@@ -91,7 +91,7 @@ router.get('/', async (req, res) => {
 
     // Dynamic parameter building for subqueries
     let queryParams = [];
-    
+
     // Each of the 3 subqueries needs accountId if provided, plus date params
     // op_period_balance
     if (accountFilter) queryParams.push(accountId);
@@ -141,7 +141,7 @@ router.get('/', async (req, res) => {
       `;
       const dangarParams = [companyId, startDate, endDate];
       if (memberId && memberId !== 'all') dangarParams.push(memberId);
-      
+
       const dRows = await query(dangarSql, dangarParams);
       return res.json({
         success: true,
@@ -176,7 +176,7 @@ router.get('/', async (req, res) => {
       `;
       const iParams = [endDate, companyId, companyId, interestSystemId, interestSystemId, startDate, endDate];
       if (memberId && memberId !== 'all') iParams.push(memberId);
-      
+
       const iRows = await query(interestSql, iParams);
       return res.json({
         success: true,
@@ -279,10 +279,10 @@ router.get('/', async (req, res) => {
     // Filter out zero balance accounts if requested
     let finalData = reportData;
     if (hideZeroBalance === 'true') {
-      finalData = reportData.filter(row => 
-        parseFloat(row.opening_balance) !== 0 || 
-        parseFloat(row.debit) !== 0 || 
-        parseFloat(row.credit) !== 0 || 
+      finalData = reportData.filter(row =>
+        parseFloat(row.opening_balance) !== 0 ||
+        parseFloat(row.debit) !== 0 ||
+        parseFloat(row.credit) !== 0 ||
         parseFloat(row.closing_balance) !== 0
       );
     }

@@ -20,8 +20,10 @@ const DangarPaymentReport = () => {
     startDate: '2026-04-01',
     endDate: new Date().toISOString().split('T')[0],
     memberId: '',
-    itemId: ''
+    itemId: '',
+    bankName: ''
   });
+  const [banks, setBanks] = useState([]);
   const [summary, setSummary] = useState({
     totalQuintal: 0,
     totalRateAmount: 0,
@@ -40,8 +42,8 @@ const DangarPaymentReport = () => {
   const [companyAccount, setCompanyAccount] = useState('');
   const [txtModal, setTxtModal] = useState(false);
   const [billModal, setBillModal] = useState(false);
-  const [billSearch, setBillSearch] = useState({ code: '', name: '' });
-  const [selectedBillData, setSelectedBillData] = useState(null);
+  const [billSearch, setBillSearch] = useState({ from: '', to: '' });
+  const [selectedBills, setSelectedBills] = useState([]);
   const [narration, setNarration] = useState('');
 
   useEffect(() => {
@@ -50,14 +52,16 @@ const DangarPaymentReport = () => {
 
   const fetchInitialData = async () => {
     try {
-      const [mRes, iRes, cRes] = await Promise.all([
+      const [mRes, iRes, cRes, bRes] = await Promise.all([
         api.get('/members'),
         api.get('/items'),
-        api.get('/company')
+        api.get('/company'),
+        api.get('/banks')
       ]);
       if (mRes.data.success) setMembers(mRes.data.data);
       if (iRes.data.success) setItems(iRes.data.data);
       if (cRes.data.success) setCompanyAccount(cRes.data.data?.company_account_no || '');
+      if (bRes.data.success) setBanks(bRes.data.data);
     } catch (err) {
       console.error('Failed to load filter dependencies:', err);
     }
@@ -89,6 +93,11 @@ const DangarPaymentReport = () => {
         // Client-side member filter
         if (filters.memberId) {
           rows = rows.filter(r => String(r.member_id) === String(filters.memberId));
+        }
+
+        // Client-side bank filter
+        if (filters.bankName) {
+           rows = rows.filter(r => String(r.bank_name).toLowerCase().includes(filters.bankName.toLowerCase()));
         }
 
         setData(rows);
@@ -252,44 +261,43 @@ const DangarPaymentReport = () => {
     setTxtModal(false);
   };
 
-  const downloadBillPDF = async () => {
-    const element = document.getElementById('printable-bill');
-    if (!element) return;
+  const downloadAllBillsPDF = async () => {
+    if (!selectedBills.length) return;
     try {
       setLoading(true);
-      
-      // Force it to be visible but off-screen
-      element.style.display = 'block';
-      element.style.position = 'fixed';
-      element.style.left = '0px';
-      element.style.top = '0px';
-      element.style.zIndex = '-1';
-      element.style.opacity = '1';
-
-      // Wait a moment for browser to paint
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const dataUrl = await toPng(element, { 
-        backgroundColor: '#ffffff',
-        width: 8 * 96, // 8 inches * 96 dpi
-        height: 6 * 96, // 6 inches * 96 dpi
-        pixelRatio: 2
-      });
-      
-      // Revert styles
-      element.style.display = '';
-      element.style.position = '';
-      element.style.left = '';
-      element.style.top = '';
-      element.style.zIndex = '';
-      element.style.opacity = '';
-
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [8, 6] });
-      pdf.addImage(dataUrl, 'PNG', 0, 0, 8, 6);
-      pdf.save(`Bill_${selectedBillData?.member_code || 'export'}.pdf`);
+      
+      for (let i = 0; i < selectedBills.length; i++) {
+        const bill = selectedBills[i];
+        const elementId = `printable-bill-${bill.member_id}`;
+        const element = document.getElementById(elementId);
+        if (!element) continue;
+
+        // Force visibility for capture
+        element.style.display = 'block';
+        element.style.position = 'fixed';
+        element.style.left = '0px';
+        element.style.top = '0px';
+        element.style.zIndex = '9999';
+        
+        await new Promise(r => setTimeout(r, 50));
+        const dataUrl = await toPng(element, { 
+          backgroundColor: '#ffffff',
+          width: 8 * 96,
+          height: 6 * 96,
+          pixelRatio: 2
+        });
+        
+        element.style.display = 'none';
+        
+        if (i > 0) pdf.addPage([8, 6], 'landscape');
+        pdf.addImage(dataUrl, 'PNG', 0, 0, 8, 6);
+      }
+      
+      pdf.save(`Payout_Slips_${billSearch.from}_to_${billSearch.to}.pdf`);
     } catch (err) {
-      console.error('PDF Generation Error:', err);
-      alert('Failed to generate PDF. Error: ' + err.message);
+      console.error('Batch PDF Error:', err);
+      alert('Failed to generate batch PDF: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -315,7 +323,7 @@ const DangarPaymentReport = () => {
           <div className="flex items-center gap-3 flex-wrap">
 
             <button
-              onClick={() => { setBillModal(true); setSelectedBillData(null); }}
+              onClick={() => { setBillModal(true); setSelectedBills([]); }}
               className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
             >
               <Printer size={16} /> Print Bill
@@ -379,6 +387,20 @@ const DangarPaymentReport = () => {
                 >
                   <option value="">All Identities</option>
                   {members.map(m => <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Bank Stream</label>
+              <div className="relative">
+                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <select
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
+                  value={filters.bankName}
+                  onChange={(e) => setFilters({ ...filters, bankName: e.target.value })}
+                >
+                  <option value="">All Banks</option>
+                  {banks.map(b => <option key={b.id} value={b.bank_name}>{b.bank_name}</option>)}
                 </select>
               </div>
             </div>
@@ -598,50 +620,61 @@ const DangarPaymentReport = () => {
             <div className="p-8 space-y-6">
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Member Code</label>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">From Member Code</label>
                      <input 
                         type="text"
                         className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-sm text-slate-700"
                         placeholder="e.g. 0001"
-                        value={billSearch.code}
+                        value={billSearch.from}
                         onChange={(e) => {
-                           const val = e.target.value;
-                           const m = members.find(m => String(m.member_code) === val);
-                           setBillSearch({ code: val, name: m ? m.member_name : '' });
-                           const d = data.find(r => String(r.member_code) === val);
-                           setSelectedBillData(d || null);
+                           const from = e.target.value;
+                           const to = billSearch.to || from;
+                           setBillSearch({ ...billSearch, from });
+                           
+                           // Identify bills in range
+                           const inRange = data.filter(r => {
+                              const code = parseInt(r.member_code);
+                              const start = parseInt(from);
+                              const end = parseInt(to);
+                              return code >= start && code <= end;
+                           });
+                           setSelectedBills(inRange);
                         }}
                      />
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Member Name</label>
-                     <select 
-                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
-                        value={billSearch.name}
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">To Member Code</label>
+                     <input 
+                        type="text"
+                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-sm text-slate-700"
+                        placeholder="e.g. 0050"
+                        value={billSearch.to}
                         onChange={(e) => {
-                           const val = e.target.value;
-                           const m = members.find(m => m.member_name === val);
-                           setBillSearch({ name: val, code: m ? m.member_code : '' });
-                           const d = data.find(r => r.member_name === val);
-                           setSelectedBillData(d || null);
+                           const to = e.target.value;
+                           setBillSearch({ ...billSearch, to });
+                           
+                           const inRange = data.filter(r => {
+                              const code = parseInt(r.member_code);
+                              const start = parseInt(billSearch.from);
+                              const end = parseInt(to);
+                              return code >= start && code <= end;
+                           });
+                           setSelectedBills(inRange);
                         }}
-                     >
-                        <option value="">Select Identity...</option>
-                        {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
-                     </select>
+                     />
                   </div>
                </div>
 
-               {selectedBillData ? (
+               {selectedBills.length > 0 ? (
                   <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-100 animate-in fade-in zoom-in duration-300">
                      <div className="flex justify-between items-start mb-6">
                         <div>
-                           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 italic">Identity Verified</p>
-                           <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">{selectedBillData.member_name}</h3>
+                           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 italic">Batch Processing Ready</p>
+                           <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">{selectedBills.length} Slips Selected</h3>
                         </div>
                         <div className="bg-white px-3 py-1.5 rounded-lg shadow-sm border border-indigo-100">
-                           <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none">Net Payable</p>
-                           <p className="text-xl font-black text-slate-900 tracking-tighter mt-1">₹{selectedBillData.final_amount}</p>
+                           <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none text-right">Total Payable</p>
+                           <p className="text-xl font-black text-slate-900 tracking-tighter mt-1">₹{selectedBills.reduce((s, b) => s + parseFloat(b.final_amount || 0), 0).toFixed(2)}</p>
                         </div>
                      </div>
                      <div className="flex gap-3">
@@ -649,20 +682,22 @@ const DangarPaymentReport = () => {
                            onClick={() => window.print()}
                            className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 active:scale-95"
                         >
-                           <Printer size={18} /> Print
+                           <Printer size={18} /> Print All ({selectedBills.length})
                         </button>
                         <button 
-                           onClick={downloadBillPDF}
-                           className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 active:scale-95"
+                           onClick={downloadAllBillsPDF}
+                           disabled={loading}
+                           className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                         >
-                           <Download size={18} /> PDF
+                           {loading ? <Clock className="animate-spin" size={18} /> : <Download size={18} />} PDF Batch
                         </button>
                      </div>
                   </div>
                ) : (
                   <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-xl">
                      <Clock size={32} className="mx-auto text-slate-200 mb-3" />
-                     <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Waiting for Identity Match...</p>
+                     <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Enter Code Range to Generate Slips...</p>
+                     <p className="text-[10px] text-slate-400 font-bold mt-1">Found in current manifest: {data.length} records</p>
                   </div>
                )}
             </div>
@@ -671,8 +706,8 @@ const DangarPaymentReport = () => {
       )}
 
       {/* A5 Printable Bill Section - Gujarati Traditional Layout */}
-      {selectedBillData && (
-         <div id="printable-bill" className="hidden print:block fixed bg-white z-[9999] p-4 text-black" style={{ width: '8in', height: '6in', boxSizing: 'border-box' }}>
+       {selectedBills.map((bill, index) => (
+          <div key={bill.member_id} id={`printable-bill-${bill.member_id}`} className={`hidden print:block fixed bg-white z-[9999] p-4 text-black ${index > 0 ? 'break-before-page' : ''}`} style={{ width: '8in', height: '6in', boxSizing: 'border-box' }}>
             <div className="border-2 border-black h-full flex flex-col relative p-2">
                {/* Main Header */}
                <div className="text-center border-b border-black pb-2 mb-2">
@@ -685,7 +720,7 @@ const DangarPaymentReport = () => {
                   <div className="col-span-7 space-y-1">
                      <div className="flex gap-2">
                         <span className="font-bold whitespace-nowrap">સભાસદ નું નામ :</span>
-                        <span className="font-bold border-b border-dotted border-black flex-1">{selectedBillData.member_name}</span>
+                        <span className="font-bold border-b border-dotted border-black flex-1">{bill.member_name}</span>
                      </div>
                      <div className="flex gap-2">
                         <span className="font-bold whitespace-nowrap">નાનીનેશ</span>
@@ -694,7 +729,7 @@ const DangarPaymentReport = () => {
                   <div className="col-span-5 border-l border-black pl-4 space-y-1">
                      <div className="flex justify-between">
                         <span className="font-bold">નંબર :</span>
-                        <span className="font-bold">{selectedBillData.member_code}</span>
+                        <span className="font-bold">{bill.member_code}</span>
                      </div>
                      <div className="flex justify-between border-t border-black pt-1">
                         <span className="font-bold">તારીખ :</span>
@@ -712,13 +747,13 @@ const DangarPaymentReport = () => {
                   <div className="col-span-2 px-2 py-1 text-center">કિંમત રૂ.</div>
                </div>
                
-               {/* Item Table Body - Static Single Row for now */}
+               {/* Item Table Body */}
                <div className="grid grid-cols-12 text-[11px] border-b border-black min-h-[60px]">
-                  <div className="col-span-5 px-2 py-2 border-r border-black font-bold italic">{selectedBillData.dangar_name_gu || '---'}</div>
-                  <div className="col-span-1 px-2 py-2 border-r border-black text-center font-bold">{selectedBillData.entry_count || '1'}</div>
-                  <div className="col-span-2 px-2 py-2 border-r border-black text-center font-bold">{selectedBillData.total_quintal}</div>
-                  <div className="col-span-2 px-2 py-2 border-r border-black text-center font-bold">{selectedBillData.rate_per_kg}</div>
-                  <div className="col-span-2 px-2 py-2 text-right font-bold">{selectedBillData.rate_amount}</div>
+                  <div className="col-span-5 px-2 py-2 border-r border-black font-bold italic">{bill.dangar_name_gu || '---'}</div>
+                  <div className="col-span-1 px-2 py-2 border-r border-black text-center font-bold">{bill.entry_count || '1'}</div>
+                  <div className="col-span-2 px-2 py-2 border-r border-black text-center font-bold">{bill.total_quintal}</div>
+                  <div className="col-span-2 px-2 py-2 border-r border-black text-center font-bold">{bill.rate_per_kg}</div>
+                  <div className="col-span-2 px-2 py-2 text-right font-bold">{bill.rate_amount}</div>
                </div>
 
                {/* Mid Section: Bank & Deductions Split */}
@@ -727,15 +762,15 @@ const DangarPaymentReport = () => {
                   <div className="col-span-5 border-r border-black p-2 space-y-2">
                      <div className="flex gap-2">
                         <span className="font-bold whitespace-nowrap">બેંક નું નામ :</span>
-                        <span className="font-bold text-[10px]">{selectedBillData.bank_name || '----------------'}</span>
+                        <span className="font-bold text-[10px]">{bill.bank_name || '----------------'}</span>
                      </div>
                      <div className="flex gap-2">
                         <span className="font-bold whitespace-nowrap">બ્રાન્ચ નું નામ :</span>
-                        <span className="font-bold">{selectedBillData.branch_name || '----------------'}</span>
+                        <span className="font-bold">{bill.branch_name || '----------------'}</span>
                      </div>
                      <div className="flex gap-2">
                         <span className="font-bold whitespace-nowrap">એકાઉન્ટ નંબર :</span>
-                        <span className="font-bold">{selectedBillData.full_ac_number || '----------------'}</span>
+                        <span className="font-bold">{bill.full_ac_number || '----------------'}</span>
                      </div>
                   </div>
 
@@ -751,35 +786,35 @@ const DangarPaymentReport = () => {
                      <div className="flex-1 text-[10px] font-bold">
                         <div className="grid grid-cols-5 border-b border-slate-200">
                            <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર હિસાબ ના જમા</div>
-                           <div className="border-r border-black px-2 py-1 text-right">{selectedBillData.rate_amount}</div>
+                           <div className="border-r border-black px-2 py-1 text-right">{bill.rate_amount}</div>
                            <div className="px-2 py-1 text-right"></div>
                         </div>
                         <div className="grid grid-cols-5 border-b border-slate-200">
                            <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર એડવાન્સ</div>
                            <div className="border-r border-black px-2 py-1 text-right"></div>
-                           <div className="px-2 py-1 text-right">{selectedBillData.member_advance}</div>
+                           <div className="px-2 py-1 text-right">{bill.member_advance}</div>
                         </div>
                         <div className="grid grid-cols-5 border-b border-slate-200">
                            <div className="col-span-3 border-r border-black px-2 py-1">ખાલી બારદાન કપાત</div>
                            <div className="border-r border-black px-2 py-1 text-right"></div>
-                           <div className="px-2 py-1 text-right">{selectedBillData.bardan_penalty}</div>
+                           <div className="px-2 py-1 text-right">{bill.bardan_penalty}</div>
                         </div>
                         <div className="grid grid-cols-5 border-b border-slate-200">
                            <div className="col-span-3 border-r border-black px-2 py-1">વ્યાજ</div>
                            <div className="border-r border-black px-2 py-1 text-right"></div>
-                           <div className="px-2 py-1 text-right">{selectedBillData.total_interest}</div>
+                           <div className="px-2 py-1 text-right">{bill.total_interest}</div>
                         </div>
                         <div className="grid grid-cols-5 border-b border-black">
                            <div className="col-span-3 border-r border-black px-2 py-1 italic opacity-60">અન્ય કપાત (Total)</div>
                            <div className="border-r border-black px-2 py-1 text-right"></div>
-                           <div className="px-2 py-1 text-right">{(selectedBillData.total_deductions - selectedBillData.member_advance - selectedBillData.bardan_penalty - selectedBillData.total_interest).toFixed(2)}</div>
+                           <div className="px-2 py-1 text-right">{(bill.total_deductions - bill.member_advance - bill.bardan_penalty - bill.total_interest).toFixed(2)}</div>
                         </div>
                      </div>
 
                      {/* Result Row */}
                      <div className="grid grid-cols-5 text-sm font-black border-t-2 border-black bg-slate-50">
                         <div className="col-span-3 border-r border-black px-2 py-2 text-center uppercase tracking-tight">બાકી નીકળતી રકમ</div>
-                        <div className="col-span-2 px-2 py-2 text-right text-base tracking-tighter">₹ {selectedBillData.final_amount}</div>
+                        <div className="col-span-2 px-2 py-2 text-right text-base tracking-tighter">₹ {bill.final_amount}</div>
                      </div>
                   </div>
                </div>
@@ -791,11 +826,20 @@ const DangarPaymentReport = () => {
                   <div>મેનેજર ની સહી</div>
                </div>
             </div>
-         </div>
-      )}
+          </div>
+        ))}
 
       <style dangerouslySetInnerHTML={{
          __html: `
+          @media print {
+            .no-print { display: none !important; }
+            .break-before-page { break-before: page !important; }
+            body { margin: 0; padding: 0; }
+            @page {
+              size: 8in 6in landscape;
+              margin: 0;
+            }
+          }
          @media print {
            .no-print { display: none !important; }
            body { 

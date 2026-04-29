@@ -85,9 +85,9 @@ export default function SabhasadLedgerSummary() {
         headers: { 'x-company-id': company.id }
       });
       if (accRes.data.success) {
-        const filteredAccounts = accRes.data.data.filter(a => 
-          !a.account_name.toLowerCase().includes('brokerage') && 
-          !a.account_name.toLowerCase().includes('labour') && 
+        const filteredAccounts = accRes.data.data.filter(a =>
+          !a.account_name.toLowerCase().includes('brokerage') &&
+          !a.account_name.toLowerCase().includes('labour') &&
           !a.account_name.toLowerCase().includes('rounding')
         );
         setAccounts(filteredAccounts);
@@ -230,24 +230,24 @@ export default function SabhasadLedgerSummary() {
   }
 
   const selectedAcc = accounts.find(a => a.id === parseInt(accountId));
-  const isDangar = selectedAcc?.account_code === 'DS0001' || 
-                  selectedAcc?.account_name?.toLowerCase().includes('dangar system') ||
-                  accName?.toLowerCase().includes('dangar system');
-  
-  const isInterest = selectedAcc?.account_code === 'IK0001' || 
-                    selectedAcc?.account_name?.toLowerCase().includes('interest khate') ||
-                    accName?.toLowerCase().includes('interest khate');
+  const isDangar = selectedAcc?.account_code === 'DS0001' ||
+    selectedAcc?.account_name?.toLowerCase().includes('dangar system') ||
+    accName?.toLowerCase().includes('dangar system');
+
+  const isInterest = selectedAcc?.account_code === 'IK0001' ||
+    selectedAcc?.account_name?.toLowerCase().includes('interest khate') ||
+    accName?.toLowerCase().includes('interest khate');
 
   const isBrokerage = selectedAcc?.account_name?.toLowerCase().includes('brokerage') ||
-                     accName?.toLowerCase().includes('brokerage');
+    accName?.toLowerCase().includes('brokerage');
 
   const isLabour = selectedAcc?.account_name?.toLowerCase().includes('labour') ||
-                  accName?.toLowerCase().includes('labour');
+    accName?.toLowerCase().includes('labour');
 
-  const hideBardan = selectedAcc?.account_name?.toLowerCase().includes('member adv') || 
-                    selectedAcc?.account_name?.toLowerCase().includes('subledger member') ||
-                    accName?.toLowerCase().includes('member adv') ||
-                    accName?.toLowerCase().includes('subledger member');
+  const hideBardan = selectedAcc?.account_name?.toLowerCase().includes('member adv') ||
+    selectedAcc?.account_name?.toLowerCase().includes('subledger member') ||
+    accName?.toLowerCase().includes('member adv') ||
+    accName?.toLowerCase().includes('subledger member');
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans animate-in fade-in duration-700">
@@ -429,7 +429,7 @@ export default function SabhasadLedgerSummary() {
                   <th className="px-10 py-6 border-r border-slate-50/50">Epoch_ID</th>
                   <th className="px-10 py-6 border-r border-slate-50/50">Code</th>
                   <th className="px-10 py-6 min-w-[250px] border-r border-slate-50/50">Sabhasad Nomenclature</th>
-                  
+
                   {(() => {
                     if (isDangar) {
                       return (
@@ -516,7 +516,7 @@ export default function SabhasadLedgerSummary() {
                         <td className="px-10 py-5 text-[11px] font-bold text-slate-300 font-mono tracking-tighter">{String(idx + 1).padStart(3, '0')}</td>
                         <td className="px-10 py-5 text-[11px] font-black text-indigo-400 group-hover:text-indigo-600 transition-colors italic">{row.member_code}</td>
                         <td className="px-10 py-5 text-sm font-bold text-slate-800 uppercase italic tracking-tight">{row.member_name}</td>
-                        
+
                         {(() => {
                           if (isDangar) {
                             return (
@@ -577,10 +577,10 @@ export default function SabhasadLedgerSummary() {
                               {!hideBardan && (
                                 <>
                                   <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.bardan_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                     {parseFloat(row.bardan_balance || 0).toLocaleString()}
+                                    {parseFloat(row.bardan_balance || 0).toLocaleString()}
                                   </td>
                                   <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
-                                     ₹{(parseFloat(row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    ₹{(parseFloat(row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                   </td>
                                 </>
                               )}
@@ -599,7 +599,7 @@ export default function SabhasadLedgerSummary() {
                     ))}
                     <tr className="bg-slate-900 text-white font-black italic">
                       <td colSpan="4" className="px-10 py-8 text-xs tracking-[0.4em] uppercase text-indigo-400 font-black">Master Integrity Summary</td>
-                      
+
                       {(() => {
                         if (isDangar) {
                           return (
@@ -722,9 +722,8 @@ export default function SabhasadLedgerSummary() {
                           <td className="px-6 py-4 text-slate-300 text-[10px]">{tx.reference_no}</td>
                           <td className="px-6 py-4 text-right text-indigo-600 font-black">₹{(parseFloat(tx.debit) || 0).toLocaleString()}</td>
                           <td className="px-6 py-4 text-right text-amber-500 font-black">₹{(parseFloat(tx.credit) || 0).toLocaleString()}</td>
-                          <td className={`px-6 py-4 text-right font-black italic ${
-                            parseFloat(tx.running_balance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                          }`}>
+                          <td className={`px-6 py-4 text-right font-black italic ${parseFloat(tx.running_balance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            }`}>
                             ₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             <span className="text-[8px] ml-1 opacity-50 uppercase not-italic">
                               {parseFloat(tx.running_balance || 0) >= 0 ? 'Jama' : 'Udhar'}

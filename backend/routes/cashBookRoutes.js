@@ -52,6 +52,21 @@ router.post('/manual', async (req, res) => {
           entry.interest_member_id || null,
           entry.interest_account_id || null
         ]);
+
+        // 2. Counter Cash Account Entry (Symmetric Mapping: Credit in Rojmel = Credit in Cash Acc)
+        await query(`
+          INSERT INTO account_ledger (
+            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+            reference_no, description, debit, credit, notes, created_by, financial_year
+          ) VALUES (?, ?, NULL, ?, 'cash_account_entry', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          companyId,
+          14, // CASH_ACCOUNT_ID
+          transactionDate, referenceNo, entry.description || description,
+          parseFloat(entry.cash_out || 0),
+          parseFloat(entry.cash_in || 0),
+          entry.notes || '', userId, '2026-27'
+        ]);
       }
       return res.status(201).json({ success: true, data: { reference_no: referenceNo } });
     }
@@ -59,30 +74,44 @@ router.post('/manual', async (req, res) => {
     // SINGLE MODE: Legacy support
     let mainResult = null;
     if (req.body.account_id || req.body.member_id || parseFloat(cash_out || 0) > 0 || parseFloat(cash_in || 0) > 0) {
-       mainResult = await query(`
+      mainResult = await query(`
          INSERT INTO account_ledger (
            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
            reference_no, description, debit, credit, notes, created_by, financial_year,
            interest_amount, interest_a_per, interest_percent, interest_member_id, interest_account_id
          ) VALUES (?, ?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        `, [
-          companyId, 
-          req.body.account_id || null, 
-          req.body.member_id || null, 
-          transactionDate, referenceNo, description,
-          parseFloat(cash_out || 0),
-          parseFloat(cash_in || 0),
-          notes || '', userId, '2026-27',
-          req.body.interest_amount ? parseFloat(req.body.interest_amount) : 0,
-          req.body.interest_a_per || null,
-          req.body.interest_percent ? parseFloat(req.body.interest_percent) : 0,
-          req.body.interest_member_id || null,
-          req.body.interest_account_id || null
-       ]);
+        companyId,
+        req.body.account_id || null,
+        req.body.member_id || null,
+        transactionDate, referenceNo, description,
+        parseFloat(cash_out || 0),
+        parseFloat(cash_in || 0),
+        notes || '', userId, '2026-27',
+        req.body.interest_amount ? parseFloat(req.body.interest_amount) : 0,
+        req.body.interest_a_per || null,
+        req.body.interest_percent ? parseFloat(req.body.interest_percent) : 0,
+        req.body.interest_member_id || null,
+        req.body.interest_account_id || null
+      ]);
+
+      // 2. Counter Cash Account Entry
+      await query(`
+        INSERT INTO account_ledger (
+          company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+          reference_no, description, debit, credit, notes, created_by, financial_year
+        ) VALUES (?, ?, NULL, ?, 'cash_account_entry', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        companyId,
+        14, // CASH_ACCOUNT_ID
+        transactionDate, referenceNo, description,
+        parseFloat(cash_out || 0),
+        parseFloat(cash_in || 0),
+        notes || '', userId, '2026-27'
+      ]);
     }
 
-    const returnId = mainResult ? mainResult.insertId : (referenceNo);
-    return res.status(201).json({ success: true, data: { id: returnId, reference_no: referenceNo } });
+    return res.status(201).json({ success: true, data: { reference_no: referenceNo } });
 
 
   } catch (error) {
@@ -140,7 +169,7 @@ router.patch('/:id', async (req, res) => {
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND company_id = ?
     `, [
-      transaction_date, description, cash_in || 0, cash_out || 0, notes || '', 
+      transaction_date, description, cash_in || 0, cash_out || 0, notes || '',
       req.body.account_id || null, req.body.member_id || null,
       id, companyId
     ]);

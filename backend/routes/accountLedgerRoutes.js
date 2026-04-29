@@ -185,7 +185,10 @@ router.get('/account-stats/:accountId', async (req, res) => {
     let filter = ' WHERE company_id = ?';
     const params = [companyId];
 
-    if (memberId && accountId && accountId !== 'all') {
+    if (parseInt(accountId) === 14) {
+       // Symmetric Logic: For Cash stats, pull Rojmel flow
+       filter += " AND (al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+    } else if (memberId && accountId && accountId !== 'all') {
        // Filter by both specific account and specific member
        filter += ' AND account_id = ? AND (member_id = ? OR reference_id = ?)';
        params.push(accountId, memberId, memberId);
@@ -213,8 +216,15 @@ router.get('/account-stats/:accountId', async (req, res) => {
       params
     );
 
-    const debit = parseFloat(result[0].total_debit || 0);
-    const credit = parseFloat(result[0].total_credit || 0);
+    let debit = parseFloat(result[0].total_debit || 0);
+    let credit = parseFloat(result[0].total_credit || 0);
+
+    // Symmetric Flip for Dangar System stats
+    if (parseInt(accountId) === 5) {
+       const temp = debit;
+       debit = credit;
+       credit = temp;
+    }
     
     // Normalize opening balance
     const accQuery = await query('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
