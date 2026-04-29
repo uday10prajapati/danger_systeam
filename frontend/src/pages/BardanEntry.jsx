@@ -23,7 +23,9 @@ const BardanEntry = () => {
     option: 'Combo1',
     remark: '',
     dayQty: '',
-    totalQty: ''
+    totalQty: '',
+    member_id: null,
+    account_id: null
   });
 
   const [gridRows, setGridRows] = useState(Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
@@ -63,11 +65,11 @@ const BardanEntry = () => {
 
     if (name === 'code') {
       const member = members.find(m => m.member_code === value);
-      if (member) setFormData(prev => ({ ...prev, name: member.member_name }));
+      if (member) setFormData(prev => ({ ...prev, name: member.member_name, member_id: member.id }));
     }
     if (name === 'name') {
       const member = members.find(m => m.member_name === value);
-      if (member) setFormData(prev => ({ ...prev, code: member.member_code }));
+      if (member) setFormData(prev => ({ ...prev, code: member.member_code, member_id: member.id }));
     }
   };
 

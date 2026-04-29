@@ -57,6 +57,7 @@ function Sidebar() {
         { id: 'items', title: t('modules.itemMaster'), icon: Package, path: '/items' },
         { id: 'dangar-rates', title: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
         { id: 'kapat', title: 'Kapat Console', icon: TrendingDown, path: '/kapat' },
+        { id: 'interest-calculator', title: 'Interest Calculator', icon: DollarSign, path: '/interest-calculator' },
         { id: 'dangar-entry', title: t('modules.dangarEntry'), icon: Database, path: '/dangar-entry' },
         { id: 'bardan-portfolio', title: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
         { id: 'narrations', title: 'Narration Master', icon: MessageSquare, path: '/narrations' },

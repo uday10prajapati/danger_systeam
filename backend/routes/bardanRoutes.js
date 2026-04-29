@@ -217,6 +217,22 @@ router.post('/', async (req, res) => {
 
     const entryId = result.insertId || result.lastID;
 
+    // --- Sync with Account Ledger ---
+    if (member?.id && bardanAccountId) {
+       const ledgerDesc = `[BARDAN] Taken (#${pavtiNo}) | ${remark || ''}`;
+       await execute(`
+          INSERT INTO account_ledger (
+             company_id, financial_year, account_id, member_id, 
+             transaction_date, reference_no, description, 
+             debit, credit, source_table, source_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       `, [
+          companyId, financialYear, bardanAccountId, member.id,
+          date, pavtiNo, ledgerDesc,
+          qty || 0, 0, 'bardan_entry', entryId // Qty goes to Debit
+       ]);
+    }
+
     // Insert Grid Items
     if (gridRows && gridRows.length > 0) {
       for (const row of gridRows) {

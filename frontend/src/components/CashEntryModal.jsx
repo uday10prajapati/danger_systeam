@@ -370,9 +370,6 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                       {selectedAccount?.is_subledger ? 'Sabhasad (Member) Selection' : 'Narration / Description'}
                     </th>
                     <th className="w-40 text-right px-4">Amount</th>
-                    {(!isCredit && selectedAccount?.account_code === 'L0001') && (
-                      <th className="w-24 text-center px-2 border-l border-slate-300 text-[10px] bg-slate-200">Interest (%)</th>
-                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -512,22 +509,6 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                           className="w-full px-4 py-1.5 text-xs text-right font-bold outline-none bg-transparent disabled:bg-slate-50"
                         />
                       </td>
-                      {(!isCredit && selectedAccount?.account_code === 'L0001') && (
-                        <td className="border-l border-slate-200 px-2 bg-slate-50/50">
-                          <div className="flex items-center justify-center gap-1">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="%"
-                              value={row.interest_percent || ''}
-                              onChange={e => setSubEntries(subEntries.map(r => r.id === row.id ? { ...r, interest_percent: e.target.value } : r))}
-                              className="w-14 px-1 py-1 text-xs font-bold text-center border border-slate-300 rounded outline-none focus:border-blue-500 bg-white"
-                            />
-                            <span className="text-[10px] font-bold text-slate-500">/day</span>
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>

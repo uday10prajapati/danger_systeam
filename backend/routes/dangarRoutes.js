@@ -195,8 +195,8 @@ router.get('/payment-report', async (req, res) => {
          const memberLedger = await query(`
             SELECT account_id, debit, credit, transaction_date, interest_percent 
             FROM account_ledger 
-            WHERE (member_id = ? OR reference_id = ?) AND company_id = ?
-         `, [row.member_id, row.member_id, companyId]);
+            WHERE member_id = ? AND company_id = ?
+         `, [row.member_id, companyId]);
 
          for (const entry of memberLedger) {
             const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
@@ -212,15 +212,17 @@ router.get('/payment-report', async (req, res) => {
                const end = endDate ? new Date(endDate) : new Date();
                const diff = end - start;
                const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-               pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * days);
+               // Monthly Interest Formula: Principal * (Rate/100) * (Days/30)
+               pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * (days / 30.0));
             }
          }
       } catch (err) {
          console.error('Report Breakdown calculation failed', err);
       }
 
-      // Final Amount = Rate Amount - Member Advance - Other Udhar - Pending Interest - Total Kapat (Saved) - Bardan Penalty
-      const finalAmount = rateAmount - memberAdvance - otherUdhar - pendingInterest - totalKapat - bardanPenalty;
+      // Final Amount = Rate Amount - (Specified Deductions: Advance + Interest + Penalty)
+      const totalDeductions = memberAdvance + pendingInterest + bardanPenalty;
+      const finalAmount = rateAmount - totalDeductions;
 
       report.push({
         member_id:        row.member_id,
@@ -236,6 +238,7 @@ router.get('/payment-report', async (req, res) => {
         other_udhar:      otherUdhar.toFixed(2),
         total_interest:   pendingInterest.toFixed(2),
         total_kapat:      totalKapat.toFixed(2),
+        total_deductions: totalDeductions.toFixed(2),
         final_amount:     finalAmount.toFixed(2),
         bardan_issued:    bardanIssued,
         bardan_returned:  bardanReturned,

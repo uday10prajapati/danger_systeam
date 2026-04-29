@@ -558,6 +558,9 @@ export async function initializeDatabase() {
           description TEXT,
           notes TEXT,
           financial_year VARCHAR(20) DEFAULT '2026-27',
+          interest_amount DECIMAL(15, 2) DEFAULT 0.00,
+          interest_percent DECIMAL(5, 2) DEFAULT 0.00,
+          interest_a_per VARCHAR(20) DEFAULT 'per_month',
           created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -580,6 +583,9 @@ export async function initializeDatabase() {
         { name: 'updated_at', type: 'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
         { name: 'debit', type: 'DECIMAL(12, 2) DEFAULT 0.00' },
         { name: 'credit', type: 'DECIMAL(12, 2) DEFAULT 0.00' },
+        { name: 'interest_amount', type: 'DECIMAL(15, 2) DEFAULT 0.00' },
+        { name: 'interest_percent', type: 'DECIMAL(5, 2) DEFAULT 0.00' },
+        { name: 'interest_a_per', type: 'VARCHAR(20) DEFAULT \'per_month\'' },
         { name: 'account_id', type: 'INT DEFAULT NULL' },
         { name: 'member_id', type: 'INT DEFAULT NULL' }
       ];
@@ -2115,16 +2121,21 @@ export async function getOpeningBalance(companyId, forDate) {
 
 // ACCOUNT LEDGER FUNCTIONS (Now using Unified logic)
 
-export async function getAccountLedger(accountId, startDate, endDate) {
-  let whereClause = "al.account_id = ?";
-  let params = [accountId];
+export async function getAccountLedger(accountId, startDate, endDate, memberId = null) {
+  let whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
+  let params = [accountId, accountId];
   let isMemberRequest = String(accountId).startsWith('M');
 
   if (isMemberRequest) {
-    const memberId = accountId.substring(1);
-    whereClause = "al.member_id = ?";
-    params = [memberId];
+    const actualMemberId = accountId.substring(1);
+    whereClause = "(al.member_id = ? OR al.interest_member_id = ?)";
+    params = [actualMemberId, actualMemberId];
+  } else if (memberId) {
+    whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
+    params.push(memberId, memberId);
   }
+
+  const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
 
   // Enhanced SQL: Join with member_master and accounts to provide rich context
   // Removed GROUP BY for account-based requests to ensure individual member transactions (like batch interest) are visible
@@ -2134,15 +2145,21 @@ export async function getAccountLedger(accountId, startDate, endDate) {
       al.transaction_date, 
       COALESCE(al.transaction_type, al.reference_type, 'manual') as transaction_type,
       al.reference_no,
-      COALESCE(al.debit, al.debit_amount, 0) as debit,
-      COALESCE(al.credit, al.credit_amount, 0) as credit,
+      CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(al.debit, al.debit_amount, 0) END as debit,
+      CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN COALESCE(al.interest_amount, 0)
+        ELSE COALESCE(al.credit, al.credit_amount, 0) 
+      END as credit,
       COALESCE(al.description, al.notes, '') as description,
-      al.member_id,
+      CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END as member_id,
       m.member_name,
       m.member_code,
-      al.interest_percent
+      al.interest_percent,
+      al.interest_amount,
+      al.interest_a_per
     FROM account_ledger al
-    LEFT JOIN member_master m ON al.member_id = m.id
+    LEFT JOIN member_master m ON m.id = (CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END)
     WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date ASC, al.created_at ASC, al.id ASC
   `;
@@ -2151,23 +2168,33 @@ export async function getAccountLedger(accountId, startDate, endDate) {
   return await query(sql, params);
 }
 
-export async function getAccountBalance(accountId, upToDate = null) {
-  let whereClause = "al.account_id = ?";
-  let params = [accountId];
+export async function getAccountBalance(accountId, upToDate = null, memberId = null) {
+  let whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
+  let params = [accountId, accountId];
   let openingBalance = 0;
+  let isMemberRequest = String(accountId).startsWith('M');
+  const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
 
   // 1. Get Opening Balance from Master tables
-  if (String(accountId).startsWith('M')) {
-    const memberId = accountId.substring(1);
-    const member = await queryOne('SELECT opening_balance FROM member_master WHERE id = ?', [memberId]);
+  if (isMemberRequest) {
+    const actualMemberId = accountId.substring(1);
+    const member = await queryOne('SELECT opening_balance FROM member_master WHERE id = ?', [actualMemberId]);
     openingBalance = parseFloat(member?.opening_balance || 0);
-    whereClause = "al.member_id = ?";
-    params = [memberId];
+    whereClause = "(al.member_id = ? OR al.interest_member_id = ?)";
+    params = [actualMemberId, actualMemberId];
   } else {
     const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
     openingBalance = parseFloat(account?.opening_balance || 0);
-    whereClause = "al.account_id = ?";
-    params = [accountId];
+    whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
+    params = [accountId, accountId];
+    
+    if (memberId) {
+       whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
+       params.push(memberId, memberId);
+       // Note: Opening balance for a specific member in a system account is usually 0 
+       // unless we track member-wise opening balances for that account.
+       openingBalance = 0; 
+    }
   }
 
   const dateCondition = upToDate ? `AND al.transaction_date <= ?` : '';
@@ -2175,9 +2202,13 @@ export async function getAccountBalance(accountId, upToDate = null) {
 
   const sql = `
     SELECT 
-      COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
-      COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit,
-      COALESCE(SUM(COALESCE(debit, debit_amount, 0) - COALESCE(credit, credit_amount, 0)), 0) as ledger_balance
+      COALESCE(SUM(CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(debit, debit_amount, 0) END), 0) as total_debit,
+      COALESCE(SUM(CASE WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) ELSE COALESCE(credit, credit_amount, 0) END), 0) as total_credit,
+      COALESCE(SUM(
+         CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(debit, debit_amount, 0) END 
+         - 
+         CASE WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) ELSE COALESCE(credit, credit_amount, 0) END
+      ), 0) as ledger_balance
     FROM account_ledger al
     WHERE ${whereClause} ${dateCondition}
   `;
@@ -2192,17 +2223,17 @@ export async function getAccountBalance(accountId, upToDate = null) {
   };
 }
 
-export async function getAccountLedgerWithRunningBalance(accountId, startDate, endDate) {
+export async function getAccountLedgerWithRunningBalance(accountId, startDate, endDate, memberId = null) {
   // 1. Get Opening Balance (transactions before startDate)
   const prevDate = new Date(startDate);
   prevDate.setDate(prevDate.getDate() - 1);
   const prevDateStr = prevDate.toISOString().split('T')[0];
   
-  const balanceData = await getAccountBalance(accountId, prevDateStr);
+  const balanceData = await getAccountBalance(accountId, prevDateStr, memberId);
   let runningBalance = parseFloat(balanceData.running_balance || 0);
 
   // 2. Get period transactions
-  const entries = await getAccountLedger(accountId, startDate, endDate);
+  const entries = await getAccountLedger(accountId, startDate, endDate, memberId);
 
   // 3. Map with running balance
   const entriesWithBalance = entries.map(entry => {
