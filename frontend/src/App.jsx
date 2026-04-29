@@ -51,17 +51,7 @@ function AppContent() {
   const [products, setProducts] = useState([])
   const [sales, setSales] = useState([])
   const [isAuth, setIsAuth] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768)
   const location = useLocation()
-  const { sidebarOpen } = useSidebar()
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -69,7 +59,6 @@ function AppContent() {
         const healthRes = await healthCheck()
         setBackendStatus('✅ Connected')
 
-        // Only load data if authenticated
         const user = localStorage.getItem('user');
         if (user) {
           try {
@@ -90,32 +79,22 @@ function AppContent() {
     checkBackend()
   }, [])
 
-  // Check if user is authenticated
   useEffect(() => {
     const user = localStorage.getItem('user')
     setIsAuth(!!user)
   }, [location])
 
+  const showNav = isAuth && location.pathname !== '/' && location.pathname !== '/login'
+
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50">
-      <div className="flex flex-1 overflow-hidden relative">
-        {isAuth && location.pathname !== '/' && location.pathname !== '/login' && <Sidebar />}
-        <div
-          className="flex-1 overflow-y-auto w-full h-full pb-10 flex flex-col"
-          style={{
-            marginLeft: isAuth && location.pathname !== '/' && location.pathname !== '/login' && isDesktop
-              ? '256px'
-              : '0px',
-            transition: 'margin-left 300ms ease-in-out',
-          }}
-        >
-          {isAuth && location.pathname !== '/' && location.pathname !== '/login' && (
-            <div className="flex-none sticky top-0 z-30 shadow-sm bg-white">
-              <Navbar backendStatus={backendStatus} />
-            </div>
-          )}
-          <div className="flex-1 overflow-auto">
-            <Routes>
+      {showNav && <Navbar backendStatus={backendStatus} />}
+      
+      <main 
+        className={`flex-1 overflow-y-auto w-full h-full transition-all duration-300 ${showNav ? 'pt-20' : ''}`}
+      >
+        <div className="max-w-[1600px] mx-auto p-4 sm:p-8">
+          <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -174,22 +153,19 @@ function AppContent() {
               <Route path="/stock" element={<ProtectedRoute><StockReport /></ProtectedRoute>} />
               <Route path="/purchase-report" element={<ProtectedRoute><PurchaseReport /></ProtectedRoute>} />
               <Route path="/sale-report" element={<ProtectedRoute><SaleReport /></ProtectedRoute>} />
-            </Routes>
-          </div>
-        </div>
+        </Routes>
       </div>
-    </div>
+    </main>
+</div>
   )
 }
 
 
 function App() {
   return (
-    <SidebarProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </SidebarProvider>
+    <Router>
+      <AppContent />
+    </Router>
   )
 }
 
