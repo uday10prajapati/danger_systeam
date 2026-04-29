@@ -360,14 +360,23 @@ export default function AccountLedger() {
                                              <td className="px-10 py-5 text-[11px] font-bold text-slate-400 font-mono italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
                                              <td className="px-10 py-5 text-[10px] font-bold text-slate-300 uppercase tracking-tight italic">{row.reference_no}</td>
                                              <td className="px-10 py-5 font-bold text-slate-700 text-sm uppercase tracking-tight">
-                                                {row.description}
+                                                <div className="flex flex-col">
+                                                   <span>{row.description}</span>
+                                                   {row.member_name && (
+                                                      <span className="text-[10px] text-blue-500 font-black italic mt-0.5">
+                                                         ENTITY: {row.member_name} {row.member_code ? `[${row.member_code}]` : ''}
+                                                      </span>
+                                                   )}
+                                                </div>
                                                 {parseFloat(row.interest_percent || 0) > 0 && (
-                                                   <span className="ml-2 px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-[9px] font-black italic">
+                                                   <span className="mt-1 inline-block px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-[9px] font-black italic">
                                                       @{row.interest_percent}% Interest
                                                    </span>
                                                 )}
                                              </td>
-                                             <td className="px-10 py-5 text-right font-bold text-slate-900 italic">
+
+                                             <td className={`px-10 py-5 text-right font-bold text-slate-900 italic`}>
+
                                                 {parseFloat(row.debit || 0) > 0 ? `₹${parseFloat(row.debit).toLocaleString('en-IN')}` : '—'}
                                              </td>
                                              <td className="px-10 py-5 text-right font-bold text-slate-400 italic">

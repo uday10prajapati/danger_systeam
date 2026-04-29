@@ -32,7 +32,6 @@ import DeductionConsole from './pages/DeductionConsole'
 import BardanPortfolio from './pages/BardanPortfolio'
 import NarrationMaster from './pages/NarrationMaster'
 import DangarMaster from './pages/DangarMaster'
-import ProtocolRegistry from './pages/ProtocolRegistry'
 import DangarPaymentReport from './pages/DangarPaymentReport'
 import JamaBardanEntry from './pages/JamaBardanEntry'
 import Navbar from './components/Navbar'
@@ -100,11 +99,11 @@ function AppContent() {
     <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50">
       <div className="flex flex-1 overflow-hidden relative">
         {isAuth && location.pathname !== '/' && location.pathname !== '/login' && <Sidebar />}
-        <div 
+        <div
           className="flex-1 overflow-y-auto w-full h-full pb-10 flex flex-col"
           style={{
             marginLeft: isAuth && location.pathname !== '/' && location.pathname !== '/login' && isDesktop
-              ? '256px' 
+              ? '256px'
               : '0px',
             transition: 'margin-left 300ms ease-in-out',
           }}
@@ -135,13 +134,34 @@ function AppContent() {
               <Route path="/narrations" element={<ProtectedRoute><NarrationMaster /></ProtectedRoute>} />
               <Route path="/dangar-master" element={<ProtectedRoute><DangarMaster /></ProtectedRoute>} />
               <Route path="/protocol-registry" element={<ProtectedRoute><ProtocolRegistry /></ProtectedRoute>} />
-              
+
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/company" element={<Company />} />
+              <Route path="/users" element={<UserMaster />} />
+              <Route path="/accounts" element={<AccountMaster />} />
+              <Route path="/members" element={<MemberMaster />} />
+              <Route path="/items" element={<ItemMaster />} />
+              <Route path="/rates" element={<ItemRate />} />
+              <Route path="/village" element={<Village />} />
+              <Route path="/dangar-entry" element={<DangarEntry />} />
+              <Route path="/dangar-rates" element={<DangarRateMaster />} />
+              <Route path="/dangar-payment-report" element={<DangarPaymentReport />} />
+              <Route path="/kapat" element={<DeductionConsole />} />
+              <Route path="/bardan-portfolio" element={<BardanPortfolio />} />
+              <Route path="/narrations" element={<NarrationMaster />} />
+              <Route path="/dangar-master" element={<DangarMaster />} />
+
               {/* Transactions */}
               <Route path="/sales" element={<ProtectedRoute><Sale /></ProtectedRoute>} />
               <Route path="/sales-return" element={<ProtectedRoute><SaleReturn /></ProtectedRoute>} />
               <Route path="/purchase" element={<ProtectedRoute><Purchase /></ProtectedRoute>} />
               <Route path="/purchase-return" element={<ProtectedRoute><PurchaseReturn /></ProtectedRoute>} />
-              
+
+              <Route path="/sales" element={<Sale />} />
+              <Route path="/sales-return" element={<SaleReturn />} />
+              <Route path="/purchase" element={<Purchase />} />
+              <Route path="/purchase-return" element={<PurchaseReturn />} />
+
               {/* Tools & Reports */}
               <Route path="/barcode" element={<ProtectedRoute><BarcodeScannerPage /></ProtectedRoute>} />
               <Route path="/cashbook" element={<ProtectedRoute><Rojmel /></ProtectedRoute>} />

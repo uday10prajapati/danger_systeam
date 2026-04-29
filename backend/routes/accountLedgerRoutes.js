@@ -101,9 +101,12 @@ router.get('/account-stats/:accountId', async (req, res) => {
     let filter = ' WHERE company_id = ?';
     const params = [companyId];
 
-    if (memberId) {
-       // If memberId is provided, we want their GLOBAL balance across all accounts 
-       // to show as "Jama" and "Udhar" in the Kapat Console
+    if (memberId && accountId && accountId !== 'all') {
+       // Filter by both specific account and specific member
+       filter += ' AND account_id = ? AND (member_id = ? OR reference_id = ?)';
+       params.push(accountId, memberId, memberId);
+    } else if (memberId) {
+       // If only memberId is provided, show their GLOBAL balance (original behavior for top stats)
        filter += ' AND (member_id = ? OR reference_id = ?)';
        params.push(memberId, memberId);
     } else {
