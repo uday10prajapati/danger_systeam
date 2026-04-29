@@ -79,9 +79,7 @@ async function runFullSeed() {
     }
 
     const [createTableInfo] = await connection.query(`SHOW CREATE TABLE ${table}`);
-    const createStmt = createTableInfo[0]['Create Table']
-      .replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS')
-      .replace(/`/g, '\\`'); // Escape backticks for JS template literal
+    const createStmt = createTableInfo[0]['Create Table'].replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS');
     const [columnsInfo] = await connection.query(`SHOW COLUMNS FROM ${table}`);
     
     let tableSeedContent = `
