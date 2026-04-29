@@ -31,6 +31,7 @@ export default function AccountLedger() {
    const [memberCodeSearch, setMemberCodeSearch] = useState('');
    const [memberNameSearch, setMemberNameSearch] = useState('');
    const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+   const [bardanPrice, setBardanPrice] = useState(0);
 
    useEffect(() => {
       loadCompany();
@@ -50,11 +51,25 @@ export default function AccountLedger() {
    useEffect(() => {
       if (company?.id) {
          fetchAccounts();
+         fetchBardanPrice();
          if (view === 'trial-balance') {
             fetchTrialBalance();
          }
       }
    }, [view, company]);
+
+   const fetchBardanPrice = async () => {
+      try {
+         const response = await axios.get('/api/bardan-price', {
+            headers: { 'x-company-id': company.id }
+         });
+         if (response.data.success && response.data.data) {
+            setBardanPrice(parseFloat(response.data.data.price_per_bardan || 0));
+         }
+      } catch (error) {
+         console.error('Failed to load bardan price', error);
+      }
+   };
 
    const fetchAccounts = async () => {
       try {
@@ -385,7 +400,15 @@ export default function AccountLedger() {
                               <table className="w-full text-left">
                                  <thead className="bg-[#F8FAFC]">
                                     <tr>
-                                       {['Post Epoch', 'Reference Registry', 'Nomenclature Payload', 'Debit (+)', 'Credit (-)', 'Running Balance'].map((h, i) => (
+                                       {[
+                                          'Post Epoch', 
+                                          'Reference Registry', 
+                                          'Nomenclature Payload', 
+                                          'Debit (+)', 
+                                          'Credit (-)', 
+                                          'Running Balance',
+                                          ...(selectedAccount?.account_code === 'BS0001' ? ['Bardan Amount'] : [])
+                                       ].map((h, i) => (
                                           <th key={i} className={`px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${i > 2 ? 'text-right' : ''}`}>
                                              {h}
                                           </th>
@@ -459,6 +482,11 @@ export default function AccountLedger() {
                                                    ? parseFloat(row.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })
                                                    : `₹${parseFloat(row.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                                              </td>
+                                             {selectedAccount?.account_code === 'BS0001' && (
+                                                <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
+                                                   ₹{(parseFloat(row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </td>
+                                             )}
                                           </tr>
                                        ))
                                     )}

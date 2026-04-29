@@ -14,6 +14,7 @@ export default function SabhasadLedgerSummary() {
   const [totals, setTotals] = useState({ opening_balance: 0, debit: 0, credit: 0, closing_balance: 0 });
   const [loading, setLoading] = useState(false);
   const [company, setCompany] = useState(null);
+  const [bardanPrice, setBardanPrice] = useState(0);
 
   // Filters
   const [dateRange, setDateRange] = useState({
@@ -61,8 +62,22 @@ export default function SabhasadLedgerSummary() {
   useEffect(() => {
     if (company?.id) {
       fetchDropdownData();
+      fetchBardanPrice();
     }
   }, [company]);
+
+  const fetchBardanPrice = async () => {
+    try {
+      const response = await axios.get('/api/bardan-price', {
+        headers: { 'x-company-id': company.id }
+      });
+      if (response.data.success && response.data.data) {
+        setBardanPrice(parseFloat(response.data.data.price_per_bardan || 0));
+      }
+    } catch (error) {
+      console.error('Failed to load bardan price', error);
+    }
+  };
 
   const fetchDropdownData = async () => {
     try {
@@ -70,7 +85,12 @@ export default function SabhasadLedgerSummary() {
         headers: { 'x-company-id': company.id }
       });
       if (accRes.data.success) {
-        setAccounts(accRes.data.data);
+        const filteredAccounts = accRes.data.data.filter(a => 
+          !a.account_name.toLowerCase().includes('brokerage') && 
+          !a.account_name.toLowerCase().includes('labour') && 
+          !a.account_name.toLowerCase().includes('rounding')
+        );
+        setAccounts(filteredAccounts);
       }
 
       const memRes = await axios.get(`/api/members/company/${company.id}`, {
@@ -122,7 +142,8 @@ export default function SabhasadLedgerSummary() {
         params: {
           memberId: mem.member_id,
           startDate: dateRange.startDate,
-          endDate: dateRange.endDate
+          endDate: dateRange.endDate,
+          accountId: accountId !== 'all' ? accountId : undefined
         },
         headers: { 'x-company-id': company.id }
       });
@@ -207,6 +228,26 @@ export default function SabhasadLedgerSummary() {
       </div>
     );
   }
+
+  const selectedAcc = accounts.find(a => a.id === parseInt(accountId));
+  const isDangar = selectedAcc?.account_code === 'DS0001' || 
+                  selectedAcc?.account_name?.toLowerCase().includes('dangar system') ||
+                  accName?.toLowerCase().includes('dangar system');
+  
+  const isInterest = selectedAcc?.account_code === 'IK0001' || 
+                    selectedAcc?.account_name?.toLowerCase().includes('interest khate') ||
+                    accName?.toLowerCase().includes('interest khate');
+
+  const isBrokerage = selectedAcc?.account_name?.toLowerCase().includes('brokerage') ||
+                     accName?.toLowerCase().includes('brokerage');
+
+  const isLabour = selectedAcc?.account_name?.toLowerCase().includes('labour') ||
+                  accName?.toLowerCase().includes('labour');
+
+  const hideBardan = selectedAcc?.account_name?.toLowerCase().includes('member adv') || 
+                    selectedAcc?.account_name?.toLowerCase().includes('subledger member') ||
+                    accName?.toLowerCase().includes('member adv') ||
+                    accName?.toLowerCase().includes('subledger member');
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans animate-in fade-in duration-700">
@@ -388,25 +429,82 @@ export default function SabhasadLedgerSummary() {
                   <th className="px-10 py-6 border-r border-slate-50/50">Epoch_ID</th>
                   <th className="px-10 py-6 border-r border-slate-50/50">Code</th>
                   <th className="px-10 py-6 min-w-[250px] border-r border-slate-50/50">Sabhasad Nomenclature</th>
-                  <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50">Nomenclature Account</th>
-                  <th className="px-10 py-6 text-right border-r border-slate-50/50">Open Pos</th>
-                  <th className="px-10 py-6 text-right text-indigo-500 border-r border-slate-50/50">Debit (+)</th>
-                  <th className="px-10 py-6 text-right text-amber-500 border-r border-slate-50/50">Credit (-)</th>
-                  <th className="px-10 py-6 text-right border-r border-slate-50/50">Close Pos</th>
+                  
+                  {(() => {
+                    if (isDangar) {
+                      return (
+                        <>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Date</th>
+                          <th className="px-10 py-6 text-right text-indigo-500 border-r border-slate-50/50 italic">Purches Rate</th>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Item Name</th>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Danger Class</th>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Bought Season</th>
+                          <th className="px-10 py-6 text-right text-indigo-500 border-r border-slate-50/50 italic uppercase">Total Qty (Qt)</th>
+                          <th className="px-10 py-6 text-right text-emerald-500 border-r border-slate-50/50 italic uppercase">Total Rate</th>
+                        </>
+                      );
+                    }
+                    if (isInterest) {
+                      return (
+                        <>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Accrual Date</th>
+                          <th className="px-10 py-6 text-right text-indigo-500 border-r border-slate-50/50 italic">Interest Rate (%)</th>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Days</th>
+                          <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50 italic">Reference Transaction</th>
+                          <th className="px-10 py-6 text-right text-emerald-500 border-r border-slate-50/50 italic uppercase">Interest Amount</th>
+                        </>
+                      );
+                    }
+                    if (isBrokerage) {
+                      return (
+                        <>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Date</th>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Invoice No</th>
+                          <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50 italic">Description</th>
+                          <th className="px-10 py-6 text-right text-emerald-500 border-r border-slate-50/50 italic uppercase">Brokerage Amount</th>
+                        </>
+                      );
+                    }
+                    if (isLabour) {
+                      return (
+                        <>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Date</th>
+                          <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Invoice No</th>
+                          <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50 italic">Description</th>
+                          <th className="px-10 py-6 text-right text-emerald-500 border-r border-slate-50/50 italic uppercase">Labour Amount</th>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50">Nomenclature Account</th>
+                        <th className="px-10 py-6 text-indigo-500 border-r border-slate-50/50 italic">Date</th>
+                        <th className="px-10 py-6 text-right text-indigo-500 border-r border-slate-50/50">Debit (+)</th>
+                        <th className="px-10 py-6 text-right text-amber-500 border-r border-slate-50/50">Credit (-)</th>
+                        <th className="px-10 py-6 text-right border-r border-slate-50/50">Close Pos</th>
+                        {!hideBardan && (
+                          <>
+                            <th className="px-10 py-6 text-right border-r border-slate-50/50 text-indigo-400">Bardan Bal</th>
+                            <th className="px-10 py-6 text-right border-r border-slate-50/50 text-blue-400">Bardan Amt</th>
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
                   <th className="px-10 py-6 text-center">Audit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="py-32 text-center">
+                    <td colSpan="9" className="py-32 text-center">
                       <RefreshCcw size={48} className="animate-spin text-indigo-100 mx-auto mb-6" />
                       <p className="text-slate-300 font-black uppercase text-[10px] tracking-widest italic">Decrypting Member Registry Shards...</p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="py-32 text-center text-slate-200 font-black uppercase text-[10px] tracking-[0.4em] italic bg-slate-50/30">
+                    <td colSpan="9" className="py-32 text-center text-slate-200 font-black uppercase text-[10px] tracking-[0.4em] italic bg-slate-50/30">
                       <Database size={56} className="mx-auto mb-4 opacity-50" strokeWidth={1} />
                       Void Detection: No Entities Found
                     </td>
@@ -418,14 +516,77 @@ export default function SabhasadLedgerSummary() {
                         <td className="px-10 py-5 text-[11px] font-bold text-slate-300 font-mono tracking-tighter">{String(idx + 1).padStart(3, '0')}</td>
                         <td className="px-10 py-5 text-[11px] font-black text-indigo-400 group-hover:text-indigo-600 transition-colors italic">{row.member_code}</td>
                         <td className="px-10 py-5 text-sm font-bold text-slate-800 uppercase italic tracking-tight">{row.member_name}</td>
-                        <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{row.account_name}</td>
-                        <td className="px-10 py-5 text-right font-bold text-slate-400 italic">₹{parseFloat(row.opening_balance).toLocaleString('en-IN')}</td>
-                        <td className="px-10 py-5 text-right font-black text-indigo-600 italic">₹{parseFloat(row.debit).toLocaleString('en-IN')}</td>
-                        <td className="px-10 py-5 text-right font-black text-amber-500 italic">₹{parseFloat(row.credit).toLocaleString('en-IN')}</td>
-                        <td className={`px-10 py-5 text-right font-black text-sm italic underline underline-offset-8 decoration-4 ${parseFloat(row.closing_balance) >= 0 ? 'text-emerald-600 decoration-emerald-50' : 'text-rose-600 decoration-rose-50'
-                          }`}>
-                          ₹{parseFloat(row.closing_balance).toLocaleString('en-IN')}
-                        </td>
+                        
+                        {(() => {
+                          if (isDangar) {
+                            return (
+                              <>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+                                <td className="px-10 py-5 text-right font-bold text-indigo-600">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td>
+                                <td className="px-10 py-5 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">{row.item_name || 'Generic Dangar'}</td>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.quality_class || '1st'}</td>
+                                <td className="px-10 py-5 text-[10px] font-bold text-amber-500 uppercase tracking-[0.2em]">{row.book_type || 'Season'}</td>
+                                <td className="px-10 py-5 text-right font-black text-indigo-600 italic underline underline-offset-8 decoration-indigo-100 decoration-2">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[8px] opacity-50 not-italic ml-1">Qt</span></td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
+                              </>
+                            );
+                          }
+                          if (isInterest) {
+                            return (
+                              <>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
+                                <td className="px-10 py-5 text-right font-bold text-indigo-600">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td>
+                                <td className="px-10 py-5 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">{row.days || 0} Days</td>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description || 'Interest Accrual'}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td>
+                              </>
+                            );
+                          }
+                          if (isBrokerage) {
+                            return (
+                              <>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+                                <td className="px-10 py-5 text-[10px] font-black text-indigo-400 italic tracking-tight">{row.invoice_no}</td>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
+                              </>
+                            );
+                          }
+                          if (isLabour) {
+                            return (
+                              <>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+                                <td className="px-10 py-5 text-[10px] font-black text-indigo-400 italic tracking-tight">{row.invoice_no}</td>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
+                              </>
+                            );
+                          }
+                          return (
+                            <>
+                              <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{row.account_name}</td>
+                              <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">
+                                {row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}
+                              </td>
+                              <td className="px-10 py-5 text-right font-black text-indigo-600 italic">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</td>
+                              <td className="px-10 py-5 text-right font-black text-amber-500 italic">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td>
+                              <td className={`px-10 py-5 text-right font-black text-sm italic underline underline-offset-8 decoration-4 ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-emerald-600 decoration-emerald-50' : 'text-rose-600 decoration-rose-50'
+                                }`}>
+                                ₹{parseFloat(row.closing_balance || 0).toLocaleString('en-IN')}
+                              </td>
+                              {!hideBardan && (
+                                <>
+                                  <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.bardan_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                     {parseFloat(row.bardan_balance || 0).toLocaleString()}
+                                  </td>
+                                  <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
+                                     ₹{(parseFloat(row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </td>
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
                         <td className="px-10 py-5 text-center">
                           <button
                             onClick={() => openAudit(row)}
@@ -438,10 +599,66 @@ export default function SabhasadLedgerSummary() {
                     ))}
                     <tr className="bg-slate-900 text-white font-black italic">
                       <td colSpan="4" className="px-10 py-8 text-xs tracking-[0.4em] uppercase text-indigo-400 font-black">Master Integrity Summary</td>
-                      <td className="px-10 py-8 text-right text-lg tracking-tighter text-slate-400">₹{parseFloat(totals.opening_balance).toLocaleString('en-IN')}</td>
-                      <td className="px-10 py-8 text-right text-lg tracking-tighter text-indigo-400">₹{parseFloat(totals.debit).toLocaleString('en-IN')}</td>
-                      <td className="px-10 py-8 text-right text-lg tracking-tighter text-amber-400">₹{parseFloat(totals.credit).toLocaleString('en-IN')}</td>
-                      <td className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400">₹{parseFloat(totals.closing_balance).toLocaleString('en-IN')}</td>
+                      
+                      {(() => {
+                        if (isDangar) {
+                          return (
+                            <>
+                              <td className="px-10 py-8 text-right text-slate-500 font-mono italic text-[10px] tracking-widest uppercase">Registry Aggregates</td>
+                              <td colSpan="2" className="px-10 py-8 text-right text-lg tracking-tighter text-indigo-400 border-r border-slate-700/50">
+                                {data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-xs opacity-50 ml-1">Qt</span>
+                              </td>
+                              <td colSpan="1" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400">
+                                ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
+                              </td>
+                            </>
+                          );
+                        }
+                        if (isInterest) {
+                          return (
+                            <>
+                              <td className="px-10 py-8 text-right text-slate-500 font-mono italic text-[10px] tracking-widest uppercase">Interest Aggregates</td>
+                              <td colSpan="3" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400 font-black italic">
+                                ₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}
+                              </td>
+                            </>
+                          );
+                        }
+                        if (isBrokerage) {
+                          return (
+                            <>
+                              <td className="px-10 py-8 text-right text-slate-500 font-mono italic text-[10px] tracking-widest uppercase">Brokerage Aggregates</td>
+                              <td colSpan="3" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400 font-black italic">
+                                ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
+                              </td>
+                            </>
+                          );
+                        }
+                        if (isLabour) {
+                          return (
+                            <>
+                              <td className="px-10 py-8 text-right text-slate-500 font-mono italic text-[10px] tracking-widest uppercase">Labour Aggregates</td>
+                              <td colSpan="3" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400 font-black italic">
+                                ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
+                              </td>
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            <td className="px-10 py-8 border-r border-slate-700/50"></td>
+                            <td className="px-10 py-8 text-right text-lg tracking-tighter text-indigo-400">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-10 py-8 text-right text-lg tracking-tighter text-amber-400">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400">₹{parseFloat(totals.closing_balance || 0).toLocaleString('en-IN')}</td>
+                            {!hideBardan && (
+                              <>
+                                <td className="px-10 py-8 text-right text-lg tracking-tighter text-rose-400">{data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0).toLocaleString()}</td>
+                                <td className="px-10 py-8 text-right text-lg tracking-tighter text-blue-400">₹{data.reduce((s, r) => s + (parseFloat(r.bardan_balance || 0) * bardanPrice), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
                       <td></td>
                     </tr>
                   </>
@@ -505,7 +722,14 @@ export default function SabhasadLedgerSummary() {
                           <td className="px-6 py-4 text-slate-300 text-[10px]">{tx.reference_no}</td>
                           <td className="px-6 py-4 text-right text-indigo-600 font-black">₹{(parseFloat(tx.debit) || 0).toLocaleString()}</td>
                           <td className="px-6 py-4 text-right text-amber-500 font-black">₹{(parseFloat(tx.credit) || 0).toLocaleString()}</td>
-                          <td className="px-6 py-4 text-right font-black italic text-slate-400">---</td>
+                          <td className={`px-6 py-4 text-right font-black italic ${
+                            parseFloat(tx.running_balance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                          }`}>
+                            ₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            <span className="text-[8px] ml-1 opacity-50 uppercase not-italic">
+                              {parseFloat(tx.running_balance || 0) >= 0 ? 'Jama' : 'Udhar'}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -2137,31 +2137,44 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
 
   const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
 
-  // Enhanced SQL: Join with member_master and accounts to provide rich context
-  // Removed GROUP BY for account-based requests to ensure individual member transactions (like batch interest) are visible
+  // Grouped SQL: Consolidate entries by date and member to reduce redundancy
   const sql = `
     SELECT 
-      al.id, 
+      MIN(al.id) as id, 
       al.transaction_date, 
-      COALESCE(al.transaction_type, al.reference_type, 'manual') as transaction_type,
-      al.reference_no,
-      CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(al.debit, al.debit_amount, 0) END as debit,
-      CASE 
-        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) 
-        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN COALESCE(al.interest_amount, 0)
+      GROUP_CONCAT(DISTINCT COALESCE(al.transaction_type, al.reference_type, 'manual') SEPARATOR ', ') as transaction_type,
+      GROUP_CONCAT(DISTINCT al.reference_no SEPARATOR ', ') as reference_no,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0)
+        ELSE COALESCE(al.debit, al.debit_amount, 0) 
+      END) as debit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
         ELSE COALESCE(al.credit, al.credit_amount, 0) 
-      END as credit,
-      COALESCE(al.description, al.notes, '') as description,
+      END) as credit,
+      CASE 
+        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = al.company_id LIMIT 1) 
+             AND COUNT(*) > 1 
+        THEN 'Bardan Registry'
+        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = al.company_id LIMIT 1) 
+             AND COUNT(*) > 1 
+        THEN 'Dangar Purchase Entry'
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '%brokerage%'
+        THEN 'Brokerage'
+        ELSE GROUP_CONCAT(COALESCE(al.description, al.notes, '') SEPARATOR ' | ')
+      END as description,
       CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END as member_id,
       m.member_name,
       m.member_code,
-      al.interest_percent,
-      al.interest_amount,
-      al.interest_a_per
+      MAX(al.interest_percent) as interest_percent,
+      SUM(al.interest_amount) as interest_amount,
+      GROUP_CONCAT(DISTINCT al.interest_a_per SEPARATOR ', ') as interest_a_per
     FROM account_ledger al
     LEFT JOIN member_master m ON m.id = (CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END)
     WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
-    ORDER BY al.transaction_date ASC, al.created_at ASC, al.id ASC
+    GROUP BY al.transaction_date, member_id
+    ORDER BY al.transaction_date ASC, MIN(al.created_at) ASC, MIN(al.id) ASC
   `;
   
   params.push(startDate, endDate);

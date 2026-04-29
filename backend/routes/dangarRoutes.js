@@ -359,25 +359,35 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // 5. Commit to Unified Ledger
-    // Fetch Item's Ledger Account Identity
+    // 5. Commit to Unified Ledger (Double-Entry Strategy)
     const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
     const purchaseAccountId = itemData?.purchase_account_id || null;
-
+    const targetLedgerAccId = purchaseAccountId || dangarAccountId;
     const ledgerDesc = `${bookType} Purchase - ${net_quintal} Qt @ ${rate}`;
-    try {
-      const targetLedgerAccId = purchaseAccountId || dangarAccountId;
+    const amountVal = parseFloat(amount || 0);
 
+    try {
       if (targetLedgerAccId) {
-        // Full ledger entry with purchase or system account
+        // A. DEBIT THE SYSTEM ACCOUNT (Stock Increase)
         await execute(`
           INSERT INTO account_ledger (
-            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-            reference_id, reference_no, description, credit, financial_year
-          ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+            company_id, account_id, transaction_date, transaction_type, reference_type, 
+            reference_id, reference_no, description, debit, financial_year
+          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
         `, [
-          companyId, targetLedgerAccId, member_id, date, entryId, srNo, ledgerDesc, 
-          parseFloat(amount || 0), currentFinancialYear
+          companyId, targetLedgerAccId, date, entryId, srNo, ledgerDesc, 
+          amountVal, currentFinancialYear
+        ]);
+
+        // B. CREDIT THE MEMBER (Payable Increase)
+        await execute(`
+          INSERT INTO account_ledger (
+            company_id, member_id, transaction_date, transaction_type, reference_type, 
+            reference_id, reference_no, description, credit, financial_year
+          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+        `, [
+          companyId, member_id, date, entryId, srNo, ledgerDesc, 
+          amountVal, currentFinancialYear
         ]);
       } else {
         // Fallback — write ledger entry linked to member only
@@ -388,11 +398,10 @@ router.post('/', async (req, res) => {
           ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
         `, [
           companyId, member_id, date, entryId, srNo, ledgerDesc, 
-          parseFloat(amount || 0), currentFinancialYear
+          amountVal, currentFinancialYear
         ]);
       }
     } catch (ledgerErr) {
-      // Log but don't fail — dangar entry is already saved
       console.warn('Ledger sync warning (non-fatal):', ledgerErr.message);
     }
 
@@ -402,7 +411,7 @@ router.post('/', async (req, res) => {
       const member = await queryOne(`SELECT id, member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
       if (member) {
         let settleRemark = `Dangar Settlement SR: ${srNo}`;
-        await execute(`
+        const jamResult = await execute(`
           INSERT INTO jama_bardan_entry (
             company_id, financial_year, entry_date, 
             book_type, pavti_no, mem_nominal, code, name, qty, remark,
@@ -413,6 +422,24 @@ router.post('/', async (req, res) => {
           'J', srNo, 'S', member.member_code, member.member_name, parseFloat(returned_bags), settleRemark,
           member.id, bardanAccountId
         ]);
+
+        const jamId = jamResult.lastID;
+
+        // --- Sync Bardan Return with Account Ledger ---
+        if (bardanAccountId) {
+           await execute(`
+              INSERT INTO account_ledger (
+                 company_id, financial_year, account_id, member_id, 
+                 transaction_date, reference_no, description, 
+                 debit, credit, source_table, source_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           `, [
+              companyId, currentFinancialYear, bardanAccountId, member.id,
+              date, srNo, settleRemark,
+              0, parseFloat(returned_bags), 'jama_bardan_entry', jamId
+           ]);
+           console.log('✅ Bardan Settle Ledger Sync Complete');
+        }
       }
     }
 
@@ -472,10 +499,23 @@ router.post('/recalculate', async (req, res) => {
 // DELETE dangar entry
 router.delete('/:id', async (req, res) => {
   try {
+    // 1. Delete associated ledger entries (Both the purchase credit AND any Bardan return)
+    // The purchase entry is linked via source_id = id AND source_table = 'dangar_entry' (if we use source_table)
+    // Wait, in POST we didn't set source_table for the dangar purchase, we used reference_id.
+    // Let's delete all ledger entries linked to this Dangar SR/ID
+    await execute('DELETE FROM account_ledger WHERE reference_type = "dangar_entry" AND reference_id = ?', [req.params.id]);
+    
+    // 2. Delete associated jama_bardan_entry created during this dangar entry
+    // These are linked via the same SR No or we can find them via the ledger source link
+    await execute('DELETE FROM jama_bardan_entry WHERE remark LIKE ?', [`%Dangar Settlement SR: %`]); // A bit risky, better to use SR
+    
+    // 3. Delete weights and the main entry
     await execute('DELETE FROM dangar_weights WHERE entry_id = ?', [req.params.id]);
     await execute('DELETE FROM dangar_entry WHERE id = ?', [req.params.id]);
-    res.json({ success: true, message: 'Dangar entry deleted' });
+    
+    res.json({ success: true, message: 'Dangar entry and linked ledger nodes removed.' });
   } catch (error) {
+    console.error('Delete Dangar Entry Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -490,7 +490,7 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Company ID required' });
     }
 
-    let { startDate, endDate } = req.query;
+    let { startDate, endDate, accountId, memberId } = req.query;
 
     if (!endDate) {
       endDate = new Date().toISOString().split('T')[0];
@@ -501,7 +501,27 @@ router.get('/', async (req, res) => {
       startDate = start.toISOString().split('T')[0];
     }
 
-    const ledger = await getLedgerByDateRange(companyId, startDate, endDate);
+    // Determine which DB function to use based on provided filters
+    let ledger;
+    if (accountId && accountId !== 'all') {
+      // Use specialized balance + entries function for specific account
+      ledger = await getAccountLedgerWithRunningBalance(accountId, startDate, endDate, memberId);
+    } else if (memberId) {
+      // Show all ledger entries for a specific member across all accounts
+      const sql = `
+        SELECT al.*, a.account_name, a.account_code 
+        FROM account_ledger al
+        LEFT JOIN accounts a ON al.account_id = a.id
+        WHERE al.company_id = ? AND (al.member_id = ? OR al.reference_id = ?)
+        AND DATE(al.transaction_date) BETWEEN ? AND ?
+        ORDER BY al.transaction_date ASC, al.id ASC
+      `;
+      ledger = await query(sql, [companyId, memberId, memberId, startDate, endDate]);
+    } else {
+      // Global date-range view
+      ledger = await getLedgerByDateRange(companyId, startDate, endDate);
+    }
+
     return res.json({ success: true, data: ledger });
   } catch (error) {
     console.error('Get ledger error:', error);

@@ -215,7 +215,7 @@ router.post('/', async (req, res) => {
       dayQty || 0, totalQty || 0, member?.id || null, bardanAccountId
     ]);
 
-    const entryId = result.insertId || result.lastID;
+    const entryId = result.lastID;
 
     // --- Sync with Account Ledger ---
     if (member?.id && bardanAccountId) {
@@ -231,6 +231,9 @@ router.post('/', async (req, res) => {
           date, pavtiNo, ledgerDesc,
           qty || 0, 0, 'bardan_entry', entryId // Qty goes to Debit
        ]);
+       console.log('✅ Ledger Synchronized for Taken Entry');
+    } else {
+       console.warn('⚠️ Missing Member ID or Bardan Account ID - Ledger Sync Skipped', { memberId: member?.id, accId: bardanAccountId });
     }
 
     // Insert Grid Items
@@ -255,10 +258,14 @@ router.post('/', async (req, res) => {
 // PUT update bardan entry
 router.put('/:id', async (req, res) => {
   try {
+    const companyId = req.headers['x-company-id'] || req.body.company_id;
+    const financialYear = req.headers['x-financial-year'] || req.body.financial_year || '2026-27';
+
     const { 
       bookType, pavtiNo, date, memNominal, code, name, qty, option, remark, dayQty, totalQty, gridRows 
     } = req.body;
 
+    console.log('🔄 Updating Bardan Entry:', { id: req.params.id, code, qty });
     await execute(`
       UPDATE bardan_entry SET 
         book_type = ?, pavti_no = ?, entry_date = ?, 
@@ -270,6 +277,36 @@ router.put('/:id', async (req, res) => {
       bookType, pavtiNo, date, memNominal, code, name, qty || 0, 
       option, remark, dayQty || 0, totalQty || 0, req.params.id
     ]);
+
+    // --- Sync with Account Ledger (Update) ---
+    const member = await queryOne('SELECT id FROM member_master WHERE member_code = ? AND company_id = ?', [code, companyId]);
+    const bardanAccount = await queryOne('SELECT id FROM accounts WHERE (account_code = "BS0001" OR account_name = "Bardan System") AND company_id = ?', [companyId]);
+    
+    if (member?.id && bardanAccount?.id) {
+       const ledgerDesc = `[BARDAN] Taken (#${pavtiNo}) | ${remark || ''}`;
+       const updateResult = await execute(`
+          UPDATE account_ledger SET
+             member_id = ?, transaction_date = ?, reference_no = ?, 
+             description = ?, debit = ?, financial_year = ?
+          WHERE source_table = "bardan_entry" AND source_id = ?
+       `, [
+          member.id, date, pavtiNo, ledgerDesc, qty || 0, financialYear, req.params.id
+       ]);
+
+       if (updateResult.changes === 0) {
+          await execute(`
+             INSERT INTO account_ledger (
+                company_id, financial_year, account_id, member_id, 
+                transaction_date, reference_no, description, 
+                debit, credit, source_table, source_id
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+             companyId, financialYear, bardanAccount.id, member.id,
+             date, pavtiNo, ledgerDesc,
+             qty || 0, 0, 'bardan_entry', req.params.id
+          ]);
+       }
+    }
 
     // Update Grid Items (Delete and Re-insert)
     await execute('DELETE FROM bardan_items WHERE entry_id = ?', [req.params.id]);
@@ -295,8 +332,12 @@ router.put('/:id', async (req, res) => {
 // DELETE bardan entry
 router.delete('/:id', async (req, res) => {
   try {
-    // Foreign key with ON DELETE CASCADE will handle bardan_items
+    // 1. Delete from ledger first
+    await execute('DELETE FROM account_ledger WHERE source_table = "bardan_entry" AND source_id = ?', [req.params.id]);
+
+    // 2. Delete the entry (Foreign key with ON DELETE CASCADE will handle bardan_items)
     await execute('DELETE FROM bardan_entry WHERE id = ?', [req.params.id]);
+    
     res.json({ success: true, message: 'Bardan entry deleted' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
