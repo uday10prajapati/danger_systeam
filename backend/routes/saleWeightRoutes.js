@@ -107,19 +107,19 @@ router.post('/weight-based', async (req, res) => {
             );
         }
     } else {
-        // --- CREDIT SALE LOGIC (User Specific: Sales Debit, Vendor Credit) ---
-        // 1. Credit Vendor (Shows on JAMA side of Rojmel)
+        // --- CREDIT SALE LOGIC (Standard Debtor: Customer Debit, Sales Credit) ---
+        // 1. Debit Customer (Shows on UDHAR side of Rojmel)
         await connection.query(
-            `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
+            `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
              VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
             [companyId, targetAccountId, invoice_date, saleId, invoice_no, netAmount, ledgerNarrative, financialYear, userId]
         );
 
-        // 2. Debit Sales Account (Shows on UDHAR side of Rojmel)
+        // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
         const salesAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_type = "sales" LIMIT 1', [companyId]);
         if (salesAcc) {
             await connection.query(
-                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
+                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
                  VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
                 [companyId, salesAcc.id, invoice_date, saleId, invoice_no, grossTotal, `Gross Sale Inv #${invoice_no}`, financialYear, userId]
             );
