@@ -63,6 +63,8 @@ router.get('/payment-report', async (req, res) => {
         mm.member_code,
         mm.member_name,
         mm.full_ac_number,
+        mm.bank_name,
+        mm.branch_name,
         SUM(al.credit) AS total_credit,
         SUM(al.debit)  AS total_debit,
         COUNT(al.id)   AS entry_count
@@ -71,7 +73,7 @@ router.get('/payment-report', async (req, res) => {
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, mm.member_code, mm.member_name, mm.full_ac_number
+      GROUP BY mm.id, mm.member_code, mm.member_name, mm.full_ac_number, mm.bank_name, mm.branch_name
       ORDER BY mm.member_code ASC
     `, [companyId, ...dateParams]);
 
@@ -116,8 +118,11 @@ router.get('/payment-report', async (req, res) => {
         de.rate,
         de.amount       AS rate_amount,
         de.total_deduction AS deduction_amount,
-        (de.amount - de.total_deduction) AS net_amount
+        (de.amount - de.total_deduction) AS net_amount,
+        im.item_name_gu,
+        im.item_name
       FROM dangar_entry de
+      LEFT JOIN item_master im ON de.item_id = im.id
       WHERE de.company_id = ?
         ${dangDateFilter}
       ORDER BY de.entry_date ASC, de.id ASC
@@ -165,16 +170,15 @@ router.get('/payment-report', async (req, res) => {
     // Build final report rows
     const report = [];
     for (const row of ledgerRows) {
+
       const entries        = dangarMap[row.member_id] || [];
       const totalKg        = entries.reduce((s, e) => s + parseFloat(e.total_kg          || 0), 0);
       const totalQuintal   = entries.reduce((s, e) => s + parseFloat(e.net_quintal       || 0), 0);
-      // rate_amount — total_quintal × rate (rate is now per QUINTAL)
-      const rateAmount     = entries.reduce((s, e) => s + parseFloat(e.net_quintal || 0) * parseFloat(e.rate || 0), 0);
-      const deduction      = entries.reduce((s, e) => s + parseFloat(e.deduction_amount  || 0), 0);
-      // Rate is stored per KG in dangar_entry.rate (see DangarRateMaster)
+      const rateAmount     = entries.reduce((s, e) => s + parseFloat(e.rate_amount       || 0), 0);
       const weightedRate   = entries.length > 0
         ? entries.reduce((s, e) => s + parseFloat(e.rate || 0), 0) / entries.length
         : 0;
+      const dangarNameGu   = entries.length > 0 ? (entries[0].item_name_gu || entries[0].item_name || 'ગુર્જરી ચાઈનાકટ વગે-૧') : '---';
 
       const bardanIssued    = parseFloat(bardanIssuedMap[row.member_code]   || 0);
       const bardanReturned  = parseFloat(bardanReturnedMap[row.member_code] || 0);
@@ -229,9 +233,11 @@ router.get('/payment-report', async (req, res) => {
         member_code:      row.member_code,
         member_name:      row.member_name,
         full_ac_number:   row.full_ac_number || '',
+        bank_name:        row.bank_name || '',
+        branch_name:      row.branch_name || '',
         entry_count:      row.entry_count,
         total_kg:         totalKg.toFixed(2),
-        total_quintal:    totalQuintal > 0 ? totalQuintal.toFixed(2) : (totalKg / 100).toFixed(2),
+        total_quintal:    totalQuintal.toFixed(2),
         rate_per_kg:      weightedRate.toFixed(2),
         rate_amount:      rateAmount.toFixed(2),
         member_advance:   memberAdvance.toFixed(2),
@@ -245,6 +251,7 @@ router.get('/payment-report', async (req, res) => {
         bardan_remaining: bardanRemaining,
         bardan_penalty:   bardanPenalty.toFixed(2),
         kapat_entries:    kapatMap[row.member_id] || [],
+        dangar_name_gu:   dangarNameGu,
         entries:          entries,
       });
     }

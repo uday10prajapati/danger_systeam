@@ -10,6 +10,7 @@ import api, { dangarEntryApi } from '../api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { toPng } from 'html-to-image';
 
 const DangarPaymentReport = () => {
   const { t } = useTranslation();
@@ -38,6 +39,9 @@ const DangarPaymentReport = () => {
   const [items, setItems] = useState([]);
   const [companyAccount, setCompanyAccount] = useState('');
   const [txtModal, setTxtModal] = useState(false);
+  const [billModal, setBillModal] = useState(false);
+  const [billSearch, setBillSearch] = useState({ code: '', name: '' });
+  const [selectedBillData, setSelectedBillData] = useState(null);
   const [narration, setNarration] = useState('');
 
   useEffect(() => {
@@ -248,6 +252,49 @@ const DangarPaymentReport = () => {
     setTxtModal(false);
   };
 
+  const downloadBillPDF = async () => {
+    const element = document.getElementById('printable-bill');
+    if (!element) return;
+    try {
+      setLoading(true);
+      
+      // Force it to be visible but off-screen
+      element.style.display = 'block';
+      element.style.position = 'fixed';
+      element.style.left = '0px';
+      element.style.top = '0px';
+      element.style.zIndex = '-1';
+      element.style.opacity = '1';
+
+      // Wait a moment for browser to paint
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const dataUrl = await toPng(element, { 
+        backgroundColor: '#ffffff',
+        width: 8 * 96, // 8 inches * 96 dpi
+        height: 6 * 96, // 6 inches * 96 dpi
+        pixelRatio: 2
+      });
+      
+      // Revert styles
+      element.style.display = '';
+      element.style.position = '';
+      element.style.left = '';
+      element.style.top = '';
+      element.style.zIndex = '';
+      element.style.opacity = '';
+
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [8, 6] });
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 8, 6);
+      pdf.save(`Bill_${selectedBillData?.member_code || 'export'}.pdf`);
+    } catch (err) {
+      console.error('PDF Generation Error:', err);
+      alert('Failed to generate PDF. Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20 animate-in fade-in duration-700">
       <div className="max-w-[1600px] mx-auto px-8">
@@ -267,6 +314,12 @@ const DangarPaymentReport = () => {
 
           <div className="flex items-center gap-3 flex-wrap">
 
+            <button
+              onClick={() => { setBillModal(true); setSelectedBillData(null); }}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+            >
+              <Printer size={16} /> Print Bill
+            </button>
             <button
               onClick={openExportModal}
               className="flex items-center gap-2 bg-amber-500 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-100"
@@ -530,19 +583,236 @@ const DangarPaymentReport = () => {
         </div>
       )}
 
+      {/* Bill Generation Modal */}
+      {billModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white">
+            <div className="bg-indigo-600 p-6 flex justify-between items-center">
+               <div>
+                  <h2 className="text-xl font-black text-white italic uppercase tracking-tight">Print Payout Slip</h2>
+                  <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mt-1">A5 Optimized Format (8x6)</p>
+               </div>
+               <button onClick={() => setBillModal(false)} className="p-2 text-white/50 hover:text-white transition-colors"><X size={20}/></button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Member Code</label>
+                     <input 
+                        type="text"
+                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-sm text-slate-700"
+                        placeholder="e.g. 0001"
+                        value={billSearch.code}
+                        onChange={(e) => {
+                           const val = e.target.value;
+                           const m = members.find(m => String(m.member_code) === val);
+                           setBillSearch({ code: val, name: m ? m.member_name : '' });
+                           const d = data.find(r => String(r.member_code) === val);
+                           setSelectedBillData(d || null);
+                        }}
+                     />
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Member Name</label>
+                     <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-indigo-500 outline-none transition-all font-black text-xs text-slate-700 appearance-none italic"
+                        value={billSearch.name}
+                        onChange={(e) => {
+                           const val = e.target.value;
+                           const m = members.find(m => m.member_name === val);
+                           setBillSearch({ name: val, code: m ? m.member_code : '' });
+                           const d = data.find(r => r.member_name === val);
+                           setSelectedBillData(d || null);
+                        }}
+                     >
+                        <option value="">Select Identity...</option>
+                        {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
+                     </select>
+                  </div>
+               </div>
+
+               {selectedBillData ? (
+                  <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-100 animate-in fade-in zoom-in duration-300">
+                     <div className="flex justify-between items-start mb-6">
+                        <div>
+                           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 italic">Identity Verified</p>
+                           <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">{selectedBillData.member_name}</h3>
+                        </div>
+                        <div className="bg-white px-3 py-1.5 rounded-lg shadow-sm border border-indigo-100">
+                           <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none">Net Payable</p>
+                           <p className="text-xl font-black text-slate-900 tracking-tighter mt-1">₹{selectedBillData.final_amount}</p>
+                        </div>
+                     </div>
+                     <div className="flex gap-3">
+                        <button 
+                           onClick={() => window.print()}
+                           className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 active:scale-95"
+                        >
+                           <Printer size={18} /> Print
+                        </button>
+                        <button 
+                           onClick={downloadBillPDF}
+                           className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 active:scale-95"
+                        >
+                           <Download size={18} /> PDF
+                        </button>
+                     </div>
+                  </div>
+               ) : (
+                  <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-xl">
+                     <Clock size={32} className="mx-auto text-slate-200 mb-3" />
+                     <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Waiting for Identity Match...</p>
+                  </div>
+               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A5 Printable Bill Section - Gujarati Traditional Layout */}
+      {selectedBillData && (
+         <div id="printable-bill" className="hidden print:block fixed bg-white z-[9999] p-4 text-black" style={{ width: '8in', height: '6in', boxSizing: 'border-box' }}>
+            <div className="border-2 border-black h-full flex flex-col relative p-2">
+               {/* Main Header */}
+               <div className="text-center border-b border-black pb-2 mb-2">
+                  <h1 className="text-lg font-bold leading-tight">ધી પારડીઝાંખરી, નેશ, કરંજ ગ્રુપ દૂધ અને શાકભાજી વેચાણ કરનારી સહકારી મંડળી લી.</h1>
+                  <h2 className="text-sm font-semibold mt-1">ચોમાસુ ડાંગર - ૨૦૨૪/૨૦૨૫ ડાંગર નો છેવટ નો હિસાબ</h2>
+               </div>
+
+               {/* Sub Header / Member Info */}
+               <div className="grid grid-cols-12 text-[11px] border-b border-black pb-2 mb-2">
+                  <div className="col-span-7 space-y-1">
+                     <div className="flex gap-2">
+                        <span className="font-bold whitespace-nowrap">સભાસદ નું નામ :</span>
+                        <span className="font-bold border-b border-dotted border-black flex-1">{selectedBillData.member_name}</span>
+                     </div>
+                     <div className="flex gap-2">
+                        <span className="font-bold whitespace-nowrap">નાનીનેશ</span>
+                     </div>
+                  </div>
+                  <div className="col-span-5 border-l border-black pl-4 space-y-1">
+                     <div className="flex justify-between">
+                        <span className="font-bold">નંબર :</span>
+                        <span className="font-bold">{selectedBillData.member_code}</span>
+                     </div>
+                     <div className="flex justify-between border-t border-black pt-1">
+                        <span className="font-bold">તારીખ :</span>
+                        <span className="font-bold">{new Date().toLocaleDateString('en-GB')}</span>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Item Table Header */}
+               <div className="grid grid-cols-12 text-[10px] border-b border-black bg-slate-50 font-bold">
+                  <div className="col-span-5 px-2 py-1 border-r border-black text-center">ડાંગર નું નામ</div>
+                  <div className="col-span-1 px-2 py-1 border-r border-black text-center">ગુણ</div>
+                  <div className="col-span-2 px-2 py-1 border-r border-black text-center">વજન</div>
+                  <div className="col-span-2 px-2 py-1 border-r border-black text-center">ભાવ (કવી)</div>
+                  <div className="col-span-2 px-2 py-1 text-center">કિંમત રૂ.</div>
+               </div>
+               
+               {/* Item Table Body - Static Single Row for now */}
+               <div className="grid grid-cols-12 text-[11px] border-b border-black min-h-[60px]">
+                  <div className="col-span-5 px-2 py-2 border-r border-black font-bold italic">{selectedBillData.dangar_name_gu || '---'}</div>
+                  <div className="col-span-1 px-2 py-2 border-r border-black text-center font-bold">{selectedBillData.entry_count || '1'}</div>
+                  <div className="col-span-2 px-2 py-2 border-r border-black text-center font-bold">{selectedBillData.total_quintal}</div>
+                  <div className="col-span-2 px-2 py-2 border-r border-black text-center font-bold">{selectedBillData.rate_per_kg}</div>
+                  <div className="col-span-2 px-2 py-2 text-right font-bold">{selectedBillData.rate_amount}</div>
+               </div>
+
+               {/* Mid Section: Bank & Deductions Split */}
+               <div className="flex-1 grid grid-cols-12 text-[11px]">
+                  {/* Left Side: Bank Details */}
+                  <div className="col-span-5 border-r border-black p-2 space-y-2">
+                     <div className="flex gap-2">
+                        <span className="font-bold whitespace-nowrap">બેંક નું નામ :</span>
+                        <span className="font-bold text-[10px]">{selectedBillData.bank_name || '----------------'}</span>
+                     </div>
+                     <div className="flex gap-2">
+                        <span className="font-bold whitespace-nowrap">બ્રાન્ચ નું નામ :</span>
+                        <span className="font-bold">{selectedBillData.branch_name || '----------------'}</span>
+                     </div>
+                     <div className="flex gap-2">
+                        <span className="font-bold whitespace-nowrap">એકાઉન્ટ નંબર :</span>
+                        <span className="font-bold">{selectedBillData.full_ac_number || '----------------'}</span>
+                     </div>
+                  </div>
+
+                  {/* Right Side: Detailed Accounting */}
+                  <div className="col-span-7 flex flex-col">
+                     <div className="grid grid-cols-5 text-[9px] border-b border-black font-bold">
+                        <div className="col-span-3 border-r border-black px-2 py-0.5">વિગત</div>
+                        <div className="border-r border-black px-2 py-0.5 text-center">જમા રકમ</div>
+                        <div className="px-2 py-0.5 text-center">ઉધાર રકમ</div>
+                     </div>
+                     
+                     {/* Calculation Rows */}
+                     <div className="flex-1 text-[10px] font-bold">
+                        <div className="grid grid-cols-5 border-b border-slate-200">
+                           <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર હિસાબ ના જમા</div>
+                           <div className="border-r border-black px-2 py-1 text-right">{selectedBillData.rate_amount}</div>
+                           <div className="px-2 py-1 text-right"></div>
+                        </div>
+                        <div className="grid grid-cols-5 border-b border-slate-200">
+                           <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર એડવાન્સ</div>
+                           <div className="border-r border-black px-2 py-1 text-right"></div>
+                           <div className="px-2 py-1 text-right">{selectedBillData.member_advance}</div>
+                        </div>
+                        <div className="grid grid-cols-5 border-b border-slate-200">
+                           <div className="col-span-3 border-r border-black px-2 py-1">ખાલી બારદાન કપાત</div>
+                           <div className="border-r border-black px-2 py-1 text-right"></div>
+                           <div className="px-2 py-1 text-right">{selectedBillData.bardan_penalty}</div>
+                        </div>
+                        <div className="grid grid-cols-5 border-b border-slate-200">
+                           <div className="col-span-3 border-r border-black px-2 py-1">વ્યાજ</div>
+                           <div className="border-r border-black px-2 py-1 text-right"></div>
+                           <div className="px-2 py-1 text-right">{selectedBillData.total_interest}</div>
+                        </div>
+                        <div className="grid grid-cols-5 border-b border-black">
+                           <div className="col-span-3 border-r border-black px-2 py-1 italic opacity-60">અન્ય કપાત (Total)</div>
+                           <div className="border-r border-black px-2 py-1 text-right"></div>
+                           <div className="px-2 py-1 text-right">{(selectedBillData.total_deductions - selectedBillData.member_advance - selectedBillData.bardan_penalty - selectedBillData.total_interest).toFixed(2)}</div>
+                        </div>
+                     </div>
+
+                     {/* Result Row */}
+                     <div className="grid grid-cols-5 text-sm font-black border-t-2 border-black bg-slate-50">
+                        <div className="col-span-3 border-r border-black px-2 py-2 text-center uppercase tracking-tight">બાકી નીકળતી રકમ</div>
+                        <div className="col-span-2 px-2 py-2 text-right text-base tracking-tighter">₹ {selectedBillData.final_amount}</div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Footer Signatures */}
+               <div className="grid grid-cols-3 text-[10px] font-bold text-center mt-4 pt-4 border-t border-dotted border-black">
+                  <div>લેનારની સહી</div>
+                  <div>સેક્રેટરી ની સહી</div>
+                  <div>મેનેજર ની સહી</div>
+               </div>
+            </div>
+         </div>
+      )}
+
       <style dangerouslySetInnerHTML={{
-        __html: `
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .shadow-2xl, .shadow-xl, .shadow-sm { box-shadow: none !important; }
-          div[class*="max-w-"] { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-          div[class*="bg-"] { background: white !important; }
-          table { width: 100% !important; border-collapse: collapse !important; }
-          th, td { border-bottom: 1px solid #eee !important; padding: 8px !important; }
-          .animate-in { animation: none !important; }
-        }
-      `}} />
+         __html: `
+         @media print {
+           .no-print { display: none !important; }
+           body { 
+             background: white !important; 
+             margin: 0 !important; 
+             padding: 0 !important;
+           }
+           @page {
+             size: 8in 6in;
+             margin: 0.25in;
+           }
+           .shadow-2xl, .shadow-xl, .shadow-sm { box-shadow: none !important; }
+           div[class*="max-w-"] { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+           div[class*="bg-"] { background: white !important; }
+           .animate-in { animation: none !important; }
+         }
+       `}} />
     </div>
   );
 };
