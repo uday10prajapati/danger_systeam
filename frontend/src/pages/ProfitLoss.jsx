@@ -169,7 +169,7 @@ export default function ProfitLoss() {
                         }`}>
                         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50/20 rounded-full -mr-48 -mt-48 blur-3xl opacity-50 group-hover:scale-110 transition-transform duration-1000"></div>
 
-                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
                            <div className="text-center md:text-left space-y-3">
                               <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 border ${plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-900/40 text-rose-400 border-rose-800'
                                  }`}>
@@ -398,7 +398,7 @@ export default function ProfitLoss() {
                   )}
 
                   {/* Performance Indicators Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10">
                      {[
                         { label: 'Operating Margin', val: `${plData?.profitMargin}%`, icon: <ActivityIcon size={20} />, color: 'blue' },
                         { label: 'Expense Absorption', val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={20} />, color: 'indigo' },

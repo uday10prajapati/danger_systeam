@@ -102,7 +102,7 @@ export default function DangarMaster() {
         </div>
 
         {/* Dynamic Filters */}
-        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-lg border border-slate-100 shadow-sm mb-8 flex flex-wrap items-center gap-8">
+        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-lg border border-slate-100 shadow-sm mb-8 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-3">
             <Calendar className="text-slate-300" size={18} />
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date Range Protocol:</span>
@@ -247,7 +247,7 @@ export default function DangarMaster() {
           </div>
 
           <div className="p-8 bg-slate-900 border-t border-slate-800 flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4">
               <div className="flex flex-col">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Registry Aggregate (Total Net)</p>
                 <p className="text-2xl font-black text-white italic tracking-tighter leading-none">

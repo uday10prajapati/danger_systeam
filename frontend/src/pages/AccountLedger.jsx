@@ -169,7 +169,7 @@ export default function AccountLedger() {
       setMemberNameSearch(account.account_name);
       setShowMemberDropdown(false);
       setView('ledger');
-      
+
       const targetId = account.id;
       await Promise.all([
          fetchAccountLedger(targetId),
@@ -225,7 +225,7 @@ export default function AccountLedger() {
       <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans animate-in fade-in duration-700">
          <div className="max-w-[1600px] mx-auto px-8">
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-8 print:hidden">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-4 print:hidden">
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <Database size={12} />
@@ -350,7 +350,7 @@ export default function AccountLedger() {
 
                   {selectedAccount ? (
                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 print:grid-cols-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 print:grid-cols-4">
                            {[
                               { label: 'Cumulative Debit Accumulation', val: parseFloat(accountBalance.total_debit || 0), icon: <TrendingUp size={20} />, color: 'indigo' },
                               { label: 'Cumulative Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), icon: <TrendingDown size={20} />, color: 'amber' },
@@ -440,8 +440,8 @@ export default function AccountLedger() {
                                              </td>
                                              <td className={`px-10 py-5 text-right font-bold text-slate-900 italic`}>
                                                 {parseFloat(row.debit || 0) > 0 ? (
-                                                   (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]')) 
-                                                      ? parseFloat(row.debit).toLocaleString('en-IN') 
+                                                   (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
+                                                      ? parseFloat(row.debit).toLocaleString('en-IN')
                                                       : `₹${parseFloat(row.debit).toLocaleString('en-IN')}`
                                                 ) : '—'}
                                              </td>
@@ -449,13 +449,13 @@ export default function AccountLedger() {
                                                 {selectedAccount?.account_code === 'IK0001' ? (
                                                    parseFloat(row.credit || 0) > 0 ? `₹${parseFloat(row.credit).toLocaleString('en-IN')}` : `₹0.00`
                                                 ) : parseFloat(row.credit || 0) > 0 ? (
-                                                   (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]')) 
-                                                      ? parseFloat(row.credit).toLocaleString('en-IN') 
+                                                   (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
+                                                      ? parseFloat(row.credit).toLocaleString('en-IN')
                                                       : `₹${parseFloat(row.credit).toLocaleString('en-IN')}`
                                                 ) : '—'}
                                              </td>
                                              <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.running_balance) >= 0 ? 'text-slate-800' : 'text-rose-600 underline decoration-rose-100 decoration-4 underline-offset-8'}`}>
-                                                {(selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]')) 
+                                                {(selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
                                                    ? parseFloat(row.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })
                                                    : `₹${parseFloat(row.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                                              </td>
@@ -563,9 +563,9 @@ export default function AccountLedger() {
                               ) : (
                                  breakdownData.map((row, idx) => (
                                     <React.Fragment key={idx}>
-                                       <tr 
-                                         className="group hover:bg-blue-50/30 cursor-pointer transition-all duration-300 border-l-4 border-transparent hover:border-blue-600"
-                                         onClick={() => toggleMemberExpansion(row.member_id)}
+                                       <tr
+                                          className="group hover:bg-blue-50/30 cursor-pointer transition-all duration-300 border-l-4 border-transparent hover:border-blue-600"
+                                          onClick={() => toggleMemberExpansion(row.member_id)}
                                        >
                                           <td className="px-10 py-5">
                                              <div className="flex items-center gap-4">
@@ -621,7 +621,7 @@ export default function AccountLedger() {
                                                                   <td className="px-6 py-3 text-[9px] font-bold text-slate-300 uppercase tracking-tight italic">{me.reference_no}</td>
                                                                   <td className="px-6 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-tight">
                                                                      <div className="flex items-center gap-2">
-                                                                     <span>{selectedAccount?.account_code === 'IK0001' ? `[INTEREST ACCRUAL] ${me.description}` : me.description}</span>
+                                                                        <span>{selectedAccount?.account_code === 'IK0001' ? `[INTEREST ACCRUAL] ${me.description}` : me.description}</span>
                                                                         {parseFloat(me.interest_percent) > 0 && selectedAccount?.account_code === 'IK0001' && (
                                                                            <span className="text-[9px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">
                                                                               {me.interest_percent}% / day
@@ -630,19 +630,19 @@ export default function AccountLedger() {
                                                                      </div>
                                                                   </td>
                                                                   <td className="px-6 py-3 text-right font-bold text-slate-900 text-[11px]">
-                                                                     {(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]')) 
-                                                                        ? parseFloat(me.debit || 0).toLocaleString('en-IN') 
+                                                                     {(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]'))
+                                                                        ? parseFloat(me.debit || 0).toLocaleString('en-IN')
                                                                         : `₹${parseFloat(me.debit || 0).toLocaleString('en-IN')}`}
                                                                   </td>
                                                                   <td className="px-6 py-3 text-right font-bold text-slate-400 text-[11px]">
                                                                      {selectedAccount?.account_code === 'IK0001' ? (
                                                                         parseFloat(me.credit || 0) > 0 ? `₹${parseFloat(me.credit).toLocaleString('en-IN')}` : `₹0.00`
-                                                                     ) : (selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]')) 
-                                                                        ? parseFloat(me.credit || 0).toLocaleString('en-IN') 
+                                                                     ) : (selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]'))
+                                                                        ? parseFloat(me.credit || 0).toLocaleString('en-IN')
                                                                         : `₹${parseFloat(me.credit || 0).toLocaleString('en-IN')}`}
                                                                   </td>
                                                                   <td className={`px-6 py-3 text-right font-black text-[11px] italic ${parseFloat(me.running_balance) >= 0 ? 'text-slate-800' : 'text-rose-600'}`}>
-                                                                     {(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]')) 
+                                                                     {(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]'))
                                                                         ? parseFloat(me.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })
                                                                         : `₹${parseFloat(me.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                                                                   </td>
@@ -753,7 +753,7 @@ export default function AccountLedger() {
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-3 gap-8 mb-16">
+                     <div className="grid grid-cols-3 gap-4 mb-16">
                         <div className="bg-black p-8 rounded-lg text-white">
                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-2">GROSS DEBIT</p>
                            <p className="text-3xl font-bold tracking-tighter italic">₹{parseFloat(accountBalance.total_debit || 0).toLocaleString('en-IN')}</p>

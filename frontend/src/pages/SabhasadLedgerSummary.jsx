@@ -171,19 +171,19 @@ export default function SabhasadLedgerSummary() {
   }, [memCode]);
 
   const systemAccountNames = [
-    'Brokerage Khate', 'Dangar Purchase', 'Dangar Sale', 
-    'Bardan System', 'Dangar System', 'Interest Khate', 
+    'Brokerage Khate', 'Dangar Purchase', 'Dangar Sale',
+    'Bardan System', 'Dangar System', 'Interest Khate',
     'Labour Khate', 'Rounding Khate'
   ];
 
   const filteredAccs = accounts.filter(a => {
-    const isSystemAcc = systemAccountNames.some(name => 
+    const isSystemAcc = systemAccountNames.some(name =>
       a.account_name.toLowerCase().includes(name.toLowerCase())
     );
-    
+
     return (a.is_subledger || isSystemAcc) &&
-           (accCode ? String(a.id).includes(accCode) : true) &&
-           (accName ? a.account_name.toLowerCase().includes(accName.toLowerCase()) : true);
+      (accCode ? String(a.id).includes(accCode) : true) &&
+      (accName ? a.account_name.toLowerCase().includes(accName.toLowerCase()) : true);
   });
 
   const filteredMems = members.filter(m =>
@@ -213,7 +213,7 @@ export default function SabhasadLedgerSummary() {
       <div className="max-w-[1700px] mx-auto px-8">
 
         {/* Superior Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-8 print:hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-4 print:hidden">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mb-1 italic">
               <Users size={12} className="text-indigo-500" />
@@ -242,7 +242,7 @@ export default function SabhasadLedgerSummary() {
 
         {/* Intelligence Control Shard - Modern Dual Field Search */}
         <div className="bg-white p-8 md:p-10 rounded-lg border border-slate-50 shadow-sm mb-10 print:hidden relative">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
 
             {/* Temporal Selection - col-span-3 */}
             <div className="md:col-span-3 grid grid-cols-2 gap-4">

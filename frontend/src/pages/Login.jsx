@@ -111,7 +111,7 @@ function Login() {
 
          {/* Main Interaction Hub - Forced Center */}
          <div className="relative z-10 w-full max-w-5xl px-6 flex items-center justify-center">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full max-w-[900px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center w-full max-w-[900px]">
 
                {/* Left Content Shard - Visual Identity */}
                <div className="hidden lg:flex flex-col gap-5 animate-in fade-in slide-in-from-left duration-700">

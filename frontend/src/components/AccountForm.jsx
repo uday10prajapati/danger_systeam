@@ -171,7 +171,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
               <div className="w-6 h-0.5 bg-indigo-600"></div> Profile context
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="col-span-1">
                 <FormLabel icon={Hash}>Structural ID</FormLabel>
                 <div className="h-12 px-5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-3 group hover:bg-white transition-all">
@@ -254,7 +254,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
               <div className="w-6 h-0.5 bg-emerald-500"></div> Contact & Fiscal Meta
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <FormLabel icon={Phone}>{t('accountMaster.phone')}</FormLabel>
                 <FormInput name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 000 000 0000" error={errors.phone} />
@@ -279,7 +279,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
               <div className="w-6 h-0.5 bg-amber-500"></div> Opening fiscal context
             </h3>
-            <div className="bg-[#F8FAFC]/50 p-10 rounded-lg border border-slate-100 flex items-center gap-8 group">
+            <div className="bg-[#F8FAFC]/50 p-10 rounded-lg border border-slate-100 flex items-center gap-4 group">
               <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-100 text-amber-500 group-hover:rotate-12 transition-transform duration-500">
                 <IndianRupee size={24} />
               </div>

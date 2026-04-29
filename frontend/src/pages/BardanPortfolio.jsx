@@ -63,7 +63,7 @@ const BardanPortfolio = () => {
         console.warn('Redirecting to login: No session found');
         return;
       }
-      
+
       const user = JSON.parse(userStr);
       if (!user.company_id) {
         console.warn('Incomplete session: Missing company_id');
@@ -227,8 +227,8 @@ const BardanPortfolio = () => {
     try {
       setLoading(true);
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const payload = { 
-        ...formData, 
+      const payload = {
+        ...formData,
         gridRows,
         company_id: user.company_id,
         financial_year: user.financial_year || '2026-27'
@@ -358,7 +358,7 @@ const BardanPortfolio = () => {
             </button>
           </div>
 
-           <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
+          <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -542,7 +542,7 @@ const BardanPortfolio = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Registry Prototype</label>
                   <select
@@ -579,7 +579,7 @@ const BardanPortfolio = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identity Node</label>
                   <div className="relative group">
@@ -613,7 +613,7 @@ const BardanPortfolio = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Transaction Volume</label>
                   <div className="relative group">
