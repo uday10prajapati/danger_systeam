@@ -337,7 +337,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
                       <p className="text-xl font-black italic text-slate-900 tracking-tighter">₹{item.return_amount.toFixed(2)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-4">
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => handleQtyChange(index, -1)}
@@ -361,7 +361,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
             </div>
 
             {/* Meta Parameters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-slate-50">
               <div className="space-y-6">
                 <div className="space-y-2">
                   <FormLabel icon={Calendar}>Protocol Epoch</FormLabel>

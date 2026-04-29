@@ -166,7 +166,7 @@ export default function DeductionMaster() {
             {/* Info Card */}
             <div className="bg-blue-600 rounded-lg p-8 mb-8 text-white relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-8 text-white/5 -mr-16 -mt-16 group-hover:scale-110 transition-transform"><Settings size={200} /></div>
-               <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+               <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="space-y-4 max-w-2xl">
                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 text-[10px] font-black uppercase tracking-widest italic">
                         <Info size={12} />
@@ -346,7 +346,7 @@ export default function DeductionMaster() {
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-2 gap-8">
+                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-3">
                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Extraction Logic Type</label>
                            <div className="relative group">
@@ -397,7 +397,7 @@ export default function DeductionMaster() {
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-2 gap-8 bg-slate-100/50 p-6 rounded-lg border border-slate-200">
+                     <div className="grid grid-cols-2 gap-4 bg-slate-100/50 p-6 rounded-lg border border-slate-200">
                         <div className="space-y-4">
                            <div className="flex items-center gap-3">
                               <input

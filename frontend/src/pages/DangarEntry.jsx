@@ -477,7 +477,7 @@ const DangarEntry = () => {
                 <Database size={240} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Book Type */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.bookType')}</label>
@@ -529,7 +529,7 @@ const DangarEntry = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Season Selection - Controlled by DB Protocol */}
                 <div className="md:col-span-4 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
@@ -593,7 +593,7 @@ const DangarEntry = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Quality Category Selection */}
                 <div className="md:col-span-4 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
@@ -640,7 +640,7 @@ const DangarEntry = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Vehicle No */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.vehicleNo')}</label>

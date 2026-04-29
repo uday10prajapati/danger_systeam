@@ -557,7 +557,7 @@ export default function Sale() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-10 scroller-airy">
-              <div className="grid grid-cols-2 gap-8 mb-10 bg-[#F8FAFC]/50 p-8 rounded-lg border border-slate-100">
+              <div className="grid grid-cols-2 gap-4 mb-10 bg-[#F8FAFC]/50 p-8 rounded-lg border border-slate-100">
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Timeline Node</p>
                   <p className="text-sm font-bold text-slate-800 italic uppercase">{selectedSale.invoice_date}</p>

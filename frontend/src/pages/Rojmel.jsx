@@ -210,7 +210,7 @@ export default function Rojmel() {
             {/* Command Deck Toolbar */}
             <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-center gap-10">
 
-               <div className="flex items-center gap-8 border-r border-slate-100 pr-10">
+               <div className="flex items-center gap-4 border-r border-slate-100 pr-10">
                   <label className="flex items-center gap-3 cursor-pointer group">
                      <div className="relative w-6 h-6">
                         <input type="checkbox" checked={showSubledger} onChange={(e) => setShowSubledger(e.target.checked)} className="peer hidden" />

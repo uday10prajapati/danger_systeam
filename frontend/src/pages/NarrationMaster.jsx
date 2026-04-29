@@ -94,7 +94,7 @@ export default function NarrationMaster() {
             </button>
          </div>
 
-         <div className="grid grid-cols-12 gap-8">
+         <div className="grid grid-cols-12 gap-4">
 
             {/* Main List - Now Full Width */}
             <div className="col-span-12 space-y-4 text-slate-800">

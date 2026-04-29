@@ -204,7 +204,7 @@ export default function MemberForm({
         <form onSubmit={handleSubmit} className="space-y-10">
 
           {/* Identity Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-6">
               <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-3">
                 <div className="w-8 h-px bg-blue-600"></div> Core Identity

@@ -177,7 +177,7 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
               <div className="w-6 h-0.5 bg-emerald-500"></div> Fiscal Valuation Gradients
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <FormLabel icon={IndianRupee}>Procurement Valuation *</FormLabel>
                 <FormInput type="number" step="0.01" name="purchase_rate" value={formData.purchase_rate} onChange={handleChange} placeholder="0.00" className="text-right font-mono" />

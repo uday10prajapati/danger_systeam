@@ -210,7 +210,7 @@ export default function LedgerReport() {
 
         {/* Control Deck - Page Container Style */}
         <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden">
-          <div className="flex flex-wrap items-end justify-between gap-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="flex-1 flex flex-wrap items-end gap-6 relative">
 
               {/* Member ID Input */}
