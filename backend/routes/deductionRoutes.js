@@ -353,22 +353,42 @@ router.post('/execute-batch', async (req, res) => {
                  const penalty = bardan_balance * price;
                  let bagsToClear = 0;
                  
-                 if (amount >= penalty) {
+                 if (totalAmount >= penalty) {
                     bagsToClear = bardan_balance;
                  } else {
-                    bagsToClear = Math.floor(amount / price);
+                    bagsToClear = Math.floor(totalAmount / price);
                  }
 
                  if (bagsToClear > 0) {
+                   const penaltyPaidAmount = bagsToClear * price;
+                    
+                   // 1. Record in Bardan Specific Table
                    await execute(`
                      INSERT INTO jama_bardan_entry (
                        company_id, financial_year, entry_date, 
-                       book_type, pavti_no, mem_nominal, code, name, qty, remark
-                     ) VALUES (?, ?, ?, 'J', ?, 'S', ?, ?, ?, ?)
+                       book_type, pavti_no, mem_nominal, code, name, qty, remark,
+                       member_id, account_id
+                     ) VALUES (?, ?, ?, 'J', ?, 'S', ?, ?, ?, ?, ?, ?)
                    `, [
                      companyId, req.headers['x-financial-year'] || '2026-27', date, referenceNo, 
-                     code, member.member_name, bagsToClear, `Bardan Penalty Paid via Kapat`
+                     code, member.member_name, bagsToClear, `Bardan Penalty Paid via Kapat`,
+                     target.id, (await query('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]))[0]?.id || null
                    ]);
+
+                   // 2. Record in Unified Ledger for Reporting
+                   const bsAcc = await query('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+                   if (bsAcc.length > 0) {
+                       await query(`
+                           INSERT INTO account_ledger (
+                               company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+                               reference_no, description, credit, financial_year, created_by
+                           ) VALUES (?, ?, ?, ?, 'bardan', 'BardanPenalty', ?, ?, ?, ?, ?)
+                       `, [
+                           companyId, bsAcc[0].id, target.id, date, referenceNo, 
+                           `Bardan Penalty Settlement (${bagsToClear} Bags)`, 
+                           penaltyPaidAmount, req.headers['x-financial-year'] || '2026-27', req.headers['x-user-id'] || 1
+                       ]);
+                   }
                  }
                }
              }

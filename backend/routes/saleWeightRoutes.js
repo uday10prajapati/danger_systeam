@@ -90,40 +90,44 @@ router.post('/weight-based', async (req, res) => {
 
     const ledgerNarrative = `Sale Inv #${invoice_no} | ${items.map(i => i.item_name).join(', ')}`;
 
+    // Resolve member_id if it's a member-linked account
+    const memberRow = await queryOne('SELECT id FROM member_master WHERE account_id = ? AND company_id = ?', [customer_account_id, companyId]);
+    const memberId = memberRow?.id || null;
+
     if (isCashSale) {
         // --- CASH SALE LOGIC (Standard: Cash Debit, Sales Credit) ---
         // 1. Debit Cash (Shows on UDHAR side of Rojmel)
         await connection.query(
-            `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
-             VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
-            [companyId, targetAccountId, invoice_date, saleId, invoice_no, netAmount, ledgerNarrative, financialYear, userId]
+            `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
+             VALUES (?, ?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
+            [companyId, targetAccountId, memberId, invoice_date, saleId, invoice_no, netAmount, ledgerNarrative, financialYear, userId]
         );
 
         // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
         const salesAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_type = "sales" LIMIT 1', [companyId]);
         if (salesAcc) {
             await connection.query(
-                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
-                 VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, salesAcc.id, invoice_date, saleId, invoice_no, grossTotal, `Gross Sale Inv #${invoice_no}`, financialYear, userId]
+                `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
+                 VALUES (?, ?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
+                [companyId, salesAcc.id, memberId, invoice_date, saleId, invoice_no, grossTotal, `Gross Sale Inv #${invoice_no}`, financialYear, userId]
             );
         }
     } else {
         // --- CREDIT SALE LOGIC (Standard Debtor: Customer Debit, Sales Credit) ---
         // 1. Debit Customer (Shows on UDHAR side of Rojmel)
         await connection.query(
-            `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
-             VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
-            [companyId, targetAccountId, invoice_date, saleId, invoice_no, netAmount, ledgerNarrative, financialYear, userId]
+            `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
+             VALUES (?, ?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
+            [companyId, targetAccountId, memberId, invoice_date, saleId, invoice_no, netAmount, ledgerNarrative, financialYear, userId]
         );
 
         // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
         const salesAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_type = "sales" LIMIT 1', [companyId]);
         if (salesAcc) {
             await connection.query(
-                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
-                 VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, salesAcc.id, invoice_date, saleId, invoice_no, grossTotal, `Gross Sale Inv #${invoice_no}`, financialYear, userId]
+                `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
+                 VALUES (?, ?, ?, ?, ?, 'SALE', ?, ?, ?, ?, ?, 'cash_book')`,
+                [companyId, salesAcc.id, memberId, invoice_date, saleId, invoice_no, grossTotal, `Gross Sale Inv #${invoice_no}`, financialYear, userId]
             );
         }
     }
@@ -133,9 +137,9 @@ router.post('/weight-based', async (req, res) => {
         const brokerageAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Brokerage%" LIMIT 1', [companyId]);
         if (brokerageAcc) {
             await connection.query(
-                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
-                 VALUES (?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, brokerageAcc.id, invoice_date, saleId, invoice_no, brokerage_amount, `Brokerage on Inv #${invoice_no}`, financialYear, userId]
+                `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
+                 VALUES (?, ?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
+                [companyId, brokerageAcc.id, memberId, invoice_date, saleId, invoice_no, brokerage_amount, `Brokerage on Inv #${invoice_no}`, financialYear, userId]
             );
         }
     }
@@ -144,9 +148,9 @@ router.post('/weight-based', async (req, res) => {
         const labourAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Labour%" LIMIT 1', [companyId]);
         if (labourAcc) {
             await connection.query(
-                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
-                 VALUES (?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, labourAcc.id, invoice_date, saleId, invoice_no, labour_charge, `Labour on Inv #${invoice_no}`, financialYear, userId]
+                `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
+                 VALUES (?, ?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
+                [companyId, labourAcc.id, memberId, invoice_date, saleId, invoice_no, labour_charge, `Labour on Inv #${invoice_no}`, financialYear, userId]
             );
         }
     }
@@ -155,13 +159,13 @@ router.post('/weight-based', async (req, res) => {
     if (Math.abs(roundingDiff) > 0.001) {
         const roundingAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Rounding%" LIMIT 1', [companyId]);
         if (roundingAcc) {
-            const isDebit = roundingDiff < 0; // Negative means we rounded down (2.3 -> 2.0), so we need a Debit to Rounding to balance
+            const isDebit = roundingDiff < 0; 
             const amt = Math.abs(roundingDiff);
             
             await connection.query(
-                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, ${isDebit ? 'debit' : 'credit'}, description, financial_year, created_by, transaction_type)
-                 VALUES (?, ?, ?, ?, 'SALE_ROUNDING', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, roundingAcc.id, invoice_date, saleId, invoice_no, amt, `Rounding on Inv #${invoice_no}`, financialYear, userId]
+                `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, ${isDebit ? 'debit' : 'credit'}, description, financial_year, created_by, transaction_type)
+                 VALUES (?, ?, ?, ?, ?, 'SALE_ROUNDING', ?, ?, ?, ?, ?, 'cash_book')`,
+                [companyId, roundingAcc.id, memberId, invoice_date, saleId, invoice_no, amt, `Rounding on Inv #${invoice_no}`, financialYear, userId]
             );
         }
     }

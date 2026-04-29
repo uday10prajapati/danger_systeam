@@ -366,19 +366,21 @@ router.post('/', async (req, res) => {
 
     const ledgerDesc = `${bookType} Purchase - ${net_quintal} Qt @ ${rate}`;
     try {
-      if (purchaseAccountId) {
-        // Full ledger entry with purchase account
+      const targetLedgerAccId = purchaseAccountId || dangarAccountId;
+
+      if (targetLedgerAccId) {
+        // Full ledger entry with purchase or system account
         await execute(`
           INSERT INTO account_ledger (
             company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
             reference_id, reference_no, description, credit, financial_year
           ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
         `, [
-          companyId, purchaseAccountId, member_id, date, entryId, srNo, ledgerDesc, 
+          companyId, targetLedgerAccId, member_id, date, entryId, srNo, ledgerDesc, 
           parseFloat(amount || 0), currentFinancialYear
         ]);
       } else {
-        // No purchase account configured on item — write ledger entry linked to member only
+        // Fallback — write ledger entry linked to member only
         await execute(`
           INSERT INTO account_ledger (
             company_id, member_id, transaction_date, transaction_type, reference_type, 

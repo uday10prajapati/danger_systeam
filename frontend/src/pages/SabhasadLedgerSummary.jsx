@@ -170,11 +170,21 @@ export default function SabhasadLedgerSummary() {
     }
   }, [memCode]);
 
-  const filteredAccs = accounts.filter(a =>
-    a.is_subledger &&
-    (accCode ? String(a.id).includes(accCode) : true) &&
-    (accName ? a.account_name.toLowerCase().includes(accName.toLowerCase()) : true)
-  );
+  const systemAccountNames = [
+    'Brokerage Khate', 'Dangar Purchase', 'Dangar Sale', 
+    'Bardan System', 'Dangar System', 'Interest Khate', 
+    'Labour Khate', 'Rounding Khate'
+  ];
+
+  const filteredAccs = accounts.filter(a => {
+    const isSystemAcc = systemAccountNames.some(name => 
+      a.account_name.toLowerCase().includes(name.toLowerCase())
+    );
+    
+    return (a.is_subledger || isSystemAcc) &&
+           (accCode ? String(a.id).includes(accCode) : true) &&
+           (accName ? a.account_name.toLowerCase().includes(accName.toLowerCase()) : true);
+  });
 
   const filteredMems = members.filter(m =>
     (memCode ? String(m.id).includes(memCode) : true) &&
