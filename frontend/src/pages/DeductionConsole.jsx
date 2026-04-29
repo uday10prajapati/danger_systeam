@@ -493,23 +493,29 @@ return (
                               <div className={`border-r py-1.5 text-center text-[11px] font-mono font-black ${isActive ? 'border-blue-500 text-white' : 'border-slate-200 text-slate-700'}`}>{String(item.code || '').padStart(4, '0')}</div>
                               <div className={`border-r px-3 py-1.5 text-[11px] font-bold truncate ${isActive ? 'border-blue-500 text-white' : 'border-slate-200 text-slate-800'}`}>{item.name}</div>
                               <div className={`border-r px-3 py-1.5 flex flex-col items-end justify-center ${isActive ? 'border-blue-500' : 'border-slate-200'}`}>
-                                 <div className={`text-[11px] font-mono font-black ${isActive ? 'text-white' : bal < 0 ? 'text-rose-600' : bal > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
-                                    {bal > 0 ? '+' : bal < 0 ? '-' : ''}{Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                 </div>
-                                 {deducted !== 0 && Math.abs(closing) > 0.01 && (
-                                    <div className={`text-[10px] font-mono font-black italic mt-0.5 ${isActive ? 'text-blue-100' :
-                                       closing < 0 ? 'text-rose-600' :
-                                          closing > 0 ? 'text-emerald-600' : 'text-slate-400'
-                                       }`}>
-                                       {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                    </div>
+                                 {isActive && (
+                                    <>
+                                       <div className={`text-[11px] font-mono font-black ${isActive ? 'text-white' : bal < 0 ? 'text-rose-600' : bal > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
+                                          {bal > 0 ? '+' : bal < 0 ? '-' : ''}{Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                       </div>
+                                       {deducted !== 0 && Math.abs(closing) > 0.01 && (
+                                          <div className={`text-[10px] font-mono font-black italic mt-0.5 ${isActive ? 'text-blue-100' :
+                                             closing < 0 ? 'text-rose-600' :
+                                                closing > 0 ? 'text-emerald-600' : 'text-slate-400'
+                                             }`}>
+                                             {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                          </div>
+                                       )}
+                                    </>
                                  )}
                               </div>
                               <div className="px-2 py-0.5 flex items-center" onClick={e => e.stopPropagation()}>
-                                 <input type="number" value={item.deduction_amount || ''}
-                                    onChange={e => handleUpdateTargetAmount(item.type, item.id, e.target.value)}
-                                    className={`w-full rounded-sm px-1.5 py-0.5 text-right font-mono font-black text-xs outline-none ${isActive ? 'bg-white text-slate-900' : 'bg-white border border-slate-300 text-slate-900 focus:border-blue-600'}`}
-                                    placeholder="0.00" />
+                                 {(isActive || deducted !== 0) && (
+                                    <input type="number" value={item.deduction_amount || ''}
+                                       onChange={e => handleUpdateTargetAmount(item.type, item.id, e.target.value)}
+                                       className={`w-full rounded-sm px-1.5 py-0.5 text-right font-mono font-black text-xs outline-none ${isActive ? 'bg-white text-slate-900' : 'bg-white border border-slate-300 text-slate-900 focus:border-blue-600'}`}
+                                       placeholder="0.00" />
+                                 )}
                               </div>
                            </div>
                         );
