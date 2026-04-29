@@ -21,6 +21,7 @@ import stockReportRoutes from './routes/stockReportRoutes.js';
 import profitLossRoutes from './routes/profitLossRoutes.js';
 import gstRoutes from './routes/gstRoutes.js';
 import saleGSTRoutes from './routes/saleGSTRoutes.js';
+import saleWeightRoutes from './routes/saleWeightRoutes.js';
 import memberCodeRoutes from './routes/memberCodeRoutes.js';
 import sabhasadReportRoutes from './routes/sabhasadReportRoutes.js';
 import ledgerReportRoutes from './routes/ledgerReportRoutes.js';
@@ -73,6 +74,7 @@ async function startServer() {
     app.use('/api/purchase-returns', purchaseReturnRoutes);
     app.use('/api/sales', saleRoutes);
     app.use('/api/sales', saleGSTRoutes);
+    app.use('/api/sales', saleWeightRoutes);
     app.use('/api/sale-returns', saleReturnRoutes);
     app.use('/api/cash-book', cashBookRoutes);
     app.use('/api/account-ledger', accountLedgerRoutes);

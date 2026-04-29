@@ -24,7 +24,7 @@ export function validateAccount(data, isUpdate = false) {
   }
 
   // Account type validation
-  const validTypes = ['customer', 'supplier', 'cash', 'bank', 'expense', 'assets', 'liabilities', 'capital', 'revenue', 'purchase', 'sales'];
+  const validTypes = ['customer', 'supplier', 'vendor', 'cash', 'bank', 'expense', 'assets', 'liabilities', 'capital', 'revenue', 'purchase', 'sales'];
   if (account_type && !validTypes.includes(account_type)) {
     return `Account type must be one of: ${validTypes.join(', ')}`;
   }

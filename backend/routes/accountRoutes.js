@@ -48,7 +48,7 @@ router.get('/next-id', async (req, res) => {
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
 
     const prefix = {
-      'assets': 'A', 'liabilities': 'L', 'customer': 'C', 'supplier': 'S',
+      'assets': 'A', 'liabilities': 'L', 'customer': 'C', 'supplier': 'S', 'vendor': 'V',
       'bank': 'BN', 'cash': 'CS', 'capital': 'CP', 'revenue': 'R',
       'expense': 'E', 'purchase': 'P', 'sales': 'SL'
     }[type.trim().toLowerCase()] || 'X';

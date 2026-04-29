@@ -75,7 +75,6 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
     if (!formData.item_id) newErrors.push("Core SKU designation required");
     if (!formData.purchase_rate || parseFloat(formData.purchase_rate) <= 0) newErrors.push("Procurement valuation invalid");
     if (!formData.sale_rate || parseFloat(formData.sale_rate) <= 0) newErrors.push("Release yield index required");
-    if (parseFloat(formData.sale_rate) < parseFloat(formData.purchase_rate)) newErrors.push("Yield cannot drop below procurement cost");
     return newErrors;
   };
 
@@ -98,7 +97,12 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
       };
       await onSubmit(submitData);
     } catch (error) {
-      setErrors([error.response?.data?.message || "Registry synchronization failure"]);
+      const backendErrors = error.response?.data?.errors;
+      if (Array.isArray(backendErrors)) {
+        setErrors(backendErrors);
+      } else {
+        setErrors([error.response?.data?.message || error.response?.data?.error || "Registry synchronization failure"]);
+      }
     } finally {
       setLoading(false);
     }

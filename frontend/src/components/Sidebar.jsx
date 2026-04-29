@@ -67,18 +67,18 @@ function Sidebar() {
       ]
     },
     { id: 'sales', title: t('modules.sale'), icon: ShoppingCart, path: '/sales' },
-    { id: 'purchase', title: t('modules.purchase'), icon: TrendingUp, path: '/purchase' },
+    // { id: 'purchase', title: t('modules.purchase'), icon: TrendingUp, path: '/purchase' },
     { id: 'rates', title: t('modules.itemRate'), icon: BarChart3, path: '/rates' },
     { id: 'rojmel', title: t('modules.rojmel'), icon: Book, path: '/rojmel' },
     { id: 'sales-return', title: t('modules.saleReturn'), icon: RotateCcw, path: '/sales-return' },
-    { id: 'purchase-return', title: t('modules.purchaseReturn'), icon: TrendingDown, path: '/purchase-return' },
+    // { id: 'purchase-return', title: t('modules.purchaseReturn'), icon: TrendingDown, path: '/purchase-return' },
     // { id: 'barcode', title: t('modules.barcodeScanner'), icon: Barcode, path: '/barcode' },
     { id: 'ledger', title: t('modules.accountLedger'), icon: BookOpen, path: '/ledger' },
     { id: 'sabhasad-ledger', title: t('modules.sabhasadLedger'), icon: Users, path: '/sabhasad-ledger' },
     { id: 'ledger-report', title: t('modules.ledgerAudit'), icon: FileText, path: '/ledger-report' },
     { id: 'profit-loss', title: t('modules.profitAndLoss'), icon: BarChart2, path: '/profit-loss' },
     { id: 'stock', title: t('modules.stockReport'), icon: Package, path: '/stock' },
-    { id: 'purchase-report', title: t('modules.purchaseReport'), icon: FileText, path: '/purchase-report' },
+    // { id: 'purchase-report', title: t('modules.purchaseReport'), icon: FileText, path: '/purchase-report' },
     { id: 'sale-report', title: t('modules.saleReport'), icon: ShoppingCart, path: '/sale-report' },
   ]
 

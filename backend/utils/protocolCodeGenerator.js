@@ -10,6 +10,7 @@ const PREFIX_MAP = {
   'liabilities': 'L',
   'customer': 'C',
   'supplier': 'S',
+  'vendor': 'V',
   'bank': 'BN',
   'cash': 'CS',
   'capital': 'CP',

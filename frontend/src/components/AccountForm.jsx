@@ -83,6 +83,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
 
   const accountTypes = [
     { value: 'customer', label: t('accountMaster.customer'), icon: <User size={14} />, color: 'blue' },
+    { value: 'vendor', label: t('accountMaster.vendor', 'Vendor'), icon: <Briefcase size={14} />, color: 'violet' },
     { value: 'supplier', label: t('accountMaster.supplier'), icon: <Briefcase size={14} />, color: 'indigo' },
     { value: 'bank', label: t('accountMaster.bank'), icon: <Database size={14} />, color: 'sky' },
     { value: 'cash', label: t('accountMaster.cash'), icon: <IndianRupee size={14} />, color: 'emerald' },

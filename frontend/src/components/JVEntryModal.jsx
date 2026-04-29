@@ -4,7 +4,7 @@ import {
    X, Search, AlertCircle, Trash2, Edit3,
    Calendar, FileText, ArrowRightLeft, Plus,
    ChevronRight, Calculator, CheckCircle2,
-   Database
+   Database, Users
 } from 'lucide-react';
 
 export default function JVEntryModal({ company, initialDate, editId = null, onClose, onSubmit }) {

@@ -121,7 +121,7 @@ router.post('/with-gst', async (req, res) => {
         try {
           await connection.query(
             `INSERT INTO account_ledger 
-             (account_id, company_id, transaction_date, transaction_type, reference_no, debit_amount, credit_amount, created_by)
+             (account_id, company_id, transaction_date, transaction_type, reference_no, debit, credit, created_by)
              VALUES (?, ?, ?, 'PURCHASE', ?, 0, ?, ?)`,
             [accountIdForLedger, companyId, invoice_date, `PURC-${purchaseId}`, finalNetAmount, userId]
           );
@@ -145,7 +145,7 @@ router.post('/with-gst', async (req, res) => {
 
           await connection.query(
             `INSERT INTO account_ledger 
-             (account_id, company_id, transaction_date, transaction_type, reference_no, debit_amount, credit_amount, created_by)
+             (account_id, company_id, transaction_date, transaction_type, reference_no, debit, credit, created_by)
              VALUES (?, ?, ?, 'PURCHASE', ?, ?, 0, ?)`,
             [purchaseAcctId, companyId, invoice_date, `PURC-${purchaseId}`, finalNetAmount, userId]
           );

@@ -37,6 +37,7 @@ export default function AccountMaster() {
   const accountTypes = [
     { value: 'all', label: t('accountMaster.allTypes') },
     { value: 'customer', label: t('accountMaster.customer') },
+    { value: 'vendor', label: t('accountMaster.vendor', 'Vendor') },
     { value: 'supplier', label: t('accountMaster.supplier') },
     { value: 'bank', label: t('accountMaster.bank') },
     { value: 'cash', label: t('accountMaster.cash') },

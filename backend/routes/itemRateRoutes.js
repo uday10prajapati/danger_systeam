@@ -25,6 +25,9 @@ router.use(getCompanyId)
  * Automatically deactivates old rate for the item
  */
 router.post('/', validateItemRate(), async (req, res) => {
+  console.log('--- ITEM RATE POST ---');
+  console.log('Body:', req.body);
+  console.log('CompanyId Header:', req.headers['x-company-id']);
   try {
     const { item_id, purchase_rate, sale_rate, mrp, effective_from } = req.body
     const companyId = req.companyId
@@ -56,9 +59,15 @@ router.post('/', validateItemRate(), async (req, res) => {
       [companyId, item_id, purchase_rate, sale_rate, mrp || null, effective_from]
     )
 
+    // Sync with item_master for compatibility
+    await execute(
+      'UPDATE item_master SET purchase_price = ?, sale_price = ? WHERE id = ?',
+      [purchase_rate, sale_rate, item_id]
+    )
+
     res.json({
       success: true,
-      message: 'Item rate created successfully',
+      message: 'Item rate created successfully and synced to master',
       data: {
         id: result.insertId,
         company_id: companyId,
@@ -307,6 +316,13 @@ router.put('/:id', validateItemRate(), async (req, res) => {
       [purchase_rate, sale_rate, mrp || null, effective_from, id]
     )
 
+    // Sync with item_master if this was the active rate
+    // Note: In this system, typically the one being edited is the active one or we just sync it anyway
+    await execute(
+      'UPDATE item_master SET purchase_price = ?, sale_price = ? WHERE id = ?',
+      [purchase_rate, sale_rate, existingRates[0].item_id]
+    )
+
     const updatedRate = await query(
       'SELECT * FROM item_rate WHERE id = ?',
       [id]
@@ -314,7 +330,7 @@ router.put('/:id', validateItemRate(), async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Item rate updated successfully',
+      message: 'Item rate updated successfully and synced to master',
       data: updatedRate[0]
     })
   } catch (error) {

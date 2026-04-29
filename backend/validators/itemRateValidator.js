@@ -14,7 +14,7 @@ export const validateItemRate = () => [
     .withMessage('Sale rate must be a positive number'),
   
   body('mrp')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isFloat({ min: 0 })
     .withMessage('MRP must be a positive number'),
   
@@ -25,6 +25,7 @@ export const validateItemRate = () => [
   (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+      console.log('❌ Validation Errors:', errors.array());
       return res.status(400).json({
         success: false,
         errors: errors.array().map(err => err.msg)
