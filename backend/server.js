@@ -111,6 +111,7 @@ async function startServer() {
         }
     });
 
+
     app.post('/api/financial-years', async (req, res) => {
         try {
             const { companyId, yearLabel, startDate, endDate } = req.body;
@@ -383,7 +384,7 @@ async function startServer() {
     // Start listening
     app.listen(PORT, () => {
       console.log(`✅ Server running on http://localhost:${PORT}`);
-      console.log(`📊 API endpoints available`);
+      console.log('📊 API endpoints available');
     });
 
   } catch (error) {

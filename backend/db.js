@@ -809,9 +809,8 @@ export async function initializeDatabase() {
 
 
       // Migration for dangar_entry (ensure columns added later are present)
-      try {
-        await connection.query("ALTER TABLE dangar_entry ADD COLUMN rate DECIMAL(12, 2) DEFAULT 0");
-      } catch (e) {}
+      try { await connection.query("ALTER TABLE dangar_entry ADD COLUMN account_id INT DEFAULT NULL"); } catch (e) {}
+      try { await connection.query("ALTER TABLE dangar_entry ADD COLUMN rate DECIMAL(12, 2) DEFAULT 0"); } catch (e) {}
       try {
         await connection.query("ALTER TABLE dangar_entry ADD COLUMN amount DECIMAL(15, 2) DEFAULT 0");
       } catch (e) {}

@@ -34,8 +34,17 @@ import NarrationMaster from './pages/NarrationMaster'
 import DangarMaster from './pages/DangarMaster'
 import ProtocolRegistry from './pages/ProtocolRegistry'
 import DangarPaymentReport from './pages/DangarPaymentReport'
+import JamaBardanEntry from './pages/JamaBardanEntry'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
+
+const ProtectedRoute = ({ children }) => {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    return <Login />;
+  }
+  return children;
+};
 
 function AppContent() {
   const [backendStatus, setBackendStatus] = useState('Checking...')
@@ -60,13 +69,18 @@ function AppContent() {
         const healthRes = await healthCheck()
         setBackendStatus('✅ Connected')
 
-        // Load products
-        const prodRes = await productAPI.getAll()
-        setProducts(prodRes.data)
-
-        // Load sales
-        const salesRes = await salesAPI.getAll()
-        setSales(salesRes.data)
+        // Only load data if authenticated
+        const user = localStorage.getItem('user');
+        if (user) {
+          try {
+            const prodRes = await productAPI.getAll()
+            setProducts(prodRes.data)
+            const salesRes = await salesAPI.getAll()
+            setSales(salesRes.data)
+          } catch (e) {
+            console.warn('Initial data load failed', e);
+          }
+        }
       } catch (error) {
         console.error('Error:', error)
         setBackendStatus('❌ Disconnected')
@@ -104,40 +118,41 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/company" element={<Company />} />
-              <Route path="/users" element={<UserMaster />} />
-              <Route path="/accounts" element={<AccountMaster />} />
-              <Route path="/members" element={<MemberMaster />} />
-              <Route path="/items" element={<ItemMaster />} />
-              <Route path="/rates" element={<ItemRate />} />
-              <Route path="/village" element={<Village />} />
-              <Route path="/dangar-entry" element={<DangarEntry />} />
-              <Route path="/dangar-rates" element={<DangarRateMaster />} />
-              <Route path="/dangar-payment-report" element={<DangarPaymentReport />} />
-              <Route path="/kapat" element={<DeductionConsole />} />
-              <Route path="/bardan-portfolio" element={<BardanPortfolio />} />
-              <Route path="/narrations" element={<NarrationMaster />} />
-              <Route path="/dangar-master" element={<DangarMaster />} />
-              <Route path="/protocol-registry" element={<ProtocolRegistry />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/company" element={<ProtectedRoute><Company /></ProtectedRoute>} />
+              <Route path="/users" element={<ProtectedRoute><UserMaster /></ProtectedRoute>} />
+              <Route path="/accounts" element={<ProtectedRoute><AccountMaster /></ProtectedRoute>} />
+              <Route path="/members" element={<ProtectedRoute><MemberMaster /></ProtectedRoute>} />
+              <Route path="/items" element={<ProtectedRoute><ItemMaster /></ProtectedRoute>} />
+              <Route path="/rates" element={<ProtectedRoute><ItemRate /></ProtectedRoute>} />
+              <Route path="/village" element={<ProtectedRoute><Village /></ProtectedRoute>} />
+              <Route path="/dangar-entry" element={<ProtectedRoute><DangarEntry /></ProtectedRoute>} />
+              <Route path="/dangar-rates" element={<ProtectedRoute><DangarRateMaster /></ProtectedRoute>} />
+              <Route path="/dangar-payment-report" element={<ProtectedRoute><DangarPaymentReport /></ProtectedRoute>} />
+              <Route path="/kapat" element={<ProtectedRoute><DeductionConsole /></ProtectedRoute>} />
+              <Route path="/bardan-portfolio" element={<ProtectedRoute><BardanPortfolio /></ProtectedRoute>} />
+              <Route path="/jama-bardan-entry" element={<ProtectedRoute><JamaBardanEntry /></ProtectedRoute>} />
+              <Route path="/narrations" element={<ProtectedRoute><NarrationMaster /></ProtectedRoute>} />
+              <Route path="/dangar-master" element={<ProtectedRoute><DangarMaster /></ProtectedRoute>} />
+              <Route path="/protocol-registry" element={<ProtectedRoute><ProtocolRegistry /></ProtectedRoute>} />
               
               {/* Transactions */}
-              <Route path="/sales" element={<Sale />} />
-              <Route path="/sales-return" element={<SaleReturn />} />
-              <Route path="/purchase" element={<Purchase />} />
-              <Route path="/purchase-return" element={<PurchaseReturn />} />
+              <Route path="/sales" element={<ProtectedRoute><Sale /></ProtectedRoute>} />
+              <Route path="/sales-return" element={<ProtectedRoute><SaleReturn /></ProtectedRoute>} />
+              <Route path="/purchase" element={<ProtectedRoute><Purchase /></ProtectedRoute>} />
+              <Route path="/purchase-return" element={<ProtectedRoute><PurchaseReturn /></ProtectedRoute>} />
               
               {/* Tools & Reports */}
-              <Route path="/barcode" element={<BarcodeScannerPage />} />
-              <Route path="/cashbook" element={<Rojmel />} />
-              <Route path="/ledger" element={<AccountLedger />} />
-              <Route path="/ledger-report" element={<LedgerReport />} />
-              <Route path="/rojmel" element={<Rojmel />} />
-              <Route path="/sabhasad-ledger" element={<SabhasadLedgerSummary />} />
-              <Route path="/profit-loss" element={<ProfitLoss />} />
-              <Route path="/stock" element={<StockReport />} />
-              <Route path="/purchase-report" element={<PurchaseReport />} />
-              <Route path="/sale-report" element={<SaleReport />} />
+              <Route path="/barcode" element={<ProtectedRoute><BarcodeScannerPage /></ProtectedRoute>} />
+              <Route path="/cashbook" element={<ProtectedRoute><Rojmel /></ProtectedRoute>} />
+              <Route path="/ledger" element={<ProtectedRoute><AccountLedger /></ProtectedRoute>} />
+              <Route path="/ledger-report" element={<ProtectedRoute><LedgerReport /></ProtectedRoute>} />
+              <Route path="/rojmel" element={<ProtectedRoute><Rojmel /></ProtectedRoute>} />
+              <Route path="/sabhasad-ledger" element={<ProtectedRoute><SabhasadLedgerSummary /></ProtectedRoute>} />
+              <Route path="/profit-loss" element={<ProtectedRoute><ProfitLoss /></ProtectedRoute>} />
+              <Route path="/stock" element={<ProtectedRoute><StockReport /></ProtectedRoute>} />
+              <Route path="/purchase-report" element={<ProtectedRoute><PurchaseReport /></ProtectedRoute>} />
+              <Route path="/sale-report" element={<ProtectedRoute><SaleReport /></ProtectedRoute>} />
             </Routes>
           </div>
         </div>
@@ -145,6 +160,7 @@ function AppContent() {
     </div>
   )
 }
+
 
 function App() {
   return (

@@ -194,6 +194,8 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
       const standardDesc = formData.description || `Cash ${isCredit ? 'In' : 'Out'} - ${searchText || 'Member adv ac'}`;
 
+      const ikAccount = accounts.find(a => a.account_code === 'IK0001');
+
       const batchEntries = subEntries
         .filter(r => r.amount && parseFloat(r.amount) > 0)
         .map(r => ({
@@ -202,7 +204,12 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           description: standardDesc,
           cash_in: isCredit ? parseFloat(r.amount) : 0,
           cash_out: isCredit ? 0 : parseFloat(r.amount),
-          notes: r.description // Store the member name/sub-note in 'notes' instead
+          notes: r.description,
+          interest_amount: parseFloat(r.interest_amount) || 0,
+          interest_a_per: r.interest_a_per || null,
+          interest_percent: parseFloat(r.interest_percent) || 0,
+          interest_member_id: r.member_id || null,
+          interest_account_id: ikAccount ? ikAccount.id : null
         }));
 
       const payload = {
@@ -363,6 +370,9 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                       {selectedAccount?.is_subledger ? 'Sabhasad (Member) Selection' : 'Narration / Description'}
                     </th>
                     <th className="w-40 text-right px-4">Amount</th>
+                    {(!isCredit && selectedAccount?.account_code === 'L0001') && (
+                      <th className="w-24 text-center px-2 border-l border-slate-300 text-[10px] bg-slate-200">Interest (%)</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -370,6 +380,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                     <tr key={row.id}>
                       <td className="w-20 border-r border-slate-200 text-center">
                         <input
+                          id={`code-${idx}`}
                           type="text"
                           disabled={!selectedAccount}
                           value={row.code || ''}
@@ -390,12 +401,19 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             } : r);
                             setSubEntries(updated);
                           }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              document.getElementById(`desc-${idx}`)?.focus();
+                            }
+                          }}
                           placeholder="CODE"
                           className="w-full px-2 py-1.5 text-center text-xs font-mono font-bold outline-none bg-yellow-50/30 disabled:bg-slate-100"
                         />
                       </td>
                       <td className="border-r border-slate-200 relative">
                         <input
+                          id={`desc-${idx}`}
                           type="text"
                           disabled={!selectedAccount}
                           value={row.description || ''}
@@ -418,6 +436,12 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             setSubEntries(updated);
                             setActiveRowId(row.id);
                             setShowMemberDropdown(true);
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              document.getElementById(`amount-${idx}`)?.focus();
+                            }
                           }}
                           placeholder={selectedAccount?.is_subledger ? "Search Sabhasad..." : (selectedAccount ? "Search Narration..." : "LOCKED")}
                           className="w-full px-4 py-1.5 text-xs outline-none bg-transparent font-bold disabled:cursor-not-allowed"
@@ -462,6 +486,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                       </td>
                       <td>
                         <input
+                          id={`amount-${idx}`}
                           type="number"
                           disabled={!selectedAccount}
                           value={row.amount}
@@ -471,9 +496,38 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             const total = updated.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
                             setFormData({ ...formData, amount: total.toFixed(2) });
                           }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (idx === subEntries.length - 1) {
+                                setSubEntries([...subEntries, { id: Date.now(), description: '', amount: '', code: '' }]);
+                                setTimeout(() => {
+                                  document.getElementById(`code-${idx + 1}`)?.focus();
+                                }, 50);
+                              } else {
+                                document.getElementById(`code-${idx + 1}`)?.focus();
+                              }
+                            }
+                          }}
                           className="w-full px-4 py-1.5 text-xs text-right font-bold outline-none bg-transparent disabled:bg-slate-50"
                         />
                       </td>
+                      {(!isCredit && selectedAccount?.account_code === 'L0001') && (
+                        <td className="border-l border-slate-200 px-2 bg-slate-50/50">
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="%"
+                              value={row.interest_percent || ''}
+                              onChange={e => setSubEntries(subEntries.map(r => r.id === row.id ? { ...r, interest_percent: e.target.value } : r))}
+                              className="w-14 px-1 py-1 text-xs font-bold text-center border border-slate-300 rounded outline-none focus:border-blue-500 bg-white"
+                            />
+                            <span className="text-[10px] font-bold text-slate-500">/day</span>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

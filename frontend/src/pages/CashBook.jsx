@@ -16,18 +16,24 @@ export default function CashBook() {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
-  const [formData, setFormData] = useState({
+  const [members, setMembers] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+
+  // New Interest Fields
+  const initialFormState = {
     transaction_date: new Date().toISOString().split('T')[0],
     description: '',
     cash_in: 0,
     cash_out: 0,
     notes: '',
-    member_id: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [members, setMembers] = useState([]);
+    member_id: '',
+    interest_amount: 0,
+    interest_a_per: '',
+    interest_percent: 0,
+    interest_member_id: '',
+    interest_account_id: ''
+  };
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
     loadCompany();
@@ -38,8 +44,22 @@ export default function CashBook() {
       fetchCashBook();
       fetchBalance();
       fetchMembers();
+      fetchAccounts();
     }
   }, [company]);
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts`, {
+        headers: { 'x-company-id': company.id, 'x-user-id': 1 }
+      });
+      if (response.data.success) {
+        setAccounts(response.data.data);
+      }
+    } catch (err) {
+      console.error('Fetch accounts error:', err);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -142,21 +162,19 @@ export default function CashBook() {
           cash_in: parseFloat(formData.cash_in) || 0,
           cash_out: parseFloat(formData.cash_out) || 0,
           notes: formData.notes,
-          member_id: formData.member_id || null
+          member_id: formData.member_id || null,
+          interest_amount: parseFloat(formData.interest_amount) || 0,
+          interest_a_per: formData.interest_a_per,
+          interest_percent: parseFloat(formData.interest_percent) || 0,
+          interest_member_id: formData.interest_member_id || null,
+          interest_account_id: formData.interest_account_id || null
         },
         { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
       );
 
       if (response.data.success) {
         setSuccess('Cash entry added successfully!');
-        setFormData({
-          transaction_date: new Date().toISOString().split('T')[0],
-          description: '',
-          cash_in: 0,
-          cash_out: 0,
-          notes: '',
-          member_id: ''
-        });
+        setFormData(initialFormState);
         setTimeout(() => {
           setShowForm(false);
           fetchCashBook();
@@ -503,6 +521,76 @@ export default function CashBook() {
                     />
                   </div>
                 </div>
+
+                {/* Interest Configuration Fields for Debit/Cash Out */}
+                {parseFloat(formData.cash_out) > 0 && (
+                  <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-lg space-y-4">
+                    <h3 className="text-xs font-black uppercase text-slate-600 border-b border-slate-200 pb-2">Interest Configuration (Debit Only)</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Interest (₹)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.interest_amount}
+                          onChange={(e) => setFormData({ ...formData, interest_amount: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-xs h-10"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Amount / Per</span>
+                        <input
+                          type="text"
+                          placeholder="E.G. PER MONTH"
+                          value={formData.interest_a_per}
+                          onChange={(e) => setFormData({ ...formData, interest_a_per: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-xs h-10 uppercase"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Percent (%)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.interest_percent}
+                          onChange={(e) => setFormData({ ...formData, interest_percent: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-xs h-10"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Interest Sabhasad</span>
+                        <select
+                          value={formData.interest_member_id}
+                          onChange={(e) => setFormData({ ...formData, interest_member_id: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-[10px] uppercase h-10"
+                        >
+                          <option value="">No Member Linked</option>
+                          {members.map(m => (
+                            <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Interest Khate</span>
+                        <select
+                          value={formData.interest_account_id}
+                          onChange={(e) => setFormData({ ...formData, interest_account_id: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-[10px] uppercase h-10"
+                        >
+                          <option value="">No Account Linked</option>
+                          {accounts.map(a => (
+                            <option key={a.id} value={a.id}>{a.account_code || '---'} | {a.account_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Internal Manifesto (Notes)</span>

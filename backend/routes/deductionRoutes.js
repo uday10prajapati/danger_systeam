@@ -251,12 +251,19 @@ router.post('/execute-batch', async (req, res) => {
 
     if (!targets.length) return res.status(400).json({ success: false, error: 'No valid targets selected' });
 
+    // Resolve Interest Account
+    const ikAccRes = await query('SELECT id FROM accounts WHERE account_code = "IK0001" AND company_id = ?', [companyId]);
+    const interestAccountId = ikAccRes.length > 0 ? ikAccRes[0].id : null;
+
     let successCount = 0;
     const referenceNo = `DED-${Date.now()}`;
 
     for (const target of targets) {
-       const amount = parseFloat(target.deduction_amount || global_amount || 0);
-       if (amount <= 0) continue;
+       const totalAmount = parseFloat(target.deduction_amount || global_amount || 0);
+       if (totalAmount <= 0) continue;
+
+       const interestAmount = parseFloat(target.interest_amount || 0);
+       const principalAmount = Math.max(0, totalAmount - interestAmount);
 
        // Verify we have a ledger account for this entry
        let finalAccountId = null;
@@ -273,28 +280,54 @@ router.post('/execute-batch', async (req, res) => {
          });
        }
 
-       // Kapat (Deduction) is typically a Credit (Jama) for the member/account
        const entryType = target.entry_type || 'Cr'; 
        const isCr = entryType === 'Cr';
 
-       // Create Entry for the member/account
-       await query(`
-         INSERT INTO account_ledger (
-           company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-           reference_no, description, debit, credit, notes, created_by, financial_year
-         ) VALUES (?, ?, ?, ?, 'deduction', 'deduction_batch', ?, ?, ?, ?, ?, ?, ?)
-       `, [
-          companyId, 
-          finalAccountId, 
-          target.type === 'member' ? target.id : (sabhasad_id || null),
-          date, referenceNo, 
-          `Kapat (Deduction) - ${target.name}`,
-          isCr ? 0 : amount, 
-          isCr ? amount : 0,
-          remark || '', 
-          req.headers['x-user-id'] || 1, 
-          '2026-27'
-       ]);
+       // 1. Principal Entry
+       if (principalAmount > 0) {
+          await query(`
+            INSERT INTO account_ledger (
+              company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+              reference_no, description, debit, credit, notes, created_by, financial_year, interest_amount, interest_percent
+            ) VALUES (?, ?, ?, ?, 'deduction', 'DangarKapat', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+             companyId, 
+             finalAccountId, 
+             target.type === 'member' ? target.id : (sabhasad_id || null),
+             date, referenceNo, 
+             `Kapat (Principal) - ${target.name}`,
+             isCr ? 0 : principalAmount, 
+             isCr ? principalAmount : 0,
+             remark || '', 
+             req.headers['x-user-id'] || 1, 
+             req.headers['x-financial-year'] || '2026-27',
+             0,
+             target.interest_percent || 0
+          ]);
+       }
+
+       // 2. Interest Entry
+       if (interestAmount > 0 && interestAccountId) {
+          await query(`
+            INSERT INTO account_ledger (
+              company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+              reference_no, description, debit, credit, notes, created_by, financial_year, interest_amount, interest_percent
+            ) VALUES (?, ?, ?, ?, 'deduction', 'DangarKapat', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+             companyId, 
+             interestAccountId, 
+             target.type === 'member' ? target.id : (sabhasad_id || null),
+             date, referenceNo, 
+             `Kapat (Interest) - ${target.name}`,
+             isCr ? 0 : interestAmount, 
+             isCr ? interestAmount : 0,
+             remark || '', 
+             req.headers['x-user-id'] || 1, 
+             req.headers['x-financial-year'] || '2026-27',
+             interestAmount,
+             target.interest_percent || 0
+          ]);
+       }
 
        // --- Bardan Penalty Auto-Settlement Logic ---
        if (target.type === 'member') {
@@ -333,8 +366,8 @@ router.post('/execute-batch', async (req, res) => {
                        book_type, pavti_no, mem_nominal, code, name, qty, remark
                      ) VALUES (?, ?, ?, 'J', ?, 'S', ?, ?, ?, ?)
                    `, [
-                     companyId, '2026-27', date, referenceNo, 
-                     code, member.member_name, bagsToClear, `Bardan Penalty Paid via Kapat (${rule.name})`
+                     companyId, req.headers['x-financial-year'] || '2026-27', date, referenceNo, 
+                     code, member.member_name, bagsToClear, `Bardan Penalty Paid via Kapat`
                    ]);
                  }
                }

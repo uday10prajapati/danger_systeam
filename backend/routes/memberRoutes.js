@@ -146,18 +146,18 @@ router.post('/', async (req, res) => {
     const {
       sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
-      engName, nominalMember, ifscCode, bardanOpening
+      engName, nominalMember, ifscCode, bardanOpening, is_active
     } = req.body;
 
     const result = await execute(
       `INSERT INTO member_master 
       (company_id, financial_year, member_code, member_name, phone, village_code, village_name, 
-       full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member, ifsc_code, bardan_opening)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member, ifsc_code, bardan_opening, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company_id, financial_year, sabhasadCode, sabhasadName, phoneNo || null, 
         villageCode || null, villageName || null, fullAcNumber || null, bankName || null, 
-        branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null, ifscCode || null, bardanOpening || 0
+        branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null, ifscCode || null, bardanOpening || 0, is_active !== undefined ? is_active : 1
       ]
     );
 
@@ -183,7 +183,7 @@ router.put('/:id', async (req, res) => {
     const {
       sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
-      engName, nominalMember, ifscCode, bardanOpening
+      engName, nominalMember, ifscCode, bardanOpening, is_active
     } = req.body;
 
     await execute(
@@ -191,12 +191,12 @@ router.put('/:id', async (req, res) => {
         member_code = ?, member_name = ?, phone = ?, village_code = ?, 
         village_name = ?, full_ac_number = ?, bank_name = ?, branch_name = ?, 
         account_type = ?, address_no = ?, eng_name = ?, nominal_member = ?,
-        ifsc_code = ?, bardan_opening = ?, financial_year = ?, updated_at = CURRENT_TIMESTAMP
+        ifsc_code = ?, bardan_opening = ?, is_active = ?, financial_year = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND company_id = ?`,
       [
         sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
         fullAcNumber, bankName, branchName, accountType, addressNo,
-        engName, nominalMember, ifscCode, bardanOpening || 0, financial_year, req.params.id, company_id
+        engName, nominalMember, ifscCode, bardanOpening || 0, is_active !== undefined ? is_active : 1, financial_year, req.params.id, company_id
       ]
     );
 

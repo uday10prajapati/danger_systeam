@@ -78,7 +78,9 @@ router.post('/', async (req, res) => {
     }
 
     // Resolve IDs
-    const member = await queryOne('SELECT id, account_id FROM member_master WHERE member_code = ? AND company_id = ?', [code, companyId]);
+    const member = await queryOne('SELECT id FROM member_master WHERE member_code = ? AND company_id = ?', [code, companyId]);
+    const bardanAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+    const bardanAccountId = bardanAccount?.id || null;
 
     console.log('📦 Committing Jama Bardan Entry:', { companyId, financialYear, code, qty });
     const result = await execute(`
@@ -90,7 +92,7 @@ router.post('/', async (req, res) => {
     `, [
       companyId, financialYear, bookType, pavtiNo, date,
       memNominal, code, name, qty || 0, option, remark,
-      dayQty || 0, totalQty || 0, member?.id || null, member?.account_id || null
+      dayQty || 0, totalQty || 0, member?.id || null, bardanAccountId
     ]);
 
     const entryId = result.insertId || result.lastID;

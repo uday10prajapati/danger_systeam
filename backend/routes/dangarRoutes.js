@@ -81,10 +81,10 @@ router.get('/payment-report', async (req, res) => {
       SELECT
         al.member_id,
         al.transaction_date,
-        al.description,
         al.credit         AS amount,
         al.reference_no,
-        acc.account_name
+        acc.account_name,
+        al.interest_amount
       FROM account_ledger al
       LEFT JOIN accounts acc ON al.account_id = acc.id
       WHERE al.company_id = ?
@@ -163,7 +163,8 @@ router.get('/payment-report', async (req, res) => {
     });
 
     // Build final report rows
-    const report = ledgerRows.map(row => {
+    const report = [];
+    for (const row of ledgerRows) {
       const entries        = dangarMap[row.member_id] || [];
       const totalKg        = entries.reduce((s, e) => s + parseFloat(e.total_kg          || 0), 0);
       const totalQuintal   = entries.reduce((s, e) => s + parseFloat(e.net_quintal       || 0), 0);
@@ -179,12 +180,49 @@ router.get('/payment-report', async (req, res) => {
       const bardanReturned  = parseFloat(bardanReturnedMap[row.member_code] || 0);
       const bardanRemaining = Math.max(0, bardanIssued - bardanReturned);
       const bardanPenalty   = bardanRemaining * pricePerBardan;
-
       const totalKapat  = (kapatMap[row.member_id] || []).reduce((s, k) => s + parseFloat(k.amount || 0), 0);
-      // Final Amount = Rate Amount - Total Kapat - Bardan Penalty
-      const finalAmount = rateAmount - totalKapat - bardanPenalty;
+      
+      // Calculate REAL-TIME breakdown for this member
+      let pendingInterest = 0;
+      let memberAdvance = 0; // Specifically from L0001 Member Adv Ac
+      let otherUdhar = 0;    // Any other outstanding balance
+      
+      try {
+         // Resolve Member Adv Ac ID
+         const advAc = await queryOne('SELECT id FROM accounts WHERE account_code = "L0001" AND company_id = ?', [companyId]);
+         const advAcId = advAc?.id;
 
-      return {
+         const memberLedger = await query(`
+            SELECT account_id, debit, credit, transaction_date, interest_percent 
+            FROM account_ledger 
+            WHERE (member_id = ? OR reference_id = ?) AND company_id = ?
+         `, [row.member_id, row.member_id, companyId]);
+
+         for (const entry of memberLedger) {
+            const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
+            
+            if (advAcId && entry.account_id === advAcId) {
+               memberAdvance += bal;
+            } else {
+               otherUdhar += bal;
+            }
+
+            if (parseFloat(entry.interest_percent || 0) > 0 && bal > 0.01) {
+               const start = new Date(entry.transaction_date);
+               const end = endDate ? new Date(endDate) : new Date();
+               const diff = end - start;
+               const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+               pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * days);
+            }
+         }
+      } catch (err) {
+         console.error('Report Breakdown calculation failed', err);
+      }
+
+      // Final Amount = Rate Amount - Member Advance - Other Udhar - Pending Interest - Total Kapat (Saved) - Bardan Penalty
+      const finalAmount = rateAmount - memberAdvance - otherUdhar - pendingInterest - totalKapat - bardanPenalty;
+
+      report.push({
         member_id:        row.member_id,
         member_code:      row.member_code,
         member_name:      row.member_name,
@@ -194,7 +232,9 @@ router.get('/payment-report', async (req, res) => {
         total_quintal:    totalQuintal > 0 ? totalQuintal.toFixed(2) : (totalKg / 100).toFixed(2),
         rate_per_kg:      weightedRate.toFixed(2),
         rate_amount:      rateAmount.toFixed(2),
-        deduction_amount: deduction.toFixed(2),
+        member_advance:   memberAdvance.toFixed(2),
+        other_udhar:      otherUdhar.toFixed(2),
+        total_interest:   pendingInterest.toFixed(2),
         total_kapat:      totalKapat.toFixed(2),
         final_amount:     finalAmount.toFixed(2),
         bardan_issued:    bardanIssued,
@@ -203,8 +243,8 @@ router.get('/payment-report', async (req, res) => {
         bardan_penalty:   bardanPenalty.toFixed(2),
         kapat_entries:    kapatMap[row.member_id] || [],
         entries:          entries,
-      };
-    });
+      });
+    }
 
 
     res.json({ success: true, data: report });
@@ -260,17 +300,23 @@ router.post('/', async (req, res) => {
     // 1. Precise SR No Generation (Protocol D00001)
     const srNo = await generateDangarEntryCode(companyId);
 
+    // 1b. Resolve System Accounts
+    const dangarAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = ?', [companyId]);
+    const bardanAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+    const dangarAccountId = dangarAccount?.id || null;
+    const bardanAccountId = bardanAccount?.id || null;
+
     // 2. Commit Header State
     const result = await execute(`
       INSERT INTO dangar_entry (
         company_id, financial_year, book_type, sr_no, entry_date, 
-        member_id, item_id, remark, vehicle_no, quality_class,
+        member_id, account_id, item_id, remark, vehicle_no, quality_class,
         total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
         rate, amount, total_deduction, weight_unit, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       companyId, currentFinancialYear, bookType, srNo, date,
-      member_id, item_id, remark, vehicleNo, quality_class || '1st',
+      member_id, dangarAccountId, item_id, remark, vehicleNo, quality_class || '1st',
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
       rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', created_by || 1
     ]);
@@ -341,17 +387,19 @@ router.post('/', async (req, res) => {
     // 6. Auto-Settle Bardan Balance (Jama Entry)
     // We credit the bags actually returned (returned_bags), not the remaining balance.
     if (returned_bags && parseFloat(returned_bags) > 0) {
-      const member = await queryOne(`SELECT member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
+      const member = await queryOne(`SELECT id, member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
       if (member) {
         let settleRemark = `Dangar Settlement SR: ${srNo}`;
         await execute(`
           INSERT INTO jama_bardan_entry (
             company_id, financial_year, entry_date, 
-            book_type, pavti_no, mem_nominal, code, name, qty, remark
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            book_type, pavti_no, mem_nominal, code, name, qty, remark,
+            member_id, account_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           companyId, currentFinancialYear, date,
-          'J', srNo, 'S', member.member_code, member.member_name, parseFloat(returned_bags), settleRemark
+          'J', srNo, 'S', member.member_code, member.member_name, parseFloat(returned_bags), settleRemark,
+          member.id, bardanAccountId
         ]);
       }
     }

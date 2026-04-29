@@ -8,7 +8,8 @@ let viteApiUrl;
 if (isElectron) {
   viteApiUrl = 'http://localhost:5000';
 } else {
-  viteApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const envUrl = import.meta.env.VITE_API_URL;
+  viteApiUrl = (envUrl && envUrl !== 'undefined') ? envUrl : 'http://localhost:5000';
 }
 
 if (viteApiUrl.endsWith('/')) viteApiUrl = viteApiUrl.slice(0, -1);
@@ -29,19 +30,31 @@ const api = axios.create({
 
 // Add a request interceptor to include the financial year and company headers
 api.interceptors.request.use((config) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  if (user) {
-    if (user.financial_year) {
-      config.headers['X-Financial-Year'] = user.financial_year;
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr && userStr !== 'undefined') {
+      const user = JSON.parse(userStr);
+      if (user) {
+        if (user.financial_year) {
+          config.headers['X-Financial-Year'] = user.financial_year;
+        }
+        if (user.company_id) {
+          config.headers['X-Company-Id'] = user.company_id;
+        } else {
+          console.warn('⚠️ Missing company_id in user session');
+        }
+      }
+    } else {
+      console.warn('⚠️ No user session found in localStorage');
     }
-    if (user.company_id) {
-      config.headers['X-Company-Id'] = user.company_id;
-    }
+  } catch (error) {
+    console.error('Failed to parse user from localStorage:', error);
   }
   return config;
 }, (error) => {
   return Promise.reject(error);
 });
+
 
 // Products (Items)
 export const productAPI = {

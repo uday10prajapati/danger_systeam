@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Plus, X, Database, Layout, CheckCircle, UserCheck, ArrowRight, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, X, Database, Layout, CheckCircle, UserCheck, ArrowRight, User, TrendingUp } from 'lucide-react';
 import api, { sabhasadMasterApi } from '../api';
 
 export default function DeductionConsole() {
@@ -21,6 +21,7 @@ export default function DeductionConsole() {
       target_identifier: ''
    });
    const [manualDeductions, setManualDeductions] = useState([]);
+   const [isSmartFilling, setIsSmartFilling] = useState(false);
 
    const [accountStatsRange, setAccountStatsRange] = useState({
       startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -32,23 +33,39 @@ export default function DeductionConsole() {
       if (deductionPayload.target_identifier && deductionPayload.target_identifier.startsWith('account-')) {
          const accId = deductionPayload.target_identifier.split('-')[1];
          api.get(`/account-ledger/account-stats/${accId}`, {
-            params: { ...accountStatsRange, memberId: deductionPayload.sabhasad_id }
+            params: { ...accountStatsRange, endDate: deductionPayload.date, memberId: deductionPayload.sabhasad_id }
          })
             .then(res => {
-               if (res.data.success) setActiveAccountStats(res.data.data);
+               if (res.data.success) {
+                  const stats = res.data.data;
+                  setActiveAccountStats(stats);
+
+                  if (stats.total_interest > 0) {
+                     setSelectedIdentities(prev => prev.map(item => {
+                        if (item.code === 'IK0001') {
+                           return {
+                              ...item,
+                              total_debit: (parseFloat(item.total_debit) || 0) + stats.total_interest,
+                              total_interest: stats.total_interest,
+                              deduction_amount: item.deduction_amount || stats.total_interest.toFixed(2)
+                           };
+                        }
+                        return item;
+                     }));
+                  }
+               }
             })
             .catch(console.error);
       } else {
          setActiveAccountStats({ total_debit: 0, total_credit: 0, balance: 0 });
       }
-   }, [deductionPayload.target_identifier, accountStatsRange, deductionPayload.sabhasad_id]);
+   }, [deductionPayload.target_identifier, accountStatsRange.startDate, deductionPayload.date, deductionPayload.sabhasad_id]);
 
    useEffect(() => { loadIdentities(); }, []);
 
    const loadIdentities = async () => {
       try {
          setLoading(true);
-         const companyRes = await api.get('/company');
          const [memRes, accRes, targetsRes, rulesRes, narrRes] = await Promise.all([
             sabhasadMasterApi.getAllSabhasad(),
             api.get('/accounts?type=ledger'),
@@ -69,46 +86,51 @@ export default function DeductionConsole() {
    };
 
    const fetchIdentityBalance = async (type, id, sabhasadId = null) => {
-      console.log(`[fetchIdentityBalance] type: ${type}, id: ${id}, sabhasadId: ${sabhasadId}`);
       try {
          if (type === 'account' && sabhasadId) {
-            const res = await sabhasadMasterApi.getMemberBalance(id, sabhasadId);
-            console.log(`[fetchIdentityBalance] API Response for Member Balance:`, res.data);
+            const res = await api.get(`/account-ledger/account-stats/${id}`, {
+               params: { memberId: sabhasadId, endDate: deductionPayload.date }
+            });
             if (res.data.success && res.data.data) {
-               return { total_debit: parseFloat(res.data.data.total_debit || 0), total_credit: parseFloat(res.data.data.total_credit || 0) };
+               return { 
+                  total_debit: parseFloat(res.data.data.total_debit || 0), 
+                  total_credit: parseFloat(res.data.data.total_credit || 0),
+                  total_interest: parseFloat(res.data.data.total_interest || 0),
+                  balance: parseFloat(res.data.data.balance || 0)
+               };
             }
          } else {
             const res = await api.get(`/accounts/${type === 'member' ? 'M' + id : id}/balance`);
-            console.log(`[fetchIdentityBalance] API Response for Global Balance:`, res.data);
             if (res.data.success) {
-               return { total_debit: parseFloat(res.data.data.total_debit || 0), total_credit: parseFloat(res.data.data.total_credit || 0) };
+               return { 
+                  total_debit: parseFloat(res.data.data.total_debit || 0), 
+                  total_credit: parseFloat(res.data.data.total_credit || 0),
+                  balance: parseFloat(res.data.data.balance || 0)
+               };
             }
          }
       } catch (e) { console.error(e); }
-      return { total_debit: 0, total_credit: 0 };
+      return { total_debit: 0, total_credit: 0, balance: 0 };
    };
 
    const preloadIdentityInsights = async (identities, sabhasadId = null) => {
       const rows = identities || [];
-      if (!rows.length) return;
+      if (!rows.length) return rows;
       try {
-         console.log(`[preloadIdentityInsights] Fetching insights for sabhasadId: ${sabhasadId}`);
          const results = await Promise.all(rows.map(async (item) => {
             const metrics = await fetchIdentityBalance(item.type, item.id, sabhasadId);
             return { type: item.type, id: item.id, metrics };
          }));
-         console.log(`[preloadIdentityInsights] Results:`, results);
-         setSelectedIdentities(prev => prev.map(item => {
+         const updated = rows.map(item => {
             const match = results.find(r => r.type === item.type && r.id === item.id);
             return match ? { ...item, ...match.metrics } : item;
-         }));
-      } catch (e) { console.error(e); }
-   };
-
-   const updateTargetMetrics = (type, id, metrics) => {
-      setSelectedIdentities(prev => prev.map(item =>
-         (item.type === type && item.id === id) ? { ...item, ...metrics } : item
-      ));
+         });
+         setSelectedIdentities(updated);
+         return updated;
+      } catch (e) { 
+         console.error(e); 
+         return rows;
+      }
    };
 
    const handleUpdateTargetAmount = (type, id, value) => {
@@ -119,20 +141,19 @@ export default function DeductionConsole() {
 
    const totalDeductionAmount = selectedIdentities.reduce((sum, item) => sum + (parseFloat(item.deduction_amount) || 0), 0);
 
-   const toggleIdentitySelection = (id, type, name, code) => {
-      const exists = selectedIdentities.find(i => i.id === id && i.type === type);
-      if (exists) {
-         setSelectedIdentities(selectedIdentities.filter(i => !(i.id === id && i.type === type)));
-      } else {
-         setSelectedIdentities([...selectedIdentities, { id, type, name, code }]);
-      }
-   };
-
    const removeIdentity = async (id, type) => {
       try {
          setSelectedIdentities(selectedIdentities.filter(i => !(i.id === id && i.type === type)));
          await api.delete(`/deductions/targets/${type}/${id}`);
       } catch (e) { console.error(e); }
+   };
+
+   const toggleIdentitySelection = (id, type, name, code) => {
+      setSelectedIdentities(prev => {
+         const exists = prev.find(i => i.id === id && i.type === type);
+         if (exists) return prev.filter(i => !(i.id === id && i.type === type));
+         return [...prev, { id, type, name, code, deduction_amount: '' }];
+      });
    };
 
    const confirmSelection = async () => {
@@ -177,7 +198,6 @@ export default function DeductionConsole() {
       <div className="min-h-screen bg-slate-50 p-8">
          <div className="max-w-7xl mx-auto space-y-6">
 
-            {/* Header */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex justify-between items-center">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
@@ -189,6 +209,102 @@ export default function DeductionConsole() {
                   </div>
                </div>
                <div className="flex gap-3">
+                   <button 
+                     onClick={async () => {
+                        setIsSmartFilling(true);
+                        try {
+                           // If no specific member is selected in the payload, we perform a GLOBAL SCAN
+                           if (!deductionPayload.sabhasad_id) {
+                              if (!window.confirm('Global Scan: Automatically find all members with outstanding balances in the matrix accounts?')) {
+                                 setIsSmartFilling(false);
+                                 return;
+                              }
+                              
+                              const ledgerAccounts = selectedIdentities.filter(i => i.type === 'account');
+                              if (ledgerAccounts.length === 0) {
+                                 alert('Please add at least one account (e.g. Adv A/C) to the matrix first.');
+                                 setIsSmartFilling(false);
+                                 return;
+                              }
+
+                              // Fetch global stats for these accounts
+                              const globalRes = await api.get('/account-ledger/global-balances', {
+                                 params: { 
+                                    accountIds: ledgerAccounts.map(a => a.id).join(','),
+                                    endDate: deductionPayload.date 
+                                 }
+                              });
+
+                              if (globalRes.data.success) {
+                                 const memberBalances = globalRes.data.data; // Array of { member_id, account_id, balance }
+                                 
+                                 // Create a map of members to add
+                                 const membersToAdd = [];
+                                 memberBalances.forEach(mb => {
+                                    if (Math.abs(mb.balance) > 0.01) {
+                                       const member = members.find(m => m.id === mb.member_id);
+                                       if (member) {
+                                          membersToAdd.push({
+                                             id: member.id,
+                                             type: 'member',
+                                             name: member.member_name,
+                                             code: member.member_code,
+                                             deduction_amount: Math.abs(mb.balance).toFixed(2)
+                                          });
+                                       }
+                                    }
+                                 });
+
+                                 if (membersToAdd.length === 0) {
+                                    alert('No members with outstanding balances found for the selected accounts.');
+                                 } else {
+                                    // Merge with existing identities
+                                    setSelectedIdentities(prev => {
+                                       const existingIds = new Set(prev.map(p => `${p.type}-${p.id}`));
+                                       const filteredNew = membersToAdd.filter(m => !existingIds.has(`${m.type}-${m.id}`));
+                                       return [...prev, ...filteredNew];
+                                    });
+                                    alert(`Auto Mode: Added ${membersToAdd.length} members with pending balances.`);
+                                 }
+                              }
+                           } else {
+                              // Specific Member Smart Fill (Current Logic)
+                              const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
+                              
+                              setSelectedIdentities(freshIdentities.map(item => {
+                                 if (item.code === 'IK0001' && item.total_interest > 0) {
+                                    return { ...item, deduction_amount: item.total_interest.toFixed(2) };
+                                 }
+                                 const udhar = parseFloat(item.total_debit) || 0;
+                                 const jama = parseFloat(item.total_credit) || 0;
+                                 const bal = jama - udhar;
+                                 if (bal < 0) {
+                                    return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                 }
+                                 return item;
+                              }));
+                           }
+                        } catch (err) {
+                           console.error('Smart Fill failed:', err);
+                           alert('Smart Fill operation failed. Check console for details.');
+                        } finally {
+                           setIsSmartFilling(false);
+                        }
+                     }}
+                     disabled={isSmartFilling}
+                     className="px-6 py-3 bg-white text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  >
+                     {isSmartFilling ? (
+                        <>
+                           <div className="w-4 h-4 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin"></div>
+                           Processing...
+                        </>
+                     ) : (
+                        <>
+                           <TrendingUp size={16} /> Smart Fill
+                        </>
+                     )}
+                  </button>
                   <button onClick={() => setShowMembersModal(true)} className="px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm">
                      <Plus size={16} /> Add Targets
                   </button>
@@ -202,7 +318,6 @@ export default function DeductionConsole() {
                </div>
             </div>
 
-            {/* Extraction Matrix Table */}
             {selectedIdentities.length > 0 ? (
                <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                   <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
@@ -249,19 +364,16 @@ export default function DeductionConsole() {
             )}
          </div>
 
-         {/* â”€â”€ KAPAT ENTRY MODAL â”€â”€ */}
          {showDeductionModal && (
             <div className="fixed inset-0 z-[100] flex justify-center items-center p-4">
                <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeductionModal(false)} />
                <div className="relative w-full max-w-3xl bg-white shadow-2xl flex flex-col border-2 border-slate-400 rounded-sm" style={{ maxHeight: '90vh' }}>
 
-                  {/* Title bar */}
                   <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-3 py-1.5 flex justify-between items-center shrink-0">
                      <span className="text-xs font-bold tracking-wide">Kapat Entry</span>
                      <button onClick={() => setShowDeductionModal(false)} className="w-5 h-5 bg-white/20 hover:bg-red-500 flex items-center justify-center rounded-sm text-xs font-black transition-colors">X</button>
                   </div>
 
-                  {/* Form fields */}
                   <div className="bg-slate-100 border-b-2 border-slate-300 px-4 py-3 space-y-2 shrink-0">
                      <div className="flex items-center gap-4">
                         <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">Voucher No :</label>
@@ -275,7 +387,6 @@ export default function DeductionConsole() {
                      </div>
                      <div className="flex items-center gap-2">
                         <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">{isSubledger ? 'Sabhasad :' : 'Narration :'}</label>
-                        {/* Code box â€” small, auto-fills name on change */}
                         <input
                            type="text"
                            value={deductionPayload.sabhasad_code || ''}
@@ -302,7 +413,6 @@ export default function DeductionConsole() {
                            className="w-20 px-2 bg-white border border-slate-300 rounded-sm text-xs font-mono font-black text-slate-800 outline-none focus:border-blue-500 h-7 text-center"
                            placeholder="Code"
                         />
-                        {/* Name box â€” auto-filled, editable */}
                         <input
                            type="text"
                            value={deductionPayload.sabhasad_name || ''}
@@ -313,8 +423,7 @@ export default function DeductionConsole() {
                      </div>
                   </div>
 
-                  {/* Account Stats Summary */}
-                  {deductionPayload.target_identifier && deductionPayload.target_identifier.startsWith('account-') && (
+                  {deductionPayload.target_identifier && (
                      <div className="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center justify-between shrink-0 gap-2">
                         <div className="flex items-center gap-2">
                            <div className="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
@@ -339,17 +448,22 @@ export default function DeductionConsole() {
                               <span className="text-rose-700 text-[8px] uppercase leading-none mb-0.5">Total Udhar</span>
                               <span className="text-rose-900 leading-none">{parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                            </div>
-                           <div className="flex flex-col items-end px-3 py-0.5 bg-blue-600 border border-blue-700 rounded shadow-sm min-w-[100px]">
+                           <div className="flex flex-col items-end px-3 py-0.5 bg-blue-600 border border-blue-700 rounded shadow-sm min-w-[120px]">
                               <span className="text-blue-100 text-[8px] uppercase leading-none mb-0.5">Remaining Bal.</span>
-                              <span className="text-white text-[11px] leading-none">{parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                              <span className="text-white text-[11px] leading-none">
+                                 {parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                              {parseFloat(activeAccountStats.total_interest || 0) !== 0 && (
+                                 <span className="text-[7px] text-blue-200 mt-0.5 font-bold italic leading-none">
+                                    Interest: {parseFloat(activeAccountStats.total_interest).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                 </span>
+                              )}
                            </div>
                         </div>
                      </div>
                   )}
 
-                  {/* Table */}
                   <div className="flex flex-col overflow-hidden flex-1" style={{ minHeight: 0 }}>
-                     {/* Header */}
                      <div className="grid shrink-0 border-b-2 border-slate-400 bg-slate-200"
                         style={{ gridTemplateColumns: '36px 72px 1fr 110px 100px' }}>
                         {['No.', 'Code', 'Account Name', 'Balance', 'Amount'].map((h, i) => (
@@ -357,7 +471,6 @@ export default function DeductionConsole() {
                         ))}
                      </div>
 
-                     {/* Body */}
                      <div className="overflow-y-auto flex-1 bg-white">
                         {selectedIdentities.length === 0 ? (
                            <div className="py-10 text-center text-xs text-slate-400 font-bold">No members added to deduction list.</div>
@@ -366,15 +479,16 @@ export default function DeductionConsole() {
                            const isActive = key === deductionPayload.target_identifier;
                            const bal = Number(item.total_credit || 0) - Number(item.total_debit || 0);
                            const deducted = parseFloat(item.deduction_amount) || 0;
-                           const closing = bal + deducted; // Kapat is a Credit (Jama) to the member account
+                           const closing = bal + deducted;
 
                            return (
                               <div key={key}
                                  onClick={async () => {
-                                    setDeductionPayload(p => ({
-                                       ...p,
-                                       target_identifier: key
-                                    }));
+                                    setDeductionPayload(p => ({ ...p, target_identifier: key }));
+                                    if (!item.deduction_amount || parseFloat(item.deduction_amount) === 0) {
+                                       const bal = Number(item.total_credit || 0) - Number(item.total_debit || 0);
+                                       handleUpdateTargetAmount(item.type, item.id, Math.abs(bal).toFixed(2));
+                                    }
                                  }}
                                  className={`grid border-b border-slate-200 cursor-pointer transition-colors ${isActive ? 'bg-blue-600' : idx % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-slate-50 hover:bg-blue-50'}`}
                                  style={{ gridTemplateColumns: '36px 72px 1fr 110px 100px' }}>
@@ -397,128 +511,82 @@ export default function DeductionConsole() {
                                  <div className="px-2 py-0.5 flex items-center" onClick={e => e.stopPropagation()}>
                                     <input type="number" value={item.deduction_amount || ''}
                                        onChange={e => handleUpdateTargetAmount(item.type, item.id, e.target.value)}
-                                       className="w-full bg-white border border-slate-300 rounded-sm px-1.5 py-0.5 text-right font-mono font-black text-xs text-slate-900 outline-none focus:border-blue-600"
+                                       className={`w-full rounded-sm px-1.5 py-0.5 text-right font-mono font-black text-xs outline-none ${isActive ? 'bg-white text-slate-900' : 'bg-white border border-slate-300 text-slate-900 focus:border-blue-600'}`}
                                        placeholder="0.00" />
                                  </div>
                               </div>
                            );
                         })}
-
-                        {/* Bardan row - last row in table */}
-                        {deductionPayload.target_identifier &&
-                           deductionPayload.target_identifier.startsWith('account-') &&
-                           activeAccountStats.bardan_penalty > 0 && (
-                              <div
-                                 className="grid border-b-2 border-amber-300 bg-amber-50"
-                                 style={{ gridTemplateColumns: '36px 72px 1fr 110px 100px' }}
-                              >
-                                 <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-black text-amber-500">B</div>
-                                 <div className="border-r border-amber-200 py-1.5 text-center text-[10px] font-mono font-black text-amber-700">---</div>
-                                 <div className="border-r border-amber-200 px-3 py-1.5 text-[11px] font-black text-amber-800">
-                                    Bardan Penalty
-                                    <span className="ml-2 text-[9px] font-bold text-amber-500 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
-                                       {activeAccountStats.bardan_balance} bags
-                                    </span>
-                                 </div>
-                                 <div className="border-r border-amber-200 px-3 py-1.5 text-right text-[11px] font-mono font-black text-amber-700">
-                                    {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                 </div>
-                                 <div className="px-2 py-0.5 flex items-center">
-                                    <span className="w-full text-right text-[11px] font-mono font-black text-amber-700 px-1.5">
-                                       {parseFloat(activeAccountStats.bardan_penalty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                    </span>
-                                 </div>
-                              </div>
-                           )}
                      </div>
 
-                     {/* Total footer */}
-                     <div className="border-t-2 border-slate-400 bg-slate-100 shrink-0 flex items-center justify-between px-4 py-1.5">
-                        <span className="text-[10px] text-slate-500 font-bold uppercase">{selectedIdentities.length} member(s)</span>
+                     <div className="border-t-2 border-slate-400 bg-slate-100 shrink-0 flex items-center justify-end px-4 py-1.5">
                         <div className="flex items-center gap-3">
-                           <span className="text-[11px] font-black text-slate-600 uppercase">Total Amount :</span>
+                           <span className="text-[11px] font-black text-slate-600 uppercase">Total Money :</span>
                            <span className="text-sm font-black font-mono text-slate-900 bg-white border border-slate-400 px-4 py-0.5 rounded-sm min-w-[100px] text-right">
-                              {Number(totalDeductionAmount).toFixed(2)}
+                              {Number(totalDeductionAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                            </span>
                         </div>
                      </div>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="bg-slate-100 border-t-2 border-slate-300 px-4 py-2 flex justify-end items-center gap-2 shrink-0">
-                     <button onClick={() => setShowDeductionModal(false)} className="px-5 py-1.5 bg-white border border-slate-400 text-slate-700 text-xs font-bold rounded-sm hover:bg-slate-200 transition-colors">Cancel</button>
-                     <button onClick={handleExecuteBatch} disabled={loading} className="px-8 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-sm hover:bg-blue-700 transition-colors disabled:opacity-60">
-                        {loading ? 'Saving...' : 'Save'}
-                     </button>
+                  <div className="bg-slate-200 p-3 flex justify-between items-center shrink-0">
+                     <div className="flex gap-2">
+                        <button onClick={handleExecuteBatch} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-sm shadow-sm transition-colors flex items-center gap-2">
+                           <CheckCircle size={14} /> SAVE & POST
+                        </button>
+                        <button onClick={() => setShowDeductionModal(false)} className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-white text-xs font-black rounded-sm shadow-sm transition-colors">CANCEL</button>
+                     </div>
+                     <div className="text-[10px] font-black text-slate-500 italic uppercase">System ready for commit</div>
                   </div>
                </div>
             </div>
          )}
 
-         {/* â”€â”€ TARGET SELECTOR MODAL â”€â”€ */}
          {showMembersModal && (
-            <div className="fixed inset-0 z-[100] flex justify-center items-center p-6 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)}>
-               <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col h-[85vh] border border-slate-200" onClick={e => e.stopPropagation()}>
-                  <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                     <h2 className="text-xl font-bold tracking-tight">Identity Matrix Selector</h2>
-                     <button onClick={() => setShowMembersModal(false)} className="text-slate-300 hover:text-white"><X size={18} /></button>
+            <div className="fixed inset-0 z-[110] flex justify-center items-center p-4">
+               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)} />
+               <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                  <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                     <div>
+                        <h3 className="text-lg font-bold text-slate-900">Add Targets</h3>
+                        <p className="text-xs font-medium text-slate-500">Select accounts or members for matrix</p>
+                     </div>
+                     <button onClick={() => setShowMembersModal(false)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"><X size={20} /></button>
                   </div>
-                  <div className="p-6 bg-white border-b border-slate-200 space-y-4">
-                     <input type="text" placeholder="Search Identity..." value={identitySearch}
-                        onChange={e => setIdentitySearch(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:border-blue-500" />
-                     <div className="flex gap-2">
-                        <button onClick={() => setIdentityTab('sabhasad')} className={`flex-1 py-3 text-xs font-bold rounded-lg ${identityTab === 'sabhasad' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Members</button>
-                        <button onClick={() => setIdentityTab('account')} className={`flex-1 py-3 text-xs font-bold rounded-lg ${identityTab === 'account' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Ledgers</button>
+                  <div className="p-6 flex gap-2 border-b border-slate-100">
+                     <button onClick={() => setIdentityTab('sabhasad')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${identityTab === 'sabhasad' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>Members</button>
+                     <button onClick={() => setIdentityTab('account')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${identityTab === 'account' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>Accounts</button>
+                  </div>
+                  <div className="p-4 flex-1 overflow-y-auto max-h-[400px]">
+                     <div className="space-y-1">
+                        {(identityTab === 'sabhasad' ? members : accounts).map(idnt => {
+                           const id = idnt.id;
+                           const name = identityTab === 'sabhasad' ? idnt.member_name : idnt.account_name;
+                           const code = identityTab === 'sabhasad' ? idnt.member_code : (idnt.account_code || idnt.id);
+                           const isSelected = selectedIdentities.find(i => i.id === id && i.type === identityTab);
+                           return (
+                              <div key={id} onClick={() => toggleIdentitySelection(id, identityTab, name, code)} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border ${isSelected ? 'bg-blue-50 border-blue-200' : 'hover:bg-slate-50 border-transparent'}`}>
+                                 <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-400'}`}>
+                                       {isSelected ? <CheckCircle size={16} /> : (identityTab === 'sabhasad' ? <User size={16} /> : <Layout size={16} />)}
+                                    </div>
+                                    <div>
+                                       <p className="text-sm font-bold text-slate-800">{name}</p>
+                                       <p className="text-[10px] font-mono text-slate-500 italic">#{code}</p>
+                                    </div>
+                                 </div>
+                                 {isSelected && <ArrowRight size={16} className="text-blue-500" />}
+                              </div>
+                           );
+                        })}
                      </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-3 bg-slate-50 content-start auto-rows-min">
-                     {identityTab === 'sabhasad' ? (
-                        members.filter(m => String(m.member_code).includes(identitySearch) || m.member_name.toLowerCase().includes(identitySearch.toLowerCase())).map(m => {
-                           const isSel = selectedIdentities.some(i => i.id === m.id && i.type === 'member');
-                           return (
-                              <div key={m.id} onClick={() => toggleIdentitySelection(m.id, 'member', m.member_name, m.member_code)}
-                                 className={`p-4 bg-white border rounded-lg cursor-pointer flex items-center gap-4 ${isSel ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'}`}>
-                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-300'}`}><CheckCircle size={16} /></div>
-                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-bold truncate">{m.member_name}</h3>
-                                    <span className="text-[10px] font-black text-slate-400 font-mono">#{m.member_code}</span>
-                                 </div>
-                              </div>
-                           );
-                        })
-                     ) : (
-                        accounts.filter(a => a.is_subledger === 1 && a.account_name.toLowerCase().includes(identitySearch.toLowerCase())).map(a => {
-                           const isSel = selectedIdentities.some(i => i.id === a.id && i.type === 'account');
-                           return (
-                              <div key={a.id} onClick={() => toggleIdentitySelection(a.id, 'account', a.account_name, a.account_code || a.id)}
-                                 className={`p-4 bg-white border rounded-lg cursor-pointer flex items-center gap-4 ${isSel ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-slate-200 hover:border-slate-300'}`}>
-                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSel ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-300'}`}><CheckCircle size={16} /></div>
-                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-bold truncate">{a.account_name}</h3>
-                                    <span className="text-[10px] font-black text-slate-400 font-mono">#{a.account_code || a.id}</span>
-                                 </div>
-                              </div>
-                           );
-                        })
-                     )}
-                  </div>
-                  <div className="p-6 bg-white border-t border-slate-200">
-                     <button onClick={confirmSelection} className="w-full py-4 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors flex items-center justify-center gap-3">
-                        Confirm Selection <ArrowRight size={18} />
-                     </button>
+                  <div className="p-6 bg-slate-50 flex gap-3">
+                     <button onClick={confirmSelection} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Confirm & Sync</button>
                   </div>
                </div>
             </div>
          )}
-
-         <style dangerouslySetInnerHTML={{
-            __html: `
-        .overflow-y-auto::-webkit-scrollbar { width: 6px; }
-        .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
-        .overflow-y-auto::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 20px; }
-        .overflow-y-auto:hover::-webkit-scrollbar-thumb { background: #CBD5E1; }
-      ` }} />
       </div>
    );
 }

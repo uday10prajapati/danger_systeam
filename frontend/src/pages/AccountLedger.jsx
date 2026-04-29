@@ -87,7 +87,7 @@ export default function AccountLedger() {
    const fetchAccountBalance = async (accountId) => {
       try {
          const response = await axios.get(
-            `/api/account-ledger/balance/${accountId}`,
+            `/api/account-ledger/account-stats/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
             { headers: { 'x-company-id': company.id } }
          );
          if (response.data.success) {
@@ -296,11 +296,12 @@ export default function AccountLedger() {
                   {selectedAccount ? (
                      <>
                         {/* Position Metrics Shards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 print:grid-cols-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 print:grid-cols-4">
                            {[
                               { label: 'Cumulative Debit Accumulation', val: parseFloat(accountBalance.total_debit || 0), icon: <TrendingUp size={20} />, color: 'indigo' },
                               { label: 'Cumulative Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), icon: <TrendingDown size={20} />, color: 'amber' },
-                              { label: 'Net Liquidity Position', val: parseFloat(accountBalance.running_balance || 0), icon: <DollarSign size={20} />, color: 'emerald', special: true },
+                              { label: 'Pending Interest Accumulation', val: parseFloat(accountBalance.total_interest || 0), icon: <RefreshCcw size={20} />, color: 'orange' },
+                              { label: 'Net Liquidity Position', val: parseFloat(accountBalance.balance || accountBalance.running_balance || 0), icon: <DollarSign size={20} />, color: 'emerald', special: true },
                            ].map((shard, i) => (
                               <div key={i} className={`bg-white p-8 rounded-lg border border-slate-100 shadow-sm relative group hover:shadow-lg transition-all ${shard.special && shard.val < 0 ? 'bg-rose-50/30' : ''}`}>
                                  <div className="flex justify-between items-start mb-6">
@@ -358,7 +359,14 @@ export default function AccountLedger() {
                                           <tr key={idx} className="group hover:bg-slate-50/50 transition-all duration-300">
                                              <td className="px-10 py-5 text-[11px] font-bold text-slate-400 font-mono italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
                                              <td className="px-10 py-5 text-[10px] font-bold text-slate-300 uppercase tracking-tight italic">{row.reference_no}</td>
-                                             <td className="px-10 py-5 font-bold text-slate-700 text-sm uppercase tracking-tight">{row.description}</td>
+                                             <td className="px-10 py-5 font-bold text-slate-700 text-sm uppercase tracking-tight">
+                                                {row.description}
+                                                {parseFloat(row.interest_percent || 0) > 0 && (
+                                                   <span className="ml-2 px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-[9px] font-black italic">
+                                                      @{row.interest_percent}% Interest
+                                                   </span>
+                                                )}
+                                             </td>
                                              <td className="px-10 py-5 text-right font-bold text-slate-900 italic">
                                                 {parseFloat(row.debit || 0) > 0 ? `₹${parseFloat(row.debit).toLocaleString('en-IN')}` : '—'}
                                              </td>

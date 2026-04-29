@@ -702,7 +702,7 @@ const DangarEntry = () => {
                           <span>{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)}</span>
                           <span className="text-[8px] uppercase">{display_unit}</span>
                           <span className="text-slate-400 font-normal ml-0.5">x</span>
-                          <span>₹{display_unit === 'man' ? (parseFloat(formData.rate) * 20).toFixed(2) : (display_unit === 'quintal' ? (parseFloat(formData.rate) * 100).toFixed(2) : formData.rate)}</span>
+                          <span>₹{display_unit === 'man' ? (parseFloat(formData.rate) / 5).toFixed(2) : (display_unit === 'quintal' ? parseFloat(formData.rate).toFixed(2) : (parseFloat(formData.rate) / 100).toFixed(2))}</span>
                           <span className="text-slate-400 font-normal">=</span>
                           <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-lg shadow-sm">₹{formData.gross_amount}</span>
                         </div>

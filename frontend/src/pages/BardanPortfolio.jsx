@@ -45,7 +45,10 @@ const BardanPortfolio = () => {
       const sum = (parseFloat(row.col1) || 0) + (parseFloat(row.col2) || 0) + (parseFloat(row.col3) || 0);
       return acc + sum;
     }, 0);
-    setFormData(prev => ({ ...prev, qty: total > 0 ? total.toFixed(2) : '' }));
+    // Only auto-fill qty from grid if grid has data
+    if (total > 0) {
+      setFormData(prev => ({ ...prev, qty: total.toFixed(2) }));
+    }
   }, [gridRows]);
 
   useEffect(() => {
@@ -55,6 +58,19 @@ const BardanPortfolio = () => {
 
   const loadData = async () => {
     try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr === 'undefined') {
+        console.warn('Redirecting to login: No session found');
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      if (!user.company_id) {
+        console.warn('Incomplete session: Missing company_id');
+        setMessage({ type: 'error', text: 'Authentication session incomplete' });
+        return;
+      }
+
       setLoading(true);
       const [membersRes, givenRes, returnedRes] = await Promise.all([
         sabhasadMasterApi.getAllSabhasad(),
@@ -66,8 +82,8 @@ const BardanPortfolio = () => {
       setMembers(membersArr);
 
       const combined = [
-        ...(givenRes.data.success ? givenRes.data.data.map(item => ({ ...item, debit: item.qty, credit: 0, type: 'GIVEN' })) : []),
-        ...(returnedRes.data.success ? returnedRes.data.data.map(item => ({ ...item, debit: 0, credit: item.qty, type: 'RETURNED' })) : []),
+        ...(givenRes.data.success ? (givenRes.data.data || []).map(item => ({ ...item, debit: item.qty, credit: 0, type: 'GIVEN' })) : []),
+        ...(returnedRes.data.success ? (returnedRes.data.data || []).map(item => ({ ...item, debit: 0, credit: item.qty, type: 'RETURNED' })) : []),
         ...membersArr.map(m => ({
           code: m.member_code,
           name: m.member_name,
@@ -77,7 +93,7 @@ const BardanPortfolio = () => {
           pavti_no: 'OPENING',
           type: 'OPENING'
         }))
-      ];
+      ].sort((a, b) => new Date(b.entry_date || 0) - new Date(a.entry_date || 0));
 
       // Group history by Member only for a "summed up" view
       const memberGroups = {};
@@ -110,7 +126,11 @@ const BardanPortfolio = () => {
       setHistory(processedHistory);
     } catch (error) {
       console.error('Failed to load initial data:', error);
-      setMessage({ type: 'error', text: 'Synchronization failure' });
+      if (error.response?.status === 400) {
+        setMessage({ type: 'error', text: 'Authorization failure: Company context missing' });
+      } else {
+        setMessage({ type: 'error', text: 'Synchronization failure' });
+      }
     } finally {
       setLoading(false);
     }
@@ -118,7 +138,7 @@ const BardanPortfolio = () => {
 
   const loadBardanPrice = async () => {
     try {
-      const res = await import('../api').then(m => m.default.get('/bardan-price'));
+      const res = await api.get('/bardan-price');
       if (res.data.success) {
         setBardanPrice(res.data.data?.price_per_bardan || 0);
         setPriceForm({ price_per_bardan: res.data.data?.price_per_bardan || '' });
@@ -130,7 +150,7 @@ const BardanPortfolio = () => {
 
   const saveBardanPrice = async () => {
     try {
-      const res = await import('../api').then(m => m.default.post('/bardan-price', priceForm));
+      const res = await api.post('/bardan-price', priceForm);
       if (res.data.success) {
         setBardanPrice(parseFloat(priceForm.price_per_bardan) || 0);
         setShowPriceModal(false);
@@ -194,22 +214,35 @@ const BardanPortfolio = () => {
 
   const handleSave = async () => {
     if (!formData.name || !formData.date) {
-      setMessage({ type: 'error', text: 'Validation failure: Identity and Date required' });
+      setMessage({ type: 'error', text: '⚠️ Please select a member and ensure date is set before saving.' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (!formData.qty || parseFloat(formData.qty) <= 0) {
+      setMessage({ type: 'error', text: '⚠️ Quantity must be greater than 0. Enter bags count or fill the grid.' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     try {
       setLoading(true);
-      console.log('🚀 Dispatching Bardan Transaction:', { formData, gridRows });
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const payload = { 
+        ...formData, 
+        gridRows,
+        company_id: user.company_id,
+        financial_year: user.financial_year || '2026-27'
+      };
+
       let res;
       if (formData.id) {
         res = formData.type === 'GIVEN'
-          ? await bardanEntryApi.updateEntry(formData.id, { ...formData, gridRows })
-          : await jamaBardanEntryApi.updateEntry(formData.id, { ...formData, gridRows });
+          ? await bardanEntryApi.updateEntry(formData.id, payload)
+          : await jamaBardanEntryApi.updateEntry(formData.id, payload);
       } else {
         res = formData.type === 'GIVEN'
-          ? await bardanEntryApi.createEntry({ ...formData, gridRows })
-          : await jamaBardanEntryApi.createEntry({ ...formData, gridRows });
+          ? await bardanEntryApi.createEntry(payload)
+          : await jamaBardanEntryApi.createEntry(payload);
       }
 
       if (res.data.success) {
@@ -325,7 +358,7 @@ const BardanPortfolio = () => {
             </button>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
+           <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -342,7 +375,7 @@ const BardanPortfolio = () => {
                   <tr key={row.id || i} className="group hover:bg-white transition-all">
                     <td className="px-10 py-6">
                       <p className="text-sm font-bold text-slate-600 font-mono italic">
-                        {row.date ? new Date(row.date).toLocaleDateString() : 'INITIAL'}
+                        {(row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—'}
                       </p>
                     </td>
                     <td className="px-10 py-6">
@@ -350,17 +383,18 @@ const BardanPortfolio = () => {
                       {row.pavti_no && <p className="text-[10px] font-bold text-blue-500 tracking-widest uppercase">PVT: {row.pavti_no}</p>}
                     </td>
                     <td className="px-10 py-6 text-right">
-                      <p className="text-lg font-black text-slate-800 italic">{row.debit || (row.type === 'GIVEN' ? row.qty : 0)}</p>
+                      <p className="text-lg font-black text-slate-800 italic">{row.debit ?? (row.type === 'GIVEN' ? row.qty : '—')}</p>
                     </td>
                     <td className="px-10 py-6 text-right">
-                      <p className="text-lg font-black text-emerald-600 italic">{row.credit || (row.type === 'RETURNED' ? row.qty : 0)}</p>
+                      <p className="text-lg font-black text-emerald-600 italic">{row.credit ?? (row.type === 'RETURNED' ? row.qty : '—')}</p>
                     </td>
                     <td className="px-10 py-6 text-right">
-                      <p className={`text-xl font-black italic ${(row.balance ?? 0) > 0 ? 'text-rose-500' : 'text-slate-900'
-                        }`}>
-                        {typeof row.balance === 'number' ? row.balance.toFixed(2) : 'N/A'}
-                      </p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Running Total</p>
+                      {row.balance != null ? (
+                        <p className={`text-xl font-black italic ${row.balance > 0 ? 'text-rose-500' : 'text-slate-900'
+                          }`}>{row.balance}</p>
+                      ) : (
+                        <p className="text-xs font-bold text-slate-300 italic uppercase">Select member<br />for balance</p>
+                      )}
                     </td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
@@ -603,7 +637,7 @@ const BardanPortfolio = () => {
 
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Membership Vector</label>
-                  <div className="flex items-center gap-3 bg-slate-50/50 p-4 rounded-lg border border-slate-100 h-[58px]">
+                  <div className="flex items-center gap-3 bg-slate-50/50 p-4 rounded-lg border border-slate-100">
                     <input
                       type="checkbox"
                       id="memNominalCheck"
