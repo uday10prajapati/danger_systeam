@@ -24,7 +24,9 @@ router.post('/weight-based', async (req, res) => {
 
     // 1. Calculate totals
     const grossTotal = items.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-    const netAmount = Math.round(grossTotal - parseFloat(brokerage_amount || 0) - parseFloat(labour_charge || 0));
+    const rawNetAmount = grossTotal - parseFloat(brokerage_amount || 0) - parseFloat(labour_charge || 0);
+    const netAmount = Math.round(rawNetAmount);
+    const roundingDiff = netAmount - rawNetAmount;
 
     // 2. Insert Sale Header
     const [saleResult] = await connection.query(
@@ -145,6 +147,21 @@ router.post('/weight-based', async (req, res) => {
                 `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
                  VALUES (?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
                 [companyId, labourAcc.id, invoice_date, saleId, invoice_no, labour_charge, `Labour on Inv #${invoice_no}`, financialYear, userId]
+            );
+        }
+    }
+
+    // D. Rounding Entry
+    if (Math.abs(roundingDiff) > 0.001) {
+        const roundingAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Rounding%" LIMIT 1', [companyId]);
+        if (roundingAcc) {
+            const isDebit = roundingDiff < 0; // Negative means we rounded down (2.3 -> 2.0), so we need a Debit to Rounding to balance
+            const amt = Math.abs(roundingDiff);
+            
+            await connection.query(
+                `INSERT INTO account_ledger (company_id, account_id, transaction_date, reference_id, reference_type, reference_no, ${isDebit ? 'debit' : 'credit'}, description, financial_year, created_by, transaction_type)
+                 VALUES (?, ?, ?, ?, 'SALE_ROUNDING', ?, ?, ?, ?, ?, 'cash_book')`,
+                [companyId, roundingAcc.id, invoice_date, saleId, invoice_no, amt, `Rounding on Inv #${invoice_no}`, financialYear, userId]
             );
         }
     }
