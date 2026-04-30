@@ -606,12 +606,613 @@ export async function execute(sql, params = []) {
   }
 }
 
-// ... Additional Helper Functions (createPurchase, createSale, etc.)
-// These functions will now work automatically due to transformQuery and the connection wrapper.
-// I have simplified the file but kept all critical initialization logic.
+// ============================================
+// UNIFIED MASTER LEDGER FUNCTIONS
+// ============================================
+
+export async function insertLedgerEntry(
+  companyId, accountId, transactionDate, transactionType, referenceType, 
+  referenceId, referenceNo, debit, credit, description, notes = '', memberId = null, financialYear = '2026-27'
+) {
+  const sql = `
+    INSERT INTO account_ledger 
+    (company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+     reference_id, reference_no, debit, credit, description, notes, financial_year)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  return await query(sql, [
+    companyId, accountId || null, memberId || null, transactionDate, 
+    transactionType || 'manual', referenceType || null, referenceId || null, 
+    referenceNo || '', description || '', notes || '', financialYear
+  ]);
+}
+
+export async function insertCashBookEntry(
+  companyId, transactionDate, referenceType, referenceId, referenceNo, 
+  description, cashIn, cashOut, userId, notes = '', financialYear = '2026-27'
+) {
+  const result = await insertLedgerEntry(
+     companyId, 
+     null, 
+     transactionDate, 'cash_book', referenceType,
+     referenceId, referenceNo, 
+     parseFloat(cashIn) || 0,
+     parseFloat(cashOut) || 0,
+     description, notes, null, financialYear
+  );
+
+  return { insertId: result[0]?.id || null };
+}
+
+export async function getCashBalance(companyId, upToDate = null) {
+  const dateCondition = upToDate ? `AND transaction_date <= ?` : '';
+  const params = [companyId];
+  if (upToDate) params.push(upToDate);
+
+  const sql = `
+    SELECT 
+      SUM(COALESCE(credit, 0)) as total_cash_in,
+      SUM(COALESCE(debit, 0)) as total_cash_out,
+      SUM(COALESCE(credit, 0) - COALESCE(debit, 0)) as current_balance
+    FROM account_ledger
+    WHERE company_id = ? 
+      AND (transaction_type = 'cash_book' OR (reference_type = 'cash_book' AND transaction_type != 'cash_account_entry'))
+      ${dateCondition}
+  `;
+
+  const rows = await query(sql, params);
+  return rows?.[0] || { total_cash_in: 0, total_cash_out: 0, current_balance: 0 };
+}
+
+export async function getCashBookEntries(companyId, startDate, endDate) {
+  const sql = `
+    SELECT 
+      al.id, al.transaction_date, al.reference_type, al.reference_no, al.description, al.member_id,
+      m.member_name, m.member_code,
+      COALESCE(al.credit, 0) as cash_in,
+      COALESCE(al.debit, 0) as cash_out,
+      (COALESCE(al.credit, 0) - COALESCE(al.debit, 0)) as net_amount,
+      u.username as created_by_user, al.created_at
+    FROM account_ledger al
+    LEFT JOIN users u ON al.created_by = u.id
+    LEFT JOIN member_master m ON al.member_id = m.id
+    WHERE al.company_id = ? 
+      AND (al.transaction_type = 'cash_book' OR (al.reference_type = 'cash_book' AND al.transaction_type != 'cash_account_entry'))
+      AND al.transaction_date BETWEEN ? AND ?
+    ORDER BY al.transaction_date DESC, al.created_at DESC
+  `;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
+export async function getDailyCashSummary(companyId, startDate, endDate) {
+  const sql = `
+    SELECT 
+      transaction_date,
+      SUM(COALESCE(credit, 0)) as daily_in,
+      SUM(COALESCE(debit, 0)) as daily_out,
+      SUM(COALESCE(credit, 0) - COALESCE(debit, 0)) as daily_net,
+      COUNT(*) as transaction_count
+    FROM account_ledger
+    WHERE company_id = ? 
+      AND (transaction_type = 'cash_book' OR (reference_type = 'cash_book' AND transaction_type != 'cash_account_entry'))
+      AND transaction_date BETWEEN ? AND ?
+    GROUP BY transaction_date
+    ORDER BY transaction_date DESC
+  `;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
+export async function getOpeningBalance(companyId, forDate) {
+  const previousDate = new Date(forDate);
+  previousDate.setDate(previousDate.getDate() - 1);
+  const prevDateStr = previousDate.toISOString().split('T')[0];
+  const balanceData = await getCashBalance(companyId, prevDateStr);
+  return parseFloat(balanceData.current_balance) || 0;
+}
+
+export async function getAccountBalance(accountId, upToDate = null, memberId = null) {
+  let whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
+  let params = [accountId, accountId];
+  let openingBalance = 0;
+  let isMemberRequest = String(accountId).startsWith('M');
+  const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
+
+  if (parseInt(accountId) === 14) {
+    whereClause = "(al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+    params = [];
+  } else if (isMemberRequest) {
+    const actualMemberId = accountId.substring(1);
+    const member = await queryOne('SELECT bardan_opening as opening_balance FROM member_master WHERE id = ?', [actualMemberId]);
+    openingBalance = parseFloat(member?.opening_balance || 0);
+    whereClause = "(al.member_id = ? OR al.interest_member_id = ?)";
+    params = [actualMemberId, actualMemberId];
+  } else {
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
+    openingBalance = parseFloat(account?.opening_balance || 0);
+    whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
+    params = [accountId, accountId];
+    if (memberId) {
+       whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
+       params.push(memberId, memberId);
+       openingBalance = 0; 
+    }
+  }
+
+  const dateCondition = upToDate ? `AND al.transaction_date <= ?` : '';
+  if (upToDate) params.push(upToDate);
+
+  const sql = `
+    SELECT 
+      COALESCE(SUM(CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(debit, 0) END), 0) as total_debit,
+      COALESCE(SUM(CASE WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) ELSE COALESCE(credit, 0) END), 0) as total_credit,
+      COALESCE(SUM(
+         CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(debit, 0) END 
+         - 
+         CASE WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) ELSE COALESCE(credit, 0) END
+      ), 0) as ledger_balance
+    FROM account_ledger al
+    WHERE ${whereClause} ${dateCondition}
+  `;
+
+  const ledgerData = await queryOne(sql, params) || { total_debit: 0, total_credit: 0, ledger_balance: 0 };
+  return {
+    total_debit: ledgerData.total_debit,
+    total_credit: ledgerData.total_credit,
+    running_balance: openingBalance + parseFloat(ledgerData.ledger_balance)
+  };
+}
+
+export async function getAccountLedger(accountId, startDate, endDate, memberId = null) {
+  let whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
+  let params = [accountId, accountId];
+  let isMemberRequest = String(accountId).startsWith('M');
+
+  if (parseInt(accountId) === 14) {
+    whereClause = "(al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+    params = [];
+  } else if (isMemberRequest) {
+    const actualMemberId = accountId.substring(1);
+    whereClause = "(al.member_id = ? OR al.interest_member_id = ?)";
+    params = [actualMemberId, actualMemberId];
+  }
+
+  if (memberId && memberId !== 'all') {
+    whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
+    params.push(memberId, memberId);
+  }
+
+  const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
+  const sql = `
+    SELECT 
+      MIN(al.id) as id, al.transaction_date, 
+      STRING_AGG(DISTINCT COALESCE(al.transaction_type, al.reference_type, 'manual'), ', ') as transaction_type,
+      STRING_AGG(DISTINCT al.reference_no, ', ') as reference_no,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0)
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.credit, 0)
+        ELSE COALESCE(al.debit, 0) 
+      END) as debit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, 0)
+        ELSE COALESCE(al.credit, 0) 
+      END) as credit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN 0
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN COALESCE(al.credit, 0)
+        ELSE 0 
+      END) as self_credit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, 0)
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
+        ELSE COALESCE(al.credit, 0) 
+      END) as company_credit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, 0)
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
+        ELSE COALESCE(al.credit, 0) 
+      END) as penalty_credit,
+      CASE 
+        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = al.company_id LIMIT 1) 
+             AND COUNT(*) > 1 THEN 'Bardan Registry'
+        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'DS0001' AND company_id = al.company_id LIMIT 1) 
+             AND COUNT(*) > 1 THEN 'Dangar Purchase Entry'
+        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = al.company_id LIMIT 1) 
+             AND COUNT(*) > 1 THEN 'Dangar Godown Fund'
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '%brokerage%' THEN 'Brokerage'
+        ELSE STRING_AGG(COALESCE(al.description, al.notes, ''), ' | ')
+      END as description,
+      CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END as member_id,
+      m.member_name, m.member_code,
+      MAX(al.interest_percent) as interest_percent,
+      SUM(al.interest_amount) as interest_amount,
+      STRING_AGG(DISTINCT al.interest_a_per, ', ') as interest_a_per
+    FROM account_ledger al
+    LEFT JOIN member_master m ON m.id = (CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END)
+    WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
+    GROUP BY al.transaction_date, member_id, al.company_id, al.account_id
+    ORDER BY al.transaction_date ASC, MIN(al.created_at) ASC, MIN(al.id) ASC
+  `;
+  params.push(startDate, endDate);
+  return await query(sql, params);
+}
+
+export async function getAccountLedgerWithRunningBalance(accountId, startDate, endDate, memberId = null) {
+  const prevDate = new Date(startDate);
+  prevDate.setDate(prevDate.getDate() - 1);
+  const balanceData = await getAccountBalance(accountId, prevDate.toISOString().split('T')[0], memberId);
+  let runningBalance = parseFloat(balanceData.running_balance || 0);
+  const entries = await getAccountLedger(accountId, startDate, endDate, memberId);
+  let penaltyBalance = runningBalance;
+  return entries.map(entry => {
+    runningBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
+    penaltyBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.penalty_credit) || 0);
+    return { ...entry, running_balance: runningBalance, penalty_balance: penaltyBalance };
+  });
+}
+
+export async function getTrialBalance(companyId, asOfDate = null) {
+  const dateCondition = asOfDate ? `AND al.transaction_date <= ?` : '';
+  const params = [companyId, companyId];
+  if (asOfDate) params.push(asOfDate, asOfDate);
+  const sql = `
+    SELECT id, account_name, account_type, SUM(total_debit) as total_debit, SUM(total_credit) as total_credit, SUM(total_debit - total_credit) as balance
+    FROM (
+      SELECT a.id::TEXT, a.account_name, a.account_type, COALESCE(SUM(COALESCE(al.debit, 0)), 0) as total_debit, COALESCE(SUM(COALESCE(al.credit, 0)), 0) as total_credit
+      FROM accounts a
+      LEFT JOIN account_ledger al ON a.id = al.account_id ${dateCondition}
+      WHERE a.company_id = ? AND a.is_deleted = 0
+      GROUP BY a.id, a.account_name, a.account_type
+      UNION ALL
+      SELECT CONCAT('M', m.id) as id, m.member_name as account_name, 'member' as account_type, COALESCE(SUM(COALESCE(al.debit, 0)), 0) as total_debit, COALESCE(SUM(COALESCE(al.credit, 0)), 0) as total_credit
+      FROM member_master m
+      LEFT JOIN account_ledger al ON m.id = al.member_id ${dateCondition}
+      WHERE m.company_id = ? AND m.account_id IS NULL
+      GROUP BY m.id, m.member_name
+    ) unified
+    GROUP BY id, account_name, account_type ORDER BY account_name ASC
+  `;
+  const results = await query(sql, params);
+  const totals = results.reduce((acc, curr) => {
+    acc.total_debit += parseFloat(curr.total_debit);
+    acc.total_credit += parseFloat(curr.total_credit);
+    return acc;
+  }, { total_debit: 0, total_credit: 0 });
+  totals.difference = Math.abs(totals.total_debit - totals.total_credit);
+  return { data: results, totals };
+}
+
+export async function getLedgerByDateRange(companyId, startDate, endDate) {
+  const sql = `
+    SELECT al.id, COALESCE(a.account_name, m.member_name) as account_name, al.transaction_date, COALESCE(al.reference_type, al.transaction_type) as reference_type, al.reference_no, COALESCE(al.description, '') as description, COALESCE(al.debit, 0) as debit, COALESCE(al.credit, 0) as credit, (COALESCE(al.debit, 0) - COALESCE(al.credit, 0)) as net_amount
+    FROM account_ledger al
+    LEFT JOIN accounts a ON al.account_id = a.id
+    LEFT JOIN member_master m ON al.member_id = m.id
+    WHERE al.company_id = ? AND al.transaction_date BETWEEN ? AND ?
+    ORDER BY al.transaction_date ASC, al.created_at ASC
+  `;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
+// ============ PURCHASE OPERATIONS ============
+export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDate, items, notes, userId, gstAmount = 0, gstPercent = 0) {
+  const connection = await createConnection();
+  try {
+    await connection.beginTransaction();
+    const [purchaseResult] = await connection.query(
+      `INSERT INTO purchases (company_id, supplier_account_id, invoice_no, invoice_date, total_amount, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [companyId, supplierId, invoiceNo, invoiceDate, 0, notes, userId]
+    );
+    const purchaseId = purchaseResult[0].id;
+    let totalAmount = 0;
+    for (const item of items) {
+      const itemAmount = item.quantity * item.purchase_rate;
+      totalAmount += itemAmount;
+      const [itemResult] = await connection.query(
+        `INSERT INTO purchase_items (purchase_id, item_id, quantity, purchase_rate, amount) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+        [purchaseId, item.item_id, item.quantity, item.purchase_rate, itemAmount]
+      );
+      const currentStockResult = await connection.query(
+        `SELECT COALESCE(SUM(quantity_in - quantity_out), 0) as current_stock FROM purchase_stock_ledger WHERE company_id = ? AND item_id = ?`,
+        [companyId, item.item_id]
+      );
+      const currentStock = parseFloat(currentStockResult[0][0]?.current_stock || 0);
+      const newStock = currentStock + item.quantity;
+      await connection.query(
+        `INSERT INTO purchase_stock_ledger (company_id, item_id, purchase_id, purchase_item_id, quantity_in, current_stock, transaction_type, reference_no, created_by) VALUES (?, ?, ?, ?, ?, ?, 'PURCHASE_IN', ?, ?)`,
+        [companyId, item.item_id, purchaseId, itemResult[0].id, item.quantity, newStock, invoiceNo, userId]
+      );
+    }
+    const grandTotal = totalAmount + gstAmount;
+    await connection.query(`UPDATE purchases SET total_amount = ? WHERE id = ?`, [grandTotal, purchaseId]);
+    await connection.commit();
+    return { id: purchaseId, total_amount: totalAmount, grand_total: grandTotal };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getPurchasesByCompany(companyId, startDate, endDate) {
+  const sql = `
+    SELECT p.id, p.invoice_no, p.invoice_date, p.total_amount, p.notes, a.account_name as supplier_name, u.username as created_by_name, COUNT(DISTINCT pi.id) as item_count, p.created_at
+    FROM purchases p
+    LEFT JOIN accounts a ON p.supplier_account_id = a.id
+    LEFT JOIN users u ON p.created_by = u.id
+    LEFT JOIN purchase_items pi ON p.id = pi.purchase_id
+    WHERE p.company_id = ? AND p.invoice_date BETWEEN ? AND ?
+    GROUP BY p.id, a.account_name, u.username
+    ORDER BY p.invoice_date DESC, p.created_at DESC
+  `;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
+export async function getPurchaseDetails(purchaseId) {
+  const purchase = await queryOne(`SELECT p.*, a.account_name as supplier_name, c.company_name, u.username as created_by_name FROM purchases p LEFT JOIN accounts a ON p.supplier_account_id = a.id LEFT JOIN company c ON p.company_id = c.id LEFT JOIN users u ON p.created_by = u.id WHERE p.id = ?`, [purchaseId]);
+  if (!purchase) return null;
+  const items = await query(`SELECT pi.*, it.item_name, it.item_code FROM purchase_items pi LEFT JOIN item_master it ON pi.item_id = it.id WHERE pi.purchase_id = ?`, [purchaseId]);
+  return { ...purchase, items };
+}
+
+export async function getItemCurrentStock(companyId, itemId) {
+  const result = await queryOne(`SELECT COALESCE(SUM(quantity_in - quantity_out), 0) as current_stock FROM purchase_stock_ledger WHERE company_id = ? AND item_id = ?`, [companyId, itemId]);
+  return result?.current_stock || 0;
+}
+
+export async function getStockReport(companyId) {
+  const sql = `
+    SELECT im.id, im.item_code, im.item_name, im.category, im.unit, im.reorder_level,
+    COALESCE(SUM(CASE WHEN pl.transaction_type = 'PURCHASE_IN' THEN pl.quantity_in ELSE 0 END), 0) as total_purchased,
+    COALESCE(SUM(CASE WHEN pl.transaction_type = 'PURCHASE_RETURN' THEN pl.quantity_out ELSE 0 END), 0) as total_purchase_returned,
+    COALESCE(SUM(CASE WHEN pl.transaction_type = 'SALE_OUT' THEN pl.quantity_out ELSE 0 END), 0) as total_sold,
+    COALESCE(SUM(CASE WHEN pl.transaction_type = 'SALE_RETURN' THEN pl.quantity_in ELSE 0 END), 0) as total_sale_returned,
+    COALESCE(SUM(CASE WHEN pl.transaction_type IN ('PURCHASE_IN', 'SALE_RETURN') THEN pl.quantity_in ELSE -pl.quantity_out END), 0) as current_stock
+    FROM item_master im
+    LEFT JOIN purchase_stock_ledger pl ON im.id = pl.item_id AND pl.company_id = ?
+    WHERE im.company_id = ? AND im.is_active = 1
+    GROUP BY im.id ORDER BY current_stock ASC
+  `;
+  return await query(sql, [companyId, companyId]);
+}
+
+export async function getSupplierBalance(companyId, supplierId) {
+  const sql = `
+    SELECT 
+      COALESCE(SUM(CASE WHEN debit > 0 THEN debit ELSE 0 END), 0) as total_due,
+      COALESCE(SUM(CASE WHEN credit > 0 THEN credit ELSE 0 END), 0) as total_paid,
+      COALESCE(SUM(debit - credit), 0) as current_balance
+    FROM account_ledger
+    WHERE company_id = ? AND account_id = ?
+  `;
+  return await queryOne(sql, [companyId, supplierId]);
+}
+
+export async function getStockHistory(companyId, itemId, limit = 50) {
+  const sql = `SELECT id, purchase_id, quantity_in, quantity_out, current_stock, transaction_type, reference_no, created_at FROM purchase_stock_ledger WHERE company_id = ? AND item_id = ? ORDER BY created_at DESC LIMIT ?`;
+  return await query(sql, [companyId, itemId, limit]);
+}
+
+export async function createPurchaseReturn(companyId, purchaseId, supplierId, returnDate, items, notes, userId) {
+  const connection = await createConnection();
+  try {
+    await connection.beginTransaction();
+    const [returnResult] = await connection.query(`INSERT INTO purchase_returns (company_id, purchase_id, return_date, return_amount, reason, created_by) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`, [companyId, purchaseId, returnDate, 0, notes, userId]);
+    const returnId = returnResult[0].id;
+    let totalReturnAmount = 0;
+    for (const item of items) {
+      const itemAmount = item.quantity * item.purchase_rate;
+      totalReturnAmount += itemAmount;
+      await connection.query(`INSERT INTO purchase_return_items (purchase_return_id, item_id, quantity, purchase_rate, amount) VALUES (?, ?, ?, ?, ?)`, [returnId, item.item_id, item.quantity, item.purchase_rate, itemAmount]);
+      const currentStock = await getItemCurrentStock(companyId, item.item_id);
+      const newStock = currentStock - item.quantity;
+      await connection.query(`INSERT INTO purchase_stock_ledger (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by) VALUES (?, ?, ?, ?, 'PURCHASE_RETURN', ?, ?)`, [companyId, item.item_id, item.quantity, newStock, `RETURN-${returnId}`, userId]);
+    }
+    await connection.query(`UPDATE purchase_returns SET return_amount = ? WHERE id = ?`, [totalReturnAmount, returnId]);
+    await connection.commit();
+    return { id: returnId, return_amount: totalReturnAmount };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getPurchaseReturnsByCompany(companyId, startDate, endDate) {
+  const sql = `SELECT pr.id, pr.purchase_id, pr.return_date, pr.return_amount, pr.reason, p.supplier_account_id, a.account_name as supplier_name, u.username as created_by_name, pr.created_at FROM purchase_returns pr LEFT JOIN purchases p ON pr.purchase_id = p.id LEFT JOIN accounts a ON p.supplier_account_id = a.id LEFT JOIN users u ON pr.created_by = u.id WHERE pr.company_id = ? AND pr.return_date BETWEEN ? AND ? ORDER BY pr.return_date DESC, pr.created_at DESC`;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
+export async function getPurchaseReturnDetails(returnId) {
+  const returnHeader = await queryOne(`SELECT pr.*, p.supplier_account_id, a.account_name as supplier_name, c.company_name, u.username as created_by_name, p.invoice_no as original_invoice_no FROM purchase_returns pr LEFT JOIN purchases p ON pr.purchase_id = p.id LEFT JOIN accounts a ON p.supplier_account_id = a.id LEFT JOIN company c ON pr.company_id = c.id LEFT JOIN users u ON pr.created_by = u.id WHERE pr.id = ?`, [returnId]);
+  if (!returnHeader) return null;
+  const items = await query(`SELECT pri.*, it.item_name, it.item_code FROM purchase_return_items pri LEFT JOIN item_master it ON pri.item_id = it.id WHERE pri.purchase_return_id = ?`, [returnId]);
+  return { ...returnHeader, items };
+}
+
+export async function getPurchaseForReturn(purchaseId, companyId) {
+  return await queryOne(`SELECT p.*, a.account_name as supplier_name, a.id as supplier_account_id, c.company_name FROM purchases p LEFT JOIN accounts a ON p.supplier_account_id = a.id LEFT JOIN company c ON p.company_id = c.id WHERE p.id = ? AND p.company_id = ?`, [purchaseId, companyId]);
+}
+
+export async function getPurchaseItemsWithStock(purchaseId) {
+  return await query(`SELECT pi.id as purchase_item_id, pi.item_id, pi.quantity as purchased_quantity, pi.purchase_rate, it.item_name, it.item_code, (SELECT COALESCE(SUM(quantity_in - quantity_out), 0) FROM purchase_stock_ledger WHERE item_id = pi.item_id) as current_stock FROM purchase_items pi LEFT JOIN item_master it ON pi.item_id = it.id WHERE pi.purchase_id = ?`, [purchaseId]);
+}
+
+// ==================== SALE FUNCTIONS ====================
+export async function createSale(companyId, invoiceNo, invoiceDate, customerId, memberId, items, discountAmount, paymentType, notes, userId, financialYear = '2026-27') {
+  const connection = await createConnection();
+  try {
+    await connection.beginTransaction();
+    const [saleResult] = await connection.query(`INSERT INTO sales (company_id, invoice_no, invoice_date, customer_account_id, member_id, discount_amount, payment_type, notes, created_by, financial_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`, [companyId, invoiceNo, invoiceDate, customerId || null, memberId || null, discountAmount || 0, paymentType, notes, userId, financialYear]);
+    const saleId = saleResult[0].id;
+    let totalAmount = 0;
+    for (const item of items) {
+      const amount = item.quantity * item.sale_rate;
+      totalAmount += amount;
+      await connection.query(`INSERT INTO sale_items (sale_id, item_id, quantity, sale_rate, amount) VALUES (?, ?, ?, ?, ?)`, [saleId, item.item_id, item.quantity, item.sale_rate, amount]);
+      const currentStock = await getItemCurrentStock(companyId, item.item_id);
+      const newStock = currentStock - item.quantity;
+      await connection.query(`INSERT INTO purchase_stock_ledger (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by, financial_year) VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?, ?)`, [companyId, item.item_id, item.quantity, newStock, `SALE-${saleId}`, userId, financialYear]);
+    }
+    const netAmount = totalAmount - discountAmount;
+    await connection.query(`UPDATE sales SET total_amount = ?, net_amount = ? WHERE id = ?`, [totalAmount, netAmount, saleId]);
+    await connection.commit();
+    return { id: saleId, invoice_no: invoiceNo, total_amount: totalAmount, net_amount: netAmount };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getSalesByCompany(companyId, startDate, endDate, financialYear = '2026-27') {
+  const sql = `SELECT s.id, s.invoice_no, s.invoice_date, COALESCE(a.account_name, m.member_name, 'Walk-in') as customer_name, COALESCE(m.member_code, CAST(a.id AS TEXT)) as member_code, s.payment_type, s.total_amount, s.net_amount, COUNT(si.id) as item_count, s.created_at FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN member_master m ON s.member_id = m.id LEFT JOIN sale_items si ON s.id = si.sale_id WHERE s.company_id = ? AND s.invoice_date BETWEEN ? AND ? AND s.financial_year = ? GROUP BY s.id, a.account_name, m.member_name, m.member_code, a.id ORDER BY s.invoice_date DESC, s.created_at DESC`;
+  return await query(sql, [companyId, startDate, endDate, financialYear]);
+}
+
+export async function getSaleDetails(saleId) {
+  const sale = await queryOne(`SELECT s.*, COALESCE(a.account_name, m.member_name, 'Walk-in') as customer_name, u.username as created_by_user, c.company_name FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN member_master m ON s.member_id = m.id LEFT JOIN users u ON s.created_by = u.id LEFT JOIN company c ON s.company_id = c.id WHERE s.id = ?`, [saleId]);
+  if (!sale) return null;
+  const items = await query(`SELECT si.*, it.item_name, it.item_code FROM sale_items si LEFT JOIN item_master it ON si.item_id = it.id WHERE si.sale_id = ?`, [saleId]);
+  return { ...sale, items };
+}
+
+export async function getItemByBarcode(barcode, companyId) {
+  const sql = `SELECT im.id, im.item_code, im.item_name, COALESCE(SUM(psl.quantity_in - psl.quantity_out), 0) as current_stock, ir.sale_rate FROM item_master im LEFT JOIN purchase_stock_ledger psl ON im.id = psl.item_id LEFT JOIN item_rate ir ON im.id = ir.item_id AND ir.is_active = 1 WHERE im.barcode = ? AND im.company_id = ? GROUP BY im.id, ir.sale_rate`;
+  return await query(sql, [barcode, companyId]);
+}
+
+export async function getItemRate(itemId) {
+  return await queryOne(`SELECT sale_rate as rate FROM item_rate WHERE item_id = ? AND is_active = 1 LIMIT 1`, [itemId]);
+}
+
+// ============================================
+// PROFIT & LOSS STATEMENT FUNCTIONS
+// ============================================
+export async function getProfitLossStatement(companyId, startDate, endDate) {
+  try {
+    const salesRevenue = await queryOne(`SELECT COALESCE(SUM(net_amount), 0) as total FROM sales WHERE company_id = ? AND invoice_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
+    const salesReturns = await queryOne(`SELECT COALESCE(SUM(total_return_amount), 0) as total FROM sale_returns WHERE company_id = ? AND return_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
+    const purchaseCost = await queryOne(`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchases WHERE company_id = ? AND invoice_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
+    const purchaseReturns = await queryOne(`SELECT COALESCE(SUM(return_amount), 0) as total FROM purchase_returns WHERE company_id = ? AND return_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
+    
+    const netSales = parseFloat(salesRevenue.total) - parseFloat(salesReturns.total);
+    const netCOGS = parseFloat(purchaseCost.total) - parseFloat(purchaseReturns.total);
+    const grossProfit = netSales - netCOGS;
+    
+    const expenses = await query(`SELECT a.account_name, SUM(al.debit - al.credit) as amount FROM account_ledger al JOIN accounts a ON al.account_id = a.id WHERE a.company_id = ? AND a.account_type = 'Expense' AND al.transaction_date BETWEEN ? AND ? GROUP BY a.id, a.account_name`, [companyId, startDate, endDate]);
+    const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+    
+    return {
+      revenue: { netSales, totalSales: salesRevenue.total, returns: salesReturns.total },
+      cogs: { netCOGS, totalPurchases: purchaseCost.total, returns: purchaseReturns.total },
+      grossProfit,
+      operatingExpenses: totalExpenses,
+      netProfit: grossProfit - totalExpenses,
+      expenseAccounts: expenses
+    };
+  } catch (error) {
+    console.error('P&L Error:', error);
+    throw error;
+  }
+}
+
+export async function getSalesForReturn(companyId) {
+  const sql = `SELECT s.id, s.invoice_no, s.invoice_date, s.customer_account_id, COALESCE(a.account_name, 'Walk-in') as customer_name, s.total_amount, s.discount_amount, s.net_amount, COUNT(si.id) as item_count, STRING_AGG(CONCAT(it.item_name, ' x', si.quantity), ', ') as item_summary FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN sale_items si ON s.id = si.sale_id LEFT JOIN item_master it ON si.item_id = it.id WHERE s.company_id = ? AND s.id NOT IN (SELECT sale_id FROM sale_returns WHERE sale_id IS NOT NULL) GROUP BY s.id, a.account_name ORDER BY s.invoice_date DESC`;
+  return await query(sql, [companyId]);
+}
+
+export async function getSaleForReturnDetails(saleId) {
+  const sale = await queryOne(`SELECT s.id, s.invoice_no, s.invoice_date, s.customer_account_id, COALESCE(a.account_name, 'Walk-in') as customer_name, s.total_amount, s.discount_amount, s.net_amount, s.company_id FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id WHERE s.id = ?`, [saleId]);
+  if (!sale) return null;
+  const items = await query(`SELECT si.id, si.item_id, si.quantity, si.sale_rate, si.amount, it.item_code, it.item_name FROM sale_items si LEFT JOIN item_master it ON si.item_id = it.id WHERE si.sale_id = ?`, [saleId]);
+  return { ...sale, items };
+}
+
+export async function createSaleReturn(companyId, saleId, returnNo, returnDate, customerAccountId, items, refundType, notes, userId) {
+  const connection = await createConnection();
+  try {
+    await connection.beginTransaction();
+    const totalReturnAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+    const [returnResult] = await connection.query(`INSERT INTO sale_returns (company_id, sale_id, return_no, return_date, customer_account_id, total_return_amount, refund_amount, refund_type, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`, [companyId, saleId, returnNo, returnDate, customerAccountId || null, totalReturnAmount, totalReturnAmount, refundType, notes || '', userId]);
+    const saleReturnId = returnResult[0].id;
+    for (const item of items) {
+      await connection.query(`INSERT INTO sale_return_items (sale_return_id, item_id, quantity, sale_rate, amount) VALUES (?, ?, ?, ?, ?)`, [saleReturnId, item.item_id, item.quantity, item.sale_rate, item.amount]);
+      await connection.query(`INSERT INTO purchase_stock_ledger (company_id, item_id, quantity_in, quantity_out, transaction_type, reference_no, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`, [companyId, item.item_id, item.quantity, 0, 'SALE_RETURN', `RETURN-${saleReturnId}`, userId]);
+    }
+    await connection.commit();
+    return { id: saleReturnId, return_no: returnNo, total_return_amount: totalReturnAmount };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getSaleReturnsByCompany(companyId, startDate, endDate) {
+  const sql = `SELECT sr.id, sr.return_no, sr.return_date, sr.customer_account_id, COALESCE(a.account_name, 'Walk-in') as customer_name, sr.total_return_amount, sr.refund_type, COUNT(sri.id) as item_count, u.username as created_by_user FROM sale_returns sr LEFT JOIN accounts a ON sr.customer_account_id = a.id LEFT JOIN sale_return_items sri ON sr.id = sri.sale_return_id LEFT JOIN users u ON sr.created_by = u.id WHERE sr.company_id = ? AND sr.return_date BETWEEN ? AND ? GROUP BY sr.id, a.account_name, u.username ORDER BY sr.return_date DESC, sr.created_at DESC`;
+  return await query(sql, [companyId, startDate, endDate]);
+}
+
+export async function getSaleReturnDetails(saleReturnId) {
+  const returnData = await queryOne(`SELECT sr.*, COALESCE(a.account_name, 'Walk-in') as customer_name, u.username as created_by_user, sr.created_at, sr.sale_id FROM sale_returns sr LEFT JOIN accounts a ON sr.customer_account_id = a.id LEFT JOIN users u ON sr.created_by = u.id WHERE sr.id = ?`, [saleReturnId]);
+  if (!returnData) return null;
+  const items = await query(`SELECT sri.id, sri.item_id, sri.quantity, sri.sale_rate, sri.amount, it.item_code, it.item_name FROM sale_return_items sri LEFT JOIN item_master it ON sri.item_id = it.id WHERE sri.sale_return_id = ?`, [saleReturnId]);
+  return { ...returnData, items };
+}
+
+export async function getLowStockItems(companyId) {
+  const sql = `SELECT im.id, im.item_code, im.item_name, im.category, im.reorder_level, COALESCE(SUM(CASE WHEN pl.transaction_type IN ('PURCHASE_IN', 'SALE_RETURN') THEN pl.quantity_in ELSE -pl.quantity_out END), 0) as current_stock FROM item_master im LEFT JOIN purchase_stock_ledger pl ON im.id = pl.item_id AND pl.company_id = ? WHERE im.company_id = ? AND im.is_active = 1 GROUP BY im.id HAVING COALESCE(SUM(CASE WHEN pl.transaction_type IN ('PURCHASE_IN', 'SALE_RETURN') THEN pl.quantity_in ELSE -pl.quantity_out END), 0) <= im.reorder_level ORDER BY current_stock ASC`;
+  return await query(sql, [companyId, companyId]);
+}
+
+export async function getItemStockHistory(itemId, companyId) {
+  const sql = `SELECT pl.id, pl.created_at as transaction_date, pl.transaction_type, pl.reference_no, pl.quantity_in, pl.quantity_out, (pl.quantity_in - pl.quantity_out) as net_qty, pl.created_at FROM purchase_stock_ledger pl WHERE pl.item_id = ? AND pl.company_id = ? ORDER BY pl.created_at DESC`;
+  return await query(sql, [itemId, companyId]);
+}
+
+export async function getMonthlyProfitLoss(companyId, year) {
+  const sql = `
+    SELECT m.month_num as month, $1 as year,
+    COALESCE(s.amount, 0) as sales_revenue, COALESCE(sr.amount, 0) as sales_returns,
+    COALESCE(p.amount, 0) as purchase_cost, COALESCE(pr.amount, 0) as purchase_returns
+    FROM (SELECT generate_series(1, 12) as month_num) m
+    LEFT JOIN (SELECT EXTRACT(MONTH FROM invoice_date) as month, SUM(net_amount) as amount FROM sales WHERE company_id = $2 AND EXTRACT(YEAR FROM invoice_date) = $3 GROUP BY 1) s ON m.month_num = s.month
+    LEFT JOIN (SELECT EXTRACT(MONTH FROM return_date) as month, SUM(total_return_amount) as amount FROM sale_returns WHERE company_id = $4 AND EXTRACT(YEAR FROM return_date) = $5 GROUP BY 1) sr ON m.month_num = sr.month
+    LEFT JOIN (SELECT EXTRACT(MONTH FROM invoice_date) as month, SUM(total_amount) as amount FROM purchases WHERE company_id = $6 AND EXTRACT(YEAR FROM invoice_date) = $7 GROUP BY 1) p ON m.month_num = p.month
+    LEFT JOIN (SELECT EXTRACT(MONTH FROM return_date) as month, SUM(return_amount) as amount FROM purchase_returns WHERE company_id = $8 AND EXTRACT(YEAR FROM return_date) = $9 GROUP BY 1) pr ON m.month_num = pr.month
+    ORDER BY m.month_num
+  `;
+  const results = await query(sql, [year, companyId, year, companyId, year, companyId, year, companyId, year]);
+  return results.map(row => ({ ...row, netSales: parseFloat(row.sales_revenue) - parseFloat(row.sales_returns), netCOGS: parseFloat(row.purchase_cost) - parseFloat(row.purchase_returns), grossProfit: (parseFloat(row.sales_revenue) - parseFloat(row.sales_returns)) - (parseFloat(row.purchase_cost) - parseFloat(row.purchase_returns)) }));
+}
+
+export async function getProfitLossSummary(companyId) {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  return await getProfitLossStatement(companyId, start, end);
+}
 
 export async function getConnection() {
   return pool.connect();
 }
 
 export default pool;
+
+
+
+
+
