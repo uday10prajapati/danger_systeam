@@ -32,7 +32,7 @@ const NAV_GROUPS = [
       { id: 'dangar-rates', label: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
       { id: 'kapat', label: 'Kapat Console', icon: TrendingDown, path: '/kapat' },
       { id: 'bardan-portfolio', label: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
-      { id: 'jama-bardan', label: 'Jama Bardan Entry', icon: Book, path: '/jama-bardan-entry' },
+      // { id: 'jama-bardan', label: 'Jama Bardan Entry', icon: Book, path: '/jama-bardan-entry' },
       { id: 'interest-calculator', label: 'Interest Calculator', icon: DollarSign, path: '/interest-calculator' },
       { id: 'dangar-payment-report', label: 'Payment Report', icon: FileText, path: '/dangar-payment-report' },
     ]

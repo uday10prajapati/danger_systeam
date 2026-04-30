@@ -100,8 +100,10 @@ router.post('/', async (req, res) => {
     const entryId = result.lastID;
 
     // --- Sync with Account Ledger ---
+    // SELF bags DO reduce the physical balance (Quantity) in the ledger, 
+    // but they are marked with [SELF] so the penalty logic can ignore them.
     if (member?.id && bardanAccountId) {
-       const ledgerDesc = `[BARDAN] Returned (#${pavtiNo}) | ${remark || ''}`;
+       const ledgerDesc = `${option === 'Self' ? '[SELF] ' : ''}[BARDAN] Returned (#${pavtiNo}) | ${remark || ''}`;
        await execute(`
           INSERT INTO account_ledger (
              company_id, financial_year, account_id, member_id, 
@@ -165,7 +167,7 @@ router.put('/:id', async (req, res) => {
     const bardanAccount = await queryOne('SELECT id FROM accounts WHERE (account_code = "BS0001" OR account_name = "Bardan System") AND company_id = ?', [companyId]);
     
     if (member?.id && bardanAccount?.id) {
-       const ledgerDesc = `[BARDAN] Returned (#${pavtiNo}) | ${remark || ''}`;
+       const ledgerDesc = `${option === 'Self' ? '[SELF] ' : ''}[BARDAN] Returned (#${pavtiNo}) | ${remark || ''}`;
        // Try to update existing ledger entry
        const updateResult = await execute(`
           UPDATE account_ledger SET

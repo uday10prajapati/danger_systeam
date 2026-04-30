@@ -22,10 +22,10 @@ const BardanPortfolio = () => {
     code: '',
     name: '',
     qty: '',
-    option: 'Combo1',
     remark: '',
     dayQty: '',
-    totalQty: ''
+    totalQty: '',
+    option: 'Self' // Default to Self for manual returns
   });
 
   const [gridRows, setGridRows] = useState(Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
@@ -303,7 +303,7 @@ const BardanPortfolio = () => {
           code: entry.code,
           name: entry.name,
           qty: entry.qty,
-          option: entry.option_type,
+          option: entry.option_type || 'Company',
           remark: entry.remark,
           dayQty: entry.day_qty,
           totalQty: entry.total_qty
@@ -330,7 +330,7 @@ const BardanPortfolio = () => {
       code: '',
       name: '',
       qty: '',
-      option: 'Combo1',
+      option: 'Self',
       remark: '',
       dayQty: '',
       totalQty: ''
@@ -636,18 +636,32 @@ const BardanPortfolio = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Membership Vector</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{formData.type === 'RETURNED' ? 'Return Category' : 'Membership Vector'}</label>
                   <div className="flex items-center gap-3 bg-slate-50/50 p-4 rounded-lg border border-slate-100">
-                    <input
-                      type="checkbox"
-                      id="memNominalCheck"
-                      className="w-6 h-6 rounded-lg text-blue-600 border-slate-300 focus:ring-blue-500 transition-all cursor-pointer"
-                      checked={formData.memNominal === 'Member'}
-                      onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
-                    />
-                    <label htmlFor="memNominalCheck" className="text-xs font-black uppercase tracking-widest text-slate-700 cursor-pointer select-none italic">
-                      {formData.memNominal === 'Member' ? 'Sabhasad (Active Member)' : 'Nominal Member'}
-                    </label>
+                    {formData.type === 'RETURNED' ? (
+                      <select
+                        name="option"
+                        className="w-full bg-transparent border-none outline-none font-black text-xs text-slate-700 uppercase italic"
+                        value={formData.option}
+                        onChange={handleChange}
+                      >
+                        <option value="Company">Company Bags</option>
+                        <option value="Self">Self Bags (Penalty Applies)</option>
+                      </select>
+                    ) : (
+                      <>
+                        <input
+                          type="checkbox"
+                          id="memNominalCheck"
+                          className="w-6 h-6 rounded-lg text-blue-600 border-slate-300 focus:ring-blue-500 transition-all cursor-pointer"
+                          checked={formData.memNominal === 'Member'}
+                          onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
+                        />
+                        <label htmlFor="memNominalCheck" className="text-xs font-black uppercase tracking-widest text-slate-700 cursor-pointer select-none italic">
+                          {formData.memNominal === 'Member' ? 'Sabhasad (Active Member)' : 'Nominal Member'}
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

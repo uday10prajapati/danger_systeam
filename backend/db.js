@@ -2162,6 +2162,27 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
         WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, al.debit_amount, 0) -- Flip for Dangar System
         ELSE COALESCE(al.credit, al.credit_amount, 0) 
       END) as credit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN 0
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN COALESCE(al.credit, al.credit_amount, 0)
+        ELSE 0 
+      END) as self_credit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, al.debit_amount, 0)
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
+        ELSE COALESCE(al.credit, al.credit_amount, 0) 
+      END) as company_credit,
+      SUM(CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
+        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, al.debit_amount, 0)
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
+        ELSE COALESCE(al.credit, al.credit_amount, 0) 
+      END) as penalty_credit,
       CASE 
         WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = al.company_id LIMIT 1) 
              AND COUNT(*) > 1 
@@ -2261,11 +2282,14 @@ export async function getAccountLedgerWithRunningBalance(accountId, startDate, e
   const entries = await getAccountLedger(accountId, startDate, endDate, memberId);
 
   // 3. Map with running balance
+  let penaltyBalance = runningBalance; // Penalty balance starts from same opening point
   const entriesWithBalance = entries.map(entry => {
     runningBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
+    penaltyBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.penalty_credit) || 0);
     return {
       ...entry,
-      running_balance: runningBalance
+      running_balance: runningBalance,
+      penalty_balance: penaltyBalance
     };
   });
 

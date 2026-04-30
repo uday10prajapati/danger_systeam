@@ -13,7 +13,7 @@ router.get('/balance/:code', async (req, res) => {
     // 1. Total Taken (from bardan_entry)
     const takenResult = await queryOne(`SELECT SUM(qty) as total FROM bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
 
-    // 2. Total Returned (from jama_bardan_entry)
+    // 2. Total Returned (from jama_bardan_entry) - All bags (Physical Balance)
     const returnedResult = await queryOne(`SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
 
     // 3. Opening Balance
@@ -53,7 +53,7 @@ router.get('/ledger/:code', async (req, res) => {
     const given = await query(`SELECT id, entry_date as date, 'GIVEN' as type, qty as debit, 0 as credit, remark, pavti_no, name FROM bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
     
     // 3. Get All Returned (Credit)
-    const returned = await query(`SELECT id, entry_date as date, 'RETURNED' as type, 0 as debit, qty as credit, remark, pavti_no, name FROM jama_bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
+    const returned = await query(`SELECT id, entry_date as date, 'RETURNED' as type, 0 as debit, qty as credit, remark, pavti_no, name, option_type FROM jama_bardan_entry WHERE code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
 
     // 4. Combine and Group by Pavti/Date
     let combined = [...given, ...returned];
@@ -103,6 +103,7 @@ router.get('/ledger/:code', async (req, res) => {
     }];
 
     ledger.forEach(item => {
+      // All bags reduce the physical debt balance for inventory tracking
       runningBalance += (item.debit - item.credit);
       item.balance = runningBalance;
       item.particulars = `Trans (#${item.pavti_no || 'NA'})`;

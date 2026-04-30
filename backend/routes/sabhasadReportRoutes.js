@@ -70,12 +70,24 @@ router.get('/', async (req, res) => {
           WHERE member_id = m.id ${accountFilter} AND transaction_date BETWEEN ? AND ?
         ) AS period_credit,
 
-        -- Bardan Balance (Total bags remaining)
+        -- Bardan Balance (Total physical bags remaining)
         (
-           SELECT COALESCE(m.bardan_opening, 0) + COALESCE(SUM(debit), 0) - COALESCE(SUM(credit), 0)
-           FROM account_ledger
-           WHERE member_id = m.id AND account_id = (SELECT id FROM accounts WHERE (account_code = "BS0001" OR account_name = "Bardan System") AND company_id = ?)
+           SELECT COALESCE(m.bardan_opening, 0) + 
+                  (SELECT COALESCE(SUM(qty), 0) FROM bardan_entry WHERE member_id = m.id AND company_id = ?) - 
+                  (SELECT COALESCE(SUM(qty), 0) FROM jama_bardan_entry WHERE member_id = m.id AND company_id = ?)
         ) AS bardan_balance,
+
+        -- Bardan Penalty Balance (Bags that still incur penalty - excludes Self returns)
+        (
+           SELECT COALESCE(m.bardan_opening, 0) + 
+                  (SELECT COALESCE(SUM(qty), 0) FROM bardan_entry WHERE member_id = m.id AND company_id = ?) - 
+                  (SELECT COALESCE(SUM(qty), 0) FROM jama_bardan_entry WHERE member_id = m.id AND company_id = ? AND (option_type IS NULL OR option_type != 'Self'))
+        ) AS bardan_penalty_balance,
+
+        -- Bardan Self Jama (Bags returned as Self)
+        (
+           SELECT COALESCE(SUM(qty), 0) FROM jama_bardan_entry WHERE member_id = m.id AND company_id = ? AND option_type = 'Self'
+        ) AS bardan_self_jama,
 
         (
           SELECT MAX(transaction_date)
@@ -105,8 +117,8 @@ router.get('/', async (req, res) => {
     if (accountFilter) queryParams.push(accountId);
     queryParams.push(startDate, endDate);
 
-    // bardan_balance
-    queryParams.push(companyId);
+    // bardan_balance & bardan_penalty_balance & bardan_self_jama
+    queryParams.push(companyId, companyId, companyId, companyId, companyId);
 
     // last_activity_date
     if (accountFilter) queryParams.push(accountId);
@@ -272,7 +284,9 @@ router.get('/', async (req, res) => {
         debit: debit.toFixed(2),
         credit: credit.toFixed(2),
         closing_balance: closingBalance.toFixed(2),
-        bardan_balance: row.bardan_balance || 0
+        bardan_balance: row.bardan_balance || 0,
+        bardan_penalty_balance: row.bardan_penalty_balance || 0,
+        bardan_self_jama: row.bardan_self_jama || 0
       };
     });
 

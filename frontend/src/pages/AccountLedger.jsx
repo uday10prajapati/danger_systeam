@@ -406,7 +406,8 @@ export default function AccountLedger() {
                                           'Nomenclature Payload', 
                                           'Debit (+)', 
                                           'Credit (-)', 
-                                          'Running Balance',
+                                           ...(selectedAccount?.account_code === 'BS0001' ? ['Self Jama'] : []),
+                                           'Running Balance',
                                           ...(selectedAccount?.account_code === 'BS0001' ? ['Bardan Amount'] : [])
                                        ].map((h, i) => (
                                           <th key={i} className={`px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${i > 2 ? 'text-right' : ''}`}>
@@ -473,10 +474,14 @@ export default function AccountLedger() {
                                                    parseFloat(row.credit || 0) > 0 ? `₹${parseFloat(row.credit).toLocaleString('en-IN')}` : `₹0.00`
                                                 ) : parseFloat(row.credit || 0) > 0 ? (
                                                    (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
-                                                      ? parseFloat(row.credit).toLocaleString('en-IN')
-                                                      : `₹${parseFloat(row.credit).toLocaleString('en-IN')}`
+                                                      ? parseFloat(row.company_credit || 0) > 0 ? parseFloat(row.company_credit).toLocaleString('en-IN') : '—' : `₹${parseFloat(row.credit).toLocaleString('en-IN')}`
                                                 ) : '—'}
                                              </td>
+                                             {selectedAccount?.account_code === 'BS0001' && (
+                                                <td className="px-10 py-5 text-right font-bold text-emerald-500 italic">
+                                                   {parseFloat(row.self_credit || 0) > 0 ? parseFloat(row.self_credit).toLocaleString('en-IN') : '—'}
+                                                </td>
+                                             )}
                                              <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.running_balance) >= 0 ? 'text-slate-800' : 'text-rose-600 underline decoration-rose-100 decoration-4 underline-offset-8'}`}>
                                                 {(selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
                                                    ? `${Math.abs(parseFloat(row.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}`
@@ -484,7 +489,7 @@ export default function AccountLedger() {
                                              </td>
                                              {selectedAccount?.account_code === 'BS0001' && (
                                                 <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
-                                                   ₹{Math.abs(parseFloat(row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}
+                                                   ₹{Math.abs(parseFloat(row.penalty_balance || row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.penalty_balance || row.running_balance) >= 0 ? 'D' : 'C'}
                                                 </td>
                                              )}
                                           </tr>

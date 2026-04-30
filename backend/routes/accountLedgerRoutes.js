@@ -280,11 +280,15 @@ router.get('/account-stats/:accountId', async (req, res) => {
             if (member) {
               const code = member.member_code;
               const taken = await queryOne('SELECT SUM(qty) as total FROM bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
-              const returned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
-              bardan_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(returned?.total || 0);
-              if (bardan_balance > 0) {
+              const allReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+              const companyReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")', [code, companyId]);
+              
+              bardan_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(allReturned?.total || 0);
+              const penalty_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0);
+              
+              if (penalty_balance > 0) {
                 const priceData = await queryOne('SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ?', [companyId]);
-                bardan_penalty = bardan_balance * parseFloat(priceData?.price_per_bardan || 0);
+                bardan_penalty = penalty_balance * parseFloat(priceData?.price_per_bardan || 0);
               }
             }
           } catch (err) { console.error('Bardan fetch failed', err); }
@@ -362,9 +366,12 @@ router.get('/breakdown/:accountId', async (req, res) => {
 
       // 3. Bardan stats
       const taken = await queryOne('SELECT SUM(qty) as total FROM bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
-      const returned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
-      const bBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(returned?.total || 0);
-      const bPenalty = bBal > 0 ? bBal * bardanPrice : 0;
+      const allReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
+      const companyReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")', [code, companyId]);
+      
+      bBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(allReturned?.total || 0);
+      const pBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0);
+      bPenalty = pBal > 0 ? pBal * bardanPrice : 0;
 
       // 4. Interest calculation for this member
       let interestTotal = 0;
@@ -442,7 +449,7 @@ router.get('/member-balance/:accountId/:memberId', async (req, res) => {
       const member = await queryOne('SELECT bardan_opening FROM member_master WHERE id = ?', [memberId]);
       
       let takenQuery = 'SELECT SUM(qty) as total FROM bardan_entry WHERE member_id = ? AND company_id = ?';
-      let returnedQuery = 'SELECT SUM(qty) as total FROM jama_bardan_entry WHERE member_id = ? AND company_id = ?';
+      let returnedQuery = 'SELECT SUM(qty) as total FROM jama_bardan_entry WHERE member_id = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")';
       let params = [memberId, companyId];
       
       if (startDate && endDate) {
@@ -452,12 +459,14 @@ router.get('/member-balance/:accountId/:memberId', async (req, res) => {
       }
 
       const taken = await queryOne(takenQuery, params);
-      const returned = await queryOne(returnedQuery, params);
-      const bardan_balance = parseFloat(member?.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(returned?.total || 0);
+      const allReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE member_id = ? AND company_id = ?', [memberId, companyId]);
+      const companyReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE member_id = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")', [memberId, companyId]);
       
-      if (bardan_balance > 0) {
+      const penalty_balance = parseFloat(member?.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0);
+      
+      if (penalty_balance > 0) {
         const priceData = await queryOne('SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ?', [companyId]);
-        totalDebit = bardan_balance * parseFloat(priceData?.price_per_bardan || 0);
+        totalDebit = penalty_balance * parseFloat(priceData?.price_per_bardan || 0);
       }
     } else {
       // Standard Ledger Balance
