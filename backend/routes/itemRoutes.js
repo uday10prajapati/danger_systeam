@@ -3,6 +3,7 @@ import { query, execute } from '../db.js';
 import { validationResult } from 'express-validator';
 import { validateCreateItem, validateUpdateItem } from '../validators/itemValidator.js';
 import { transliterateEnglishToGujarati, translateDescription } from '../utils/transliterate.js';
+import { generateItemCode } from '../utils/protocolCodeGenerator.js';
 
 const router = express.Router();
 
@@ -16,6 +17,24 @@ const handleValidationErrors = (req, res, next) => {
   }
   next();
 };
+
+/**
+ * GET NEXT ITEM CODE
+ */
+router.get('/next-code', async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'];
+    if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
+    const codes = await generateItemCode(companyId);
+    res.json({ 
+      success: true, 
+      nextCode: codes?.numeric,
+      nextPCode: codes?.pcode 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 /**
  * CREATE ITEM
@@ -53,14 +72,14 @@ router.post('/', validateCreateItem, handleValidationErrors, async (req, res) =>
     // Create item
     await execute(
       `INSERT INTO item_master (
-        company_id, item_code, consider_in_autostock, item_name, item_name_gu, desc_en, desc_gu,
+        company_id, item_code, p_code, consider_in_autostock, item_name, item_name_gu, desc_en, desc_gu,
         unit, unit_gu, purchase_account_id, sales_account_id,
         do_auto_stock_in_sales, opening_stock, opening_stock_value, minimum_stock, loss_per_kg,
         effective_date, sgst_percent, cgst_percent, igst_percent, cess_percent, hsn_code,
         barcode, category, tax_percentage, reorder_level, purchase_price, sale_price
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        company_id, item_code, consider_in_autostock ? 1 : 0, item_name, item_name_gu || null, desc_en || null, desc_gu || null,
+        company_id, item_code, req.body.p_code || null, consider_in_autostock ? 1 : 0, item_name, item_name_gu || null, desc_en || null, desc_gu || null,
         unit || 'PCS', unit_gu || null, purchase_account_id || null, sales_account_id || null,
         do_auto_stock_in_sales ? 1 : 0, opening_stock || 0, opening_stock_value || 0, minimum_stock || 0, loss_per_kg || 0,
         effective_date || null, sgst_percent || 0, cgst_percent || 0, igst_percent || 0, cess_percent || 0, hsn_code || null,
@@ -180,7 +199,7 @@ router.get('/barcode/:barcode', async (req, res) => {
       LEFT JOIN purchase_stock_ledger psl ON im.id = psl.item_id AND psl.company_id = ?
       LEFT JOIN item_rate ir ON im.id = ir.item_id AND ir.is_active = 1
       WHERE im.barcode = ? AND im.company_id = ? AND im.is_active = 1
-      GROUP BY im.id, ir.id
+      GROUP BY im.id, ir.id, im.item_code, im.item_name, im.category, im.unit, im.barcode, im.tax_percentage, ir.sale_rate, ir.purchase_rate, ir.is_active
       LIMIT 1
     `;
 
@@ -339,6 +358,7 @@ router.put('/:id', validateUpdateItem, handleValidationErrors, async (req, res) 
     };
 
     addUpdate('item_name', item_name);
+    addUpdate('p_code', req.body.p_code);
     addUpdate('item_name_gu', item_name_gu);
     addUpdate('desc_en', desc_en);
     addUpdate('desc_gu', desc_gu);

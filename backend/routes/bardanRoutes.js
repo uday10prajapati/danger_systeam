@@ -201,7 +201,7 @@ router.post('/', async (req, res) => {
 
     // Resolve IDs
     const member = await queryOne('SELECT id FROM member_master WHERE member_code = ? AND company_id = ?', [code, companyId]);
-    const bardanAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+    const bardanAccount = await queryOne("SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = ?", [companyId]);
     const bardanAccountId = bardanAccount?.id || null;
 
     const result = await execute(`
@@ -281,7 +281,7 @@ router.put('/:id', async (req, res) => {
 
     // --- Sync with Account Ledger (Update) ---
     const member = await queryOne('SELECT id FROM member_master WHERE member_code = ? AND company_id = ?', [code, companyId]);
-    const bardanAccount = await queryOne('SELECT id FROM accounts WHERE (account_code = "BS0001" OR account_name = "Bardan System") AND company_id = ?', [companyId]);
+    const bardanAccount = await queryOne("SELECT id FROM accounts WHERE (account_code = 'BS0001' OR account_name = 'Bardan System') AND company_id = ?", [companyId]);
     
     if (member?.id && bardanAccount?.id) {
        const ledgerDesc = `[BARDAN] Taken (#${pavtiNo}) | ${remark || ''}`;
@@ -289,7 +289,7 @@ router.put('/:id', async (req, res) => {
           UPDATE account_ledger SET
              member_id = ?, transaction_date = ?, reference_no = ?, 
              description = ?, debit = ?, financial_year = ?
-          WHERE reference_type = "bardan_entry" AND reference_id = ?
+          WHERE reference_type = 'bardan_entry' AND reference_id = ?
        `, [
           member.id, date, pavtiNo, ledgerDesc, qty || 0, financialYear, req.params.id
        ]);
@@ -334,7 +334,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     // 1. Delete from ledger first
-    await execute('DELETE FROM account_ledger WHERE reference_type = "bardan_entry" AND reference_id = ?', [req.params.id]);
+    await execute("DELETE FROM account_ledger WHERE reference_type = 'bardan_entry' AND reference_id = ?", [req.params.id]);
 
     // 2. Delete the entry (Foreign key with ON DELETE CASCADE will handle bardan_items)
     await execute('DELETE FROM bardan_entry WHERE id = ?', [req.params.id]);

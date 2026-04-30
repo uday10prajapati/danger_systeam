@@ -197,9 +197,9 @@ router.get('/payment-report', async (req, res) => {
       
       try {
          // Resolve Member Adv Ac ID
-         const advAc = await queryOne('SELECT id FROM accounts WHERE account_code = "L0001" AND company_id = ?', [companyId]);
-         const godownAc = await queryOne('SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = ?', [companyId]);
-         const bardanAc = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+         const advAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'L0001' AND company_id = ?", [companyId]);
+         const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
+         const bardanAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = ?", [companyId]);
          const advAcId = advAc?.id;
          const godownAcId = godownAc?.id;
          const bardanAcId = bardanAc?.id;
@@ -344,7 +344,7 @@ router.get('/summary-report', async (req, res) => {
       LEFT JOIN item_master im ON de.item_id = im.id
       WHERE de.company_id = ?
         AND de.entry_date BETWEEN ? AND ?
-      GROUP BY de.item_id, de.quality_class, de.financial_year
+      GROUP BY im.item_name, im.item_name_gu, de.quality_class, de.financial_year
     `, [companyId, startDate, endDate]);
 
     // 2. Global Fixed Account Balances (Kapat Vigat)
@@ -360,7 +360,7 @@ router.get('/summary-report', async (req, res) => {
          AND (a.account_code IN ('L0001', 'GF0001', 'BS0001', 'IK0001') 
               OR a.account_name LIKE '%Kapat%' 
               OR a.account_name LIKE '%Deduction%')
-       GROUP BY a.id
+       GROUP BY a.id, a.account_name, a.account_code
     `, [companyId, endDate]);
 
     res.json({ success: true, data: { dangarSummary, fixedAccounts } });
@@ -418,8 +418,8 @@ router.post('/', async (req, res) => {
     const srNo = await generateDangarEntryCode(companyId);
 
     // 1b. Resolve System Accounts
-    const dangarAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = ?', [companyId]);
-    const bardanAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+    const dangarAccount = await queryOne("SELECT id FROM accounts WHERE account_code = 'DS0001' AND company_id = ?", [companyId]);
+    const bardanAccount = await queryOne("SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = ?", [companyId]);
     const dangarAccountId = dangarAccount?.id || null;
     const bardanAccountId = bardanAccount?.id || null;
 
@@ -515,7 +515,7 @@ router.post('/', async (req, res) => {
     // 5b. Auto-Calculate & Commit Godown Fund (1 RS per 20 KG)
     const godownFundAmount = (parseFloat(total_kg) || 0) * 0.05;
     if (godownFundAmount > 0) {
-       const godownAc = await queryOne('SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = ?', [companyId]);
+       const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
        const godownAccountId = godownAc?.id;
        if (godownAccountId) {
           const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
@@ -651,9 +651,9 @@ router.put('/:id', async (req, res) => {
     }
 
     // 4. Re-sync Account Ledger
-    await execute('DELETE FROM account_ledger WHERE reference_type IN ("dangar_entry", "dangar_entry_fund", "jama_bardan_entry") AND reference_id = ?', [id]);
+    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'jama_bardan_entry') AND reference_id = ?", [id]);
 
-    const dangarAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = ?', [companyId]);
+    const dangarAccount = await queryOne("SELECT id FROM accounts WHERE account_code = 'DS0001' AND company_id = ?", [companyId]);
     const dangarAccountId = dangarAccount?.id || null;
     const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
     const targetLedgerAccId = itemData?.purchase_account_id || dangarAccountId;
@@ -679,7 +679,7 @@ router.put('/:id', async (req, res) => {
     // 5. Re-sync Godown Fund
     const godownFundAmount = (parseFloat(total_kg) || 0) * 0.05;
     if (godownFundAmount > 0) {
-      const godownAc = await queryOne('SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = ?', [companyId]);
+      const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
       if (godownAc?.id) {
         const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
         await execute(`
@@ -699,10 +699,10 @@ router.put('/:id', async (req, res) => {
     }
 
     // 6. Re-sync Bardan Return
-    await execute('DELETE FROM jama_bardan_entry WHERE remark LIKE ? AND company_id = ?', [`%Dangar Settlement SR: ${srNo}%`, companyId]);
+    await execute("DELETE FROM jama_bardan_entry WHERE remark LIKE ? AND company_id = ?", [`%Dangar Settlement SR: ${srNo}%`, companyId]);
     if (returned_bags && parseFloat(returned_bags) > 0) {
       const member = await queryOne(`SELECT member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
-      const bardanAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+      const bardanAccount = await queryOne("SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = ?", [companyId]);
       if (member) {
         const settleRemark = `Dangar Settlement SR: ${srNo}`;
         const jamResult = await execute(`
@@ -773,7 +773,7 @@ router.post('/recalculate', async (req, res) => {
 
       // Update Ledger (Matching by reference_id and reference_type)
       await execute(
-        'UPDATE account_ledger SET credit = ? WHERE reference_type = "cash_book" AND reference_id = ? AND company_id = ?',
+        "UPDATE account_ledger SET credit = ? WHERE reference_type = 'cash_book' AND reference_id = ? AND company_id = ?",
         [newAmount, entry.id, company_id]
       );
     }
@@ -792,7 +792,7 @@ router.delete('/:id', async (req, res) => {
     // The purchase entry is linked via source_id = id AND source_table = 'dangar_entry' (if we use source_table)
     // Wait, in POST we didn't set source_table for the dangar purchase, we used reference_id.
     // Let's delete all ledger entries linked to this Dangar SR/ID
-    await execute('DELETE FROM account_ledger WHERE reference_type IN ("dangar_entry", "dangar_entry_fund", "jama_bardan_entry") AND reference_id = ?', [req.params.id]);
+    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'jama_bardan_entry') AND reference_id = ?", [req.params.id]);
     
     // 2. Delete associated jama_bardan_entry created during this dangar entry
     // These are linked via the same SR No or we can find them via the ledger source link

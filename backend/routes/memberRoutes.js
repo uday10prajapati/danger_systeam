@@ -1,5 +1,6 @@
 import express from 'express';
 import { query, execute, queryOne } from '../db.js';
+import { generateNextPCode } from '../utils/memberCodeGenerator.js';
 
 const router = express.Router();
 
@@ -123,6 +124,22 @@ router.get('/last-code', async (req, res) => {
 });
 
 /**
+ * GET NEXT P-CODE
+ */
+router.get('/next-pcode', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    const { isNominal } = req.query;
+    if (!company_id) return res.status(400).json({ error: 'Company ID required' });
+
+    const nextPCode = await generateNextPCode(company_id, isNominal === 'true');
+    res.json({ success: true, nextPCode });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * CREATE SABHASAD
  */
 router.post('/', async (req, res) => {
@@ -144,7 +161,7 @@ router.post('/', async (req, res) => {
     }
 
     const {
-      sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
+      sabhasadCode, sabhasadName, p_code, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
       engName, nominalMember, ifscCode, bardanOpening, is_active
     } = req.body;
@@ -160,11 +177,11 @@ router.post('/', async (req, res) => {
 
     const result = await execute(
       `INSERT INTO member_master 
-      (company_id, financial_year, member_code, member_name, phone, village_code, village_name, 
+      (company_id, financial_year, member_code, member_name, p_code, phone, village_code, village_name, 
        full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member, ifsc_code, bardan_opening, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        company_id, financial_year, sabhasadCode, sabhasadName, phoneNo || null, 
+        company_id, financial_year, sabhasadCode, sabhasadName, p_code || null, phoneNo || null, 
         villageCode || null, villageName || null, fullAcNumber || null, bankName || null, 
         branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null, ifscCode || null, bardanOpening || 0, is_active !== undefined ? is_active : 1
       ]
@@ -190,7 +207,7 @@ router.put('/:id', async (req, res) => {
     if (!financial_year) return res.status(400).json({ success: false, error: 'Financial year is required' });
 
     const {
-      sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
+      sabhasadCode, sabhasadName, p_code, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
       engName, nominalMember, ifscCode, bardanOpening, is_active
     } = req.body;
@@ -206,13 +223,13 @@ router.put('/:id', async (req, res) => {
 
     await execute(
       `UPDATE member_master SET 
-        member_code = ?, member_name = ?, phone = ?, village_code = ?, 
+        member_code = ?, member_name = ?, p_code = ?, phone = ?, village_code = ?, 
         village_name = ?, full_ac_number = ?, bank_name = ?, branch_name = ?, 
         account_type = ?, address_no = ?, eng_name = ?, nominal_member = ?,
         ifsc_code = ?, bardan_opening = ?, is_active = ?, financial_year = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND company_id = ?`,
       [
-        sabhasadCode, sabhasadName, phoneNo, villageCode, villageName,
+        sabhasadCode, sabhasadName, p_code || null, phoneNo, villageCode, villageName,
         fullAcNumber, bankName, branchName, accountType, addressNo,
         engName, nominalMember, ifscCode, bardanOpening || 0, is_active !== undefined ? is_active : 1, financial_year, req.params.id, company_id
       ]

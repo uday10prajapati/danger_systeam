@@ -10,8 +10,8 @@ const router = express.Router();
 router.post('/weight-based', async (req, res) => {
   const connection = await getConnection();
   try {
-    const companyId = req.header('x-company-id');
-    const userId = req.header('x-user-id') || 1;
+    const companyId = parseInt(req.header('x-company-id'));
+    const userId = parseInt(req.header('x-user-id') || 1);
 
     const { 
       invoice_date, customer_account_id, items, 
@@ -19,6 +19,14 @@ router.post('/weight-based', async (req, res) => {
       driver_name, mobile_number, gadi_number,
       brokerage_percent, brokerage_amount, labour_charge, invoice_no
     } = req.body;
+
+    const customerAccountId = customer_account_id ? parseInt(customer_account_id) : null;
+
+    console.log('DEBUG: Received Sale Payload:', JSON.stringify(req.body, null, 2));
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'Items array is required and cannot be empty' });
+    }
 
     await connection.beginTransaction();
 
@@ -29,22 +37,22 @@ router.post('/weight-based', async (req, res) => {
     const roundingDiff = netAmount - rawNetAmount;
 
     // 2. Insert Sale Header
-    const [saleResult] = await connection.query(
+    const [saleRows] = await connection.query(
       `INSERT INTO sales 
         (company_id, invoice_no, invoice_date, customer_account_id, 
         total_amount, net_amount, payment_type, notes, created_by,
         driver_name, mobile_number, gadi_number,
         brokerage_percent, brokerage_amount, labour_charge)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [
-        companyId, invoice_no, invoice_date, customer_account_id,
+        companyId, invoice_no, invoice_date, customerAccountId,
         grossTotal, netAmount, payment_type, notes || null, userId,
         driver_name || null, mobile_number || null, gadi_number || null,
         brokerage_percent || 0, brokerage_amount || 0, labour_charge || 0
       ]
     );
 
-    const saleId = saleResult.insertId;
+    const saleId = saleRows[0].id;
 
     // 3. Insert Sale Items
     for (const item of items) {
@@ -52,7 +60,7 @@ router.post('/weight-based', async (req, res) => {
         `INSERT INTO sale_items 
           (sale_id, item_id, weight, quantity, sale_rate, amount, taxable_amount)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [saleId, item.item_id, item.weight, item.quantity, item.sale_rate, item.amount, item.amount]
+        [saleId, parseInt(item.item_id), item.weight, item.quantity, item.sale_rate, item.amount, item.amount]
       );
 
       // Update Stock
@@ -79,8 +87,14 @@ router.post('/weight-based', async (req, res) => {
 
     if (isCashSale) {
         // Find Cash Account
-        const cashAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_type = "cash" LIMIT 1', [companyId]);
+        // Find Cash Account (CS0001)
+        const cashAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_code = 'CS0001' LIMIT 1", [companyId]);
         if (cashAcc) targetAccountId = cashAcc.id;
+        else {
+           // Fallback to searching by type if code fails
+           const fallbackCash = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_type = 'cash' LIMIT 1", [companyId]);
+           if (fallbackCash) targetAccountId = fallbackCash.id;
+        }
     }
 
     if (!targetAccountId) {
@@ -104,7 +118,8 @@ router.post('/weight-based', async (req, res) => {
         );
 
         // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
-        const salesAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_type = "sales" LIMIT 1', [companyId]);
+        // 2. Credit Sales Account (Search by type or common name)
+        const salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'sales' OR account_name LIKE '%Sales%') LIMIT 1", [companyId]);
         if (salesAcc) {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
@@ -122,7 +137,8 @@ router.post('/weight-based', async (req, res) => {
         );
 
         // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
-        const salesAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_type = "sales" LIMIT 1', [companyId]);
+        // 2. Credit Sales Account
+        const salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'sales' OR account_name LIKE '%Sales%') LIMIT 1", [companyId]);
         if (salesAcc) {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
@@ -134,7 +150,7 @@ router.post('/weight-based', async (req, res) => {
 
     // C. Deductions (Also show in Rojmel for visibility)
     if (parseFloat(brokerage_amount) > 0) {
-        const brokerageAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Brokerage%" LIMIT 1', [companyId]);
+        const brokerageAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_code = 'BK0001' LIMIT 1", [companyId]);
         if (brokerageAcc) {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
@@ -145,7 +161,7 @@ router.post('/weight-based', async (req, res) => {
     }
 
     if (parseFloat(labour_charge) > 0) {
-        const labourAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Labour%" LIMIT 1', [companyId]);
+        const labourAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_code = 'LK0001' LIMIT 1", [companyId]);
         if (labourAcc) {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
@@ -157,7 +173,7 @@ router.post('/weight-based', async (req, res) => {
 
     // D. Rounding Entry
     if (Math.abs(roundingDiff) > 0.001) {
-        const roundingAcc = await queryOne('SELECT id FROM accounts WHERE company_id = ? AND account_name LIKE "%Rounding%" LIMIT 1', [companyId]);
+        const roundingAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_code = 'RK0001' LIMIT 1", [companyId]);
         if (roundingAcc) {
             const isDebit = roundingDiff < 0; 
             const amt = Math.abs(roundingDiff);
@@ -174,11 +190,13 @@ router.post('/weight-based', async (req, res) => {
     res.json({ success: true, message: 'Sale and Rojmel entries posted successfully', data: { saleId } });
 
   } catch (error) {
-    await connection.rollback();
-    console.error('Weight-based sale error:', error);
+    if (connection) await connection.rollback();
+    console.error('CRITICAL: Weight-based sale error!');
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
     res.status(500).json({ success: false, error: error.message });
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
 });
 

@@ -83,6 +83,7 @@ export default function MemberMaster() {
         addressNo: member.address_no,
         engName: member.eng_name,
         nominalMember: member.nominal_member,
+        p_code: member.p_code,
         is_active: updatedMember.is_active === 1
       };
 
@@ -249,11 +250,22 @@ export default function MemberMaster() {
                           </div>
                           <div className="space-y-1">
                             <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{member.member_name}</p>
-                            <div className="flex items-center gap-3">
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                <Hash size={10} /> {member.member_code}
-                              </span>
-                              <span className="text-[11px] font-bold text-slate-400 italic">{member.eng_name || '-'}</span>
+                            <div className="flex items-center gap-2">
+                              {member.p_code ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600 rounded text-[10px] font-black text-white uppercase tracking-[0.15em] shadow-sm shadow-blue-100">
+                                  {member.p_code}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                  <Hash size={10} /> {member.member_code}
+                                </span>
+                              )}
+                              {member.p_code && (
+                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">
+                                  #{member.member_code}
+                                </span>
+                              )}
+                              <span className="text-[11px] font-bold text-slate-400 italic ml-1">{member.eng_name || '-'}</span>
                             </div>
                           </div>
                         </div>

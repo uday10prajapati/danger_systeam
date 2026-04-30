@@ -2,7 +2,7 @@ import express from 'express';
 import { query, queryOne, execute } from '../db.js';
 import { validateAccount } from '../validators/accountValidator.js';
 import { generateNextMemberCode } from '../utils/memberCodeGenerator.js';
-import { generateAccountCode } from '../utils/protocolCodeGenerator.js';
+import { generateAccountCode, generateAccountPCode } from '../utils/protocolCodeGenerator.js';
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
 
     const sql = `
-       SELECT id, account_code, account_name, account_type, is_active, is_subledger, is_system FROM accounts 
+       SELECT id, account_code, p_code, account_name, account_type, is_active, is_subledger, is_system FROM accounts 
        WHERE company_id = ? AND is_deleted = 0
        ORDER BY account_name ASC
     `;
@@ -39,6 +39,21 @@ router.get('/next-code', async (req, res) => {
   }
 });
 
+// ==================== GET NEXT ACCOUNT P-CODE ====================
+router.get('/next-pcode', async (req, res) => {
+  try {
+    const company_id = req.headers['x-company-id'];
+    const { type } = req.query;
+    if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
+    if (!type) return res.status(400).json({ success: false, error: 'Account Type required' });
+
+    const nextPCode = await generateAccountPCode(company_id, type);
+    res.json({ success: true, nextPCode });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== GET NEXT ACCOUNT ID (Type-Specific Sequence) ====================
 router.get('/next-id', async (req, res) => {
   try {
@@ -56,8 +71,9 @@ router.get('/next-id', async (req, res) => {
     const result = await queryOne(
       `SELECT account_code FROM accounts 
        WHERE company_id = ? AND account_code LIKE ? 
+       AND account_code REGEXP ?
        ORDER BY CAST(SUBSTRING(account_code, ?) AS UNSIGNED) DESC LIMIT 1`,
-      [company_id, `${prefix}%`, prefix.length + 1]
+      [company_id, `${prefix}%`, `^${prefix}[0-9]+$`, prefix.length + 1]
     );
 
     let nextNumber = 1;
@@ -77,7 +93,7 @@ router.get('/next-id', async (req, res) => {
 // ==================== CREATE ACCOUNT ====================
 router.post('/', async (req, res) => {
   try {
-    let { company_id, account_code, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+    let { company_id, account_code, p_code, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     // Auto-generate account code if missing
     if (!account_code || account_code === '') {
@@ -110,9 +126,9 @@ router.post('/', async (req, res) => {
 
     // Insert account
     const result = await execute(
-      `INSERT INTO accounts (company_id, account_code, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, is_subledger)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company_id, account_code || null, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? 1 : 0]
+      `INSERT INTO accounts (company_id, account_code, p_code, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, is_subledger)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company_id, account_code || null, p_code || null, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? 1 : 0]
     );
 
     // If it's a cash account, inject the opening balance directly into Cashbook
@@ -130,9 +146,9 @@ router.post('/', async (req, res) => {
       try {
         const nextCode = await generateNextMemberCode(company_id);
         await execute(
-          `INSERT INTO member_master (company_id, account_id, member_code, member_name, phone, email, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [company_id, result.insertId, nextCode, account_name, phone || null, email || null, 1]
+          `INSERT INTO member_master (company_id, account_id, member_code, member_name, p_code, phone, email, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [company_id, result.insertId, nextCode, account_name, p_code || null, phone || null, email || null, 1]
         );
       } catch (err) {
         console.error('Failed to auto-create member:', err);
@@ -148,6 +164,7 @@ router.post('/', async (req, res) => {
         company_id,
         account_name,
         account_type,
+        p_code: p_code || null,
         phone: phone || null,
         email: email || null,
         gst_no: gst_no || null,
@@ -171,7 +188,7 @@ router.get('/company/:company_id', async (req, res) => {
 
     let sql = `
        SELECT 
-         CAST(a.id AS CHAR) as id, a.account_code, m.member_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
+         CAST(a.id AS CHAR) as id, a.account_code, a.p_code, m.member_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
          a.opening_balance, a.is_active, a.is_subledger, a.is_system, a.created_at, a.updated_at,
          COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_debit,
          COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_credit
@@ -276,7 +293,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
     const account = await queryOne(
-      `SELECT id, account_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
+      `SELECT id, account_code, p_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
               is_active, created_at, updated_at
        FROM accounts 
        WHERE id = ? AND is_deleted = 0`,
@@ -298,7 +315,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { account_code, account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+    const { account_code, p_code, account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     let final_opening_balance = undefined;
     if (opening_balance !== undefined) {
@@ -346,20 +363,32 @@ router.put('/:id', async (req, res) => {
     await execute(
       `UPDATE accounts 
        SET account_code = COALESCE(?, account_code),
+           p_code = COALESCE(?, p_code),
            account_name = COALESCE(?, account_name),
            phone = COALESCE(?, phone),
            email = COALESCE(?, email),
-           gst_no = IF(? IS NOT NULL, ?, gst_no),
-           tin_no = IF(? IS NOT NULL, ?, tin_no),
+           gst_no = CASE WHEN ? IS NOT NULL THEN ? ELSE gst_no END,
+           tin_no = CASE WHEN ? IS NOT NULL THEN ? ELSE tin_no END,
            opening_balance = COALESCE(?, opening_balance),
-           is_subledger = IF(? IS NOT NULL, ?, is_subledger),
+           is_subledger = CASE WHEN ? IS NOT NULL THEN ? ELSE is_subledger END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [account_code || null, account_name || null, phone || null, email || null, gst_no !== undefined ? gst_no : null, gst_no || null, tin_no !== undefined ? tin_no : null, tin_no || null, final_opening_balance !== undefined ? final_opening_balance : null, is_subledger !== undefined ? is_subledger : null, is_subledger ? 1 : 0, id]
+      [
+        account_code || null, 
+        p_code || null,
+        account_name || null, 
+        phone || null, 
+        email || null, 
+        gst_no !== undefined ? 1 : null, gst_no || null, 
+        tin_no !== undefined ? 1 : null, tin_no || null, 
+        final_opening_balance !== undefined ? final_opening_balance : null, 
+        is_subledger !== undefined ? 1 : null, is_subledger ? 1 : 0, 
+        id
+      ]
     );
 
     const updatedAccount = await queryOne(
-      'SELECT id, account_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, created_at, updated_at FROM accounts WHERE id = ?',
+      'SELECT id, account_code, p_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, created_at, updated_at FROM accounts WHERE id = ?',
       [id]
     );
 

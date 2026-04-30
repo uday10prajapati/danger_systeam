@@ -29,7 +29,7 @@ router.get('/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
     const results = await query(
-      'SELECT * FROM deduction_master WHERE company_id = ? AND is_active = 1 ORDER BY name ASC',
+      'SELECT * FROM deduction_master WHERE company_id = ? AND is_active = true ORDER BY name ASC',
       [companyId]
     );
     res.json({ success: true, data: results });

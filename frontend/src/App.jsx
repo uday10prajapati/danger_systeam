@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { productAPI, salesAPI, healthCheck } from './api.js'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -51,6 +51,49 @@ function AppContent() {
   const [sales, setSales] = useState([])
   const [isAuth, setIsAuth] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (window.electron && window.electron.onNavigate) {
+      window.electron.onNavigate((path) => {
+        console.log('🔗 IPC Navigation Command Received:', path);
+        navigate(path);
+      });
+    }
+
+    // Add Browser-level shortcut for Alt + Key
+    const handleGlobalKeyDown = (e) => {
+      if (e.altKey) {
+        const key = e.key.toLowerCase();
+        const routes = {
+          'v': '/village',
+          'm': '/members',
+          'a': '/accounts',
+          'i': '/items',
+          'n': '/narrations',
+          'd': '/dangar-master',
+          'e': '/dangar-entry',
+          'r': '/dangar-rates',
+          'k': '/kapat',
+          'b': '/bardan-portfolio',
+          'j': '/interest-calculator',
+          'p': '/dangar-payment-report',
+          'c': '/company',
+          'u': '/users',
+          'z': '/rojmel'
+        };
+
+        if (routes[key]) {
+          console.log(`⌨️ Web Shortcut Triggered: Alt+${key.toUpperCase()} -> Navigating to ${routes[key]}`);
+          e.preventDefault();
+          navigate(routes[key]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [navigate])
 
 
   useEffect(() => {

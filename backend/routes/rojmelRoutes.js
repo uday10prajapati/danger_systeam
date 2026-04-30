@@ -11,17 +11,17 @@ router.get('/nav-dates', async (req, res) => {
     if (!companyId || !date) return res.status(400).json({ success: false, error: 'Company ID and date required' });
 
     const prevSql = `
-      SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as nav_date
+      SELECT TO_CHAR(transaction_date, 'YYYY-MM-DD') as nav_date
       FROM account_ledger 
-      WHERE company_id = ? AND transaction_date < DATE(?) 
+      WHERE company_id = ? AND transaction_date < CAST(? AS DATE) 
       AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
       ORDER BY transaction_date DESC 
       LIMIT 1
     `;
     const nextSql = `
-      SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as nav_date
+      SELECT TO_CHAR(transaction_date, 'YYYY-MM-DD') as nav_date
       FROM account_ledger 
-      WHERE company_id = ? AND transaction_date > DATE(?) 
+      WHERE company_id = ? AND transaction_date > CAST(? AS DATE) 
       AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
       ORDER BY transaction_date ASC 
       LIMIT 1
@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
       WHERE company_id = ? AND transaction_date < ?
       AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
     `;
-    const [opBalRows] = await query(opBalSql, [companyId, date]);
+    const opBalRows = await query(opBalSql, [companyId, date]);
     const netBalanceOp = parseFloat(opBalRows[0]?.net_balance || 0);
 
     let opening = null;

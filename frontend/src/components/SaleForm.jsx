@@ -185,9 +185,11 @@ export default function SaleForm({ onSubmit, onCancel }) {
   };
 
   const calculateRowAmount = (weight, rate) => {
-    if (!weight || !rate) return 0;
+    const w = parseFloat(weight) || 0;
+    const r = parseFloat(rate) || 0;
+    if (w === 0 || r === 0) return 0;
     // Formula: (weight * rate / 140) * 100
-    return (parseFloat(weight) * parseFloat(rate) / 140) * 100;
+    return (w * r / 140) * 100;
   };
 
   const handleAddItem = (e) => {
@@ -238,10 +240,10 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const liveRate = currentRate !== '' ? parseFloat(currentRate) : (currentItem?.sale_rate || currentItem?.sale_price || 0);
   const liveAmount = calculateRowAmount(currentWeight || 0, liveRate);
 
-  const totalBaseAmount = saleItems.reduce((sum, row) => sum + row.amount, 0) + liveAmount;
+  const totalBaseAmount = (saleItems.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0) + liveAmount) || 0;
   const brokerageAmt = totalBaseAmount * ((parseFloat(brokeragePercent) || 0) / 100);
   const labourAmt = parseFloat(labourCharge) || 0;
-  const netAmount = Math.round(totalBaseAmount - brokerageAmt - labourAmt);
+  const netAmount = Math.round(totalBaseAmount - brokerageAmt - labourAmt) || 0;
 
   const handleSave = async () => {
     let finalItems = [...saleItems];

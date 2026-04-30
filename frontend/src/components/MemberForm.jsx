@@ -25,6 +25,7 @@ export default function MemberForm({
 
   const [formData, setFormData] = useState({
     sabhasadCode: '',
+    p_code: '',
     sabhasadName: '',
     phoneNo: '',
     villageCode: '',
@@ -67,12 +68,24 @@ export default function MemberForm({
     }
   }, []);
 
+  const fetchNextPCode = async (isNominal) => {
+    try {
+      const res = await sabhasadMasterApi.getNextPCode(isNominal);
+      if (res.data.success) {
+        setFormData(prev => ({ ...prev, p_code: res.data.nextPCode }));
+      }
+    } catch (err) {
+      console.error('Error fetching next P-Code:', err);
+    }
+  };
+
   useEffect(() => {
     loadMasterData()
     if (editingMember) {
       setLocalEditId(editingMember.id)
       setFormData({
         sabhasadCode: editingMember.member_code || '',
+        p_code: editingMember.p_code || '',
         sabhasadName: editingMember.member_name || '',
         phoneNo: editingMember.phone || '',
         villageCode: editingMember.village_code || '',
@@ -83,13 +96,14 @@ export default function MemberForm({
         accountType: editingMember.account_type || '',
         addressNo: editingMember.address_no || '',
         engName: editingMember.eng_name || '',
-        nominalMember: editingMember.nominal_member || '',
+        nominalMember: editingMember.nominal_member === 'true' || editingMember.nominal_member === true,
         ifscCode: editingMember.ifsc_code || '',
         bardanOpening: editingMember.bardan_opening || 0,
         is_active: editingMember.is_active === 1
       })
     } else {
       initNewForm()
+      fetchNextPCode(false) // Default Sabhasad
     }
   }, [editingMember, loadMasterData, initNewForm])
 
@@ -103,6 +117,7 @@ export default function MemberForm({
         setLocalEditId(member.id);
         setFormData({
           sabhasadCode: member.member_code || '',
+          p_code: member.p_code || '',
           sabhasadName: member.member_name || '',
           phoneNo: member.phone || '',
           villageCode: member.village_code || '',
@@ -211,7 +226,7 @@ export default function MemberForm({
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Basic Information</h3>
               </div>
               
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-5 gap-4">
                 <div className="col-span-1 flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</label>
                   <div className="relative">
@@ -227,6 +242,17 @@ export default function MemberForm({
                     {isFetchingCode && <Loader size={12} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-blue-500" />}
                   </div>
                 </div>
+                <div className="col-span-1 flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">P-Code</label>
+                  <input
+                    type="text"
+                    name="p_code"
+                    value={formData.p_code}
+                    onChange={handleChange}
+                    placeholder="P-000"
+                    className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                  />
+                </div>
                 <div className="col-span-3 flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Sabhasad Name (Local)</label>
                   <input
@@ -236,7 +262,7 @@ export default function MemberForm({
                     onChange={handleChange}
                     required
                     placeholder="Enter Name"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs italic"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs italic shadow-sm"
                   />
                 </div>
               </div>
@@ -289,14 +315,20 @@ export default function MemberForm({
                 <div className="grid grid-cols-2 gap-4 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
                   <button
                     type="button"
-                    onClick={() => setFormData(p => ({ ...p, nominalMember: false }))}
+                    onClick={() => {
+                      setFormData(p => ({ ...p, nominalMember: false }));
+                      if (!editingMember) fetchNextPCode(false);
+                    }}
                     className={`py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.nominalMember ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     Sabhasad
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData(p => ({ ...p, nominalMember: true }))}
+                    onClick={() => {
+                      setFormData(p => ({ ...p, nominalMember: true }));
+                      if (!editingMember) fetchNextPCode(true);
+                    }}
                     className={`py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.nominalMember ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-400'}`}
                   >
                     Nominal

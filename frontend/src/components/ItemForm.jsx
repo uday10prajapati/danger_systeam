@@ -18,10 +18,10 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
   const [formData, setFormData] = useState({
     item_code: item?.item_code || '',
+    p_code: item?.p_code || '',
     item_name: item?.item_name || '',
     category: item?.category || '',
     unit: item?.unit || 'Nos',
-    barcode: item?.barcode || '',
     purchase_price: item?.purchase_price || 0,
     sale_price: item?.sale_price || 0,
     opening_stock: item?.opening_stock || 0,
@@ -30,20 +30,52 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
     hsn_code: item?.hsn_code || '21069099',
     purchase_account_id: item?.purchase_account_id || '',
     sales_account_id: item?.sales_account_id || '',
+    purchase_code: '',
+    sales_code: '',
     is_active: item?.is_active ?? 1
   });
 
   useEffect(() => {
     if (company?.id) {
       fetchAccounts();
+      if (!item) {
+        fetchNextItemCode();
+      }
     }
-  }, [company]);
+  }, [company, item]);
+
+  const fetchNextItemCode = async () => {
+    try {
+      const res = await axios.get('/api/items/next-code', {
+        headers: { 'x-company-id': company.id }
+      });
+      if (res.data.success) {
+        setFormData(prev => ({ 
+          ...prev, 
+          item_code: res.data.nextCode,
+          p_code: res.data.nextPCode 
+        }));
+      }
+    } catch (err) {
+      console.error('Fetch next item code error:', err);
+    }
+  };
 
   const fetchAccounts = async () => {
     try {
       const res = await axios.get(`/api/accounts/company/${company.id}`);
       if (res.data.success) {
         setAccounts(res.data.data);
+        // If editing, find the codes for existing accounts
+        if (item) {
+          const pAcc = res.data.data.find(a => a.id === item.purchase_account_id);
+          const sAcc = res.data.data.find(a => a.id === item.sales_account_id);
+          setFormData(prev => ({
+            ...prev,
+            purchase_code: pAcc?.account_code || '',
+            sales_code: sAcc?.account_code || ''
+          }));
+        }
       }
     } catch (err) {
       console.error('Fetch accounts error:', err);
@@ -52,6 +84,37 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    if (name === 'purchase_code' || name === 'sales_code') {
+      const accountType = name === 'purchase_code' ? 'purchase' : 'sales';
+      const targetIdField = name === 'purchase_code' ? 'purchase_account_id' : 'sales_account_id';
+      const cleanValue = value.trim();
+      
+      // Search for account by account_code (preferred) or p_code
+      const foundAccount = accounts.find(a => 
+        a.account_type?.toLowerCase() === accountType && 
+        (String(a.account_code) === cleanValue || String(a.p_code) === cleanValue)
+      );
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        [targetIdField]: foundAccount ? foundAccount.id : (value === '' ? '' : prev[targetIdField])
+      }));
+      return;
+    }
+
+    if (name === 'purchase_account_id' || name === 'sales_account_id') {
+      const codeField = name === 'purchase_account_id' ? 'purchase_code' : 'sales_code';
+      const foundAccount = accounts.find(a => a.id === parseInt(value));
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        [codeField]: foundAccount ? foundAccount.account_code : ''
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (checked ? 1 : 0) : value
@@ -131,16 +194,27 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Item Identity</h3>
               </div>
               
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-5 gap-4">
                 <div className="col-span-1 flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</label>
                   <input
                     type="text"
                     name="item_code"
                     value={formData.item_code}
-                    onChange={handleChange}
-                    placeholder="000"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                    readOnly
+                    placeholder="Auto-gen"
+                    className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-lg outline-none font-bold text-blue-700 text-xs shadow-sm cursor-not-allowed"
+                  />
+                </div>
+                <div className="col-span-1 flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">P-Code</label>
+                  <input
+                    type="text"
+                    name="p_code"
+                    value={formData.p_code}
+                    readOnly
+                    placeholder="Auto-gen"
+                    className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-lg outline-none font-bold text-blue-700 text-xs shadow-sm cursor-not-allowed"
                   />
                 </div>
                 <div className="col-span-3 flex flex-col gap-1.5">
@@ -186,22 +260,32 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Optical Barcode</label>
-                <div className="relative">
-                  <QrCode size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Purchase Code</label>
                   <input
                     type="text"
-                    name="barcode"
-                    value={formData.barcode}
+                    name="purchase_code"
+                    value={formData.purchase_code}
                     onChange={handleChange}
-                    placeholder="Scan or Enter Barcode"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
+                    placeholder="1"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Sales Code</label>
+                  <input
+                    type="text"
+                    name="sales_code"
+                    value={formData.sales_code}
+                    onChange={handleChange}
+                    placeholder="2"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Purchase Book</label>
                   <select
@@ -211,7 +295,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-[10px] uppercase tracking-tighter"
                   >
                     <option value="">-- SELECT --</option>
-                    {accounts.filter(a => a.account_type === 'purchase').map(acc => (
+                    {accounts.filter(a => a.account_type?.toLowerCase() === 'purchase').map(acc => (
                       <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                     ))}
                   </select>
@@ -225,7 +309,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-[10px] uppercase tracking-tighter"
                   >
                     <option value="">-- SELECT --</option>
-                    {accounts.filter(a => a.account_type === 'sales').map(acc => (
+                    {accounts.filter(a => a.account_type?.toLowerCase() === 'sales').map(acc => (
                       <option key={acc.id} value={acc.id}>{acc.account_name}</option>
                     ))}
                   </select>

@@ -33,6 +33,40 @@ export async function generateNextMemberCode(companyId) {
 }
 
 /**
+ * Generate next P-Code for a member
+ * @param {number} companyId - Company ID
+ * @param {boolean} isNominal - True if nominal member
+ * @returns {Promise<string>} Next P-Code
+ */
+export async function generateNextPCode(companyId, isNominal) {
+  try {
+    const prefix = isNominal ? 'NM' : 'SM';
+    const padding = isNominal ? 4 : 5;
+    
+    const result = await queryOne(
+      `SELECT p_code FROM member_master 
+       WHERE company_id = ? AND p_code LIKE ? 
+       AND p_code REGEXP ?
+       ORDER BY CAST(SUBSTRING(p_code, ?) AS UNSIGNED) DESC LIMIT 1`,
+      [companyId, `${prefix}%`, `^${prefix}[0-9]+$`, prefix.length + 1]
+    );
+
+    let nextNumber = 1;
+    if (result && result.p_code) {
+      const currentNumber = parseInt(result.p_code.replace(prefix, ''), 10);
+      if (!isNaN(currentNumber)) {
+        nextNumber = currentNumber + 1;
+      }
+    }
+
+    return `${prefix}${nextNumber.toString().padStart(padding, '0')}`;
+  } catch (error) {
+    console.error('Error generating P-Code:', error);
+    throw error;
+  }
+}
+
+/**
  * Validate member code format
  * Member code must be numeric
  * 
@@ -187,6 +221,7 @@ export function formatMemberInfo(member) {
 
 export default {
   generateNextMemberCode,
+  generateNextPCode,
   validateMemberCode,
   getMemberByCode,
   searchMembersByCode,

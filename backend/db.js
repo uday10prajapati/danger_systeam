@@ -1,7 +1,14 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from the backend directory
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { Pool } = pg;
 
@@ -14,7 +21,7 @@ console.log('  Database:', process.env.DB_NAME || 'danger_systeam');
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
+  password: String(process.env.DB_PASSWORD || ''),
   database: process.env.DB_NAME || 'danger_systeam',
   port: parseInt(process.env.DB_PORT || '5432'),
   max: 20,
@@ -22,32 +29,120 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// Helper to transform ? to $1, $2, etc.
+// Helper to transform MySQL SQL to PostgreSQL
 const transformQuery = (sql) => {
+  if (typeof sql !== 'string') return sql;
+  
   let index = 1;
-  return sql.replace(/\?/g, () => `$${index++}`);
+  let newSql = sql.replace(/\?/g, () => `$${index++}`);
+  
+  // Basic Structural Translations (MySQL -> Postgres)
+  newSql = newSql.replace(/INT PRIMARY KEY AUTO_INCREMENT/gi, 'SERIAL PRIMARY KEY');
+  newSql = newSql.replace(/INT AUTO_INCREMENT PRIMARY KEY/gi, 'SERIAL PRIMARY KEY');
+  newSql = newSql.replace(/AUTO_INCREMENT/gi, ''); // Remove if SERIAL already handled or if it's naked
+  newSql = newSql.replace(/DATETIME/gi, 'TIMESTAMP');
+  newSql = newSql.replace(/LONGTEXT/gi, 'TEXT');
+  newSql = newSql.replace(/TINYINT\(1\)/gi, 'BOOLEAN');
+  newSql = newSql.replace(/INT\(\d+\)/gi, 'INT'); // Remove MySQL display width
+  
+  // Handle ENUM(...) - Convert to VARCHAR for simplicity
+  newSql = newSql.replace(/ENUM\([^)]+\)/gi, 'VARCHAR(255)');
+  
+  // Handle MySQL CAST AS UNSIGNED -> Postgres CAST AS INTEGER
+  newSql = newSql.replace(/AS UNSIGNED/gi, 'AS INTEGER');
+  
+  // Handle MySQL YEAR() and MONTH() -> Postgres EXTRACT
+  newSql = newSql.replace(/YEAR\(([^)]+)\)/gi, 'EXTRACT(YEAR FROM $1)');
+  newSql = newSql.replace(/MONTH\(([^)]+)\)/gi, 'EXTRACT(MONTH FROM $1)');
+  
+  // Handle MySQL REGEXP -> Postgres ~ (Handles newlines and whitespace)
+  newSql = newSql.replace(/\s+REGEXP\s+/gi, ' ~ ');
+  
+  // Handle MySQL IFNULL -> Postgres COALESCE
+  newSql = newSql.replace(/IFNULL\(/gi, 'COALESCE(');
+  
+  // Handle MySQL IF(cond, val1, val2) -> Postgres CASE WHEN cond THEN val1 ELSE val2 END
+  // This is a simple regex for 3-argument IFs
+  newSql = newSql.replace(/IF\(([^,]+),([^,]+),([^)]+)\)/gi, 'CASE WHEN $1 THEN $2 ELSE $3 END');
+
+  // Handle MySQL CAST AS CHAR -> Postgres CAST AS TEXT
+  newSql = newSql.replace(/AS CHAR/gi, 'AS TEXT');
+
+  // Handle MySQL SUBSTRING -> Postgres SUBSTR
+  newSql = newSql.replace(/SUBSTRING\(/gi, 'SUBSTR(');
+
+  // Handle MySQL DATE_FORMAT -> Postgres TO_CHAR
+  // Note: Only handles basic %Y-%m-%d pattern for now
+  newSql = newSql.replace(/DATE_FORMAT\(([^,]+),\s*'%Y-%m-%d'\)/gi, "TO_CHAR($1, 'YYYY-MM-DD')");
+  newSql = newSql.replace(/DATE_FORMAT\(([^,]+),\s*'%d-%m-%Y'\)/gi, "TO_CHAR($1, 'DD-MM-YYYY')");
+  
+  // Handle MySQL backticks -> Postgres double quotes
+  newSql = newSql.replace(/`/g, '"');
+  
+  // Handle INSERT IGNORE
+  const isInsertIgnore = sql.toUpperCase().includes('INSERT IGNORE');
+  newSql = newSql.replace(/INSERT IGNORE INTO/gi, 'INSERT INTO');
+
+  // Handle PostgreSQL INSERT logic
+  newSql = newSql.trim();
+  if (newSql.toUpperCase().startsWith('INSERT')) {
+    // Remove trailing semicolon
+    newSql = newSql.replace(/;$/, '');
+    
+    // Add ON CONFLICT for IGNORE
+    if (isInsertIgnore && !newSql.toUpperCase().includes('ON CONFLICT')) {
+      newSql += ' ON CONFLICT DO NOTHING';
+    }
+    
+    // Add RETURNING if missing
+    if (!newSql.toUpperCase().includes('RETURNING')) {
+      newSql += ' RETURNING id';
+    }
+  }
+
+  // Handle ON UPDATE CURRENT_TIMESTAMP (Postgres doesn't support this inline)
+  newSql = newSql.replace(/ON UPDATE CURRENT_TIMESTAMP/gi, '');
+
+  // Handle ADD COLUMN IF NOT EXISTS (Postgres safety)
+  if (newSql.toUpperCase().includes('ADD COLUMN') && !newSql.toUpperCase().includes('IF NOT EXISTS')) {
+    newSql = newSql.replace(/ADD COLUMN/gi, 'ADD COLUMN IF NOT EXISTS');
+  }
+
+  // Handle GROUP_CONCAT (MySQL) -> STRING_AGG (Postgres)
+  newSql = newSql.replace(/GROUP_CONCAT\((.*?)\s+SEPARATOR\s+['"](.*?)['"]\)/gi, 'STRING_AGG($1, $2)');
+  newSql = newSql.replace(/GROUP_CONCAT\((.*?)\)/gi, 'STRING_AGG($1, \', \')');
+  
+  // Handle DATEDIFF (MySQL) -> Subtraction (Postgres)
+  newSql = newSql.replace(/DATEDIFF\((.*?), (.*?)\)/gi, '(CAST($1 AS DATE) - CAST($2 AS DATE))');
+
+  return newSql;
 };
 
 console.log('✅ PostgreSQL Connection Pool Initialized');
 
 // Create a connection wrapper for consistency with existing code
-const createConnection = async () => {
+export const getConnection = async () => {
   const client = await pool.connect();
   return {
     query: async (sql, params = []) => {
       try {
         const transformedSql = transformQuery(sql);
+        console.log('DEBUG [TX] SQL:', transformedSql);
+        console.log('DEBUG [TX] PARAMS:', params);
         const result = await client.query(transformedSql, params);
         return [result.rows, result.fields];
       } catch (err) {
-        console.error('SQL Error:', err);
+        console.error('SQL Error [TX]:', err);
         console.error('In query:', sql);
+        console.error('Transformed:', transformQuery(sql));
         throw err;
       }
     },
     execute: async (sql, params = []) => {
       try {
         const transformedSql = transformQuery(sql);
+        console.log('DEBUG [TX-EXEC] SQL:', transformedSql);
+        console.log('DEBUG [TX-EXEC] PARAMS:', params);
         const result = await client.query(transformedSql, params);
         // Map result to match mysql2 structure [result, fields]
         const mockResult = {
@@ -56,8 +151,9 @@ const createConnection = async () => {
         };
         return [mockResult, []];
       } catch (err) {
-        console.error('SQL Error:', err);
+        console.error('SQL Error [TX-EXEC]:', err);
         console.error('In query:', sql);
+        console.error('Transformed:', transformQuery(sql));
         throw err;
       }
     },
@@ -70,7 +166,7 @@ const createConnection = async () => {
 
 // Initialize database and create tables
 export async function initializeDatabase() {
-  const connection = await createConnection();
+  const connection = await getConnection();
   try {
     await connection.beginTransaction();
 
@@ -92,6 +188,20 @@ export async function initializeDatabase() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           is_active INT DEFAULT 1
+        )
+      `);
+
+      // Create Financial Years table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS financial_years (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          year_label VARCHAR(20) NOT NULL,
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          is_active INT DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (company_id, year_label)
         )
       `);
 
@@ -211,6 +321,12 @@ export async function initializeDatabase() {
           net_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
           is_intra_state INT DEFAULT 1,
           payment_type VARCHAR(50) DEFAULT 'cash',
+          driver_name VARCHAR(100),
+          mobile_number VARCHAR(20),
+          gadi_number VARCHAR(50),
+          brokerage_percent DECIMAL(5, 2) DEFAULT 0,
+          brokerage_amount DECIMAL(15, 2) DEFAULT 0,
+          labour_charge DECIMAL(15, 2) DEFAULT 0,
           notes TEXT,
           created_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
           financial_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
@@ -219,12 +335,21 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Add missing columns to sales
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS driver_name VARCHAR(100)"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS mobile_number VARCHAR(20)"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS gadi_number VARCHAR(50)"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS brokerage_percent DECIMAL(5,2) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS brokerage_amount DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS labour_charge DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+
       // Create Sale Items table
       await connection.query(`
         CREATE TABLE IF NOT EXISTS sale_items (
           id SERIAL PRIMARY KEY,
           sale_id INT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
           item_id INT NOT NULL REFERENCES item_master(id) ON DELETE RESTRICT,
+          weight DECIMAL(15, 3) DEFAULT 0,
           quantity DECIMAL(15, 2) NOT NULL,
           sale_rate DECIMAL(15, 2) NOT NULL,
           amount DECIMAL(15, 2) NOT NULL,
@@ -234,6 +359,9 @@ export async function initializeDatabase() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Add missing columns to sale_items
+      try { await connection.query("ALTER TABLE sale_items ADD COLUMN IF NOT EXISTS weight DECIMAL(15,3) DEFAULT 0"); } catch(e) {}
 
       // Create Member Master table
       await connection.query(`
@@ -353,17 +481,35 @@ export async function initializeDatabase() {
           reference_no VARCHAR(100),
           debit DECIMAL(15, 2) DEFAULT 0.00,
           credit DECIMAL(15, 2) DEFAULT 0.00,
+          debit_amount DECIMAL(15, 2) DEFAULT 0.00,
+          credit_amount DECIMAL(15, 2) DEFAULT 0.00,
           description TEXT,
           notes TEXT,
           financial_year VARCHAR(20) DEFAULT '2026-27',
           interest_amount DECIMAL(15, 2) DEFAULT 0.00,
           interest_percent DECIMAL(5, 2) DEFAULT 0.00,
           interest_a_per VARCHAR(20) DEFAULT 'per_month',
+          interest_member_id INT REFERENCES member_master(id) ON DELETE SET NULL,
+          interest_account_id INT REFERENCES accounts(id) ON DELETE SET NULL,
           created_by INT REFERENCES users(id) ON DELETE SET NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Add missing columns if not exist
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_member_id INT"); } catch(e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_account_id INT"); } catch(e) {}
+
+      // Force-add missing columns for legacy compatibility
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit_amount DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit_amount DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+      
+      // Auto-migrate accounts table
+      try { await connection.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch(e) {}
+      try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch(e) {}
 
       // Create Village table
       await connection.query(`
@@ -521,7 +667,7 @@ export async function initializeDatabase() {
           name VARCHAR(255) NOT NULL,
           season_type VARCHAR(100) NOT NULL,
           financial_year VARCHAR(20) NOT NULL,
-          is_active BOOLEAN DEFAULT TRUE,
+          is_active INT DEFAULT 1,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -545,8 +691,300 @@ export async function initializeDatabase() {
           company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
           target_type VARCHAR(50) NOT NULL,
           target_id INT NOT NULL,
+          is_auto INT DEFAULT 1,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           UNIQUE (company_id, target_type, target_id)
+        )
+      `);
+
+      // Create Narrations table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS narrations (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          narration_code VARCHAR(50),
+          narration_text TEXT NOT NULL,
+          narration_type VARCHAR(50) DEFAULT 'JV',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Add columns if not exist (for existing tables)
+      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_type VARCHAR(50) DEFAULT 'JV'"); } catch(e) {}
+      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_code VARCHAR(50)"); } catch(e) {}
+
+      // Create Journal Vouchers table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS journal_vouchers (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          voucher_date DATE NOT NULL,
+          voucher_type VARCHAR(50) DEFAULT 'JV',
+          total_credit DECIMAL(15, 2) DEFAULT 0,
+          total_debit DECIMAL(15, 2) DEFAULT 0,
+          notes TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Journal Voucher Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS journal_voucher_items (
+          id SERIAL PRIMARY KEY,
+          voucher_id INT NOT NULL REFERENCES journal_vouchers(id) ON DELETE CASCADE,
+          type VARCHAR(10) NOT NULL,
+          account_id INT NOT NULL REFERENCES accounts(id),
+          member_id INT REFERENCES member_master(id),
+          amount DECIMAL(15, 2) NOT NULL,
+          reference_no VARCHAR(100),
+          particulars TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Legacy Cash Book table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS cash_book (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          transaction_date DATE NOT NULL,
+          reference_type VARCHAR(50),
+          reference_id INT,
+          reference_no VARCHAR(100),
+          description TEXT,
+          cash_in DECIMAL(15, 2) DEFAULT 0,
+          cash_out DECIMAL(15, 2) DEFAULT 0,
+          notes TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Legacy Member Ledger table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS member_ledger (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          member_id INT NOT NULL REFERENCES member_master(id),
+          account_id INT REFERENCES accounts(id),
+          transaction_date DATE NOT NULL,
+          transaction_type VARCHAR(50),
+          reference_no VARCHAR(100),
+          debit_amount DECIMAL(15, 2) DEFAULT 0,
+          credit_amount DECIMAL(15, 2) DEFAULT 0,
+          particulars TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Item Rate table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS item_rate (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          item_id INT NOT NULL REFERENCES item_master(id) ON DELETE CASCADE,
+          purchase_rate DECIMAL(15, 2) DEFAULT 0,
+          sale_rate DECIMAL(15, 2) DEFAULT 0,
+          mrp DECIMAL(15, 2) DEFAULT 0,
+          effective_from DATE,
+          is_active INT DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Products table (Legacy Support)
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS products (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          sku VARCHAR(100) UNIQUE,
+          category VARCHAR(100),
+          price DECIMAL(15, 2) DEFAULT 0,
+          quantity DECIMAL(15, 2) DEFAULT 0,
+          description TEXT,
+          image_url VARCHAR(255),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Sale Returns table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS sale_returns (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          sale_id INT REFERENCES sales(id) ON DELETE SET NULL,
+          return_no VARCHAR(100) NOT NULL UNIQUE,
+          return_date DATE NOT NULL,
+          customer_account_id INT REFERENCES accounts(id) ON DELETE SET NULL,
+          total_return_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
+          refund_amount DECIMAL(15, 2) DEFAULT 0,
+          refund_type VARCHAR(50) DEFAULT 'cash',
+          notes TEXT,
+          created_by INT REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Sale Return Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS sale_return_items (
+          id SERIAL PRIMARY KEY,
+          sale_return_id INT NOT NULL REFERENCES sale_returns(id) ON DELETE CASCADE,
+          item_id INT NOT NULL REFERENCES item_master(id),
+          quantity DECIMAL(15, 2) NOT NULL,
+          sale_rate DECIMAL(15, 2) NOT NULL,
+          amount DECIMAL(15, 2) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Purchase Returns table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_returns (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          purchase_id INT REFERENCES purchases(id) ON DELETE SET NULL,
+          return_date DATE NOT NULL,
+          return_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
+          reason TEXT,
+          created_by INT REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Purchase Return Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_return_items (
+          id SERIAL PRIMARY KEY,
+          purchase_return_id INT NOT NULL REFERENCES purchase_returns(id) ON DELETE CASCADE,
+          item_id INT NOT NULL REFERENCES item_master(id),
+          quantity DECIMAL(15, 2) NOT NULL,
+          purchase_rate DECIMAL(15, 2) NOT NULL,
+          amount DECIMAL(15, 2) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Purchase Stock Ledger table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchase_stock_ledger (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          item_id INT NOT NULL REFERENCES item_master(id) ON DELETE CASCADE,
+          quantity_in DECIMAL(15, 3) DEFAULT 0,
+          quantity_out DECIMAL(15, 3) DEFAULT 0,
+          current_stock DECIMAL(15, 3) DEFAULT 0,
+          transaction_type VARCHAR(50),
+          reference_no VARCHAR(100),
+          notes TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Bardan Entry table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS bardan_entry (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          financial_year VARCHAR(20),
+          member_id INT REFERENCES member_master(id),
+          date DATE,
+          qty INT DEFAULT 0,
+          type VARCHAR(50), -- credit, debit
+          description TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Jama Bardan Entry table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS jama_bardan_entry (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          financial_year VARCHAR(20),
+          member_id INT REFERENCES member_master(id),
+          date DATE,
+          qty INT DEFAULT 0,
+          code VARCHAR(50),
+          option_type VARCHAR(50), -- Self, etc.
+          description TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Dangar Entry table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS dangar_entry (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          financial_year VARCHAR(20),
+          book_type VARCHAR(20), -- KHARIF, RABI, etc.
+          sr_no VARCHAR(50) UNIQUE,
+          entry_date DATE,
+          member_id INT REFERENCES member_master(id),
+          account_id INT REFERENCES accounts(id),
+          item_id INT REFERENCES item_master(id),
+          vehicle_no VARCHAR(50),
+          quality_class VARCHAR(50),
+          total_kg DECIMAL(15, 3) DEFAULT 0,
+          bardan INT DEFAULT 0,
+          gun INT DEFAULT 0,
+          gross_quintal DECIMAL(15, 3) DEFAULT 0,
+          less_bardan DECIMAL(15, 3) DEFAULT 0,
+          net_quintal DECIMAL(15, 3) DEFAULT 0,
+          rate DECIMAL(15, 2) DEFAULT 0,
+          amount DECIMAL(15, 2) DEFAULT 0,
+          total_deduction DECIMAL(15, 2) DEFAULT 0,
+          weight_unit VARCHAR(20) DEFAULT 'kg',
+          remark TEXT,
+          created_by INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Dangar Weights table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS dangar_weights (
+          id SERIAL PRIMARY KEY,
+          entry_id INT NOT NULL REFERENCES dangar_entry(id) ON DELETE CASCADE,
+          sr_no INT,
+          weight DECIMAL(15, 3) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Transaction Deductions table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS transaction_deductions (
+          id SERIAL PRIMARY KEY,
+          entry_id INT NOT NULL REFERENCES dangar_entry(id) ON DELETE CASCADE,
+          deduction_id INT, -- Refers to accounts or custom deduction
+          input_value DECIMAL(15, 2) DEFAULT 0,
+          calculated_amount DECIMAL(15, 2) DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Bardan Price Master table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS bardan_price_master (
+          id SERIAL PRIMARY KEY,
+          company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+          price_per_bardan DECIMAL(15, 2) NOT NULL DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (company_id)
         )
       `);
 
@@ -575,14 +1013,29 @@ export async function initializeDatabase() {
   }
 }
 
+// Helper to normalize parameters (Convert true/false to 1/0)
+const normalizeParams = (params) => {
+  if (!Array.isArray(params)) return params;
+  return params.map(p => {
+    if (p === true) return 1;
+    if (p === false) return 0;
+    if (p === undefined) return null;
+    return p;
+  });
+};
+
 // Seamless API export
 export async function query(sql, params = []) {
   try {
     const transformedSql = transformQuery(sql);
-    const result = await pool.query(transformedSql, params);
+    const normalized = normalizeParams(params);
+    console.log('DEBUG SQL:', transformedSql);
+    console.log('DEBUG PARAMS:', normalized);
+    const result = await pool.query(transformedSql, normalized);
     return result.rows;
   } catch (error) {
     console.error('Query error:', error.message, '\nSQL:', sql);
+    console.error('Transformed SQL:', transformQuery(sql));
     throw error;
   }
 }
@@ -595,9 +1048,12 @@ export async function queryOne(sql, params = []) {
 export async function execute(sql, params = []) {
   try {
     const transformedSql = transformQuery(sql);
-    const result = await pool.query(transformedSql, params);
+    const normalized = normalizeParams(params);
+    const result = await pool.query(transformedSql, normalized);
+    const id = result.rows[0]?.id || null;
     return { 
-      lastID: result.rows[0]?.id || null, 
+      lastID: id, 
+      insertId: id, // Alias for legacy MySQL compatibility
       changes: result.rowCount 
     };
   } catch (error) {
@@ -827,7 +1283,6 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
              AND COUNT(*) > 1 THEN 'Dangar Purchase Entry'
         WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = al.company_id LIMIT 1) 
              AND COUNT(*) > 1 THEN 'Dangar Godown Fund'
-        WHEN LOWER(COALESCE(al.description, '')) LIKE '%brokerage%' THEN 'Brokerage'
         ELSE STRING_AGG(COALESCE(al.description, al.notes, ''), ' | ')
       END as description,
       CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END as member_id,
@@ -838,7 +1293,7 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
     FROM account_ledger al
     LEFT JOIN member_master m ON m.id = (CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END)
     WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
-    GROUP BY al.transaction_date, member_id, al.company_id, al.account_id
+    GROUP BY al.transaction_date, al.company_id, al.account_id, al.interest_account_id, al.interest_member_id, al.member_id, m.member_name, m.member_code
     ORDER BY al.transaction_date ASC, MIN(al.created_at) ASC, MIN(al.id) ASC
   `;
   params.push(startDate, endDate);
@@ -1129,7 +1584,7 @@ export async function getProfitLossStatement(companyId, startDate, endDate) {
 }
 
 export async function getSalesForReturn(companyId) {
-  const sql = `SELECT s.id, s.invoice_no, s.invoice_date, s.customer_account_id, COALESCE(a.account_name, 'Walk-in') as customer_name, s.total_amount, s.discount_amount, s.net_amount, COUNT(si.id) as item_count, STRING_AGG(CONCAT(it.item_name, ' x', si.quantity), ', ') as item_summary FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN sale_items si ON s.id = si.sale_id LEFT JOIN item_master it ON si.item_id = it.id WHERE s.company_id = ? AND s.id NOT IN (SELECT sale_id FROM sale_returns WHERE sale_id IS NOT NULL) GROUP BY s.id, a.account_name ORDER BY s.invoice_date DESC`;
+  const sql = `SELECT s.id, s.invoice_no, s.invoice_date, s.customer_account_id, COALESCE(a.account_name, 'Walk-in') as customer_name, s.total_amount, s.discount_amount, s.net_amount, COUNT(si.id) as item_count, STRING_AGG(CONCAT(it.item_name, ' x', si.quantity), ', ') as item_summary FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN sale_items si ON s.id = si.sale_id LEFT JOIN item_master it ON si.item_id = it.id WHERE s.company_id = ? AND s.id NOT IN (SELECT sale_id FROM sale_returns WHERE sale_id IS NOT NULL) GROUP BY s.id, s.invoice_no, s.invoice_date, s.customer_account_id, a.account_name ORDER BY s.invoice_date DESC`;
   return await query(sql, [companyId]);
 }
 
@@ -1204,10 +1659,6 @@ export async function getProfitLossSummary(companyId) {
   const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
   return await getProfitLossStatement(companyId, start, end);
-}
-
-export async function getConnection() {
-  return pool.connect();
 }
 
 export default pool;

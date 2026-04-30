@@ -71,7 +71,7 @@ export default function DeductionConsole() {
             sabhasadMasterApi.getAllSabhasad(),
             api.get('/accounts?type=ledger'),
             api.get('/deductions/targets'),
-            api.get('/narrations')
+            api.get('/narrations?type=JV')
          ]);
          if (memRes.data.success) setMembers(memRes.data.data);
          if (accRes.data.success) setAccounts(accRes.data.data);

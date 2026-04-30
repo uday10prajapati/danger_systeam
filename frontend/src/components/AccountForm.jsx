@@ -19,6 +19,7 @@ export default function AccountForm({
   const { t } = useTranslation();
   const [formData, setFormData] = useState(initialData || {
     account_code: '',
+    p_code: '',
     account_name: '',
     account_type: 'customer',
     phone: '',
@@ -36,14 +37,27 @@ export default function AccountForm({
 
   const fetchNextCode = async (type) => {
     try {
-      const response = await axios.get(`/api/accounts/next-code?type=${type}`, {
+      const response = await axios.get(`/api/accounts/next-id?type=${type}`, {
         headers: { 'x-company-id': companyId }
       });
       if (response.data.success) {
-        setFormData(prev => ({ ...prev, account_code: response.data.nextCode }));
+        setFormData(prev => ({ ...prev, account_code: response.data.nextId.toString() }));
       }
     } catch (err) {
       console.error("Failed to fetch next account code", err);
+    }
+  };
+
+  const fetchNextPCode = async (type) => {
+    try {
+      const response = await axios.get(`/api/accounts/next-pcode?type=${type}`, {
+        headers: { 'x-company-id': companyId }
+      });
+      if (response.data.success) {
+        setFormData(prev => ({ ...prev, p_code: response.data.nextPCode }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch next account P-Code", err);
     }
   };
 
@@ -64,6 +78,7 @@ export default function AccountForm({
     if (!initialData && formData.account_type) {
       fetchNextId(formData.account_type);
       fetchNextCode(formData.account_type);
+      fetchNextPCode(formData.account_type);
     }
   }, [initialData, companyId, formData.account_type]);
 
@@ -162,16 +177,27 @@ export default function AccountForm({
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Basic Information</h3>
               </div>
               
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-5 gap-4">
                 <div className="col-span-1 flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</label>
                   <input
                     type="text"
                     name="account_code"
-                    value={formData.account_code}
+                    value={formData.account_code || ''}
                     onChange={handleChange}
                     placeholder="000"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                  />
+                </div>
+                <div className="col-span-1 flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">P-Code</label>
+                  <input
+                    type="text"
+                    name="p_code"
+                    value={formData.p_code || ''}
+                    onChange={handleChange}
+                    placeholder="P-000"
+                    className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
                   />
                 </div>
                 <div className="col-span-3 flex flex-col gap-1.5">
@@ -179,7 +205,7 @@ export default function AccountForm({
                   <input
                     type="text"
                     name="account_name"
-                    value={formData.account_name}
+                    value={formData.account_name || ''}
                     onChange={handleChange}
                     required
                     placeholder="Enter Ledger Name"
@@ -209,7 +235,7 @@ export default function AccountForm({
                     <input
                       type="tel"
                       name="phone"
-                      value={formData.phone}
+                      value={formData.phone || ''}
                       onChange={handleChange}
                       placeholder="10-digit Primary"
                       className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
@@ -225,7 +251,7 @@ export default function AccountForm({
                   <input
                     type="email"
                     name="email"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={handleChange}
                     placeholder="finance@node.sh"
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs"
@@ -295,7 +321,7 @@ export default function AccountForm({
                       <input
                         type="text"
                         name="gst_no"
-                        value={formData.gst_no}
+                        value={formData.gst_no || ''}
                         onChange={handleChange}
                         placeholder="GSTIN String"
                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold uppercase text-xs"
@@ -309,7 +335,7 @@ export default function AccountForm({
                       <input
                         type="text"
                         name="tin_no"
-                        value={formData.tin_no}
+                        value={formData.tin_no || ''}
                         onChange={handleChange}
                         placeholder="TIN Details"
                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"

@@ -79,10 +79,11 @@ router.post('/', async (req, res) => {
     const sql = `
       INSERT INTO dangar_rates (company_id, financial_year, item_id, rate, winter_rate, summer_rate)
       VALUES (?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE 
-        rate = VALUES(rate),
-        winter_rate = VALUES(winter_rate),
-        summer_rate = VALUES(summer_rate),
+      ON CONFLICT (company_id, financial_year, item_id) 
+      DO UPDATE SET 
+        rate = EXCLUDED.rate,
+        winter_rate = EXCLUDED.winter_rate,
+        summer_rate = EXCLUDED.summer_rate,
         updated_at = CURRENT_TIMESTAMP
     `;
     

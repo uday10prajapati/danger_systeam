@@ -5,7 +5,7 @@ import {
   AlertCircle, CheckCircle, History,
   Package, User, FileText, ChevronRight,
   Database, Info, Layout, ArrowLeftRight,
-  TrendingDown, TrendingUp, IndianRupee, Tag
+  TrendingDown, TrendingUp, IndianRupee, Tag, Edit2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
@@ -27,7 +27,7 @@ const BardanPortfolio = () => {
     remark: '',
     dayQty: '',
     totalQty: '',
-    option: 'Self' // Default to Self for manual returns
+    option: 'Company' // Default to Company Bags for returns
   });
 
   const [gridRows, setGridRows] = useState(Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
@@ -41,6 +41,8 @@ const BardanPortfolio = () => {
   const [bardanPrice, setBardanPrice] = useState(0);
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [priceForm, setPriceForm] = useState({ price_per_bardan: '' });
+  const [searchTerms, setSearchTerms] = useState({ code: '', name: '' });
+  const [dropdowns, setDropdowns] = useState({ code: false, name: false });
 
   useEffect(() => {
     const total = gridRows.reduce((acc, row) => {
@@ -56,6 +58,14 @@ const BardanPortfolio = () => {
   useEffect(() => {
     loadData();
     loadBardanPrice();
+
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('.member-select-container')) {
+        setDropdowns({ code: false, name: false });
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
   const loadData = async () => {
@@ -193,12 +203,15 @@ const BardanPortfolio = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setSearchTerms(prev => ({ ...prev, [name]: value }));
+    setDropdowns(prev => ({ ...prev, [name]: true }));
 
     if (name === 'code') {
       const member = members.find(m => m.member_code === value);
       if (member) {
         setFormData(prev => ({ ...prev, name: member.member_name }));
         fetchBalance(value);
+        setDropdowns(prev => ({ ...prev, code: false }));
       } else {
         setBalanceData({ taken: 0, returned: 0, balance: 0 });
       }
@@ -208,10 +221,23 @@ const BardanPortfolio = () => {
       if (member) {
         setFormData(prev => ({ ...prev, code: member.member_code }));
         fetchBalance(member.member_code);
+        setDropdowns(prev => ({ ...prev, name: false }));
       } else {
         setBalanceData({ taken: 0, returned: 0, balance: 0 });
       }
     }
+  };
+
+  const selectMember = (member) => {
+    setFormData(prev => ({
+      ...prev,
+      code: member.member_code,
+      name: member.member_name,
+      memNominal: member.nominal_member === 'Member' ? 'Member' : 'Nominal'
+    }));
+    setSearchTerms({ code: member.member_code, name: member.member_name });
+    setDropdowns({ code: false, name: false });
+    fetchBalance(member.member_code);
   };
 
   const handleSave = async () => {
@@ -352,7 +378,7 @@ const BardanPortfolio = () => {
       code: '',
       name: '',
       qty: '',
-      option: 'Self',
+      option: 'Company',
       remark: '',
       dayQty: '',
       totalQty: ''
@@ -421,10 +447,22 @@ const BardanPortfolio = () => {
                       </td>
                       <td className="px-10 py-6">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                          {row.id !== 'OP' && (
+                          {row.id !== 'OP' && row.type !== 'OPENING' && (
                             <>
-                              <button onClick={() => handleEdit(row)} title="Edit Entry" className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-lg shadow-sm transition-all"><ChevronRight size={16} /></button>
-                              <button onClick={() => handleVoid(row.id, row.type)} title="Void Entry (Zero out)" className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-lg shadow-sm transition-all"><RefreshCcw size={16} /></button>
+                              <button 
+                                onClick={() => handleEdit(row)} 
+                                title="Edit Transaction" 
+                                className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg shadow-sm transition-all border border-blue-100"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button 
+                                onClick={() => handleVoid(row.id, row.type)} 
+                                title="Void Entry (Set to 0)" 
+                                className="p-2.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg shadow-sm transition-all border border-rose-100"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </>
                           )}
                         </div>
@@ -540,35 +578,77 @@ const BardanPortfolio = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 relative">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Code</label>
                       <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-                        <select
+                        <input
+                          type="text"
                           name="code"
-                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
+                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 uppercase"
+                          placeholder="SEARCH CODE..."
                           value={formData.code}
+                          autoComplete="off"
+                          onFocus={() => setDropdowns(prev => ({ ...prev, code: true }))}
                           onChange={handleChange}
-                        >
-                          <option value="">SELECT CODE...</option>
-                          {members.map(m => <option key={m.id} value={m.member_code}>{m.member_code}</option>)}
-                        </select>
+                        />
+                        {dropdowns.code && (
+                          <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-[300px] overflow-y-auto scroller-airy">
+                            {members
+                              .filter(m => m.member_code.toString().toLowerCase().includes(formData.code.toLowerCase()))
+                              .slice(0, 50)
+                              .map(m => (
+                                <div
+                                  key={m.id}
+                                  onClick={() => selectMember(m)}
+                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-none group transition-colors"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-black text-slate-800 tracking-tighter">{m.member_code}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 group-hover:text-blue-500 uppercase">{m.village_name}</span>
+                                  </div>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase">{m.member_name}</p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 relative">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Name</label>
                       <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-                        <select
+                        <input
+                          type="text"
                           name="name"
-                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
+                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 uppercase"
+                          placeholder="SEARCH NAME..."
                           value={formData.name}
+                          autoComplete="off"
+                          onFocus={() => setDropdowns(prev => ({ ...prev, name: true }))}
                           onChange={handleChange}
-                        >
-                          <option value="">SELECT NAME...</option>
-                          {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
-                        </select>
+                        />
+                        {dropdowns.name && (
+                          <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-[300px] overflow-y-auto scroller-airy">
+                            {members
+                              .filter(m => m.member_name.toLowerCase().includes(formData.name.toLowerCase()))
+                              .slice(0, 50)
+                              .map(m => (
+                                <div
+                                  key={m.id}
+                                  onClick={() => selectMember(m)}
+                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-none group transition-colors"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-black text-slate-800 tracking-tighter">{m.member_name}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 group-hover:text-blue-500 uppercase">{m.member_code}</span>
+                                  </div>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase">{m.village_name}</p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -759,12 +839,17 @@ const BardanPortfolio = () => {
         .custom-scroller::-webkit-scrollbar-track { background: transparent; }
         .custom-scroller::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         .custom-scroller:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
+        
+        .scroller-airy::-webkit-scrollbar { width: 6px; }
+        .scroller-airy::-webkit-scrollbar-track { background: #f8fafc; }
+        .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; border: 2px solid #f8fafc; }
+        .scroller-airy:hover::-webkit-scrollbar-thumb { background: #cbd5e1; }
       `}} />
 
       {showPriceModal && (
-        <div className="fixed inset-0 z-[100] flex justify-center items-center p-6">
+        <div className="fixed inset-0 z-[100] flex justify-center items-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPriceModal(false)}></div>
-          <div className="bg-white rounded-lg w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative z-10 border border-white/20">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
@@ -801,6 +886,9 @@ const BardanPortfolio = () => {
                     placeholder="0.00"
                     value={priceForm.price_per_bardan}
                     onChange={(e) => setPriceForm({ ...priceForm, price_per_bardan: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveBardanPrice();
+                    }}
                   />
                 </div>
                 <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-relaxed ml-1">
@@ -817,9 +905,10 @@ const BardanPortfolio = () => {
                 </button>
                 <button
                   onClick={saveBardanPrice}
-                  className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest text-[10px] rounded-lg shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 active:scale-95 group"
                 >
-                  <Save size={16} /> Update Protocol
+                  <Save size={16} className="group-hover:scale-110 transition-transform" /> 
+                  <span>Save New Rate</span>
                 </button>
               </div>
             </div>

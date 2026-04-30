@@ -70,10 +70,11 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
   const fetchInitialData = async () => {
     try {
       setLoading(true);
+      const narrationType = isCredit ? 'Credit' : 'Debit';
       const [accRes, memRes, narrRes] = await Promise.all([
         api.get(`/accounts?type=ledger`),
         api.get('/members'),
-        api.get('/narrations')
+        api.get(`/narrations?type=${narrationType}`)
       ]);
 
       setAccounts(accRes.data.success ? accRes.data.data : []);

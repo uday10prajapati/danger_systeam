@@ -23,7 +23,7 @@ router.post('/', async (req, res) => {
     await connection.beginTransaction();
 
     // 1. Create journal voucher header
-    const [jvRes] = await connection.execute(
+    const jvRes = await connection.execute(
        `INSERT INTO journal_vouchers (company_id, voucher_date, voucher_type, total_credit, total_debit, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`,
        [companyId, voucher_date, voucher_type, totalCredit, totalDebit, notes || '', userId]
     );
@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
 
     // Helper to get account info
     const getAccInfo = async (accId) => {
-       const [rows] = await connection.execute(`SELECT account_name, account_type, is_subledger FROM accounts WHERE id = ?`, [accId]);
+       const rows = await query(`SELECT account_name, account_type, is_subledger FROM accounts WHERE id = ?`, [accId]);
        return rows[0] || null;
     };
 

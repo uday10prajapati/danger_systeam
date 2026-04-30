@@ -127,7 +127,7 @@ router.get('/', async (req, res) => {
     queryParams.push(...params);
 
     // Special Handling: If Dangar System (DS0001) is selected, provide detailed entry rows instead of summaries
-    const dangarAcc = await query('SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = ?', [companyId]);
+    const dangarAcc = await query('SELECT id FROM accounts WHERE account_code = \'DS0001\' AND company_id = ?', [companyId]);
     const dangarSystemId = dangarAcc[0]?.id;
 
     if (accountId && parseInt(accountId) === dangarSystemId) {
@@ -148,7 +148,7 @@ router.get('/', async (req, res) => {
         LEFT JOIN item_master im ON de.item_id = im.id
         WHERE de.company_id = ? AND de.entry_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND de.member_id = ?' : ''}
-        GROUP BY de.member_id, de.entry_date
+        GROUP BY de.member_id, de.entry_date, m.member_code, m.member_name, m.id
         ORDER BY de.entry_date DESC, m.member_name ASC
       `;
       const dangarParams = [companyId, startDate, endDate];
@@ -166,7 +166,7 @@ router.get('/', async (req, res) => {
     }
 
     // Special Handling: If Interest Khate (IK0001) is selected
-    const interestAcc = await query('SELECT id FROM accounts WHERE account_code = "IK0001" AND company_id = ?', [companyId]);
+    const interestAcc = await query('SELECT id FROM accounts WHERE account_code = \'IK0001\' AND company_id = ?', [companyId]);
     const interestSystemId = interestAcc[0]?.id;
 
     if (accountId && parseInt(accountId) === interestSystemId) {
@@ -178,7 +178,7 @@ router.get('/', async (req, res) => {
           al.interest_percent,
           al.interest_amount,
           al.description,
-          DATEDIFF(?, (SELECT MIN(transaction_date) FROM account_ledger WHERE member_id = al.member_id AND (debit > 0 OR debit_amount > 0) AND company_id = ?)) as days
+          CAST(? AS DATE) - (SELECT MIN(transaction_date) FROM account_ledger WHERE member_id = al.member_id AND (debit > 0 OR debit_amount > 0) AND company_id = ?) as days
         FROM account_ledger al
         JOIN member_master m ON al.member_id = m.id
         WHERE al.company_id = ? AND (al.account_id = ? OR al.interest_account_id = ?)
@@ -204,7 +204,6 @@ router.get('/', async (req, res) => {
     const isLabour = targetAccount?.account_name?.toLowerCase().includes('labour');
 
     if (accountId && isBrokerage) {
-      // ... existing brokerage logic ...
       const brokerageSql = `
         SELECT 
           COALESCE(m.member_code, 'SYSTEM') as member_code,

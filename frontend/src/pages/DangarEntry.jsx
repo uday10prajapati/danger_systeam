@@ -122,6 +122,25 @@ const DangarEntry = () => {
     }
   };
 
+  const handleMemberCodeChange = (code) => {
+    const member = members.find(m => String(m.member_code) === String(code));
+    if (member) {
+      handleMemberChange(member.id);
+    } else {
+      setSelectedMember(null);
+      setFormData(prev => ({ ...prev, member_id: '' }));
+    }
+  };
+
+  const handleItemCodeChange = (code) => {
+    const item = items.find(i => String(i.item_code) === String(code));
+    if (item) {
+      setFormData(prev => ({ ...prev, item_id: item.id }));
+    } else {
+      setFormData(prev => ({ ...prev, item_id: '' }));
+    }
+  };
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -402,25 +421,45 @@ const DangarEntry = () => {
   };
 
   const resetForm = () => {
-    setFormData({
-      bookType: '',
+    setFormData(prev => ({
+      ...prev,
       srNo: 'AUTO',
-      date: new Date().toISOString().split('T')[0],
       member_id: '',
       item_id: '',
       remark: '',
       vehicleNo: '',
       total_kg: 0,
       bardan: 0,
-      gun: 0,
       gross_quintal: 0,
       less_bardan: 0,
       net_quintal: 0,
-      rate: 0,
-      bardan_rate: 0,
-      amount: 0
-    });
-    setWeightRows([{ id: 1, wgt: '' }]);
+      amount: 0,
+      total_man: 0,
+      gross_amount: 0,
+      total_deduction: 0,
+      remaining_bardan_deduction: 0,
+      remaining_bardan_bags: 0,
+      returned_bags: 0,
+      bardan_rate: 0
+    }));
+    setWeightRows([{ id: Date.now(), wgt: '' }]);
+    setSelectedMember(null);
+    setBardanBalance(0);
+    
+    // Reset deductions to company defaults
+    const autoDeds = deductionMasters
+      .filter(dm => dm.auto_apply)
+      .map(dm => ({
+        deduction_id: dm.id,
+        name: dm.name,
+        type: dm.type,
+        value: dm.default_value,
+        calculated_amount: 0
+      }));
+    setDeductions(autoDeds);
+
+    // Optional: If you want a hard refresh, uncomment the line below:
+    // window.location.reload();
   };
 
   if (showHistory) {
@@ -616,18 +655,29 @@ const DangarEntry = () => {
                 {/* Member Selection */}
                 <div className="md:col-span-8 space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member</label>
-                  <div className="relative group">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
-                    <select
-                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
-                      value={formData.member_id}
-                      onChange={(e) => handleMemberChange(e.target.value)}
-                    >
-                      <option value="">Select Member...</option>
-                      {members.map(m => (
-                        <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>
-                      ))}
-                    </select>
+                  <div className="flex gap-2">
+                    <div className="w-1/4 relative group">
+                      <input
+                        type="text"
+                        placeholder="Code"
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 uppercase"
+                        value={selectedMember?.member_code || ''}
+                        onChange={(e) => handleMemberCodeChange(e.target.value)}
+                      />
+                    </div>
+                    <div className="w-3/4 relative group">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
+                      <select
+                        className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
+                        value={formData.member_id}
+                        onChange={(e) => handleMemberChange(e.target.value)}
+                      >
+                        <option value="">Select Member...</option>
+                        {members.map(m => (
+                          <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   {selectedMember && selectedMember.full_ac_number && (
                     <div className="flex items-center gap-2 mt-2 ml-1">
@@ -667,20 +717,31 @@ const DangarEntry = () => {
                 </div>
 
                 {/* Item Selection */}
-                <div className="md:col-span-8 space-y-3">
+                <div className="md:col-span-8 space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Item Schema Vector</label>
-                  <div className="relative group">
-                    <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
-                    <select
-                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
-                      value={formData.item_id}
-                      onChange={(e) => setFormData({ ...formData, item_id: e.target.value })}
-                    >
-                      <option value="">Select Resource Type...</option>
-                      {items.map(i => (
-                        <option key={i.id} value={i.id}>{i.item_code} - {i.item_name}</option>
-                      ))}
-                    </select>
+                  <div className="flex gap-2">
+                    <div className="w-1/4 relative group">
+                      <input
+                        type="text"
+                        placeholder="Code"
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 uppercase"
+                        value={items.find(i => i.id === parseInt(formData.item_id))?.item_code || ''}
+                        onChange={(e) => handleItemCodeChange(e.target.value)}
+                      />
+                    </div>
+                    <div className="w-3/4 relative group">
+                      <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
+                      <select
+                        className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
+                        value={formData.item_id}
+                        onChange={(e) => setFormData({ ...formData, item_id: e.target.value })}
+                      >
+                        <option value="">Select Resource Type...</option>
+                        {items.map(i => (
+                          <option key={i.id} value={i.id}>{i.item_code} - {i.item_name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>

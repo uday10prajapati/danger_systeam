@@ -156,9 +156,11 @@ export default function AccountMaster() {
   });
 
   const handleDownloadCSV = () => {
-    const headers = ['Account Name', 'Type', 'Status', 'Closing Balance', 'Balance Type'];
+    const headers = ['Account Name', 'Code', 'P-Code', 'Type', 'Status', 'Closing Balance', 'Balance Type'];
     const rows = filteredAccounts.map(acc => [
       `"${acc.account_name}"`,
+      `"${acc.account_code || acc.id}"`,
+      `"${acc.p_code || ''}"`,
       `"${acc.account_type}"`,
       `"${acc.is_active ? 'Active' : 'Inactive'}"`,
       parseFloat(acc.closing_balance || 0).toFixed(2),
@@ -305,6 +307,7 @@ export default function AccountMaster() {
                 <thead className="bg-[#F8FAFC]">
                   <tr className="uppercase tracking-widest font-black text-slate-400 text-[10px]">
                     <th className="px-6 py-5 border-r border-slate-50/50">Account Node</th>
+                    <th className="px-6 py-5 border-r border-slate-50/50">Identity / P-Code</th>
                     <th className="px-6 py-5 border-r border-slate-50/50">Type / Classification</th>
                     <th className="px-6 py-5 border-r border-slate-50/50 text-right">Closing Balance</th>
                     <th className="px-6 py-5 border-r border-slate-50/50 text-center">Status</th>
@@ -332,7 +335,25 @@ export default function AccountMaster() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-6 py-5 border-r border-slate-50/50">
+                        <div className="flex flex-col gap-2">
+                          {acc.p_code ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600 rounded text-[9px] font-black text-white uppercase tracking-[0.15em] shadow-sm shadow-blue-100 w-fit">
+                              {acc.p_code}
+                            </span>
+                          ) : (
+                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest w-fit">
+                                <Hash size={10} /> {acc.account_code || acc.id}
+                             </span>
+                          )}
+                          {acc.p_code && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest w-fit">
+                              <Hash size={10} /> {acc.account_code || acc.id}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 border-r border-slate-50/50">
                         <div className="flex flex-col gap-1.5 items-start">
                           <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
                             ['revenue', 'sales', 'customer'].includes(acc.account_type) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'

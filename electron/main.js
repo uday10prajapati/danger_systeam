@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
@@ -216,6 +216,29 @@ app.on('ready', async () => {
     console.log('📱 Creating main window...');
     createWindow();
 
+    // Register Global Shortcuts
+    const shortcuts = [
+      { key: 'Alt+V', path: '/village' },
+      { key: 'Alt+M', path: '/members' },
+      { key: 'Alt+A', path: '/accounts' },
+      { key: 'Alt+I', path: '/items' },
+      { key: 'Alt+N', path: '/narrations' },
+      { key: 'Alt+D', path: '/dangar-master' },
+      { key: 'Alt+C', path: '/company' },
+      { key: 'Alt+U', path: '/users' }
+    ];
+
+    shortcuts.forEach(s => {
+      globalShortcut.register(s.key, () => {
+        if (mainWindow) {
+          console.log(`⌨️ Global Shortcut Triggered: ${s.key} -> Navigating to ${s.path}`);
+          mainWindow.webContents.send('navigate-to-path', s.path);
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.focus();
+        }
+      });
+    });
+
   } catch (error) {
     console.error('❌ Error during startup:', error.message);
     console.error('Full error:', error);
@@ -227,6 +250,7 @@ app.on('ready', async () => {
 });
 
 app.on('window-all-closed', () => {
+  globalShortcut.unregisterAll();
   if (process.platform !== 'darwin') {
     app.quit();
   }

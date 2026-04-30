@@ -98,6 +98,7 @@ export const sabhasadMasterApi = {
   getSabhasadById: (id) => api.get(`/members/${id}`),
   getSabhasadByCode: (code) => api.get(`/members/code/${code}`),
   getLastCode: () => api.get('/members/last-code'),
+  getNextPCode: (isNominal) => api.get(`/members/next-pcode?isNominal=${isNominal}`),
   createSabhasad: (data) => api.post('/members', data),
   updateSabhasad: (id, data) => api.put(`/members/${id}`, data),
   deleteSabhasad: (id) => api.delete(`/members/${id}`),

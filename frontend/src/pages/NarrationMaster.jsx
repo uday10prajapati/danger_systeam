@@ -17,7 +17,7 @@ export default function NarrationMaster() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ narration_text: '', narration_code: '' });
+  const [formData, setFormData] = useState({ narration_text: '', narration_code: '', narration_type: 'JV' });
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -39,10 +39,14 @@ export default function NarrationMaster() {
   const handleOpenModal = (n = null) => {
     if (n) {
       setEditingId(n.id);
-      setFormData({ narration_text: n.narration_text, narration_code: n.narration_code || '' });
+      setFormData({ 
+        narration_text: n.narration_text, 
+        narration_code: n.narration_code || '',
+        narration_type: n.narration_type || 'JV'
+      });
     } else {
       setEditingId(null);
-      setFormData({ narration_text: '', narration_code: '' });
+      setFormData({ narration_text: '', narration_code: '', narration_type: 'JV' });
     }
     setError(null);
     setShowModal(true);
@@ -96,7 +100,8 @@ export default function NarrationMaster() {
 
   const filtered = narrations.filter(n =>
     n.narration_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (n.narration_code && n.narration_code.toLowerCase().includes(searchTerm.toLowerCase()))
+    (n.narration_code && n.narration_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (n.narration_type && n.narration_type.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -192,9 +197,18 @@ export default function NarrationMaster() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/20 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700"></div>
                     
                     <div className="flex justify-between items-start mb-4 relative z-10">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-100 rounded text-[10px] font-black text-slate-400 uppercase tracking-widest italic group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
-                        <Hash size={10} /> {n.narration_code || 'UNTITLED'}
-                      </span>
+                      <div className="flex gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-100 rounded text-[10px] font-black text-slate-400 uppercase tracking-widest italic group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
+                          <Hash size={10} /> {n.narration_code || 'UNTITLED'}
+                        </span>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 border rounded text-[10px] font-black uppercase tracking-widest italic transition-colors ${
+                          n.narration_type === 'Credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          n.narration_type === 'Debit' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                          'bg-blue-50 text-blue-600 border-blue-100'
+                        }`}>
+                          {n.narration_type || 'JV'}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                         <button onClick={() => handleOpenModal(n)} className="p-2 bg-white border border-slate-100 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-95">
                           <Edit2 size={14} />
@@ -240,17 +254,32 @@ export default function NarrationMaster() {
               )}
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Reference Code</label>
-                  <div className="relative">
-                    <Hash size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                      type="text"
-                      value={formData.narration_code}
-                      onChange={e => setFormData({ ...formData, narration_code: e.target.value.toUpperCase() })}
-                      className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm uppercase tracking-widest shadow-sm"
-                      placeholder="e.g. PN-01"
-                    />
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Reference Code</label>
+                    <div className="relative">
+                      <Hash size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input
+                        type="text"
+                        value={formData.narration_code}
+                        onChange={e => setFormData({ ...formData, narration_code: e.target.value.toUpperCase() })}
+                        className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm uppercase tracking-widest shadow-sm"
+                        placeholder="e.g. 1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Narration Type</label>
+                    <select
+                      value={formData.narration_type}
+                      onChange={e => setFormData({ ...formData, narration_type: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm shadow-sm"
+                    >
+                      <option value="Credit">Credit</option>
+                      <option value="Debit">Debit</option>
+                      <option value="JV">JV (All others)</option>
+                    </select>
                   </div>
                 </div>
 

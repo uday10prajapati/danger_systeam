@@ -133,23 +133,63 @@ router.patch('/:id', async (req, res) => {
   try {
     const companyId = req.header('x-company-id');
     const id = req.params.id;
-    const { transaction_date, description, cash_in, cash_out, notes, account_id } = req.body;
+    const { 
+      transaction_date, description, cash_in, cash_out, 
+      notes, account_id, member_id, entries 
+    } = req.body;
 
-    // Update the main entry (The record we are editing)
-    // Debit = cash_out (Payment), Credit = cash_in (Receipt)
+    if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
+
+    // In a multi-row system, we should ideally check if this ID is part of a batch.
+    // For now, we update the specific row.
+    
+    // If it's a batch edit from the modal, 'entries' might contain the updated row data.
+    // We try to find the specific entry in the batch that matches this ID, or use the top-level fields.
+    let targetMemberId = member_id || null;
+    let targetDescription = description;
+    let targetDebit = cash_out || 0;
+    let targetCredit = cash_in || 0;
+    let targetNotes = notes || '';
+
+    if (entries && entries.length > 0) {
+      // If we are editing via the multi-row modal, the payload might have the sum in cash_in/out
+      // but we only want to update THIS specific row's amount if possible.
+      // However, the modal currently sends the SUM as cash_in/out.
+      // If there's only one entry in the batch, we use it.
+      if (entries.length === 1) {
+        const e = entries[0];
+        targetMemberId = e.member_id || targetMemberId;
+        targetDescription = e.description || targetDescription;
+        targetDebit = e.cash_out || 0;
+        targetCredit = e.cash_in || 0;
+        targetNotes = e.notes || targetNotes;
+      }
+    }
+
     await query(`
       UPDATE account_ledger 
-      SET transaction_date = ?, description = ?, debit = ?, credit = ?, notes = ?, 
-          account_id = ?, member_id = ?, transaction_type = 'cash_book',
+      SET transaction_date = ?, 
+          description = ?, 
+          debit = ?, 
+          credit = ?, 
+          notes = ?, 
+          account_id = ?, 
+          member_id = ?, 
+          transaction_type = 'cash_book',
+          reference_type = COALESCE(reference_type, 'cash_book'),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND company_id = ?
     `, [
-      transaction_date, description, cash_out || 0, cash_in || 0, notes || '',
-      req.body.account_id || null, req.body.member_id || null,
-      id, companyId
+      transaction_date, 
+      targetDescription, 
+      targetDebit, 
+      targetCredit, 
+      targetNotes,
+      account_id || null, 
+      targetMemberId,
+      id, 
+      companyId
     ]);
-
-
 
     res.json({ success: true, message: 'Entry updated successfully' });
   } catch (error) {
