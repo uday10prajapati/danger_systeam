@@ -4,10 +4,13 @@ import {
   Search, X, RefreshCcw, Calendar,
   AlertCircle, CheckCircle, History,
   Package, User, FileText, ChevronRight,
-  Database, Info, Layout
+  Database, Info, Layout, TrendingUp, TrendingDown,
+  ArrowLeftRight, IndianRupee, Tag
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { jamaBardanEntryApi, sabhasadMasterApi } from '../api';
+import api, { jamaBardanEntryApi, sabhasadMasterApi, bardanEntryApi } from '../api';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 const JamaBardanEntry = () => {
   const { t } = useTranslation();
@@ -33,10 +36,23 @@ const JamaBardanEntry = () => {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [balanceData, setBalanceData] = useState({ taken: 0, returned: 0, balance: 0 });
+  const [bardanPrice, setBardanPrice] = useState(0);
 
   useEffect(() => {
     loadData();
+    loadBardanPrice();
   }, []);
+
+  useEffect(() => {
+    // Auto-calculate total from grid if data exists
+    const total = gridRows.reduce((acc, row) => {
+      const sum = (parseFloat(row.col1) || 0) + (parseFloat(row.col2) || 0) + (parseFloat(row.col3) || 0);
+      return acc + sum;
+    }, 0);
+    if (total > 0) {
+      setFormData(prev => ({ ...prev, qty: total.toFixed(2) }));
+    }
+  }, [gridRows]);
 
   const loadData = async () => {
     try {
@@ -55,6 +71,17 @@ const JamaBardanEntry = () => {
       setMessage({ type: 'error', text: 'Synchronization failure' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBardanPrice = async () => {
+    try {
+      const res = await api.get('/bardan-price');
+      if (res.data.success) {
+        setBardanPrice(res.data.data?.price_per_bardan || 0);
+      }
+    } catch (err) {
+      console.error('Bardan price fetch error:', err);
     }
   };
 
@@ -99,20 +126,33 @@ const JamaBardanEntry = () => {
 
   const handleSave = async () => {
     if (!formData.name || !formData.date) {
-      setMessage({ type: 'error', text: 'Validation failure: Identity and Date required' });
+      setMessage({ type: 'error', text: 'Identity and Date required' });
+      return;
+    }
+    if (!formData.qty || parseFloat(formData.qty) <= 0) {
+      setMessage({ type: 'error', text: 'Quantity must be greater than 0' });
       return;
     }
 
     try {
       setLoading(true);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const payload = {
+        ...formData,
+        gridRows,
+        company_id: user.company_id,
+        financial_year: user.financial_year || '2026-27'
+      };
+
       const res = formData.id
-        ? await jamaBardanEntryApi.updateEntry(formData.id, { ...formData, gridRows })
-        : await jamaBardanEntryApi.createEntry({ ...formData, gridRows });
+        ? await jamaBardanEntryApi.updateEntry(formData.id, payload)
+        : await jamaBardanEntryApi.createEntry(payload);
 
       if (res.data.success) {
         setMessage({ type: 'success', text: formData.id ? 'Entry updated successfully' : 'Entry committed to registry' });
         if (!formData.id) resetForm();
         loadData();
+        if (formData.code) fetchBalance(formData.code);
         setTimeout(() => setMessage(null), 5000);
       }
     } catch (error) {
@@ -131,6 +171,7 @@ const JamaBardanEntry = () => {
       if (res.data.success) {
         setMessage({ type: 'success', text: 'Node decommissioned' });
         loadData();
+        if (formData.code) fetchBalance(formData.code);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Decommission failed' });
@@ -161,6 +202,7 @@ const JamaBardanEntry = () => {
         });
         setGridRows(entry.gridRows || Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
         setShowHistory(false);
+        fetchBalance(entry.code);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load manifest details' });
@@ -188,31 +230,30 @@ const JamaBardanEntry = () => {
     setBalanceData({ taken: 0, returned: 0, balance: 0 });
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => { window.print(); };
 
   if (showHistory) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in slide-in-from-right duration-500">
-        <div className="max-w-[1500px] mx-auto px-8">
-          <div className="flex justify-between items-center py-10">
-            <div>
-              <h1 className="text-3xl font-black text-emerald-500 tracking-tight italic uppercase">Jama Bardan History</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Jama Gunny Bag Registry Manifest</p>
-            </div>
+        <div className="max-w-[1600px] mx-auto px-8">
+          <PageHeader
+            eyebrow="Asset Management / Jama Vector"
+            eyebrowIcon={<History size={12} />}
+            title="Jama History"
+            subtitle="Jama Gunny Bag Registry Manifest"
+          >
             <button
               onClick={() => setShowHistory(false)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
+              className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm"
             >
               <X size={16} /> Exit History
             </button>
-          </div>
+          </PageHeader>
 
-          <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mt-8">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-10 py-6">Identity</th>
                   <th className="px-10 py-6">Date & Pavti</th>
                   <th className="px-10 py-6 text-right">Quantity</th>
@@ -221,23 +262,23 @@ const JamaBardanEntry = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {history.map((row) => (
-                  <tr key={row.id} className="group hover:bg-white transition-all">
+                  <tr key={row.id} className="group hover:bg-slate-50/50 transition-all">
                     <td className="px-10 py-6">
-                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight italic">{row.name}</p>
+                      <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{row.name}</p>
                       <p className="text-[10px] font-bold text-slate-400 tracking-widest">CODE: {row.code}</p>
                     </td>
                     <td className="px-10 py-6">
-                      <p className="text-sm font-bold text-slate-600 font-mono italic">{new Date(row.entry_date).toLocaleDateString()}</p>
-                      <p className="text-[10px] font-bold text-emerald-500 uppercase italic"># {row.pavti_no || 'N/A'}</p>
+                      <p className="text-sm font-bold text-slate-600 font-mono">{new Date(row.entry_date).toLocaleDateString()}</p>
+                      <p className="text-[10px] font-bold text-blue-500 uppercase"># {row.pavti_no || 'N/A'}</p>
                     </td>
                     <td className="px-10 py-6 text-right">
-                      <p className="text-2xl font-black text-slate-800 italic">{row.qty}</p>
+                      <p className="text-2xl font-black text-slate-800">{row.qty}</p>
                       <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Bags Recorded</p>
                     </td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => handleEdit(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><ChevronRight size={16} /></button>
-                        <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 size={16} /></button>
+                        <button onClick={() => handleEdit(row.id)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-lg shadow-sm transition-all"><ChevronRight size={16} /></button>
+                        <button onClick={() => handleDelete(row.id)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-lg shadow-sm transition-all"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -252,90 +293,61 @@ const JamaBardanEntry = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1500px] mx-auto px-8">
+      <div className="max-w-[1600px] mx-auto px-8">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1 italic">
-              <Package size={12} />
-              <span>Asset Management / Jama Vector</span>
-            </div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tighter leading-none italic uppercase">
-              {t('jamaBardanEntry.title', 'Jama Bardan Entry')}
-            </h1>
+        <PageHeader
+          eyebrow="Asset Management / Return Entry"
+          eyebrowIcon={<ArrowLeftRight size={12} />}
+          title={t('jamaBardanEntry.title', 'Jama Bardan Entry')}
+          subtitle="Physical Return Registry / Bag Credit Node"
+        >
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowHistory(true)}
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+            >
+              <History size={15} /> History
+            </button>
+            <button
+              onClick={resetForm}
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+            >
+              <RefreshCcw size={15} /> Reset
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+            >
+              <Save size={15} /> Save Entry
+            </button>
           </div>
-
-          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-lg border border-white shadow-sm">
-            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
-              <History size={20} />
-            </div>
-            <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-emerald-500 transition-colors">{t('dangarEntry.dataShow')}</p>
-              <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-emerald-500/30">View Registry Logs</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Balance Metrics Strip */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-xl group hover:bg-white/80 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 text-white rounded-lg flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
-                <Package size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Asset Load</p>
-                <p className="text-2xl font-black text-slate-800 italic">#{balanceData.taken} <span className="text-xs">Uthar</span></p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-xl group hover:bg-white/80 transition-all border-l-8 border-l-emerald-500">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-500 text-white rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
-                <History size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Return Registry</p>
-                <p className="text-2xl font-black text-emerald-600 italic">#{balanceData.returned} <span className="text-xs">Jama</span></p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-slate-900 p-8 rounded-lg border border-slate-800 shadow-2xl relative overflow-hidden group border-l-8 border-l-rose-500">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-              <Database size={80} />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Outstanding Debt</p>
-              <p className="text-2xl font-black text-white italic">#{balanceData.balance} <span className="text-[10px] text-rose-400 font-bold ml-1 uppercase">Remains</span></p>
-            </div>
-          </div>
-        </div>
+        </PageHeader>
 
         {/* Messaging */}
         {message && (
-          <div className={`mb-8 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          <div className={`mb-6 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
             }`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-            <span className="text-sm font-black italic tracking-tight uppercase tracking-widest">{message.text}</span>
+            <span className="text-sm font-bold tracking-tight uppercase tracking-widest">{message.text}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
           {/* Main Form (Left) */}
-          <div className="lg:col-span-8 space-y-8">
-            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-lg border border-white shadow-2xl space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 -mr-10 -mt-10 select-none pointer-events-none">
+          <div className="lg:col-span-8 space-y-6">
+            <div className="bg-white p-8 rounded-lg border border-slate-200 shadow-sm space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-10 opacity-[0.02] select-none pointer-events-none">
                 <Package size={240} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.book_type')}</label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Registry Prototype</label>
                   <select
                     name="bookType"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
                     value={formData.bookType}
                     onChange={handleChange}
                   >
@@ -344,37 +356,37 @@ const JamaBardanEntry = () => {
                   </select>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.pavti_no')}</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.pavti_no')}</label>
                   <input
                     name="pavtiNo"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300"
                     placeholder="ENTER PVT NO."
                     value={formData.pavtiNo}
                     onChange={handleChange}
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.date')}</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.date')}</label>
                   <input
                     type="date"
                     name="date"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700"
                     value={formData.date}
                     onChange={handleChange}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.code')}</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Identity Node</label>
                   <div className="relative group">
-                    <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <select
                       name="code"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
                       value={formData.code}
                       onChange={handleChange}
                     >
@@ -384,13 +396,13 @@ const JamaBardanEntry = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.name')}</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Alias Pointer</label>
                   <div className="relative group">
-                    <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <select
                       name="name"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
                       value={formData.name}
                       onChange={handleChange}
                     >
@@ -401,15 +413,15 @@ const JamaBardanEntry = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.qty')}</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Transaction Volume</label>
                   <div className="relative group">
-                    <Package className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <input
                       type="number"
                       name="qty"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300"
                       placeholder="0.00"
                       value={formData.qty}
                       onChange={handleChange}
@@ -417,28 +429,30 @@ const JamaBardanEntry = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.mem_nominal')}</label>
-                  <select
-                    name="memNominal"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black italic text-sm text-slate-700 shadow-inner appearance-none uppercase"
-                    value={formData.memNominal}
-                    onChange={handleChange}
-                  >
-                    <option value="">SELECT...</option>
-                    <option value="Member">Sabhasad</option>
-                    <option value="Nominal">Nominal</option>
-                  </select>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Membership Status</label>
+                  <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <input
+                      type="checkbox"
+                      id="memNominalCheck"
+                      className="w-5 h-5 rounded text-blue-600 border-slate-300 focus:ring-blue-500 transition-all cursor-pointer"
+                      checked={formData.memNominal === 'Member'}
+                      onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
+                    />
+                    <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer select-none">
+                      {formData.memNominal === 'Member' ? 'Sabhasad (Active Member)' : 'Nominal Member'}
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.remark')}</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.remark')}</label>
                 <div className="relative group">
-                  <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                  <Info className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                   <textarea
                     name="remark"
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
+                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 min-h-[100px] placeholder:text-slate-300"
                     placeholder="ADDITIONAL CONTEXT..."
                     value={formData.remark}
                     onChange={handleChange}
@@ -448,54 +462,85 @@ const JamaBardanEntry = () => {
             </div>
           </div>
 
-          {/* Right Panel (Grid) */}
-          <div className="lg:col-span-4 space-y-8">
-            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-lg border border-white shadow-2xl flex flex-col h-[600px]">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-emerald-50 text-emerald-500 rounded-lg shadow-inner">
-                  <Layout size={20} />
+          {/* Right Panel (Metrics + Grid) */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-4">
+              <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <TrendingUp size={16} className="text-blue-600" />
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Asset Load</p>
                 </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-800 leading-none italic uppercase">{t('bardanEntry.item_details')}</h3>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Multi-vector Matrix</p>
-                </div>
+                <p className="text-lg font-black text-slate-900 tracking-tight">#{balanceData.taken}</p>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scroller space-y-3 mb-6">
+              <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <TrendingDown size={16} className="text-emerald-600" />
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Return Reg</p>
+                </div>
+                <p className="text-lg font-black text-emerald-700 tracking-tight">#{balanceData.returned}</p>
+              </div>
+
+              <div className="p-5 bg-white rounded-lg border-2 border-blue-600 shadow-lg shadow-blue-50 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12">
+                  <Database size={48} className="text-blue-600" />
+                </div>
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest relative z-10">Net Position</p>
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <p className="text-3xl font-black text-slate-900 tracking-tight">#{balanceData.balance}</p>
+                  <span className="text-[8px] text-blue-600 font-bold uppercase tracking-widest">Outstanding</span>
+                </div>
+                {bardanPrice > 0 && (
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-3 relative z-10 pt-3 border-t border-slate-100">
+                    VALUATION: ₹{(balanceData.balance * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col h-[520px]">
+              <TableHeading
+                icon={<Layout size={18} />}
+                iconColor="blue"
+                title="Bags Allocation Log"
+                subtitle="Real-time batch entry grid"
+              />
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scroller p-5">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="italic text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                       <th className="py-3 text-center w-8">#</th>
-                      <th className="py-3 px-2 text-left">COL 1</th>
-                      <th className="py-3 px-2 text-left">COL 2</th>
-                      <th className="py-3 px-2 text-left">COL 3</th>
+                      <th className="py-3 px-2 text-left">POS 1</th>
+                      <th className="py-3 px-2 text-left">POS 2</th>
+                      <th className="py-3 px-2 text-left">POS 3</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-50">
                     {gridRows.map((row, i) => (
                       <tr key={i} className="group">
-                        <td className="text-center font-black text-slate-200 italic">{i + 1}</td>
-                        <td className="px-1 py-1">
+                        <td className="text-center font-bold text-slate-300">{i + 1}</td>
+                        <td className="px-1 py-1.5">
                           <input
-                            className="w-full bg-slate-50 border-none rounded-lg px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
                             value={row.col1}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
                             }}
                           />
                         </td>
-                        <td className="px-1 py-1">
+                        <td className="px-1 py-1.5">
                           <input
-                            className="w-full bg-slate-50 border-none rounded-lg px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
                             value={row.col2}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
                             }}
                           />
                         </td>
-                        <td className="px-1 py-1">
+                        <td className="px-1 py-1.5">
                           <input
-                            className="w-full bg-slate-50 border-none rounded-lg px-3 py-2.5 font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono"
+                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
                             value={row.col3}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
@@ -507,58 +552,8 @@ const JamaBardanEntry = () => {
                   </tbody>
                 </table>
               </div>
-
-              <div className="space-y-4 pt-6 border-t border-slate-100">
-                <div className="flex justify-between items-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase italic">{t('bardanEntry.day_qty')}</p>
-                  <input
-                    type="number"
-                    name="dayQty"
-                    className="w-24 text-right bg-slate-50 rounded-lg px-3 py-2 font-black text-slate-700"
-                    value={formData.dayQty}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="flex justify-between items-center text-emerald-500">
-                  <p className="text-[10px] font-black uppercase italic">{t('bardanEntry.total_qty')}</p>
-                  <input
-                    type="number"
-                    name="totalQty"
-                    className="w-32 text-right bg-emerald-50/50 border border-emerald-100 rounded-lg px-3 py-3 text-2xl font-black italic tracking-tighter"
-                    value={formData.totalQty}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
             </div>
           </div>
-        </div>
-
-        {/* Commands */}
-        <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-lg border border-white shadow-xl flex flex-wrap justify-center gap-5">
-          {[
-            { label: 'Display History', icon: History, color: 'slate', action: () => setShowHistory(true), sub: 'Registry logs' },
-            { label: 'Initialize New', icon: Plus, color: 'blue', action: resetForm, sub: 'Reset command' },
-            { label: 'Commit Entry', icon: Save, color: 'emerald', action: handleSave, sub: 'Commit to DB' },
-            { label: 'Physical Print', icon: Printer, color: 'slate', action: handlePrint, sub: 'Generate slip' },
-            { label: 'Abort State', icon: X, color: 'slate', action: resetForm, sub: 'Clear form' },
-          ].map((btn, i) => (
-            <button
-              key={i}
-              onClick={btn.action}
-              className={`flex items-center gap-4 px-10 py-5 rounded-lg tracking-widest transition-all shadow-xl active:scale-95 border-b-4 relative group overflow-hidden ${btn.color === 'emerald' ? 'bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-600' :
-                btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
-                  'bg-white text-slate-800 border-slate-100 hover:bg-slate-50'
-                }`}
-            >
-              <div className="absolute inset-0 bg-white/10 translate-y-20 group-hover:translate-y-0 transition-transform duration-300"></div>
-              <btn.icon size={20} className="relative z-10" />
-              <div className="text-left relative z-10">
-                <p className="text-[10px] font-black uppercase leading-none">{btn.label}</p>
-                <p className="text-[8px] font-black uppercase opacity-60 mt-1">{btn.sub}</p>
-              </div>
-            </button>
-          ))}
         </div>
 
       </div>
@@ -566,8 +561,8 @@ const JamaBardanEntry = () => {
         __html: `
         .custom-scroller::-webkit-scrollbar { width: 4px; }
         .custom-scroller::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroller::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 10px; }
-        .custom-scroller:hover::-webkit-scrollbar-thumb { background: #10b981; }
+        .custom-scroller::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scroller:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
       `}} />
     </div>
   );

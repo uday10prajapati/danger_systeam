@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 export default function DangarRateMaster() {
    const { t } = useTranslation();
@@ -171,42 +173,40 @@ export default function DangarRateMaster() {
       <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
          <div className="max-w-[1600px] mx-auto px-8">
 
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
-               <div>
-                  <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Year Wise Dangar Rate</h1>
+            <PageHeader
+               eyebrow="Rate Configuration / Fiscal Registry"
+               eyebrowIcon={<TrendingUp size={12} />}
+               title="Year Wise Dangar Rate"
+               subtitle={`Financial Year ${financialYear}`}
+            >
+               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
+                  <Calendar size={15} className="text-slate-400" />
+                  <select
+                     value={financialYear}
+                     onChange={(e) => setFinancialYear(e.target.value)}
+                     className="bg-transparent border-none outline-none text-sm text-slate-600 font-bold cursor-pointer"
+                  >
+                     <option value="2026-27">2026-27</option>
+                     <option value="2025-26">2025-26</option>
+                  </select>
                </div>
-               <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-                     <Calendar size={18} className="text-slate-400" />
-                     <select
-                        value={financialYear}
-                        onChange={(e) => setFinancialYear(e.target.value)}
-                        className="bg-transparent border-none outline-none text-sm text-slate-600 font-bold cursor-pointer"
-                     >
-                        <option value="2026-27">2026-27</option>
-                        <option value="2025-26">2025-26</option>
-                     </select>
-                     <div className="w-px h-6 bg-slate-200"></div>
-                     <button
-                        onClick={() => setShowSeasonModal(true)}
-                        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-bold text-xs uppercase tracking-widest pl-1 transition-colors"
-                     >
-                        <Plus size={16} /> New Season
-                     </button>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-                     <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-                     <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search commodity nomenclature..."
-                        className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium"
-                     />
-                  </div>
+               <button
+                  onClick={() => setShowSeasonModal(true)}
+                  className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-slate-400 transition-all"
+               >
+                  <Plus size={15} /> New Season
+               </button>
+               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
+                  <Search size={15} className="text-slate-400" />
+                  <input
+                     type="text"
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     placeholder="Search items..."
+                     className="bg-transparent border-none outline-none text-sm text-slate-600 w-44 placeholder:text-slate-300 font-medium"
+                  />
                </div>
-            </div>
+            </PageHeader>
 
             {/* Global Messages */}
             {message && (
@@ -219,21 +219,13 @@ export default function DangarRateMaster() {
 
             {/* Content Table */}
             <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-               <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                     <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><TrendingUp size={18} /></div>
-                     <h2 className="text-lg font-bold text-slate-800 italic">Tariff Matrix - Fiscal Period {financialYear}</h2>
-                     <div className="group relative">
-                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center cursor-help transition-all hover:bg-amber-600 hover:text-white">
-                           <span className="text-[10px] font-black">!</span>
-                        </div>
-                        <div className="absolute left-0 top-full mt-2 w-56 p-3 bg-slate-900 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 shadow-2xl border border-white/10 translate-y-2 group-hover:translate-y-0">
-                           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1">Standardization Protocol</p>
-                           <p className="text-[10px] font-bold text-slate-300 italic leading-tight">Attention: All tariffs MUST be configured based on 100.00 Kgs (1 Quintal) baseline ONLY.</p>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+               <TableHeading
+                  icon={<TrendingUp size={16} />}
+                  iconColor="blue"
+                  title={`Tariff Matrix — ${financialYear}`}
+                  subtitle="Rates per 100 kg (1 Quintal)"
+                  count={filteredItems.length}
+               />
 
                <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -261,7 +253,7 @@ export default function DangarRateMaster() {
                                        </div>
                                        <div>
                                           <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{item.item_name}</p>
-                                          <p className="text-[10px] font-medium text-slate-400 italic">Category: {item.category || 'N/A'}</p>
+                                          <p className="text-[10px] font-medium text-slate-400">Category: {item.category || 'N/A'}</p>
                                        </div>
                                     </div>
                                  </td>
@@ -393,8 +385,8 @@ export default function DangarRateMaster() {
                      <div className="flex items-center gap-4">
                         <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg ring-4 ring-blue-500/5"><Calendar size={20} /></div>
                         <div>
-                           <h3 className="text-xl font-bold text-slate-800">Initialize Season</h3>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Create Fiscal Parameter</p>
+                           <h3 className="text-lg font-bold text-slate-800">Initialize Season</h3>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Create Fiscal Parameter</p>
                         </div>
                      </div>
                      <button disabled={isSaving} onClick={() => setShowSeasonModal(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
@@ -423,7 +415,7 @@ export default function DangarRateMaster() {
                               value={newSeason.name}
                               onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
                               placeholder="e.g. Winter Epoch 26"
-                              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm italic"
+                              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
                            />
                         </div>
                      </div>
@@ -450,7 +442,7 @@ export default function DangarRateMaster() {
                               value={newSeason.year}
                               onChange={(e) => setNewSeason({ ...newSeason, year: e.target.value })}
                               placeholder="2026-27"
-                              className="w-full px-5 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm font-mono text-center"
+                              className="w-full px-5 py-3 bg-white border border-slate-200 focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm text-center"
                            />
                         </div>
                      </div>

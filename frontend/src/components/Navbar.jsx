@@ -66,29 +66,33 @@ const NAV_GROUPS = [
   }
 ]
 
-function DropdownMenu({ group, isActive, onNavigate }) {
+function DropdownMenu({ group, onNavigate }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const location = useLocation()
+  const closeTimer = useRef(null)
 
   const isChildActive = group.children?.some(c => location.pathname === c.path)
 
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  const handleMouseEnter = () => {
+    clearTimeout(closeTimer.current)
+    setOpen(true)
+  }
+
+  const handleMouseLeave = () => {
+    // Small delay so the user can move mouse into the dropdown
+    closeTimer.current = setTimeout(() => setOpen(false), 120)
+  }
 
   if (!group.children) {
     const active = location.pathname === group.path
     return (
       <button
         onClick={() => onNavigate(group.path)}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-          active
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${active
             ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-        }`}
+          }`}
       >
         <group.icon size={16} />
         {group.label}
@@ -97,14 +101,17 @@ function DropdownMenu({ group, isActive, onNavigate }) {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div
+      ref={ref}
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <button
-        onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-          isChildActive
+        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${isChildActive || open
             ? 'bg-blue-50 text-blue-600'
             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-        }`}
+          }`}
       >
         <group.icon size={16} />
         {group.label}
@@ -112,24 +119,25 @@ function DropdownMenu({ group, isActive, onNavigate }) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/60 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 origin-top-left">
-          {group.children.map(child => {
-            const childActive = location.pathname === child.path
-            return (
-              <button
-                key={child.id}
-                onClick={() => { onNavigate(child.path); setOpen(false) }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                  childActive
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <child.icon size={15} className={childActive ? 'text-blue-500' : 'text-slate-400'} />
-                {child.label}
-              </button>
-            )
-          })}
+        <div className="absolute top-full left-0 pt-1 z-50">
+          <div className="w-52 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/60 py-1.5 animate-in fade-in zoom-in-95 duration-150 origin-top-left">
+            {group.children.map(child => {
+              const childActive = location.pathname === child.path
+              return (
+                <button
+                  key={child.id}
+                  onClick={() => { onNavigate(child.path); setOpen(false) }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${childActive
+                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                >
+                  <child.icon size={15} className={childActive ? 'text-blue-500' : 'text-slate-400'} />
+                  {child.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>

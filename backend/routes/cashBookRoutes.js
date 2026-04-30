@@ -137,9 +137,13 @@ router.get('/:id', async (req, res) => {
         al.credit as cash_out, 
         al.notes,
         al.account_id,
+        al.member_id,
+        m.member_name,
+        m.member_code,
         al.reference_no,
         al.reference_type
       FROM account_ledger al
+      LEFT JOIN member_master m ON al.member_id = m.id
       WHERE al.id = ? AND al.company_id = ?
     `, [id, companyId]);
 
@@ -265,6 +269,25 @@ router.get('/opening-balance/:date', async (req, res) => {
     return res.json({ success: true, data: { opening_balance: openingBalance } });
   } catch (error) {
     console.error('Get opening balance error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE: Remove cash entry
+router.delete('/:id', async (req, res) => {
+  try {
+    const companyId = req.header('x-company-id');
+    const id = req.params.id;
+
+    if (!companyId) {
+      return res.status(400).json({ success: false, error: 'Company ID required' });
+    }
+
+    await query('DELETE FROM account_ledger WHERE id = ? AND company_id = ?', [id, companyId]);
+
+    res.json({ success: true, message: 'Record deleted successfully' });
+  } catch (error) {
+    console.error('Delete cash entry error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

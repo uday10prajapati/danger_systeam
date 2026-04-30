@@ -126,7 +126,7 @@ export default function StockReport() {
          <div className="max-w-[1600px] mx-auto px-8">
 
             {/* Superior Header - Dashboard Style */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6 print:hidden">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4 print:hidden">
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <Package size={12} />
@@ -145,8 +145,8 @@ export default function StockReport() {
                </div>
             </div>
 
-            {/* Dynamic Metric Grid - Compact Airy Shards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 print:hidden">
+            {/* Dynamic Metric Grid - Compact Airy Modules */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
                {[
                   { label: 'Live Inventory Qty', val: formatNumber(totalValue.current), icon: <Package size={18} />, color: 'blue' },
                   { label: 'Gross Procurement', val: formatNumber(totalValue.purchased), icon: <Plus size={18} />, color: 'emerald' },
@@ -163,8 +163,8 @@ export default function StockReport() {
                ))}
             </div>
 
-            {/* Global Toolbar - Controller Shard */}
-            <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+            {/* Global Toolbar - Controller Console */}
+            <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-4">
                <div className="flex-1 min-w-[350px]">
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Nomenclature Vector Search</span>
                   <div className="relative group">
@@ -202,11 +202,11 @@ export default function StockReport() {
                >Execute Audit</button>
             </div>
 
-            {/* Procurement Alert Shard */}
+            {/* Procurement Alert Manifest */}
             {lowStockData.length > 0 && (
                <div className="bg-rose-600 p-6 rounded-lg mb-10 flex items-center justify-between text-white shadow-xl relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl opacity-50 group-hover:scale-110 transition-transform duration-1000"></div>
-                  <div className="flex items-center gap-6 relative z-10">
+                  <div className="flex items-center gap-4 relative z-10">
                      <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center animate-pulse"><AlertTriangle size={28} /></div>
                      <div>
                         <h3 className="text-xl font-bold tracking-tight italic uppercase">Critical Procurement Alert</h3>
@@ -307,7 +307,7 @@ export default function StockReport() {
 
                {/* Dashboard Insight Footer */}
                <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
                      <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
                      <span className="flex items-center gap-2"><Layout size={12} /> Nodes Scanning: {stockData.length}</span>
                   </div>
@@ -325,10 +325,10 @@ export default function StockReport() {
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 z-[1000] animate-in fade-in duration-300">
                <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
 
-                  {/* Modal Header Shard */}
+                  {/* Modal Header Manifest */}
                   <div className="bg-slate-900 p-10 flex justify-between items-center relative overflow-hidden">
                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32"></div>
-                     <div className="relative z-10 flex items-center gap-6">
+                     <div className="relative z-10 flex items-center gap-4">
                         <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white"><History size={32} /></div>
                         <div>
                            <h2 className="text-2xl font-bold text-white tracking-tight italic uppercase">Nomenclature Audit Log</h2>
@@ -386,7 +386,7 @@ export default function StockReport() {
                      )}
                   </div>
 
-                  {/* Modal Action Shard */}
+                  {/* Modal Action Console */}
                   <div className="p-10 border-t border-slate-50 bg-[#F8FAFC]/50 flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">
                      <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>

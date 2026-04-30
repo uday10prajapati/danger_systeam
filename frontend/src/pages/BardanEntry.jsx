@@ -230,7 +230,7 @@ const BardanEntry = () => {
       <div className="max-w-[1500px] mx-auto px-8">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3 text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1 italic">
               <Package size={12} />
@@ -261,7 +261,7 @@ const BardanEntry = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
           {/* Main Form (Left) */}
           <div className="lg:col-span-8 space-y-8">

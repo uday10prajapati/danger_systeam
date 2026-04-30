@@ -207,7 +207,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
           {!selectedSale ? (
             <div className="space-y-6">
               {/* Member Lookup Row */}
-              <div className="flex flex-col md:flex-row gap-6 relative">
+              <div className="flex flex-col md:flex-row gap-4 relative">
                 <div className="w-full md:w-32 lg:w-40 space-y-2">
                   <FormLabel icon={Hash}>Member Code</FormLabel>
                   <FormInput
@@ -404,7 +404,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
         {selectedSale && (
           <div className="bg-slate-900 p-10 rounded-lg text-white shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:rotate-12 transition-transform duration-700"><TrendingDown size={150} /></div>
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
                 <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.5em] mb-2 italic">Net Reversal Value Shard</p>
                 <div className="flex items-start justify-center md:justify-start gap-1">

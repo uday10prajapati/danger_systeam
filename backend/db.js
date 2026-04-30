@@ -2077,6 +2077,9 @@ export async function getCashBookEntries(companyId, startDate, endDate) {
       al.reference_type,
       al.reference_no,
       al.description,
+      al.member_id,
+      m.member_name,
+      m.member_code,
       COALESCE(al.debit, al.debit_amount, 0) as cash_in,
       COALESCE(al.credit, al.credit_amount, 0) as cash_out,
       (COALESCE(al.debit, 0) - COALESCE(al.credit, 0)) as net_amount,
@@ -2084,6 +2087,7 @@ export async function getCashBookEntries(companyId, startDate, endDate) {
       al.created_at
     FROM account_ledger al
     LEFT JOIN users u ON al.created_by = u.id
+    LEFT JOIN member_master m ON al.member_id = m.id
     WHERE al.company_id = ? 
       AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book')
       AND al.transaction_date BETWEEN ? AND ?

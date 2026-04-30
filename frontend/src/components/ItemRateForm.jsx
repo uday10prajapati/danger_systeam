@@ -200,7 +200,7 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
             {formData.purchase_rate && formData.sale_rate && (
               <div className="mt-10 p-10 rounded-lg bg-slate-900 shadow-2xl shadow-slate-200 group relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 text-slate-800 opacity-20 group-hover:rotate-45 transition-transform duration-700"><TrendingUp size={120} /></div>
-                <div className="relative z-10 grid grid-cols-2 gap-10">
+                <div className="relative z-10 grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 italic">Yield Gradient Index</p>
                     <div className="flex items-end gap-2">

@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 export default function AccountLedger() {
    const { t } = useTranslation();
@@ -240,50 +242,42 @@ export default function AccountLedger() {
       <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans animate-in fade-in duration-700">
          <div className="max-w-[1600px] mx-auto px-8">
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-4 print:hidden">
-               <div>
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
-                     <Database size={12} />
-                     <span>Fiscal Infrastructure / Consolidated Registry</span>
-                  </div>
-                  <h1 className="text-4xl font-bold text-slate-800 tracking-tight">
-                     Account Ledger <span className="text-blue-600 italic">Audit</span>
-                  </h1>
-               </div>
-
-               <div className="flex items-center gap-4 bg-white/50 backdrop-blur-xl p-2 rounded-lg border border-white shadow-sm transition-all hover:shadow-md">
+            <PageHeader
+               eyebrow="Fiscal Infrastructure / Consolidated Registry"
+               eyebrowIcon={<Database size={12} />}
+               title="Account Ledger Audit"
+               subtitle={`Audit connectivity established for ${company.company_name}`}
+            >
+               <div className="flex items-center gap-2 bg-white/50 backdrop-blur-xl p-1.5 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
                   <button
                      onClick={() => setView('ledger')}
-                     className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'ledger' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
-                        }`}
+                     className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'ledger' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'}`}
                   >
                      <Activity size={14} /> Transactions
                   </button>
                   <button
                      onClick={() => { setView('trial-balance'); fetchTrialBalance(); }}
-                     className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'trial-balance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
-                        }`}
+                     className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'trial-balance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'}`}
                   >
                      <Layout size={14} /> Trial
                   </button>
                   {selectedAccount && (
                      <button
                         onClick={() => { setView('breakdown'); fetchAccountBreakdown(selectedAccount.id); }}
-                        className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'breakdown' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
-                           }`}
+                        className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'breakdown' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'}`}
                      >
                         <ShieldCheck size={14} /> Breakdown
                      </button>
                   )}
                </div>
-            </div>
+            </PageHeader>
 
             {view === 'ledger' && (
-               <div className="space-y-10">
+               <div className="flex flex-col gap-4">
 
-                  <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm relative print:hidden">
-                     <div className="flex flex-wrap items-end justify-between gap-10">
-                        <div className="flex-1 flex flex-wrap items-end gap-6 relative">
+                  <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm relative print:hidden mt-0">
+                     <div className="flex flex-wrap items-end justify-between gap-4">
+                        <div className="flex-1 flex flex-wrap items-end gap-4 relative">
                            <div className="w-full md:w-32">
                               <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Node ID</span>
                               <div className="relative group">
@@ -327,13 +321,13 @@ export default function AccountLedger() {
                                        <div
                                           key={acc.id}
                                           onClick={() => handleSelectAccount(acc)}
-                                          className="px-8 py-5 hover:bg-blue-50/50 flex justify-between items-center cursor-pointer transition-all border-b border-slate-50 last:border-none group"
+                                          className="px-8 py-5 hover:bg-indigo-50/50 flex justify-between items-center cursor-pointer transition-all border-b border-slate-50 last:border-none group"
                                        >
                                           <div>
-                                             <p className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors uppercase italic">{acc.account_name}</p>
-                                             <p className="text-[10px] font-bold text-slate-300 uppercase leading-none mt-1 group-hover:text-blue-300">{acc.account_type}</p>
+                                             <p className="text-sm font-bold text-slate-600 group-hover:text-indigo-600 transition-colors uppercase italic">{acc.account_name}</p>
+                                             <p className="text-[10px] font-bold text-slate-300 uppercase leading-none mt-1 group-hover:text-indigo-300">{acc.account_type}</p>
                                           </div>
-                                          <span className="text-[10px] font-black text-slate-200 group-hover:text-blue-600 tracking-widest">#{acc.id}</span>
+                                          <span className="text-[10px] font-black text-slate-200 group-hover:text-indigo-600 tracking-widest">#{acc.id}</span>
                                        </div>
                                     ))}
                                  </div>
@@ -355,9 +349,9 @@ export default function AccountLedger() {
                         <div className="flex gap-4">
                            <button
                               onClick={handlePrint}
-                              className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-3"
+                              className="bg-slate-100 text-slate-900 px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 flex items-center gap-3"
                            >
-                              <Printer size={18} /> Print Statement
+                              <Printer size={16} /> Print Statement
                            </button>
                         </div>
                      </div>
@@ -367,9 +361,9 @@ export default function AccountLedger() {
                      <>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 print:grid-cols-4">
                            {[
-                              { label: 'Cumulative Debit Accumulation', val: parseFloat(accountBalance.total_debit || 0), icon: <TrendingUp size={20} />, color: 'indigo' },
-                              { label: 'Cumulative Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), icon: <TrendingDown size={20} />, color: 'amber' },
-                              { label: 'Pending Interest Accumulation', val: parseFloat(accountBalance.total_interest || 0), icon: <RefreshCcw size={20} />, color: 'orange' },
+                              { label: 'Cumulative Debit Accumulation', val: parseFloat(accountBalance.total_debit || 0), icon: <TrendingUp size={20} />, color: 'blue' },
+                              { label: 'Cumulative Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), icon: <TrendingDown size={20} />, color: 'blue' },
+                              { label: 'Pending Interest Accumulation', val: parseFloat(accountBalance.total_interest || 0), icon: <RefreshCcw size={20} />, color: 'blue' },
                               { label: 'Net Liquidity Position', val: parseFloat(accountBalance.balance || accountBalance.running_balance || 0), icon: <DollarSign size={20} />, color: 'emerald', special: true },
                            ].map((shard, i) => (
                               <div key={i} className={`bg-white p-8 rounded-lg border border-slate-100 shadow-sm relative group hover:shadow-lg transition-all ${shard.special && shard.val < 0 ? 'bg-rose-50/30' : ''}`}>
@@ -385,16 +379,12 @@ export default function AccountLedger() {
                         </div>
 
                         <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
-                           <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-[#F8FAFC]/50 backdrop-blur-sm">
-                              <div>
-                                 <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">{selectedAccount.account_name}</h2>
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Nomenclature Registry: {selectedAccount.account_type}</p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">Temporal Status: Checked</span>
-                                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm shadow-emerald-200"></div>
-                              </div>
-                           </div>
+                           <TableHeading
+                              icon={<BookOpen size={18} />}
+                              iconColor="blue"
+                              title={selectedAccount.account_name}
+                              subtitle={`Nomenclature Registry: ${selectedAccount.account_type}`}
+                           />
 
                            <div className="flex-1 overflow-x-auto scroller-airy">
                               <table className="w-full text-left">
@@ -503,17 +493,13 @@ export default function AccountLedger() {
                   ) : (
                      <>
                         <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative animate-in slide-in-from-bottom duration-500">
-                           <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm flex justify-between items-center">
-                              <div>
-                                 <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">Institutional Registry</h2>
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Select nomenclature node for deep shard audit</p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                 <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-tighter shadow-sm flex items-center gap-2">
-                                    <Database size={10} /> Total Nodes: {filteredAccounts.length}
-                                 </span>
-                              </div>
-                           </div>
+                           <TableHeading
+                              icon={<Database size={18} />}
+                              iconColor="blue"
+                              title="Institutional Registry"
+                              subtitle="Select nomenclature node for deep shard audit"
+                              count={filteredAccounts.length}
+                           />
 
                            <div className="flex-1 overflow-x-auto scroller-airy">
                               <table className="w-full text-left">
@@ -565,12 +551,12 @@ export default function AccountLedger() {
             {selectedAccount && view === 'breakdown' && (
                <div className="space-y-8 animate-in slide-in-from-bottom duration-500">
                   <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-                     <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-[#F8FAFC]/50 backdrop-blur-sm">
-                        <div>
-                           <h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase italic">Member Breakdown: {selectedAccount.account_name}</h2>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Granular analysis of every member's position in this ledger</p>
-                        </div>
-                     </div>
+                     <TableHeading
+                        icon={<Users size={18} />}
+                        iconColor="blue"
+                        title={`Member Breakdown: ${selectedAccount.account_name}`}
+                        subtitle="Granular analysis of every member's position in this ledger"
+                     />
 
                      <div className="overflow-x-auto scroller-airy">
                         <table className="w-full text-left">
@@ -702,15 +688,16 @@ export default function AccountLedger() {
 
             {view === 'trial-balance' && (
                <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-700">
-                  <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-[#F8FAFC]/50 backdrop-blur-sm">
-                     <div>
-                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight uppercase italic">Global Settlement Summary</h2>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Consolidated Institutional Trial Balance</p>
-                     </div>
-                     <button className="flex items-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-100 hover:scale-105 transition-all">
+                  <TableHeading
+                     icon={<Layout size={18} />}
+                     iconColor="blue"
+                     title="Global Settlement Summary"
+                     subtitle="Consolidated Institutional Trial Balance"
+                  >
+                     <button className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-blue-700 transition-all">
                         <Download size={16} /> Data Export
                      </button>
-                  </div>
+                  </TableHeading>
 
                   <div className="overflow-x-auto scroller-airy">
                      <table className="w-full text-left">
@@ -738,12 +725,12 @@ export default function AccountLedger() {
                               ))
                            )}
                         </tbody>
-                        <tfoot className="bg-slate-900 text-white font-black italic">
+                        <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-black italic">
                            <tr>
-                              <td colSpan="2" className="px-10 py-8 text-xs font-black uppercase tracking-[0.4em] text-blue-500">Master Settlement Integrity</td>
+                              <td colSpan="2" className="px-10 py-8 text-xs font-black uppercase tracking-[0.4em] text-blue-600">Master Settlement Integrity</td>
                               <td className="px-10 py-8 text-right text-xl tracking-tighter text-slate-400">₹{parseFloat(totals.total_credit || 0).toLocaleString('en-IN')}</td>
-                              <td className="px-10 py-8 text-right text-xl tracking-tighter">₹{parseFloat(totals.total_debit || 0).toLocaleString('en-IN')}</td>
-                              <td className={`px-10 py-8 text-right text-xs tracking-widest uppercase ${totals.difference < 0.1 ? 'text-blue-400' : 'text-rose-400 underline decoration-red-600 decoration-4'}`}>
+                              <td className="px-10 py-8 text-right text-xl tracking-tighter text-slate-900">₹{parseFloat(totals.total_debit || 0).toLocaleString('en-IN')}</td>
+                              <td className={`px-10 py-8 text-right text-xs tracking-widest uppercase ${totals.difference < 0.1 ? 'text-emerald-600' : 'text-rose-600 underline decoration-red-600 decoration-4'}`}>
                                  {totals.difference < 0.1 ? '✓ VERIFIED' : `Δ ERROR: ₹${totals.difference.toFixed(2)}`}
                               </td>
                            </tr>

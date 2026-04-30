@@ -1,629 +1,335 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, TrendingDown, TrendingUp, DollarSign, X, Calendar, Activity, Database } from 'lucide-react';
-import axios from 'axios';
-import { useTranslation } from 'react-i18next';
+import { 
+  TrendingUp, TrendingDown, DollarSign, Calendar, Search, 
+  Plus, Filter, Download, ArrowUpRight, ArrowDownLeft,
+  MoreHorizontal, Edit2, Trash2, Database, Layout, 
+  ChevronRight, RefreshCcw, History
+} from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
+import CashEntryModal from '../components/CashEntryModal';
+import api from '../api';
 
 export default function CashBook() {
-  const { t } = useTranslation();
   const [entries, setEntries] = useState([]);
   const [filteredEntries, setFilteredEntries] = useState([]);
-  const [balance, setBalance] = useState({ total_cash_in: 0, total_cash_out: 0, current_balance: 0 });
-  const [dailySummary, setDailySummary] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [company, setCompany] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState({ total_in: 0, total_out: 0, balance: 0 });
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
-  const [members, setMembers] = useState([]);
-  const [accounts, setAccounts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal states
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState('debit'); // 'credit' or 'debit'
+  const [editingId, setEditingId] = useState(null);
 
-  // New Interest Fields
-  const initialFormState = {
-    transaction_date: new Date().toISOString().split('T')[0],
-    description: '',
-    cash_in: 0,
-    cash_out: 0,
-    notes: '',
-    member_id: '',
-    interest_amount: 0,
-    interest_a_per: '',
-    interest_percent: 0,
-    interest_member_id: '',
-    interest_account_id: ''
-  };
-  const [formData, setFormData] = useState(initialFormState);
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
     loadCompany();
   }, []);
 
-  useEffect(() => {
-    if (company?.id) {
-      fetchCashBook();
-      fetchBalance();
-      fetchMembers();
-      fetchAccounts();
-    }
-  }, [company]);
-
-  const fetchAccounts = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts`, {
-        headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-      });
-      if (response.data.success) {
-        setAccounts(response.data.data);
-      }
-    } catch (err) {
-      console.error('Fetch accounts error:', err);
-    }
-  };
-
-  const fetchMembers = async () => {
-    try {
-      const response = await axios.get(`/api/members/company/${company.id}`);
-      if (response.data.success) {
-        setMembers(response.data.data);
-      }
-    } catch (err) {
-      console.error('Fetch members error:', err);
-    }
-  };
-
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
-      } else {
-        setCompany(null);
       }
     } catch (error) {
-      setCompany(null);
+      console.error('Failed to load company', error);
     }
   };
 
-  const fetchCashBook = async () => {
+  useEffect(() => {
+    if (company?.id) {
+      fetchData();
+    }
+  }, [dateRange, company]);
+
+  const fetchData = async () => {
+    if (!company?.id) return;
+    setLoading(true);
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/cash-book?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get('/cash-book', {
+        params: dateRange
+      });
       if (response.data.success) {
         setEntries(response.data.data);
-        applyFilters(response.data.data);
-        fetchDailySummary();
+        setFilteredEntries(response.data.data);
+        calculateSummary(response.data.data);
       }
-    } catch (err) {
-      setError('Failed to fetch cash book');
-    }
-  };
-
-  const fetchBalance = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/cash-book/balance/current`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
-      if (response.data.success) {
-        setBalance(response.data.data);
-      }
-    } catch (err) {
-      console.error('Fetch balance error:', err);
-    }
-  };
-
-  const fetchDailySummary = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/cash-book/summary/daily?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
-      if (response.data.success) {
-        setDailySummary(response.data.data);
-      }
-    } catch (err) {
-      console.error('Fetch daily summary error:', err);
-    }
-  };
-
-  const applyFilters = (entriesData = entries) => {
-    const filtered = entriesData.filter(entry =>
-      entry.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.reference_no.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredEntries(filtered);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-
-      if (!formData.description) {
-        setError('Description is required');
-        setLoading(false);
-        return;
-      }
-
-      if (formData.cash_in === 0 && formData.cash_out === 0) {
-        setError('Enter cash in or cash out amount');
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/cash-book/manual`,
-        {
-          transaction_date: formData.transaction_date,
-          description: formData.description,
-          cash_in: parseFloat(formData.cash_in) || 0,
-          cash_out: parseFloat(formData.cash_out) || 0,
-          notes: formData.notes,
-          member_id: formData.member_id || null,
-          interest_amount: parseFloat(formData.interest_amount) || 0,
-          interest_a_per: formData.interest_a_per,
-          interest_percent: parseFloat(formData.interest_percent) || 0,
-          interest_member_id: formData.interest_member_id || null,
-          interest_account_id: formData.interest_account_id || null
-        },
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
-
-      if (response.data.success) {
-        setSuccess('Cash entry added successfully!');
-        setFormData(initialFormState);
-        setTimeout(() => {
-          setShowForm(false);
-          fetchCashBook();
-          fetchBalance();
-          setSuccess('');
-        }, 2000);
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add entry');
+    } catch (error) {
+      console.error('Fetch cash book error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm]);
-
-  const handleDateChange = () => {
-    fetchCashBook();
-    fetchBalance();
+  const calculateSummary = (data) => {
+    const total_in = data.reduce((sum, item) => sum + parseFloat(item.cash_in || 0), 0);
+    const total_out = data.reduce((sum, item) => sum + parseFloat(item.cash_out || 0), 0);
+    setSummary({
+      total_in,
+      total_out,
+      balance: total_in - total_out
+    });
   };
 
-  if (!company || !company.id) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-slate-50">
-        <div className="text-center font-black uppercase tracking-widest text-slate-400">
-          <Database className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-lg mb-4 italic">Establishing secure connection...</p>
-          <div className="w-16 h-1 bg-slate-200 mx-auto overflow-hidden rounded-full">
-            <div className="w-full h-full bg-black animate-[slide_1.5s_infinite]"></div>
-          </div>
-        </div>
-      </div>
+  useEffect(() => {
+    const term = searchTerm.toLowerCase();
+    const filtered = entries.filter(item => 
+      item.description?.toLowerCase().includes(term) || 
+      (item.reference_no && item.reference_no.toLowerCase().includes(term)) ||
+      (item.notes && item.notes.toLowerCase().includes(term))
     );
-  }
+    setFilteredEntries(filtered);
+  }, [searchTerm, entries]);
+
+  const handleEdit = (entry) => {
+    setEditingId(entry.id);
+    setModalType(parseFloat(entry.cash_in) > 0 ? 'credit' : 'debit');
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this record?')) return;
+    try {
+      await api.delete(`/cash-book/${id}`);
+      fetchData();
+    } catch (error) {
+      alert('Failed to delete: ' + (error.response?.data?.error || error.message));
+    }
+  };
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900 font-sans">
-
-      {/* Header - Industrial Monochrome */}
-      <div className="flex justify-between items-end border-b-4 border-black pb-4">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t('cashBook.title', 'Cash Book')}</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px]">{company.company_name} / LIQUIDITY LEDGER</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-lg hover:bg-slate-800 font-black shadow-2xl transition-all active:scale-95 uppercase tracking-widest text-xs"
+    <div className="min-h-screen bg-[#F8FAFC] pb-12">
+      <div className="max-w-[1600px] mx-auto px-8">
+        
+        <PageHeader
+          eyebrow="Financial Management / Treasury"
+          eyebrowIcon={<Database size={12} />}
+          title="Cash Book Registry"
+          subtitle="Real-time monitor for cash liquidity and manual journals"
         >
-          <Plus size={18} strokeWidth={3} />
-          {t('cashBook.addEntry', 'Inject Capital / Debit')}
-        </button>
-      </div>
+          <div className="flex items-center gap-3">
+             <button 
+               onClick={() => { setEditingId(null); setModalType('credit'); setModalOpen(true); }}
+               className="px-4 py-2.5 bg-white text-emerald-600 border border-slate-200 rounded-lg hover:bg-emerald-50 transition-all font-bold text-xs flex items-center gap-2 shadow-sm"
+             >
+               <ArrowUpRight size={15} /> Jama Entry
+             </button>
+             <button 
+               onClick={() => { setEditingId(null); setModalType('debit'); setModalOpen(true); }}
+               className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-xs flex items-center gap-2 shadow-sm"
+             >
+               <ArrowDownLeft size={15} /> Udhar Entry
+             </button>
+          </div>
+        </PageHeader>
 
-      {/* Stats Cards - Sleek Grayscale */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-slate-900 group hover:bg-slate-900 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Cash Influx</p>
-              <p className="text-3xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">
-                ₹{parseFloat(balance.total_cash_in || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+              <TrendingUp size={64} className="text-emerald-600" />
             </div>
-            <TrendingUp size={24} className="text-slate-300 group-hover:text-white transition-colors" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Receipts (Jama)</p>
+            <h3 className="text-2xl font-black text-emerald-600 italic">
+              ₹{summary.total_in.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </h3>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded italic">+ Liquidity Stream</span>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+              <TrendingDown size={64} className="text-rose-500" />
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Payments (Udhar)</p>
+            <h3 className="text-2xl font-black text-rose-600 italic">
+              ₹{summary.total_out.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </h3>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded italic">- Outgoing Flow</span>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group ring-2 ring-blue-600/5">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+              <DollarSign size={64} className="text-blue-600" />
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Net Cash Balance</p>
+            <h3 className="text-2xl font-black text-slate-900 italic">
+              ₹{summary.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </h3>
+            <div className="mt-4 flex items-center gap-2">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded italic ${summary.balance >= 0 ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
+                {summary.balance >= 0 ? 'Positive Liquidity' : 'Liquidity Deficit'}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-slate-500 group hover:bg-slate-800 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Cash Outflow</p>
-              <p className="text-3xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">
-                ₹{parseFloat(balance.total_cash_out || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </p>
+        {/* Filter Bar */}
+        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search records..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-64"
+              />
             </div>
-            <TrendingDown size={24} className="text-slate-300 group-hover:text-white transition-colors" />
+            <div className="h-6 w-px bg-slate-200 mx-2" />
+            <div className="flex items-center gap-2">
+              <Calendar size={14} className="text-slate-400" />
+              <input 
+                type="date" 
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
+                className="bg-transparent text-xs font-bold text-slate-600 outline-none"
+              />
+              <span className="text-slate-300 text-xs">to</span>
+              <input 
+                type="date" 
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})}
+                className="bg-transparent text-xs font-bold text-slate-600 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button onClick={fetchData} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+              <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-slate-400 transition-all">
+              <Download size={14} /> Export
+            </button>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-black group hover:bg-black transition-all duration-300 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50/10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700"></div>
-          <div className="flex justify-between items-start relative z-10">
-            <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Current Liquidity</p>
-              <p className={`text-4xl font-black mt-1 tracking-tighter group-hover:text-white ${parseFloat(balance.current_balance) >= 0 ? 'text-slate-900' : 'text-red-600'
-                }`}>
-                ₹{parseFloat(balance.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <DollarSign size={24} className="text-slate-300 group-hover:text-white transition-colors" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-8 border-slate-300 group hover:bg-slate-600 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-slate-500">Total Records</p>
-              <p className="text-4xl font-black text-slate-900 mt-1 tracking-tighter group-hover:text-white">{filteredEntries.length}</p>
-            </div>
-            <Activity size={24} className="text-slate-300 group-hover:text-white transition-colors" />
-          </div>
-        </div>
-      </div>
-
-      {/* Daily Summary Ribbon */}
-      {dailySummary.length > 0 && (
-        <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
-          <div className="bg-slate-900 p-4 border-b border-black">
-            <h2 className="text-[10px] font-black text-white uppercase tracking-[0.3em] italic flex items-center gap-2">
-              <div className="w-4 h-1 bg-white"></div>
-              Chronological Daily Aggregation
-            </h2>
-          </div>
+        {/* Registry Table */}
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+          <TableHeading
+            icon={<Layout size={18} />}
+            iconColor="blue"
+            title="Transaction Manifest"
+            subtitle="Historical ledger of all cash movements"
+            count={filteredEntries.length}
+          />
+          
           <div className="overflow-x-auto">
-            <table className="w-full text-[11px]">
-              <thead className="bg-slate-50 border-b border-slate-200 uppercase tracking-widest font-black text-slate-400">
-                <tr>
-                  <th className="px-6 py-3 text-left">Timeline</th>
-                  <th className="px-6 py-3 text-right">Influx (+)</th>
-                  <th className="px-6 py-3 text-right">Outflow (-)</th>
-                  <th className="px-6 py-3 text-right">Net Differential</th>
-                  <th className="px-6 py-3 text-center">Batch Size</th>
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr className="uppercase text-[10px] font-black text-slate-400 tracking-[0.1em] italic">
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4">Manifest Details</th>
+                  <th className="px-6 py-4">Reference</th>
+                  <th className="px-6 py-4 text-right">Jama (In)</th>
+                  <th className="px-6 py-4 text-right">Udhar (Out)</th>
+                  <th className="px-6 py-4 text-right">Balance</th>
+                  <th className="px-6 py-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {dailySummary.map((day) => (
-                  <tr key={day.transaction_date} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-3 font-mono font-bold text-slate-600">{new Date(day.transaction_date).toLocaleDateString('en-GB')}</td>
-                    <td className="px-6 py-3 text-right text-slate-900 font-black">
-                      ₹{parseFloat(day.daily_in || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-3 text-right text-slate-400 font-bold">
-                      ₹{parseFloat(day.daily_out || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className={`px-6 py-3 text-right font-black italic underline decoration-slate-100 ${parseFloat(day.daily_net) >= 0 ? 'text-black' : 'text-red-700'
-                      }`}>
-                      ₹{parseFloat(day.daily_net || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-3 text-center">
-                      <span className="bg-slate-100 px-2 py-1 rounded text-[9px] font-black border border-slate-200">{day.transaction_count} TX</span>
+                {loading ? (
+                  Array(5).fill(0).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td colSpan="7" className="px-6 py-4 h-16 bg-slate-50/20" />
+                    </tr>
+                  ))
+                ) : filteredEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <Database size={32} strokeWidth={1} className="mb-2" />
+                        <p className="text-xs font-bold italic">No matching records found for this period.</p>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredEntries.map((entry, idx) => (
+                    <tr key={entry.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-[11px] font-bold text-slate-500">
+                        {new Date(entry.transaction_date).toLocaleDateString('en-GB')}
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-xs font-black text-slate-900 uppercase italic tracking-tight">{entry.description}</p>
+                        {entry.notes && <p className="text-[10px] font-bold text-slate-400 italic mt-0.5 truncate max-w-[300px]">{entry.notes}</p>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-tighter">
+                            {entry.reference_no || 'MANUAL'}
+                          </span>
+                          <span className={`mt-1 inline-flex w-fit px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                            entry.reference_type === 'sale' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            entry.reference_type === 'purchase' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            'bg-slate-50 text-slate-400 border-slate-100'
+                          }`}>
+                            {entry.reference_type || 'Core'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right font-black text-emerald-600 italic text-sm">
+                        {parseFloat(entry.cash_in || 0) > 0 ? `₹${parseFloat(entry.cash_in).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right font-black text-rose-500 italic text-sm">
+                        {parseFloat(entry.cash_out || 0) > 0 ? `₹${parseFloat(entry.cash_out).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                      </td>
+                      <td className={`px-6 py-4 text-right font-black text-sm italic ${parseFloat(entry.net_amount || entry.balance) >= 0 ? 'text-slate-900' : 'text-rose-700'}`}>
+                        ₹{parseFloat(entry.net_amount || entry.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => handleEdit(entry)}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all"
+                            title="Edit Record"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(entry.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
-      )}
-
-      {/* Global Filter Toolbar */}
-      <div className="bg-white p-4 rounded-lg shadow-md border border-slate-100 flex flex-wrap gap-4 items-end">
-        <div className="flex-1 min-w-[250px]">
-          <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Global Audit Search</span>
-          <div className="relative group">
-            <Search className="absolute left-4 top-3 text-slate-300 group-focus-within:text-black transition-colors" size={18} />
-            <input
-              type="text"
-              placeholder="SEARCH BY DESCRIPTION OR REFERENCE..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black uppercase text-xs"
-            />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div>
-            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Start Point</span>
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
-            />
-          </div>
-          <div>
-            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">End Point</span>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="px-4 py-2 border-2 border-slate-100 rounded-lg focus:border-black transition-all font-black text-xs uppercase bg-white cursor-pointer"
-            />
-          </div>
-          <button
-            onClick={handleDateChange}
-            className="px-6 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-black font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg h-[41px]"
-          >
-            {t('common.filter', 'EXECUTE')}
-          </button>
-        </div>
       </div>
 
-      {/* Main Ledger Table */}
-      <div className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-900 text-white">
-              <tr>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Registry Date</th>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Description / Nomenclature</th>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Doc Ref</th>
-                <th className="px-6 py-4 text-left font-black uppercase tracking-widest text-[10px]">Module</th>
-                <th className="px-6 py-4 text-right font-black uppercase tracking-widest text-[10px]">Influx (+)</th>
-                <th className="px-6 py-4 text-right font-black uppercase tracking-widest text-[10px]">Outflow (-)</th>
-                <th className="px-6 py-4 text-right font-black uppercase tracking-widest text-[10px]">Net Position</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredEntries.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-16 text-center text-slate-400 font-black uppercase tracking-[0.3em] text-xs italic">
-                    NO LIQUIDITY ENTRIES DETECTED
-                  </td>
-                </tr>
-              ) : (
-                filteredEntries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4 font-mono font-bold text-slate-500 text-[11px]">
-                      {new Date(entry.transaction_date).toLocaleDateString('en-GB')}
-                    </td>
-                    <td className="px-6 py-4 font-black text-slate-900 text-xs uppercase tracking-tight">{entry.description}</td>
-                    <td className="px-6 py-4 text-[10px] text-slate-400 font-black uppercase tracking-widest">{entry.reference_no || 'MANUAL_POS'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.1em] border-2 ${entry.reference_type === 'sale' ? 'bg-slate-100 text-black border-black' :
-                        entry.reference_type === 'sale_return' ? 'bg-black text-white border-black' :
-                          entry.reference_type === 'purchase' ? 'bg-slate-50 text-slate-600 border-slate-200' :
-                            'bg-white text-slate-400 border-slate-100'
-                        }`}>
-                        {entry.reference_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right text-slate-900 font-black italic text-sm">
-                      {parseFloat(entry.cash_in || 0) > 0 ? `₹${parseFloat(entry.cash_in).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-right text-slate-400 font-bold text-sm">
-                      {parseFloat(entry.cash_out || 0) > 0 ? `₹${parseFloat(entry.cash_out).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
-                    </td>
-                    <td className={`px-6 py-4 text-right font-black text-sm italic ${parseFloat(entry.net_amount) >= 0 ? 'text-black' : 'text-red-700 underline decoration-red-100'
-                      }`}>
-                      ₹{parseFloat(entry.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Manual Entry Form Modal - High Contrast Industrial */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-lg shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden border border-slate-700">
-            {/* Modal Header */}
-            <div className="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-black tracking-tighter uppercase italic">Manual Cash Entry</h2>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Ledger Injection Control</p>
-              </div>
-              <button
-                onClick={() => setShowForm(false)}
-                className="bg-slate-800 hover:bg-red-600 text-white p-2 rounded-lg transition-all active:scale-90"
-              >
-                <X size={20} strokeWidth={3} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              {error && (
-                <div className="p-4 bg-red-50 text-red-700 rounded-lg border-l-4 border-red-800 font-bold text-xs uppercase tracking-widest italic">
-                  Critical Error: {error}
-                </div>
-              )}
-              {success && (
-                <div className="p-4 bg-slate-900 text-white rounded-lg border-l-4 border-white font-black text-xs uppercase tracking-[0.2em] animate-pulse">
-                  Transaction Verified: {success}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Registry Date</span>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3.5 text-slate-300" size={16} />
-                    <input
-                      type="date"
-                      value={formData.transaction_date}
-                      onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Nomenclature / Purpose</span>
-                  <input
-                    type="text"
-                    placeholder="E.G., MISC OFFICE OVERHEADS, CAPITAL INJECTION..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12 placeholder:text-slate-300"
-                  />
-                </div>
-
-                <div>
-                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Link to Sabhasad (Optional)</span>
-                  <select
-                    value={formData.member_id}
-                    onChange={(e) => setFormData({ ...formData, member_id: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-xs uppercase h-12"
-                  >
-                    <option value="">General (No Member)</option>
-                    {members.map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.member_code} - {m.member_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Influx (+)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.cash_in}
-                      onChange={(e) => setFormData({ ...formData, cash_in: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Outflow (-)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.cash_out}
-                      onChange={(e) => setFormData({ ...formData, cash_out: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-black text-sm h-12 text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                {/* Interest Configuration Fields for Debit/Cash Out */}
-                {parseFloat(formData.cash_out) > 0 && (
-                  <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-lg space-y-4">
-                    <h3 className="text-xs font-black uppercase text-slate-600 border-b border-slate-200 pb-2">Interest Configuration (Debit Only)</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Interest (₹)</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={formData.interest_amount}
-                          onChange={(e) => setFormData({ ...formData, interest_amount: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-xs h-10"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Amount / Per</span>
-                        <input
-                          type="text"
-                          placeholder="E.G. PER MONTH"
-                          value={formData.interest_a_per}
-                          onChange={(e) => setFormData({ ...formData, interest_a_per: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-xs h-10 uppercase"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Percent (%)</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={formData.interest_percent}
-                          onChange={(e) => setFormData({ ...formData, interest_percent: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-xs h-10"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Interest Sabhasad</span>
-                        <select
-                          value={formData.interest_member_id}
-                          onChange={(e) => setFormData({ ...formData, interest_member_id: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-[10px] uppercase h-10"
-                        >
-                          <option value="">No Member Linked</option>
-                          {members.map(m => (
-                            <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Interest Khate</span>
-                        <select
-                          value={formData.interest_account_id}
-                          onChange={(e) => setFormData({ ...formData, interest_account_id: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-md focus:border-black font-black text-[10px] uppercase h-10"
-                        >
-                          <option value="">No Account Linked</option>
-                          {accounts.map(a => (
-                            <option key={a.id} value={a.id}>{a.account_code || '---'} | {a.account_name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Internal Manifesto (Notes)</span>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows="3"
-                    placeholder="OPTIONAL CONTEXTUAL DATA..."
-                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-lg focus:outline-none focus:border-black transition-all bg-slate-50 font-bold text-xs uppercase placeholder:text-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 px-6 py-4 border-2 border-slate-100 text-slate-400 rounded-lg hover:bg-slate-50 font-black uppercase tracking-widest text-[10px] transition-all"
-                >
-                  ABORT
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-3 px-8 py-4 bg-black text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl transition-all active:scale-95"
-                >
-                  {loading ? 'PROCESSING...' : 'COMMIT TRANSACTION'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {modalOpen && (
+        <CashEntryModal
+          company={company}
+          type={modalType}
+          editId={editingId}
+          onClose={() => { setModalOpen(false); setEditingId(null); }}
+          onSubmit={() => { setModalOpen(false); setEditingId(null); fetchData(); }}
+        />
       )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .scroller-airy::-webkit-scrollbar { width: 5px; }
+        .scroller-airy::-webkit-scrollbar-track { background: transparent; }
+        .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      `}} />
     </div>
   );
 }

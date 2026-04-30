@@ -156,104 +156,94 @@ export default function MemberMaster() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+      <div className="max-w-[1600px] mx-auto px-6">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1 italic">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Shield size={12} />
-              <span>Network Infrastructure / Ecosystem Registry</span>
+              <span>Management / Member Master</span>
             </div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tighter leading-none">Sabhasad Master</h1>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Sabhasad Master</h1>
           </div>
-          <div className="flex items-center gap-5">
-            <div className="hidden sm:flex items-center gap-4 bg-white/60 backdrop-blur-md rounded-lg px-6 py-4 border border-white shadow-sm focus-within:border-blue-500 focus-within:bg-white transition-all group">
-              <Search size={18} className="text-slate-400 group-focus-within:text-blue-600" />
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Identify Entity or Village..."
-                className="bg-transparent border-none outline-none text-sm text-slate-700 w-72 placeholder:text-slate-300 font-bold"
+                placeholder="Search by name, code or village..."
+                className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium"
               />
             </div>
             <button
               onClick={handleCreateMember}
-              className="flex items-center gap-3 bg-blue-600 px-8 py-5 rounded-lg text-xs font-black text-white hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 uppercase tracking-widest"
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
             >
               <Plus size={20} />
-              Register Node
+              Add Member
             </button>
           </div>
         </div>
 
-        {/* Status Indicators */}
+        {/* Global Messages */}
         {message && (
-          <div className={`mb-8 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
-            }`}>
-            {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-            <span className="text-sm font-black italic tracking-tight">{message.text}</span>
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
+            message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+          }`}>
+            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+            <span className="text-sm font-bold">{message.text}</span>
           </div>
         )}
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-sm hover:shadow-xl transition-all group">
-            <div className="flex justify-between items-start mb-6">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Organizational Root</p>
-              <Building2 size={20} className="text-blue-500 group-hover:scale-110 transition-transform" />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Organization</p>
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Building2 size={16} /></div>
             </div>
-            <p className="text-xl font-black text-slate-800 truncate leading-tight uppercase">{company.company_name}</p>
+            <p className="text-lg font-bold text-slate-800 truncate">{company.company_name}</p>
           </div>
-
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-sm hover:shadow-xl transition-all group">
-            <div className="flex justify-between items-start mb-6">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Active Registry Nodes</p>
-              <UserCheck size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Members</p>
+              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><UserCheck size={16} /></div>
             </div>
-            <p className="text-4xl font-black text-slate-800 leading-none">{members.filter(m => m.is_active).length}</p>
+            <p className="text-2xl font-bold text-emerald-600">{members.filter(m => m.is_active).length}</p>
           </div>
-
-          <div className="bg-white/40 backdrop-blur-md p-8 rounded-lg border border-white shadow-sm hover:shadow-xl transition-all group">
-            <div className="flex justify-between items-start mb-6">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Archived Records</p>
-              <UserMinus size={20} className="text-rose-400 group-hover:scale-110 transition-transform" />
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inactive</p>
+              <div className="p-2 bg-rose-50 rounded-lg text-rose-600"><UserMinus size={16} /></div>
             </div>
-            <p className="text-4xl font-black text-slate-600 leading-none">{members.filter(m => !m.is_active).length}</p>
+            <p className="text-2xl font-bold text-rose-600">{members.filter(m => !m.is_active).length}</p>
           </div>
-
-          <div className="bg-white p-8 rounded-lg border border-blue-50 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 text-blue-50/50 rotate-12 scale-150"><Shield size={100} /></div>
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-6">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">Total Infrastructure</p>
-                <Globe size={20} className="text-blue-500 animate-spin-slow" />
-              </div>
-              <p className="text-4xl font-black text-slate-800 leading-none">{members.length}</p>
+          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Members</p>
+              <div className="p-2 bg-slate-50 rounded-lg text-slate-600"><Globe size={16} /></div>
             </div>
+            <p className="text-2xl font-bold text-slate-800">{members.length}</p>
           </div>
         </div>
 
-        {/* Global Registry Table */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden mb-20 animate-in slide-in-from-bottom-10 duration-1000">
-          <div className="px-10 py-8 border-b border-white/50 flex flex-col md:flex-row items-center justify-between gap-6 bg-white/40">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-50 rounded-[1.25rem] flex items-center justify-center text-blue-600 border border-blue-100">
-                <Users size={22} />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-slate-800 tracking-tighter">Sabhasad Operational Registry</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Real-time Node Status Monitoring</p>
-              </div>
+        {/* Table Card */}
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden mb-6">
+          <div className="px-6 py-5 border-b border-slate-50 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-slate-800 font-bold text-sm">
+              <Users size={16} className="text-slate-400" />
+              Member List
+              <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black">{filteredMembers.length}</span>
             </div>
-            <div className="flex items-center p-1.5 bg-slate-100/50 rounded-lg gap-1">
+            <div className="flex items-center p-1 bg-slate-50 rounded-lg border border-slate-100 gap-1">
               {['all', 'active', 'inactive'].map((filt) => (
                 <button
                   key={filt}
                   onClick={() => setStatusFilter(filt)}
-                  className={`px-6 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === filt ? 'bg-white text-slate-900 shadow-xl scale-105' : 'text-slate-400 hover:text-slate-600'
-                    }`}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${statusFilter === filt ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   {filt}
                 </button>
@@ -278,26 +268,24 @@ export default function MemberMaster() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em]">Identity Node</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em]">Geography</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em]">Vault Config</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em]">Status protocol</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em] text-right">Ops</th>
+              <table className="w-full text-left">
+                <thead className="bg-[#F8FAFC]">
+                  <tr>
+                    {['Member', 'Village / Address', 'Bank Details', 'Status', 'Actions'].map((h, i) => (
+                      <th key={h} className={`px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider ${i === 4 ? 'text-right' : ''}`}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/50">
+                <tbody className="divide-y divide-slate-50">
                   {filteredMembers.map((member) => (
-                    <tr key={member.id} className="group hover:bg-white/60 transition-all duration-500">
-                      <td className="px-10 py-8">
-                        <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-800 font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-2xl group-hover:shadow-blue-100 group-hover:scale-110">
+                    <tr key={member.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-800 font-black text-base group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
                             {member.member_name ? member.member_name[0] : '#'}
                           </div>
                           <div className="space-y-1">
-                            <p className="text-base font-black text-slate-800 group-hover:text-blue-600 transition-colors uppercase tracking-tight leading-none">{member.member_name}</p>
+                            <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{member.member_name}</p>
                             <div className="flex items-center gap-3">
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 <Hash size={10} /> {member.member_code}
@@ -360,9 +348,6 @@ export default function MemberMaster() {
           )}
         </div>
       </div>
-
-      {/* Decorative footer elements */}
-      <div className="fixed bottom-0 left-0 w-full h-24 bg-gradient-to-t from-white to-transparent pointer-events-none -z-10" />
     </div>
   )
 }

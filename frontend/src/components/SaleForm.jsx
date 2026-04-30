@@ -146,14 +146,14 @@ export default function SaleForm({ onSubmit, onCancel }) {
         // Filter for matching prefix to be safe
         const prefix = salesType === 'cash' ? 'CS' : 'CR';
         const typedSales = res.data.data.filter(s => String(s.invoice_no).startsWith(prefix));
-        
+
         if (typedSales.length > 0) {
-            const lastInv = typedSales[typedSales.length - 1].invoice_no;
-            const matches = String(lastInv).match(/(\d+)/);
-            const lastNo = matches ? parseInt(matches[0]) : 0;
-            setBillNo(`${prefix}${String(lastNo + 1).padStart(6, '0')}`);
+          const lastInv = typedSales[typedSales.length - 1].invoice_no;
+          const matches = String(lastInv).match(/(\d+)/);
+          const lastNo = matches ? parseInt(matches[0]) : 0;
+          setBillNo(`${prefix}${String(lastNo + 1).padStart(6, '0')}`);
         } else {
-            setBillNo(`${salesType === 'cash' ? 'CS' : 'CR'}000001`);
+          setBillNo(`${salesType === 'cash' ? 'CS' : 'CR'}000001`);
         }
       } else {
         setBillNo(`${salesType === 'cash' ? 'CS' : 'CR'}000001`);
@@ -245,7 +245,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
   const handleSave = async () => {
     let finalItems = [...saleItems];
-    
+
     // Auto-include the live row if it's valid but not yet added to the list
     if (currentItem && currentWeight && parseFloat(currentWeight) > 0) {
       finalItems.push({
@@ -449,7 +449,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
             <div className="text-[9px] font-mono text-slate-500 opacity-70 uppercase tracking-[0.2em] italic leading-relaxed">
               * CALCULATION: (WEIGHT * RATE) / 140<br />* ROUNDED TO NEAREST RUPEE
             </div>
-            <div className="flex gap-6 items-center">
+            <div className="flex gap-4 items-center">
               <div className="flex flex-col gap-1 pr-6 border-r border-blue-200">
                 <div className="flex justify-between w-52 font-black text-[9px] uppercase tracking-widest text-blue-700"><span>GROSS TOTAL:</span><span className="font-mono text-slate-900 text-[11px]">{totalBaseAmount.toFixed(2)}</span></div>
                 <div className="flex justify-between w-52 items-center gap-2 mt-1">

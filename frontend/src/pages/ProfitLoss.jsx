@@ -115,7 +115,7 @@ export default function ProfitLoss() {
          <div className="max-w-[1600px] mx-auto px-8">
 
             {/* Superior Header - Dashboard Style */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-8 gap-6 print:hidden">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-8 gap-4 print:hidden">
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <PieChart size={12} />
@@ -200,7 +200,7 @@ export default function ProfitLoss() {
 
                   {/* Core Operational Matrix */}
                   {viewMode === 'summary' && plData && (
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                         {/* Expenditure Deck */}
                         <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col group">
@@ -360,7 +360,7 @@ export default function ProfitLoss() {
                                        return (
                                           <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
                                              <td className="px-10 py-6">
-                                                <div className="flex items-center gap-6">
+                                                <div className="flex items-center gap-4">
                                                    <span className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-[11px] font-bold text-white shadow-lg">{(i + 1).toString().padStart(2, '0')}</span>
                                                    <p className="text-lg font-bold text-slate-800 uppercase italic tracking-tighter">{monthNames[m.month - 1]}</p>
                                                 </div>
@@ -419,7 +419,7 @@ export default function ProfitLoss() {
 
             {/* Global Registry Footer */}
             <div className="max-w-[1600px] mx-auto mt-12 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.5em] italic">
-               <div className="flex items-center gap-6">
+               <div className="flex items-center gap-4">
                   <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Mode: Active</span>
                   <span className="flex items-center gap-2"><Layout size={12} /> Repository: Synchronized</span>
                </div>

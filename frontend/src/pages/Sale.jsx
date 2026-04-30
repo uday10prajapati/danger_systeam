@@ -3,11 +3,14 @@ import {
   Plus, Search, Eye, Printer, X, ShoppingBag,
   TrendingUp, CreditCard, UserCheck, Layout,
   RefreshCcw, ArrowRight, Calendar, ChevronRight,
-  Database, ShieldCheck, Activity, Package, FileText
+  Database, ShieldCheck, Activity, Package, FileText,
+  Info, Filter, Download
 } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SaleForm from '../components/SaleForm';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 export default function Sale() {
   const { t } = useTranslation();
@@ -381,133 +384,132 @@ export default function Sale() {
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
       <div className="max-w-[1600px] mx-auto px-8">
 
-        {/* Superior Header - Dashboard Style */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6 print:hidden">
-          <div>
-            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
-              <ShoppingBag size={12} />
-              <span>Revenue Core / Live Sales Manifest</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Sales Command Center</h1>
-          </div>
+        <PageHeader
+          eyebrow="Revenue Core / Live Sales Manifest"
+          eyebrowIcon={<ShoppingBag size={12} />}
+          title="Sales Command Center"
+          subtitle="Real-time revenue monitoring and settlement"
+        >
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-blue-600 px-8 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+            className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-xs font-black text-white uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
           >
-            <Plus size={20} />
-            {t('sale.createSale', 'Initialize Sale')}
+            <Plus size={18} />
+            Initialize Sale
           </button>
-        </div>
+        </PageHeader>
 
-        {/* Revenue Metric Grid - Compact Airy Shards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 print:hidden">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           {[
-            { label: t('sale.totalSales', 'Total Sales'), val: stats.totalSales, icon: <Layout size={18} />, color: 'blue' },
-            { label: t('sale.totalAmount', 'Total Proceeds'), val: `₹${stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: <TrendingUp size={18} />, color: 'emerald' },
-            { label: t('sale.totalItems', 'Density (Units)'), val: stats.totalItems, icon: <Package size={18} />, color: 'indigo' },
-            { label: t('sale.uniqueCustomers', 'Active Identities'), val: stats.uniqueCustomers, icon: <UserCheck size={18} />, color: 'slate' }
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
-              <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{stat.label}</p>
-                <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+            { label: 'Total Sales', val: stats.totalSales, icon: <Layout size={20} />, color: 'blue' },
+            { label: 'Total Proceeds', val: `₹${stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: <TrendingUp size={20} />, color: 'emerald' },
+            { label: 'Density (Units)', val: stats.totalItems, icon: <Package size={20} />, color: 'indigo' },
+            { label: 'Active Identities', val: stats.uniqueCustomers, icon: <UserCheck size={20} />, color: 'slate' }
+          ].map((shard, i) => (
+            <div key={i} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4 group">
+              <div className={`w-12 h-12 bg-${shard.color}-50 text-${shard.color}-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}>
+                {shard.icon}
               </div>
-              <p className="text-4xl font-bold text-slate-800 tracking-tighter">{stat.val}</p>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{shard.label}</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight leading-none">{shard.val}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Command Deck Toolbar */}
-        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-4 flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[350px]">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Identity Manifest Search</span>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Identity Manifest Search</label>
             <div className="relative group">
-              <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
               <input
                 type="text"
-                placeholder={t('sale.searchInvoice', 'SEARCH BY INVOICE OR CUSTOMER...')}
+                placeholder="SEARCH BY INVOICE OR CUSTOMER..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   applyFilters(sales);
                 }}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
-            <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+          <div className="flex items-center gap-3 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+            <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none px-4 py-2 text-xs font-bold text-slate-600 focus:text-blue-600 transition-all font-mono" />
             <ArrowRight size={14} className="text-slate-200" />
-            <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+            <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none px-4 py-2 text-xs font-bold text-slate-600 focus:text-blue-600 transition-all font-mono" />
           </div>
 
-          <button onClick={fetchSales} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">{t('sale.filter', 'Sync Manifest')}</button>
+          <button onClick={fetchSales} className="bg-blue-600 text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2">
+            <Filter size={14} />
+            Sync Manifest
+          </button>
         </div>
 
-        {/* Sales Registry Manifest */}
-        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+          <TableHeading
+            icon={<Activity size={18} />}
+            iconColor="blue"
+            title="Revenue Manifest"
+            subtitle="Consolidated yield registry for audit analysis"
+            count={filteredSales.length}
+          >
+            <button className="p-2 text-slate-400 hover:text-blue-600 transition-all"><Download size={18} /></button>
+          </TableHeading>
 
-          <div className="px-8 py-5 border-b border-slate-50 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic">Consolidated Yield registry</p>
-            </div>
-            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">Density: {filteredSales.length} Transactions</p>
-          </div>
-
-          <div className="flex-1 overflow-x-auto px-4 pb-12 scroller-airy">
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-[#F8FAFC]">
-                <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                  <th className="px-8 py-5">Invoice Manifest</th>
-                  <th className="px-8 py-5">{t('sale.customer', 'Identity Node')}</th>
-                  <th className="px-8 py-5 text-center">{t('sale.items', 'Density')}</th>
-                  <th className="px-8 py-5 text-right">{t('sale.amount', 'Gross Yield')}</th>
-                  <th className="px-8 py-5 text-center">{t('sale.payment', 'Settlement')}</th>
-                  <th className="px-8 py-5 text-center">{t('sale.date', 'Timeline')}</th>
-                  <th className="px-8 py-5 text-center">{t('sale.action', 'Audit')}</th>
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                  <th className="px-8 py-5">Invoice</th>
+                  <th className="px-8 py-5">Identity Node</th>
+                  <th className="px-8 py-5 text-center">Density</th>
+                  <th className="px-8 py-5 text-right">Gross Yield</th>
+                  <th className="px-8 py-5 text-center">Settlement</th>
+                  <th className="px-8 py-5 text-center">Timeline</th>
+                  <th className="px-8 py-5 text-center">Audit</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="py-32 text-center text-slate-200">
-                      <RefreshCcw className="animate-spin mx-auto mb-4" size={50} />
-                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] italic">Building Secure Log Stream...</p>
+                    <td colSpan="7" className="py-32 text-center">
+                      <RefreshCcw className="animate-spin mx-auto mb-4 text-blue-500" size={40} />
+                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-300 italic">Synchronizing Data Stream...</p>
                     </td>
                   </tr>
                 ) : filteredSales.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="py-32 text-center">
-                      <Layout className="text-slate-100 mx-auto" size={70} strokeWidth={1} />
-                      <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Zero Revenue Nodes Isolated</p>
+                      <Layout className="text-slate-100 mx-auto mb-4" size={60} strokeWidth={1} />
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Zero Revenue Nodes Isolated</p>
                     </td>
                   </tr>
                 ) : (
                   filteredSales.map((sale, idx) => (
                     <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
                       <td className="px-8 py-6">
-                        <span className="text-sm font-bold text-slate-800 uppercase italic tracking-tight font-mono">#{sale.invoice_no}</span>
+                        <span className="text-sm font-bold text-slate-800 italic tracking-tight font-mono">#{sale.invoice_no}</span>
                       </td>
                       <td className="px-8 py-6">
-                        <p className="text-sm font-bold text-slate-800 uppercase italic tracking-tight">{sale.customer_name}</p>
+                        <p className="text-sm font-bold text-slate-800 uppercase italic tracking-tight leading-none mb-1">{sale.customer_name}</p>
                         <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">ID: {sale.member_code || 'WALK-IN'}</p>
                       </td>
                       <td className="px-8 py-6 text-center">
                         <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest">{sale.item_count} NODES</span>
                       </td>
-                      <td className="px-8 py-6 text-right font-bold text-slate-800 italic text-base">₹{parseFloat(sale.net_amount || 0).toFixed(2)}</td>
+                      <td className="px-8 py-6 text-right font-black text-slate-900 italic text-base">₹{parseFloat(sale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                       <td className="px-8 py-6 text-center">
-                        <span className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest inline-flex items-center gap-2 border ${sale.payment_type === 'credit' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                          }`}>
+                        <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest inline-flex items-center gap-2 border ${sale.payment_type === 'credit' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                           <div className={`w-1.5 h-1.5 rounded-full ${sale.payment_type === 'credit' ? 'bg-indigo-600' : 'bg-emerald-600'}`}></div>
                           {sale.payment_type}
                         </span>
                       </td>
                       <td className="px-8 py-6 text-center font-mono text-slate-400 text-xs italic">{sale.invoice_date}</td>
                       <td className="px-8 py-6 text-center">
-                        <button onClick={() => viewSaleDetails(sale.id)} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm mx-auto active:scale-95">
+                        <button onClick={() => viewSaleDetails(sale.id)} className="w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm mx-auto active:scale-95">
                           <Eye size={18} />
                         </button>
                       </td>
@@ -517,87 +519,60 @@ export default function Sale() {
               </tbody>
             </table>
           </div>
-
-          {/* Dashboard Insight Footer */}
-          <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
-            <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
-              <span className="flex items-center gap-2"><Layout size={12} /> Nodes Scanning: {sales.length}</span>
-            </div>
-            <div className="flex items-center gap-3 font-mono">
-              <span>SYS_SHA: {new Date().getTime().toString(16).toUpperCase()}</span>
-              <div className="w-px h-3 bg-slate-200"></div>
-              <span>REF: {company.id}</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Sale Details Modal - Premium Glassmorphic */}
       {showDetails && selectedSale && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 z-[1000] animate-in fade-in duration-300">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
-
-            {/* Modal Header Shard */}
-            <div className="bg-slate-900 p-10 flex justify-between items-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32"></div>
-              <div className="relative z-10 flex items-center gap-6">
-                <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white"><FileText size={32} /></div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden border border-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="bg-slate-900 p-8 flex justify-between items-center relative overflow-hidden shrink-0">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/10 rounded-full -mr-24 -mt-24"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-white"><FileText size={24} /></div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight italic uppercase">Invoice Isolation Log</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">
-                    Vector Path: #{selectedSale.invoice_no} / {selectedSale.customer_name}
-                  </p>
+                  <h2 className="text-xl font-black text-white italic uppercase tracking-tight">Invoice Isolation</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">MANIFEST NODE: #{selectedSale.invoice_no}</p>
                 </div>
               </div>
-              <div className="flex gap-3 relative z-10">
-                <button onClick={handlePrintBill} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-lg transition-all active:scale-95"><Printer size={20} /></button>
-                <button onClick={() => setShowDetails(false)} className="bg-white/10 hover:bg-red-500/20 text-white p-3 rounded-lg transition-all active:scale-95"><X size={20} /></button>
+              <div className="flex gap-2 relative z-10">
+                <button onClick={handlePrintBill} className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"><Printer size={20} /></button>
+                <button onClick={() => setShowDetails(false)} className="p-2.5 bg-white/10 hover:bg-rose-500/20 text-white rounded-lg transition-all"><X size={20} /></button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-10 scroller-airy">
-              <div className="grid grid-cols-2 gap-4 mb-10 bg-[#F8FAFC]/50 p-8 rounded-lg border border-slate-100">
-                <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Timeline Node</p>
-                  <p className="text-sm font-bold text-slate-800 italic uppercase">{selectedSale.invoice_date}</p>
+            <div className="p-8 overflow-y-auto scroller-airy flex-1">
+              <div className="grid grid-cols-2 gap-4 mb-8 bg-slate-50 p-6 rounded-lg border border-slate-100">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Identity Vector</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic">{selectedSale.customer_name}</p>
+                  <p className="text-[10px] font-bold text-blue-600">ID: {selectedSale.member_code || 'GENERIC'}</p>
                 </div>
-                <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Settlement Vector</p>
-                  <p className="text-sm font-bold text-slate-800 italic uppercase">{selectedSale.payment_type}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Authorized Agent</p>
-                  <p className="text-sm font-bold text-slate-800 italic uppercase">{selectedSale.created_by_user}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Identity Ref</p>
-                  <p className="text-sm font-bold text-slate-800 italic uppercase">{selectedSale.member_code || 'GENERIC'}</p>
+                <div className="text-right space-y-1">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Settlement Log</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic">{selectedSale.payment_type}</p>
+                  <p className="text-[10px] font-bold text-slate-400 italic font-mono">{selectedSale.invoice_date}</p>
                 </div>
               </div>
 
-              <div className="mb-10">
+              <div className="mb-8">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-4">
                   <div className="w-8 h-0.5 bg-slate-200"></div> Payload Breakdown
                 </h4>
-                <div className="bg-white rounded-lg border border-slate-100 overflow-hidden shadow-sm">
+                <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left">
-                    <thead className="bg-[#F8FAFC]">
-                      <tr className="uppercase text-[9px] font-bold text-slate-400 tracking-widest italic border-b border-slate-100">
+                    <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest italic border-b border-slate-200">
+                      <tr>
                         <th className="px-6 py-4">Inventory Node</th>
-                        <th className="px-6 py-4 text-center">Density</th>
+                        <th className="px-6 py-4 text-center">Qty</th>
                         <th className="px-6 py-4 text-right">Yield</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 text-xs">
+                    <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700 uppercase italic">
                       {(selectedSale.items || []).map((item, idx) => (
-                        <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <p className="font-bold text-slate-800 uppercase italic tracking-tight leading-none mb-1">{item.item_name}</p>
-                            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">UNIT_VAL: ₹{parseFloat(item.sale_rate || 0).toFixed(2)}</p>
-                          </td>
-                          <td className="px-6 py-4 text-center font-bold text-slate-800 italic">{item.quantity} units</td>
-                          <td className="px-6 py-4 text-right font-bold text-slate-800 font-mono italic">₹{parseFloat(item.amount || 0).toFixed(2)}</td>
+                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4">{item.item_name}</td>
+                          <td className="px-6 py-4 text-center">{item.quantity}</td>
+                          <td className="px-6 py-4 text-right font-mono">₹{parseFloat(item.amount || 0).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -605,17 +580,14 @@ export default function Sale() {
                 </div>
               </div>
 
-              <div className="bg-slate-900 p-10 rounded-lg text-white shadow-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-linear-to-r from-blue-600/10 to-transparent"></div>
+              <div className="bg-slate-900 p-8 rounded-lg text-white shadow-xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-linear-to-br from-blue-600/10 to-transparent"></div>
                 <div className="flex justify-between items-end relative z-10">
                   <div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mb-4 italic">Aggregate Fiscal Settlement</p>
-                    <h5 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Net Proceeds</h5>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mb-3 italic">Total Fiscal Proceeds</p>
+                    <h5 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Net Yield</h5>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm border-b border-white/10 pb-2 mb-2 font-mono text-slate-400">Yield: ₹{parseFloat(selectedSale.total_amount || 0).toFixed(2)}</p>
-                    <p className="text-4xl font-black italic font-mono tracking-tighter">₹{parseFloat(selectedSale.net_amount || 0).toFixed(2)}</p>
-                  </div>
+                  <p className="text-4xl font-black italic font-mono tracking-tighter">₹{parseFloat(selectedSale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
               </div>
             </div>
@@ -623,7 +595,6 @@ export default function Sale() {
         </div>
       )}
 
-      {/* Sale Form Modal */}
       {showForm && <SaleForm onSubmit={handleFormSubmit} onCancel={() => setShowForm(false)} />}
 
       <style dangerouslySetInnerHTML={{
@@ -631,6 +602,7 @@ export default function Sale() {
         .scroller-airy::-webkit-scrollbar { width: 4px; }
         .scroller-airy::-webkit-scrollbar-track { background: transparent; }
         .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .scroller-airy:hover::-webkit-scrollbar-thumb { background: #3b82f6; }
       `}} />
     </div>
   );

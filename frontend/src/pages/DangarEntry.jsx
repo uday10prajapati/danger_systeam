@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { sabhasadMasterApi, dangarEntryApi, bardanEntryApi } from '../api';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 const DangarEntry = () => {
   const { t } = useTranslation();
@@ -372,54 +374,55 @@ const DangarEntry = () => {
   if (showHistory) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in slide-in-from-right duration-500">
-        <div className="max-w-[1500px] mx-auto px-8">
-          <div className="flex justify-between items-center py-10">
-            <div>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Operation History</h1>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Dangar/Tuver/Divela Manifest</p>
-            </div>
+        <div className="max-w-[1600px] mx-auto px-8">
+          <PageHeader
+            eyebrow="Dangar Entry / Operation History"
+            eyebrowIcon={<History size={12} />}
+            title="Transaction History"
+            subtitle="Dangar · Tuver · Divela Manifest"
+          >
             <button
               onClick={() => setShowHistory(false)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest"
+              className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
             >
-              <X size={16} /> Exit History
+              <X size={16} /> Back to Entry
             </button>
-          </div>
+          </PageHeader>
 
-          <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-white shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <th className="px-10 py-6">Date</th>
-                  <th className="px-10 py-6">Reference</th>
-                  <th className="px-10 py-6">Sabhasad</th>
-                  <th className="px-10 py-6 text-right">Net Man</th>
-                  <th className="px-10 py-6 text-right">Net Quintal</th>
-                  <th className="px-10 py-6 text-right">Ops</th>
+                <tr className="border-b border-slate-100">
+                  <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Reference</th>
+                  <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Member</th>
+                  <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Net Man</th>
+                  <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Net Quintal</th>
+                  <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-50">
                 {history.map((row) => (
-                  <tr key={row.id} className="group hover:bg-white transition-all">
-                    <td className="px-10 py-6 text-sm font-bold text-slate-600 font-mono">
+                  <tr key={row.id} className="group hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-5 text-sm font-bold text-slate-600 font-mono">
                       {new Date(row.entry_date).toLocaleDateString('en-GB')}
                     </td>
-                    <td className="px-10 py-6">
-                      <span className="text-blue-600 font-black text-sm italic">#{row.sr_no}</span>
-                      <p className="text-[10px] font-bold text-slate-300 uppercase italic">{row.book_type}</p>
+                    <td className="px-6 py-5">
+                      <span className="text-blue-600 font-black text-sm">#{row.sr_no}</span>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">{row.book_type}</p>
                     </td>
-                    <td className="px-10 py-6">
+                    <td className="px-6 py-5">
                       <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{row.member_name}</p>
                       <p className="text-[10px] font-bold text-slate-400 tracking-widest">CODE: {row.member_code}</p>
                     </td>
-                    <td className="px-10 py-6 text-right font-black text-amber-600 text-lg italic">
+                    <td className="px-6 py-5 text-right font-black text-amber-600 text-base">
                       {(parseFloat(row.net_quintal) * 5).toFixed(2)}
                     </td>
-                    <td className="px-10 py-6 text-right font-black text-slate-800 text-lg italic">{row.net_quintal}</td>
-                    <td className="px-10 py-6">
-                      <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                        <button className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><Printer size={16} /></button>
-                        <button onClick={() => handleDelete(row.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 size={16} /></button>
+                    <td className="px-6 py-5 text-right font-black text-slate-800 text-base">{row.net_quintal}</td>
+                    <td className="px-6 py-5">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                        <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg shadow-sm transition-all"><Printer size={16} /></button>
+                        <button onClick={() => handleDelete(row.id)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 rounded-lg shadow-sm transition-all"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -434,30 +437,35 @@ const DangarEntry = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1500px] mx-auto px-8">
+      <div className="max-w-[1600px] mx-auto px-8">
 
-        {/* Superior Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-10 gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1 italic">
-              <Database size={12} />
-              <span>Network Infrastructure / Transaction Node</span>
-            </div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tighter leading-none italic uppercase">
-              {t('dangarEntry.title', 'Tuver/Dangar/Divela Entry')}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-6 py-4 rounded-lg border border-white shadow-sm">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-              <History size={20} />
-            </div>
-            <div className="text-left">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Session Active</p>
-              <p className="text-xs font-black text-slate-800">Operational Log Level 4</p>
-            </div>
-          </div>
-        </div>
+        {/* Page Header */}
+        <PageHeader
+          eyebrow="Transaction Node / Entry Console"
+          eyebrowIcon={<Database size={12} />}
+          title={t('dangarEntry.title', 'Dangar / Tuver / Divela Entry')}
+          subtitle={currentSeason ? `Season: ${currentSeason.name}` : undefined}
+        >
+          <button
+            onClick={loadHistory}
+            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
+          >
+            <History size={16} /> History
+          </button>
+          <button
+            onClick={resetForm}
+            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
+          >
+            <X size={16} /> Reset
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95 disabled:opacity-50"
+          >
+            <Save size={16} /> Save Entry
+          </button>
+        </PageHeader>
 
         {/* Status Messaging */}
         {message && (
@@ -468,23 +476,21 @@ const DangarEntry = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
           {/* Main Form Area (Left) */}
           <div className="lg:col-span-8 space-y-8">
-            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-lg border border-white shadow-2xl space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 -mr-10 -mt-10 select-none pointer-events-none">
-                <Database size={240} />
-              </div>
+            <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm space-y-6">
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Book Type */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.bookType')}</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('dangarEntry.bookType')}</label>
                   <div className="relative group">
-                    <Box className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <select
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700 appearance-none shadow-inner uppercase tracking-wider"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
                       value={formData.bookType}
                       onChange={(e) => setFormData({ ...formData, bookType: e.target.value })}
                     >
@@ -496,27 +502,24 @@ const DangarEntry = () => {
                 </div>
 
                 {/* Sr No */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.srNo')}</label>
-                  <div className="relative group">
-                    <FileText className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input
-                      type="text"
-                      readOnly
-                      className="w-full pl-14 pr-6 py-4 bg-slate-100/50 border border-slate-100 rounded-lg outline-none font-black text-sm text-slate-400 italic"
-                      value={formData.srNo}
-                    />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('dangarEntry.srNo')}</label>
+                  <div className="flex items-center h-[46px] px-4 bg-slate-50 border border-slate-200 rounded-lg gap-3">
+                    <FileText size={15} className="text-slate-300" />
+                    <span className={`text-sm font-black tracking-widest ${formData.srNo === 'AUTO' ? 'text-slate-300' : 'text-blue-600'}`}>
+                      {formData.srNo === 'AUTO' ? 'Auto' : `#${formData.srNo}`}
+                    </span>
                   </div>
                 </div>
 
                 {/* Date */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.date')}</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('dangarEntry.date')}</label>
                   <div className="relative group">
-                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <input
                       type="date"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black italic text-sm text-slate-700"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700"
                       value={formData.date}
                       onChange={(e) => {
                         const date = new Date(e.target.value);
@@ -531,20 +534,19 @@ const DangarEntry = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Season Selection - Controlled by DB Protocol */}
-                <div className="md:col-span-4 space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
+                <div className="md:col-span-4 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center justify-between">
                     <span>Protocol Season</span>
-                    <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 text-[8px] animate-pulse">VERIFIED</span>
                   </label>
-                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-lg cursor-not-allowed">
+                  <div className="flex gap-1.5 p-1 bg-slate-100 border border-slate-200 rounded-lg">
                     {['winter', 'summer'].map(s => (
                       <button
                         key={s}
                         type="button"
-                        disabled
-                        className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${formData.season === s
-                          ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                          : 'text-slate-300'
+                        onClick={() => setFormData(prev => ({ ...prev, season: s }))}
+                        className={`flex-1 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${formData.season === s
+                          ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
+                          : 'text-slate-400 hover:text-slate-600'
                           }`}
                       >
                         {s}
@@ -552,33 +554,23 @@ const DangarEntry = () => {
                     ))}
                   </div>
                   {currentSeason && (
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 ml-1">
-                      ACTUAL: <span className="text-blue-600 font-black italic">{currentSeason.name}</span>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 ml-1">
+                      Active: <span className="text-blue-600 font-bold">{currentSeason.name}</span>
                     </p>
                   )}
                 </div>
 
                 {/* Member Selection */}
-                <div className="md:col-span-8 space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex justify-between items-center">
-                    <span>Sabhasad Identity Vector</span>
-                    {selectedMember && (
-                      <div className="flex gap-2">
-                        <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">{selectedMember.village_name}</span>
-                        {selectedMember.bank_name && (
-                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase">{selectedMember.bank_name}</span>
-                        )}
-                      </div>
-                    )}
-                  </label>
+                <div className="md:col-span-8 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member</label>
                   <div className="relative group">
-                    <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <select
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic tracking-wider"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
                       value={formData.member_id}
                       onChange={(e) => handleMemberChange(e.target.value)}
                     >
-                      <option value="">Select Identity Node...</option>
+                      <option value="">Select Member...</option>
                       {members.map(m => (
                         <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>
                       ))}
@@ -587,7 +579,7 @@ const DangarEntry = () => {
                   {selectedMember && selectedMember.full_ac_number && (
                     <div className="flex items-center gap-2 mt-2 ml-1">
                       <CreditCard size={12} className="text-slate-300" />
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">A/C: {selectedMember.full_ac_number}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">A/C: {selectedMember.full_ac_number}</span>
                     </div>
                   )}
                 </div>
@@ -595,23 +587,23 @@ const DangarEntry = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Quality Category Selection */}
-                <div className="md:col-span-4 space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center justify-between">
+                <div className="md:col-span-4 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center justify-between">
                     <span>Quality Vector</span>
-                    <span className="text-amber-500 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 text-[8px]">GRADED</span>
+
                   </label>
-                  <div className="flex gap-2 p-1.5 bg-slate-100/50 border border-slate-200 rounded-lg">
+                  <div className="flex gap-1.5 p-1 bg-slate-100 border border-slate-200 rounded-lg">
                     {[
-                      { key: '1st', label: '1st Class' },
-                      { key: '2nd', label: '2nd Class' },
-                      { key: '3rd', label: '3rd Class' }
+                      { key: '1st', label: '1st' },
+                      { key: '2nd', label: '2nd' },
+                      { key: '3rd', label: '3rd' }
                     ].map(q => (
                       <button
                         key={q.key}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, quality_class: q.key }))}
-                        className={`flex-1 py-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${formData.quality_class === q.key
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                        className={`flex-1 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${formData.quality_class === q.key
+                          ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
                           : 'text-slate-400 hover:text-slate-600'
                           }`}
                       >
@@ -623,11 +615,11 @@ const DangarEntry = () => {
 
                 {/* Item Selection */}
                 <div className="md:col-span-8 space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Item Schema Vector</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Item Schema Vector</label>
                   <div className="relative group">
-                    <Box className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <select
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 appearance-none shadow-inner uppercase italic tracking-wider"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 appearance-none"
                       value={formData.item_id}
                       onChange={(e) => setFormData({ ...formData, item_id: e.target.value })}
                     >
@@ -643,13 +635,13 @@ const DangarEntry = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Vehicle No */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.vehicleNo')}</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('dangarEntry.vehicleNo')}</label>
                   <div className="relative group">
-                    <Truck className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <Truck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <input
                       type="text"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
-                      placeholder="E.G. GJ-01-XX-1234"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700"
+                      placeholder="GJ-01-XX-1234"
                       value={formData.vehicleNo}
                       onChange={(e) => setFormData({ ...formData, vehicleNo: e.target.value.toUpperCase() })}
                     />
@@ -659,11 +651,11 @@ const DangarEntry = () => {
 
               {/* Remark */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('dangarEntry.remark')}</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('dangarEntry.remark')}</label>
                 <div className="relative group">
-                  <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                  <Info className="absolute left-4 top-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={16} />
                   <textarea
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm font-semibold text-slate-700 min-h-[100px]"
                     placeholder="ADDITIONAL TRANSACTION CONTEXT..."
                     value={formData.remark}
                     onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
@@ -671,24 +663,24 @@ const DangarEntry = () => {
                 </div>
               </div>
 
-              {/* Composite Payload Dashboard */}
-              <div className="mt-12 bg-slate-900/5 rounded-lg border border-slate-100 p-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-800 shadow-xl">
-                      <TrendingUp size={32} className="text-blue-600" />
+              {/* Rate Preview */}
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-5">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-600 text-white rounded-lg">
+                      <TrendingUp size={18} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-slate-800 leading-none italic uppercase">Composite Payload</h3>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Tri-Unit Synchronization Active</p>
+                      <h3 className="text-sm font-bold text-slate-800">Rate Preview</h3>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live calculation</p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
                     {/* Unit Selector & Price Preview */}
-                    <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg border border-blue-100 flex items-center gap-3">
                       <select
-                        className="bg-slate-50 border-none outline-none px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-600"
+                        className="bg-transparent border-none outline-none px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600"
                         value={display_unit}
                         onChange={(e) => setDisplayUnit(e.target.value)}
                       >
@@ -696,9 +688,9 @@ const DangarEntry = () => {
                         <option value="man">Per MAN (20kg)</option>
                         <option value="quintal">Per QUINTAL</option>
                       </select>
-                      <div className="px-4 py-2 bg-blue-50 rounded-lg min-w-[200px]">
-                        <p className="text-[7px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1 italic text-center">Payload Valuation Summary</p>
-                        <div className="flex items-center justify-center gap-1.5 text-xs font-black text-blue-700 italic">
+                      <div className="px-4 py-2 bg-white rounded-lg min-w-[200px] border border-blue-100">
+                        <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest leading-none mb-1 text-center">Valuation</p>
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-700">
                           <span>{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)}</span>
                           <span className="text-[8px] uppercase">{display_unit}</span>
                           <span className="text-slate-400 font-normal ml-0.5">x</span>
@@ -715,45 +707,40 @@ const DangarEntry = () => {
           </div>
 
           {/* Side Panel (Right) */}
-          <div className="lg:col-span-4 space-y-8">
+          <div className="lg:col-span-4 flex flex-col gap-4">
 
             {/* Weight Matrix */}
-            <div className="bg-white/90 backdrop-blur-xl p-8 rounded-lg border border-white shadow-2xl flex flex-col h-[520px]">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-110 transition-transform shadow-inner">
-                    <Calculator size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-800 leading-none italic uppercase">{t('dangarEntry.itemDetails')}</h3>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Weight Node Matrix</p>
-                  </div>
-                </div>
+            <div className="bg-white rounded-lg border border-slate-200 flex flex-col h-[520px] overflow-hidden">
+              <TableHeading
+                icon={<Calculator size={16} />}
+                iconColor="indigo"
+                title={t('dangarEntry.itemDetails')}
+                subtitle="Weight Entry"
+                count={weightRows.length}
+              >
                 <button
                   onClick={handleAddRow}
-                  className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-90"
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all active:scale-90"
                 >
-                  <Plus size={18} />
+                  <Plus size={15} />
                 </button>
-              </div>
+              </TableHeading>
 
-              <div className="flex-1 overflow-y-auto pr-2 scroller-airy space-y-3 mb-6">
-                <div className="grid grid-cols-12 gap-4 px-2 italic text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                  <div className="col-span-2 text-center">No</div>
-                  <div className="col-span-10 px-4">
-                    <span>Vector Magnitude (KG)</span>
-                  </div>
+              <div className="flex-1 overflow-y-auto px-4 pt-3 scroller-airy space-y-3 mb-4">
+                <div className="grid grid-cols-12 gap-4 px-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                  <div className="col-span-2 text-center">#</div>
+                  <div className="col-span-10 px-3">Weight (KG)</div>
                 </div>
 
                 {weightRows.map((row, idx) => (
                   <div key={row.id} className="grid grid-cols-12 gap-3 items-center group">
-                    <div className="col-span-2 text-center font-black text-slate-300 text-xs italic">
+                    <div className="col-span-2 text-center font-bold text-slate-300 text-xs">
                       {idx + 1}
                     </div>
                     <div className="col-span-8 relative">
                       <input
                         type="number"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-5 py-3.5 text-sm font-black text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all shadow-inner font-mono italic"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all"
                         value={row.wgt}
                         autoFocus={idx === weightRows.length - 1 && idx > 0}
                         onChange={(e) => handleWeightChange(row.id, e.target.value)}
@@ -778,134 +765,65 @@ const DangarEntry = () => {
                 ))}
               </div>
 
-              <div className="pt-6 border-t border-slate-50 flex justify-between items-center text-slate-800">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Aggregate Vector KG</p>
-                <p className="text-3xl font-black italic tracking-tighter leading-none">
-                  {formData.total_kg} <span className="text-[10px] text-slate-300 uppercase ml-1 italic font-bold">kg</span>
+              <div className="p-5 border-t border-slate-100 flex justify-between items-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total KG</p>
+                <p className="text-2xl font-black text-slate-800 leading-none">
+                  {formData.total_kg} <span className="text-xs font-bold text-slate-400 ml-1">kg</span>
                 </p>
               </div>
             </div>
 
 
 
-            {/* Fiscal Shard */}
-            <div className="bg-slate-900 p-8 rounded-lg text-white shadow-2xl space-y-6 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 text-blue-500/5 -mr-16 -mt-16 group-hover:scale-110 transition-transform"><Calculator size={200} /></div>
+            {/* Calculation Summary */}
+            <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-5">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Calculation Summary</h3>
 
-              <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.4em] italic mb-2 relative z-10">Calculated Fiscal State</h3>
-
-              <div className="space-y-6 relative z-10">
-                <div className="grid grid-cols-1 gap-5">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rem. Bardan</p>
-                      <input
-                        type="number"
-                        readOnly
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                        value={formData.bardan}
-                      />
-                      {selectedMember && (
-                        <div className="text-[7px] font-black text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
-                          Bal: {bardanBalance}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Net KG</p>
-                      <input
-                        type="number"
-                        readOnly
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                        value={formData.total_kg}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono italic">Rate (per KG)</p>
-                      <input
-                        type="number"
-                        readOnly
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-xs font-black text-white/50 outline-none cursor-not-allowed opacity-70 transition-all font-mono italic shadow-inner"
-                        value={formData.rate}
-                      />
-                    </div>
-                  </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rem. Bardan</p>
+                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 outline-none cursor-not-allowed" value={formData.bardan} />
+                  {selectedMember && (
+                    <div className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 w-fit">Bal: {bardanBalance}</div>
+                  )}
                 </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Net KG</p>
+                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 outline-none cursor-not-allowed" value={formData.total_kg} />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rate</p>
+                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 outline-none cursor-not-allowed" value={formData.rate} />
+                </div>
+              </div>
 
-                <div className="bg-white/5 rounded-lg p-6 border border-white/10 space-y-5">                   {[
-                  { label: 'Gross Net (KG)', val: (formData.total_kg - formData.less_bardan).toFixed(2), color: 'slate-500' },
-                  { label: 'Gross Amount (₹)', val: `₹${formData.gross_amount}`, color: 'blue-400' },
-                  { label: t('dangarEntry.lessBardan'), val: `- ₹0.00 (${formData.less_bardan}kg Gun)`, color: 'rose-500' },
-                  {
-                    label: `${formData.quality_class} Rate (per 1kg)`,
-                    val: `₹${formData.rate}`,
-                    color: 'blue-300'
-                  },
-                  { label: 'Kapat (Deductions)', val: `- ₹${formData.total_deduction}`, color: 'rose-400' },
-                  { label: 'Bardan Penalty', val: `- ₹${formData.remaining_bardan_deduction}`, color: 'rose-600', highlight: true },
-                  {
-                    label: 'Net Payable (₹)',
-                    val: `₹${formData.amount}`,
-                    color: 'emerald-400',
-                    size: 'text-5xl',
-                    highlight: true
-                  }
+              <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+                {[
+                  { label: 'Gross Net (KG)', val: (formData.total_kg - formData.less_bardan).toFixed(2), color: 'text-slate-600' },
+                  { label: 'Gross Amount', val: `₹${formData.gross_amount}`, color: 'text-blue-600' },
+                  { label: t('dangarEntry.lessBardan'), val: `- ₹0.00 (${formData.less_bardan}kg Gun)`, color: 'text-rose-500' },
+                  { label: `${formData.quality_class} Rate / kg`, val: `₹${formData.rate}`, color: 'text-blue-600' },
+                  { label: 'Kapat (Deductions)', val: `- ₹${formData.total_deduction}`, color: 'text-rose-500' },
+                  { label: 'Bardan Penalty', val: `- ₹${formData.remaining_bardan_deduction}`, color: 'text-rose-600', highlight: true },
+                  { label: 'Net Payable', val: `₹${formData.amount}`, color: 'text-emerald-600', size: 'text-3xl', highlight: true }
                 ].map((calc, i) => (
-                  <div key={i} className={`flex justify-between items-center group/row py-2 ${calc.size ? 'mt-4 border-t border-white/10 pt-6' : ''}`}>
-                    <p className={`text-[10px] font-black uppercase tracking-widest italic font-mono ${calc.highlight ? 'text-amber-500' : 'text-slate-500'}`}>{calc.label}</p>
-                    <p className={`${calc.size || 'text-base'} font-black italic font-mono tracking-tighter ${calc.highlight ? 'text-white' : `text-${calc.color}`}`}>
-                      {calc.val}
-                    </p>
+                  <div key={i} className={`flex justify-between items-center px-4 py-2.5 ${calc.size ? 'border-t border-slate-200 pt-4 pb-4' : ''}`}>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${calc.highlight ? 'text-blue-600' : 'text-slate-400'}`}>{calc.label}</p>
+                    <p className={`${calc.size || 'text-sm'} font-black ${calc.highlight ? 'text-emerald-600' : calc.color}`}>{calc.val}</p>
                   </div>
                 ))}
-                </div>
               </div>
 
-              <div className="flex gap-4">
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  <Save size={20} />
-                  Commit Transaction
-                </button>
-                <button
-                  onClick={loadHistory}
-                  className="w-20 bg-white/5 hover:bg-white/10 text-white py-6 rounded-lg font-black border border-white/10 flex items-center justify-center transition-all active:scale-95"
-                >
-                  <History size={20} />
-                </button>
-              </div>
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg font-bold uppercase tracking-widest text-xs shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Save size={16} /> Save Entry
+              </button>
             </div>
 
           </div>
-        </div>
-
-        {/* Action Command Interface */}
-        <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-lg border border-white shadow-xl flex flex-wrap justify-center gap-5">
-          {[
-            { label: 'Display Logs', icon: Search, color: 'slate', action: loadHistory, sub: 'Manifest history' },
-            { label: 'Commit Entry', icon: Save, color: 'emerald', action: handleSave, sub: 'Save vector' },
-            { label: 'Generate Slip', icon: Printer, color: 'slate', sub: 'Print physical log' },
-            { label: 'Abort State', icon: X, color: 'rose', action: resetForm, sub: 'Clear cache' },
-          ].map((btn, i) => (
-            <button
-              key={i}
-              onClick={btn.action}
-              className={`flex items-center gap-4 px-10 py-5 rounded-lg tracking-widest transition-all shadow-xl active:scale-95 border-b-4 overflow-hidden relative group ${btn.color === 'blue' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-700' :
-                btn.color === 'rose' ? 'bg-rose-600 text-white border-rose-800 hover:bg-rose-700' :
-                  btn.color === 'emerald' ? 'bg-emerald-600 text-white border-emerald-800 hover:bg-emerald-700' :
-                    'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
-                }`}
-            >
-              <btn.icon size={20} className={`${btn.color === 'slate' ? 'text-blue-600' : 'text-white/80'} group-hover:scale-110 transition-transform`} />
-              <div className="text-left">
-                <p className="text-[10px] font-black uppercase">{btn.label}</p>
-                <p className={`text-[8px] font-bold uppercase opacity-60 tracking-widest leading-none mt-0.5 ${btn.color === 'slate' ? 'text-slate-400' : 'text-white'}`}>{btn.sub}</p>
-              </div>
-            </button>
-          ))}
         </div>
 
       </div>

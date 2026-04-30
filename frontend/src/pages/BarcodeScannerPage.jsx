@@ -159,7 +159,7 @@ export default function BarcodeScannerPage() {
          <div className="max-w-[1600px] mx-auto px-8">
 
             {/* Superior Header - UserMaster Style */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4">
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <ScanLine size={12} />
@@ -188,7 +188,7 @@ export default function BarcodeScannerPage() {
             </div>
 
             {/* Dynamic Metric Grid - UserMaster Style */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
                <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
                   <div className="flex justify-between items-start mb-4">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total SKU Registry</p>
@@ -264,7 +264,7 @@ export default function BarcodeScannerPage() {
                               </div>
                            </div>
 
-                           <div className="flex items-center justify-center gap-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                           <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
                               <div className="flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div> Stream Status: Active</div>
                               <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
                               <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-blue-500" /> Verified Integrity Layer</div>
@@ -329,7 +329,7 @@ export default function BarcodeScannerPage() {
                ) : (
                   <div className="p-10 space-y-10 animate-in fade-in slide-in-from-bottom duration-700">
                      {/* Advanced Search Strip */}
-                     <div className="flex flex-wrap items-end justify-between gap-6">
+                     <div className="flex flex-wrap items-end justify-between gap-4">
                         <div className="flex-1 max-w-2xl">
                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-2 px-1 italic">Registry Manifest Lookup</span>
                            <div className="relative group">
@@ -396,7 +396,7 @@ export default function BarcodeScannerPage() {
 
                {/* Unified Awareness Footer */}
                <div className="mt-auto p-8 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
                      <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Sensory Bridge: Verified</span>
                      <span className="flex items-center gap-2"><ShieldCheck size={12} /> Protocol: 802.11X-SEC</span>
                   </div>

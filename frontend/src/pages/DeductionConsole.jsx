@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Database, Layout, CheckCircle, UserCheck, ArrowRight, User, TrendingUp } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 import api, { sabhasadMasterApi } from '../api';
 
@@ -202,32 +204,28 @@ export default function DeductionConsole() {
 
 
 return (
-   <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+   <div className="min-h-screen bg-[#F8FAFC] pb-12">
+      <div className="max-w-[1600px] mx-auto px-8">
 
-         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-               <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-                  <Database size={24} />
-               </div>
-               <div>
-                  <h1 className="text-xl font-bold text-slate-900 tracking-tight">Kapat Console</h1>
-                  <p className="text-sm font-medium text-slate-500 mt-0.5">Automated Deduction Extraction</p>
-               </div>
-            </div>
-            <div className="flex gap-3">
+         <PageHeader
+            eyebrow="Financial Operations / Extraction"
+            eyebrowIcon={<Database size={12} />}
+            title="Kapat Console"
+            subtitle="Automated Deduction Extraction"
+         >
+            <div className="flex items-center gap-3">
                <button
                   onClick={async () => {
                      setIsSmartFilling(true);
                      try {
                         if (!deductionPayload.sabhasad_id) {
-                           if (!window.confirm('Global Scan: Automatically find all members with outstanding balances in the matrix accounts?')) {
+                           if (!window.confirm('Global Scan: Automatically find all members with outstanding balances?')) {
                               setIsSmartFilling(false);
                               return;
                            }
                            const ledgerAccounts = selectedIdentities.filter(i => i.type === 'account');
                            if (ledgerAccounts.length === 0) {
-                              alert('Please add at least one account (e.g. Adv A/C) to the matrix first.');
+                              alert('Please add at least one account to the matrix first.');
                               setIsSmartFilling(false);
                               return;
                            }
@@ -255,14 +253,14 @@ return (
                                  }
                               });
                               if (membersToAdd.length === 0) {
-                                 alert('No members with outstanding balances found for the selected accounts.');
+                                 alert('No members with outstanding balances found.');
                               } else {
                                  setSelectedIdentities(prev => {
                                     const existingIds = new Set(prev.map(p => `${p.type}-${p.id}`));
                                     const filteredNew = membersToAdd.filter(m => !existingIds.has(`${m.type}-${m.id}`));
                                     return [...prev, ...filteredNew];
                                  });
-                                 alert(`Auto Mode: Added ${membersToAdd.length} members with pending balances.`);
+                                 alert(`Auto Mode: Added ${membersToAdd.length} members.`);
                               }
                            }
                         } else {
@@ -282,47 +280,43 @@ return (
                         }
                      } catch (err) {
                         console.error('Smart Fill failed:', err);
-                        alert('Smart Fill operation failed. Check console for details.');
                      } finally {
                         setIsSmartFilling(false);
                      }
                   }}
                   disabled={isSmartFilling}
-                  className="px-6 py-3 bg-white text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  className="px-4 py-2.5 bg-white text-emerald-600 border border-slate-200 rounded-lg hover:bg-emerald-50 transition-all font-bold text-xs flex items-center gap-2 shadow-sm disabled:opacity-50"
                >
                   {isSmartFilling ? (
-                     <>
-                        <div className="w-4 h-4 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin"></div>
-                        Processing...
-                     </>
+                     <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
                   ) : (
-                     <>
-                        <TrendingUp size={16} /> Smart Fill
-                     </>
+                     <TrendingUp size={15} />
                   )}
+                  Smart Fill
                </button>
-               <button onClick={() => setShowMembersModal(true)} className="px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm">
-                  <Plus size={16} /> Add Targets
+               <button onClick={() => setShowMembersModal(true)} className="px-4 py-2.5 bg-white text-slate-600 border border-slate-200 rounded-lg hover:border-slate-400 transition-all font-bold text-xs flex items-center gap-2 shadow-sm">
+                  <Plus size={15} /> Add Targets
                </button>
                <button
                   onClick={() => { setDeductionPayload(prev => ({ ...prev, target_identifier: 'all' })); setShowDeductionModal(true); preloadIdentityInsights(selectedIdentities); }}
                   disabled={selectedIdentities.length === 0}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-xs flex items-center gap-2 shadow-sm disabled:opacity-50"
                >
-                  <Database size={16} /> Process Kapat
+                  <Database size={15} /> Process Kapat
                </button>
             </div>
-         </div>
+         </PageHeader>
 
 
          {selectedIdentities.length > 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-               <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
-                  <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
-                     <UserCheck className="text-blue-600" size={18} /> Extraction Matrix
-                  </h2>
-                  <span className="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-md">{selectedIdentities.length} Targets</span>
-               </div>
+               <TableHeading
+                  icon={<UserCheck size={18} />}
+                  iconColor="blue"
+                  title="Extraction Matrix"
+                  subtitle="Targets registered for batch processing"
+                  count={selectedIdentities.length}
+               />
                <div className="overflow-x-auto">
                   <table className="w-full text-left">
                      <thead className="bg-slate-50 border-b border-slate-200">
@@ -343,7 +337,7 @@ return (
                                  </span>
                               </td>
                               <td className="px-6 py-4 text-sm font-medium text-slate-900">{item.name}</td>
-                              <td className="px-6 py-4 text-sm text-slate-500 font-mono italic">#{item.code}</td>
+                              <td className="px-6 py-4 text-sm text-slate-500 font-mono">#{item.code}</td>
                               <td className="px-6 py-4 text-right">
                                  <button onClick={() => removeIdentity(item.id, item.type)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"><X size={16} /></button>
                               </td>
@@ -366,95 +360,104 @@ return (
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeductionModal(false)} />
             <div className="relative w-full max-w-3xl bg-white shadow-2xl flex flex-col border-2 border-slate-400 rounded-sm" style={{ maxHeight: '90vh' }}>
 
-               <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-3 py-1.5 flex justify-between items-center shrink-0">
-                  <span className="text-xs font-bold tracking-wide">Kapat Entry</span>
-                  <button onClick={() => setShowDeductionModal(false)} className="w-5 h-5 bg-white/20 hover:bg-red-500 flex items-center justify-center rounded-sm text-xs font-black transition-colors">X</button>
-               </div>
-
-               <div className="bg-slate-100 border-b-2 border-slate-300 px-4 py-3 space-y-2 shrink-0">
+               <div className="bg-white border-b border-slate-100 px-6 py-5 flex justify-between items-center shrink-0">
                   <div className="flex items-center gap-4">
-                     <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">Voucher No :</label>
-                     <div className="px-3 bg-white border border-slate-300 rounded-sm text-xs font-mono font-black text-slate-600 w-28 h-7 flex items-center">000001</div>
-                     <div className="flex items-center gap-2 ml-auto">
-                        <label className="text-[11px] font-bold text-slate-700 shrink-0">Date :</label>
-                        <input type="date" value={deductionPayload.date}
-                           onChange={e => setDeductionPayload(p => ({ ...p, date: e.target.value }))}
-                           className="px-2 bg-white border border-slate-300 rounded-sm text-xs font-mono font-bold text-slate-800 outline-none focus:border-blue-500 h-7 w-36" />
+                     <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg"><Database size={18} /></div>
+                     <div>
+                        <h3 className="text-lg font-bold text-slate-800 tracking-tight">Kapat Entry</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Automated Fiscal Batch</p>
                      </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                     <label className="text-[11px] font-bold text-slate-700 w-24 text-right shrink-0">{isSubledger ? 'Sabhasad :' : 'Narration :'}</label>
-                     <input
-                        type="text"
-                        value={deductionPayload.sabhasad_code || ''}
-                        onChange={async (e) => {
-                           const code = e.target.value;
-                           let match = null;
-                           if (isSubledger) {
-                              match = members.find(m => String(m.member_code) === String(code));
-                           } else {
-                              match = narrations.find(n => String(n.narration_code) === String(code));
-                           }
+                  <button onClick={() => setShowDeductionModal(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
+               </div>
 
-                           setDeductionPayload(p => ({
-                              ...p,
-                              sabhasad_code: code,
-                              sabhasad_name: match ? (isSubledger ? match.member_name : match.narration_text) : '',
-                              sabhasad_id: match && isSubledger ? match.id : null
-                           }));
+               <div className="bg-[#F8FAFC] border-b border-slate-200 px-6 py-6 space-y-4 shrink-0">
+                  <div className="grid grid-cols-2 gap-6">
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Voucher No</label>
+                        <div className="px-4 py-3 bg-slate-100 border border-slate-200 rounded-lg text-sm font-black text-slate-500">000001</div>
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Process Date</label>
+                        <input type="date" value={deductionPayload.date}
+                           onChange={e => setDeductionPayload(p => ({ ...p, date: e.target.value }))}
+                           className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{isSubledger ? 'Sabhasad Identity' : 'Narration / Description'}</label>
+                     <div className="flex gap-3">
+                        <input
+                           type="text"
+                           value={deductionPayload.sabhasad_code || ''}
+                           onChange={async (e) => {
+                              const code = e.target.value;
+                              let match = null;
+                              if (isSubledger) {
+                                 match = members.find(m => String(m.member_code) === String(code));
+                              } else {
+                                 match = narrations.find(n => String(n.narration_code) === String(code));
+                              }
 
-                           if (match && isSubledger) {
-                              preloadIdentityInsights(selectedIdentities, match.id);
-                           }
-                        }}
-                        className="w-20 px-2 bg-white border border-slate-300 rounded-sm text-xs font-mono font-black text-slate-800 outline-none focus:border-blue-500 h-7 text-center"
-                        placeholder="Code"
-                     />
-                     <input
-                        type="text"
-                        value={deductionPayload.sabhasad_name || ''}
-                        onChange={e => setDeductionPayload(p => ({ ...p, sabhasad_name: e.target.value }))}
-                        className="flex-1 px-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-800 outline-none focus:border-blue-500 h-7"
-                        placeholder={isSubledger ? "Member Name" : "Narration / Description"}
-                     />
+                              setDeductionPayload(p => ({
+                                 ...p,
+                                 sabhasad_code: code,
+                                 sabhasad_name: match ? (isSubledger ? match.member_name : match.narration_text) : '',
+                                 sabhasad_id: match && isSubledger ? match.id : null
+                              }));
+
+                              if (match && isSubledger) {
+                                 preloadIdentityInsights(selectedIdentities, match.id);
+                              }
+                           }}
+                           className="w-24 px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm font-black text-slate-700 text-center outline-none focus:border-blue-500 transition-all"
+                           placeholder="Code"
+                        />
+                        <input
+                           type="text"
+                           value={deductionPayload.sabhasad_name || ''}
+                           onChange={e => setDeductionPayload(p => ({ ...p, sabhasad_name: e.target.value }))}
+                           className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                           placeholder={isSubledger ? "Enter Member Name..." : "Enter Narration Text..."}
+                        />
+                     </div>
                   </div>
                </div>
 
                {deductionPayload.target_identifier && (
-                  <div className="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center justify-between shrink-0 gap-2">
-                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
-                           <span className="text-[9px] font-black text-slate-400 uppercase">From:</span>
+                  <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between shrink-0 gap-4">
+                     <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Start</span>
                            <input type="date" value={accountStatsRange.startDate}
                               onChange={e => setAccountStatsRange(p => ({ ...p, startDate: e.target.value }))}
-                              className="bg-transparent border-none text-[10px] font-bold text-slate-800 outline-none w-20" />
+                              className="bg-transparent border-none text-[11px] font-bold text-slate-700 outline-none w-24" />
                         </div>
-                        <div className="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
-                           <span className="text-[9px] font-black text-slate-400 uppercase">To:</span>
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">End</span>
                            <input type="date" value={accountStatsRange.endDate}
                               onChange={e => setAccountStatsRange(p => ({ ...p, endDate: e.target.value }))}
-                              className="bg-transparent border-none text-[10px] font-bold text-slate-800 outline-none w-20" />
+                              className="bg-transparent border-none text-[11px] font-bold text-slate-700 outline-none w-24" />
                         </div>
                      </div>
-                     <div className="flex items-center gap-2 text-[10px] font-mono font-black">
-                        <div className="flex flex-col items-end px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded min-w-[80px]">
-                           <span className="text-emerald-700 text-[8px] uppercase leading-none mb-0.5">Jama</span>
-                           <span className="text-emerald-900 leading-none">{parseFloat(activeAccountStats.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                     <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-end px-4 py-1 bg-emerald-50/50 border border-emerald-100 rounded-lg">
+                           <span className="text-emerald-600 text-[8px] font-bold uppercase tracking-widest mb-0.5">Total Jama</span>
+                           <span className="text-emerald-700 font-bold text-sm leading-none">
+                              {parseFloat(activeAccountStats.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                           </span>
                         </div>
-                        <div className="flex flex-col items-end px-2 py-0.5 bg-rose-50 border border-rose-200 rounded min-w-[80px]">
-                           <span className="text-rose-700 text-[8px] uppercase leading-none mb-0.5">Total Udhar</span>
-                           <span className="text-rose-900 leading-none">{parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <div className="flex flex-col items-end px-4 py-1 bg-rose-50/50 border border-rose-100 rounded-lg">
+                           <span className="text-rose-600 text-[8px] font-bold uppercase tracking-widest mb-0.5">Total Udhar</span>
+                           <span className="text-rose-700 font-bold text-sm leading-none">
+                              {parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                           </span>
                         </div>
-                        <div className="flex flex-col items-end px-3 py-0.5 bg-blue-600 border border-blue-700 rounded shadow-sm min-w-[120px]">
-                           <span className="text-blue-100 text-[8px] uppercase leading-none mb-0.5">Remaining Bal.</span>
-                           <span className="text-white text-[11px] leading-none">
+                        <div className="flex flex-col items-end px-5 py-1.5 bg-blue-600 rounded-lg shadow-md shadow-blue-100">
+                           <span className="text-blue-100 text-[8px] font-bold uppercase tracking-widest mb-0.5">Net Balance</span>
+                           <span className="text-white font-black text-base leading-none">
                               {parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                            </span>
-                           {parseFloat(activeAccountStats.total_interest || 0) !== 0 && (
-                              <span className="text-[7px] text-blue-200 mt-0.5 font-bold italic leading-none">
-                                 Interest: {parseFloat(activeAccountStats.total_interest).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                              </span>
-                           )}
                         </div>
                      </div>
                   </div>
@@ -532,14 +535,14 @@ return (
                   </div>
                </div>
 
-               <div className="bg-slate-200 p-3 flex justify-between items-center shrink-0">
-                  <div className="flex gap-2">
-                     <button onClick={handleExecuteBatch} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-sm shadow-sm transition-colors flex items-center gap-2">
-                        <CheckCircle size={14} /> SAVE & POST
+               <div className="bg-slate-50 p-6 flex justify-between items-center shrink-0 border-t border-slate-100">
+                  <div className="flex gap-3">
+                     <button onClick={handleExecuteBatch} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg shadow-lg shadow-blue-100 transition-all flex items-center gap-2">
+                        <CheckCircle size={15} /> Save & Commit Batch
                      </button>
-                     <button onClick={() => setShowDeductionModal(false)} className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-white text-xs font-black rounded-sm shadow-sm transition-colors">CANCEL</button>
+                     <button onClick={() => setShowDeductionModal(false)} className="px-8 py-3 bg-white border border-slate-200 hover:border-slate-400 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-lg transition-all">Discard</button>
                   </div>
-                  <div className="text-[10px] font-black text-slate-500 italic uppercase">System ready for commit</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol Status: Ready</div>
                </div>
             </div>
          </div>

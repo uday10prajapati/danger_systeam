@@ -174,7 +174,7 @@ export default function PurchaseReport() {
       <div className="max-w-[1600px] mx-auto px-8">
 
         {/* Superior Header - Dashboard Style */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6 print:hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4 print:hidden">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Database size={12} />
@@ -207,7 +207,7 @@ export default function PurchaseReport() {
         </div>
 
         {/* Audit Command Grid - Compact Metric Shards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 print:hidden">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
           {[
             { label: 'Total Procurement Volume', val: formatCurrency(totalProcurementVolume), icon: <TrendingUp size={18} />, color: 'blue' },
             { label: 'Manifest Nodes', val: filteredReports.length, icon: <FileText size={18} />, color: 'indigo' },
@@ -225,7 +225,7 @@ export default function PurchaseReport() {
         </div>
 
         {/* Command Deck Toolbar */}
-        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-6">
+        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[350px]">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Cross-Entity Vector Search</span>
             <div className="relative group">
@@ -402,7 +402,7 @@ export default function PurchaseReport() {
 
           {/* Dashboard Insight Footer */}
           <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Protocol: Symmetric</span>
               <span className="flex items-center gap-2"><Layout size={12} /> Repository Status: Validated</span>
             </div>

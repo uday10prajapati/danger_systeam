@@ -185,7 +185,7 @@ export default function Rojmel() {
          <div className="max-w-[1600px] mx-auto px-8">
 
             {/* Superior Header - Dashboard Style */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6 print:hidden">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4 print:hidden">
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <Calculator size={12} />
@@ -208,7 +208,7 @@ export default function Rojmel() {
             </div>
 
             {/* Command Deck Toolbar */}
-            <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-center gap-10">
+            <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-center gap-4">
 
                <div className="flex items-center gap-4 border-r border-slate-100 pr-10">
                   <label className="flex items-center gap-3 cursor-pointer group">
@@ -320,7 +320,7 @@ export default function Rojmel() {
                                     </div>
                                  </div>
 
-                                 {/* Subledger Shard */}
+                                 {/* Subledger Segment */}
                                  {showSubledger && row.isGST && row.subledger?.length > 0 && (
                                     <div className="bg-[#F8FAFC]/50 px-10 py-3 space-y-2 border-l-4 border-emerald-500 m-2 rounded-lg">
                                        {row.subledger.map((sub, sIdx) => (
@@ -376,7 +376,7 @@ export default function Rojmel() {
                                     </div>
                                  </div>
 
-                                 {/* Subledger Shard */}
+                                 {/* Subledger Segment */}
                                  {showSubledger && row.isGST && row.subledger?.length > 0 && (
                                     <div className="bg-[#F8FAFC]/50 px-10 py-3 space-y-2 border-l-4 border-blue-500 m-2 rounded-lg">
                                        {row.subledger.map((sub, sIdx) => (
@@ -408,7 +408,7 @@ export default function Rojmel() {
                </div>
             </div>
 
-            {/* Floating Command Hub - Airy Glassmorphic Shard */}
+            {/* Floating Command Hub - Airy Glassmorphic Console */}
             <div className="mt-8 bg-white/80 backdrop-blur-xl p-3 border border-slate-200/50 shadow-[0_30px_70px_rgba(0,0,0,0.08)] rounded-lg flex items-center gap-2 z-50 print:hidden">
 
                <div className="flex gap-2 p-1 bg-slate-50/50 rounded-lg border border-slate-100">

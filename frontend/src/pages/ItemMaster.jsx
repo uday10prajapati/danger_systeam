@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import ItemForm from '../components/ItemForm'
 import { useNavigate } from 'react-router-dom'
+import TableHeading from '../components/TableHeading'
 
 export default function ItemMaster() {
   const { t } = useTranslation()
@@ -159,10 +160,10 @@ export default function ItemMaster() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+      <div className="max-w-[1600px] mx-auto px-6">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 gap-4">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Shield size={12} />
@@ -208,7 +209,7 @@ export default function ItemMaster() {
         )}
 
         {/* Stats Grid - No Company Card as requested */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.densityCount', 'Density Count')}</p>
@@ -241,26 +242,27 @@ export default function ItemMaster() {
 
         {/* Table View */}
         <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-white sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                <Package size={18} />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800">{t('itemMaster.operationalRegistry', 'Operational Object Registry')}</h2>
-            </div>
+          <TableHeading
+            icon={<Package size={18} />}
+            iconColor="blue"
+            title={t('itemMaster.operationalRegistry', 'Operational Object Registry')}
+            subtitle={t('itemMaster.nomenclatureRegistry', 'Nomenclature Registry')}
+            count={filteredItems.length}
+          >
             <div className="flex items-center p-1 bg-slate-50 rounded-lg">
               {['all', 'active', 'inactive'].map((filt) => (
                 <button
                   key={filt}
                   onClick={() => setStatusFilter(filt)}
-                  className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${statusFilter === filt ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                    }`}
+                  className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    statusFilter === filt ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                  }`}
                 >
                   {t(`common.${filt}`, filt)}
                 </button>
               ))}
             </div>
-          </div>
+          </TableHeading>
 
           {loading ? (
             <div className="p-24 text-center">
@@ -281,19 +283,19 @@ export default function ItemMaster() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#F8FAFC]">
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">{t('itemMaster.itemName', 'Object Descriptor')}</th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">{t('itemMaster.itemCode', 'Object ID')}</th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">{t('itemMaster.unit', 'Format')}</th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">{t('itemMaster.tax', 'Tariff')}</th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">{t('itemMaster.status', 'Protocol')}</th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">{t('common.actions', 'Audit')}</th>
+                  <tr className="border-b border-slate-100">
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Item</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Code / Barcode</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Unit</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Tax</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredItems.map((item) => (
-                    <tr key={item.id} className="group hover:bg-blue-50/30 transition-all duration-300">
-                      <td className="px-8 py-6">
+                    <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
                           <div className="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-blue-200 group-hover:shadow-lg">
                             {item.item_name[0]}
@@ -306,7 +308,7 @@ export default function ItemMaster() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-6 py-5">
                         <div className="space-y-1">
                           <div className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 group-hover:bg-white transition-colors">
                             <span className="text-[10px] font-black text-slate-600 uppercase mono tracking-tighter italic">{item.item_code}</span>
@@ -316,13 +318,13 @@ export default function ItemMaster() {
                           </p>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-6 py-5">
                         <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">{item.unit}</span>
                       </td>
-                      <td className="px-8 py-6 text-right">
+                      <td className="px-6 py-5 text-right">
                         <p className="text-xs font-black text-slate-800 italic">{(parseFloat(item.tax_percentage) || 0).toFixed(2)}%</p>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-6 py-5 text-center">
                         <div className="flex justify-center">
                           <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${item.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
                             }`}>
@@ -331,7 +333,7 @@ export default function ItemMaster() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
                           <button onClick={() => handleEditItem(item)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg hover:shadow-blue-100 rounded-lg transition-all">
                             <Edit3 size={16} />

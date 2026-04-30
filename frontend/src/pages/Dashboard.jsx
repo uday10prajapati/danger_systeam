@@ -77,7 +77,7 @@ function Dashboard() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {summaryCards.map((card, idx) => (
             <div key={idx} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:shadow-md transition-all group">
               <div className="flex justify-between items-start mb-4">
@@ -103,8 +103,8 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Financial Flow Shards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Financial Flow Modules */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {financialCards.map((card, idx) => (
             <div key={idx} className={`p-6 rounded-lg border flex items-center justify-between shadow-sm hover:shadow-md transition-all ${card.color === 'blue' ? 'bg-blue-600 border-blue-700 text-white shadow-blue-100' : 'bg-white border-slate-100 text-slate-800'
               }`}>

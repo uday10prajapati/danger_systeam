@@ -176,10 +176,10 @@ function UserMaster() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+      <div className="max-w-[1600px] mx-auto px-6">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 gap-4">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Shield size={12} />
@@ -218,7 +218,7 @@ function UserMaster() {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.company', 'Organization')}</p>
@@ -289,23 +289,17 @@ function UserMaster() {
               </div>
             ) : (
               <table className="w-full text-left">
-                <thead className="bg-[#F8FAFC]">
-                  <tr>
-                    {[
-                      t('userMaster.username', 'User Profile'),
-                      t('userMaster.role', 'Access Tier'),
-                      t('userMaster.status', 'System Status'),
-                      t('userMaster.createdDate', 'Established'),
-                      t('userMaster.actions', 'Operations')
-                    ].map((head) => (
-                      <th key={head} className="px-10 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    {['User Profile', 'Role', 'Status', 'Created', 'Actions'].map((h, i) => (
+                      <th key={h} className={`px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider ${i === 4 ? 'text-right' : ''}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredUsers.map((user) => (
                     <tr key={user.id} className="group hover:bg-slate-50/50 transition-colors">
-                      <td className="px-10 py-6">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm bg-linear-to-br transition-transform group-hover:scale-110 ${user.is_active ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500'
                             }`}>
@@ -317,7 +311,7 @@ function UserMaster() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-10 py-6">
+                      <td className="px-6 py-5">
                         <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${user.role === 'hod' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                           user.role === 'manager' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                             'bg-amber-50 text-amber-600 border-amber-100'
@@ -325,7 +319,7 @@ function UserMaster() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-10 py-6">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-2">
                           <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                           <span className={`text-[10px] font-bold uppercase tracking-widest ${user.is_active ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -333,11 +327,11 @@ function UserMaster() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-10 py-6 text-[11px] font-bold text-slate-400 italic">
+                      <td className="px-6 py-5 text-[11px] font-bold text-slate-400 italic">
                         {new Date(user.created_at).toLocaleDateString('en-GB')}
                       </td>
-                      <td className="px-10 py-6">
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                           <button
                             onClick={() => handleEditUser(user.id)}
                             className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-lg transition-all shadow-sm"

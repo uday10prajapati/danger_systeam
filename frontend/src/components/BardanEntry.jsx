@@ -323,7 +323,7 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col p-6 gap-6 bg-gray-50">
+        <div className="flex-1 overflow-hidden flex flex-col p-6 gap-4 bg-gray-50">
           {/* Balance Metrics Card */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
@@ -343,9 +343,9 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
           {error && <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg animate-pulse">{error}</div>}
           {success && <div className="p-3 bg-green-100 border border-green-200 text-green-700 rounded-lg">{success}</div>}
 
-          <div className="grid grid-cols-12 gap-6 flex-1 overflow-hidden">
+          <div className="grid grid-cols-12 gap-4 flex-1 overflow-hidden">
             {/* Form Section */}
-            <div className="col-span-8 flex flex-col gap-6 overflow-y-auto pr-2">
+            <div className="col-span-8 flex flex-col gap-4 overflow-y-auto pr-2">
               <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.book_type}</label>
@@ -444,7 +444,7 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
             </div>
 
             {/* Right Section (Grid & Totals) */}
-            <div className="col-span-4 flex flex-col gap-6">
+            <div className="col-span-4 flex flex-col gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden flex flex-col flex-1">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-100">
                   <h3 className="text-sm font-bold text-gray-700 uppercase">{t.form.item_details}</h3>

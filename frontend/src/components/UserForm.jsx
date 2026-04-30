@@ -188,7 +188,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
               <div className="w-6 h-0.5 bg-blue-600"></div> Profile Context
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 ml-1">{t('userMaster.username', 'Public Name')} *</label>
                 <div className="relative group">

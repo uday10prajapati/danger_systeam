@@ -132,7 +132,7 @@ export default function DeductionMaster() {
          <div className="max-w-[1400px] mx-auto px-8">
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4">
                <div>
                   <div className="flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase tracking-[0.2em] mb-1 italic">
                      <Shield size={12} />
@@ -211,7 +211,7 @@ export default function DeductionMaster() {
                         <p className="text-slate-300 font-black uppercase tracking-widest text-[10px]">Scanning Identity Shards...</p>
                      </div>
                   ) : filteredData.length === 0 ? (
-                     <div className="h-full flex flex-col items-center justify-center py-32 text-center gap-6">
+                     <div className="h-full flex flex-col items-center justify-center py-32 text-center gap-4">
                         <div className="w-24 h-24 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-200">
                            <Layout size={48} />
                         </div>

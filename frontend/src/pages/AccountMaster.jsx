@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import AccountForm from '../components/AccountForm';
 import { useNavigate } from 'react-router-dom';
+import TableHeading from '../components/TableHeading';
 
 export default function AccountMaster() {
   const { t } = useTranslation();
@@ -198,10 +199,10 @@ export default function AccountMaster() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+      <div className="max-w-[1600px] mx-auto px-6">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 gap-4">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Shield size={12} />
@@ -251,15 +252,14 @@ export default function AccountMaster() {
 
         {/* Global Messages */}
         {message && (
-          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-            }`}>
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'}`}>
             {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             <p className="text-sm font-bold">{message.text}</p>
           </div>
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Accounts</p>
@@ -292,34 +292,37 @@ export default function AccountMaster() {
 
         {/* Table View */}
         <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Database size={18} /></div>
-              <h2 className="text-lg font-bold text-slate-800">Operational Registry</h2>
-            </div>
-            <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-lg">
+          <TableHeading
+            icon={<Database size={18} />}
+            iconColor="blue"
+            title="Operational Registry"
+            subtitle="Ledger nodes for all account types"
+            count={filteredAccounts.length}
+          >
+            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg">
               {accountTypes.slice(0, 4).map(type => (
                 <button
                   key={type.value}
                   onClick={() => setSelectedType(type.value)}
-                  className={`px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                    }`}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    selectedType === type.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                  }`}
                 >
                   {type.label}
                 </button>
               ))}
-              <div className="w-px h-4 bg-slate-200 ml-2 mr-2"></div>
-              <select
-                value={balanceTypeFilter}
-                onChange={(e) => setBalanceTypeFilter(e.target.value)}
-                className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-400 px-3 cursor-pointer uppercase tracking-widest"
-              >
-                <option value="all">Balance (All)</option>
-                <option value="credit">Credit (Jama)</option>
-                <option value="debit">Debit (Udhar)</option>
-              </select>
             </div>
-          </div>
+            <div className="w-px h-5 bg-slate-200" />
+            <select
+              value={balanceTypeFilter}
+              onChange={(e) => setBalanceTypeFilter(e.target.value)}
+              className="bg-white border border-slate-200 outline-none text-[10px] font-bold text-slate-500 px-3 py-2 rounded-lg cursor-pointer uppercase tracking-widest"
+            >
+              <option value="all">Balance (All)</option>
+              <option value="credit">Credit (Jama)</option>
+              <option value="debit">Debit (Udhar)</option>
+            </select>
+          </TableHeading>
 
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center p-24">
@@ -337,18 +340,18 @@ export default function AccountMaster() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#F8FAFC]">
-                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Entity Nomenclature</th>
-                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Classification</th>
-                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Closing Balance</th>
-                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Status</th>
-                    <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Audit</th>
+                  <tr className="border-b border-slate-100">
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Account</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Balance</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredAccounts.map(acc => (
-                    <tr key={acc.id} className="group hover:bg-blue-50/30 transition-all duration-300">
-                      <td className="px-10 py-6">
+                    <tr key={acc.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
                           <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg transition-transform group-hover:scale-110 ${['customer', 'supplier'].includes(acc.account_type) ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'
                             }`}>
@@ -389,7 +392,7 @@ export default function AccountMaster() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-10 py-6">
+                      <td className="px-6 py-5">
                         <div className="flex justify-center">
                           <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${acc.is_active ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-600 ring-1 ring-rose-100'
                             }`}>
@@ -398,7 +401,7 @@ export default function AccountMaster() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-10 py-6 text-right">
+                      <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
                           <button onClick={() => handleShowBalance(acc)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg rounded-lg transition-all"><Eye size={16} /></button>
                           {!acc.is_system && (

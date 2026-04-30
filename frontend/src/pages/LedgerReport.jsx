@@ -164,7 +164,7 @@ export default function LedgerReport() {
       <div className="max-w-[1600px] mx-auto px-8">
 
         {/* Superior Header - Dashboard Style */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-6 print:hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4 print:hidden">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Database size={12} />
@@ -191,7 +191,7 @@ export default function LedgerReport() {
         </div>
 
         {/* Dynamic Metric Grid - Premium Shards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 print:hidden">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
           {[
             { label: 'Baseline Exposure', val: formatBalance(data[0]?.opening_balance || 0), icon: <ShieldCheck size={18} />, color: 'blue' },
             { label: 'Aggregate Debit', val: `₹${parseFloat(totals.debit || 0).toLocaleString('en-IN')}`, icon: <TrendingUp size={18} />, color: 'indigo' },
@@ -211,7 +211,7 @@ export default function LedgerReport() {
         {/* Control Deck - Page Container Style */}
         <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex-1 flex flex-wrap items-end gap-6 relative">
+            <div className="flex-1 flex flex-wrap items-end gap-4 relative">
 
               {/* Member ID Input */}
               <div className="w-full md:w-32 lg:w-40">
@@ -289,7 +289,7 @@ export default function LedgerReport() {
               </div>
             </div>
 
-            <div className="flex items-center gap-6 p-2 bg-slate-50/50 rounded-lg border border-slate-100">
+            <div className="flex items-center gap-4 p-2 bg-slate-50/50 rounded-lg border border-slate-100">
               <label className="flex items-center gap-3 px-4 py-2 cursor-pointer group transition-all">
                 <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${printSubAmount ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
                   <input type="checkbox" checked={printSubAmount} onChange={e => setPrintSubAmount(e.target.checked)} className="hidden" />
@@ -321,7 +321,7 @@ export default function LedgerReport() {
                 <ShieldCheck size={14} className="text-blue-500" /> OFFICIAL CONSOLIDATED AUDIT
               </div>
               <h2 className="text-4xl font-bold text-slate-900 tracking-tight uppercase italic">{company?.company_name}</h2>
-              <div className="flex items-center justify-center gap-6 py-2">
+              <div className="flex items-center justify-center gap-4 py-2">
                 <div className="h-0.5 w-16 bg-blue-600/20"></div>
                 <span className="text-2xl font-bold text-slate-800 tracking-tight uppercase">{accountName || 'AWAITING IDENTITY'}</span>
                 <div className="h-0.5 w-16 bg-blue-600/20"></div>
@@ -390,7 +390,7 @@ export default function LedgerReport() {
 
           {/* Dashboard Insight Footer */}
           <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
               <span className="flex items-center gap-2"><Layout size={12} /> Shards Populated: {data.length}</span>
             </div>

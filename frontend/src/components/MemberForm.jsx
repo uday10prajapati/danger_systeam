@@ -262,7 +262,7 @@ export default function MemberForm({
                 </div>
 
                 {/* Member Type Checkbox */}
-                <div className="flex items-center gap-6 pt-1">
+                <div className="flex items-center gap-4 pt-1">
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
@@ -343,7 +343,7 @@ export default function MemberForm({
               <div className="w-8 h-px bg-amber-600"></div> Banking & Status
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{t('memberMaster.bankInstitution')}</label>
                 <div className="relative group">
@@ -423,7 +423,7 @@ export default function MemberForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Nominal Identification</label>
                 <input
