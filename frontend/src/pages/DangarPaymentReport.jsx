@@ -128,20 +128,10 @@ const DangarPaymentReport = () => {
       'ACCOUNT NUMBER': r.full_ac_number || '',
       'IFSC': r.ifsc_code || '',
       'PAYABLE AMOUNT': parseFloat(r.final_amount || 0),
-      'Member Code': r.member_code,
-      'Member Name': r.member_name,
-      'Account No.': r.full_ac_number || '',
-      'Total KG': parseFloat(r.total_kg || 0),
-      'Rate/Qt': parseFloat(r.rate_per_kg || 0),
-      'Rate Amount': parseFloat(r.rate_amount || 0),
-      'Interest': parseFloat(r.total_interest || 0),
-      'Bag Penalty': parseFloat(r.bardan_penalty || 0),
-      'Godown Fund': parseFloat(r.godown_fund || 0),
-      'Final Amount': parseFloat(r.final_amount || 0),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     // Column widths
-    ws['!cols'] = [5, 12, 25, 20, 15, 15, 12, 25, 18, 10, 10, 14, 12, 14, 14].map(w => ({ wch: w }));
+    ws['!cols'] = [6, 12, 40, 25, 15, 18].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Payment Report');
     XLSX.writeFile(wb, 'dangar_payment_' + filters.startDate + '_' + filters.endDate + '.xlsx');
@@ -176,19 +166,20 @@ const DangarPaymentReport = () => {
       parseFloat(r.rate_per_kg || 0).toFixed(2),
       parseFloat(r.rate_amount || 0).toFixed(2),
       parseFloat(r.total_interest || 0).toFixed(2),
+      parseFloat(r.godown_fund || 0).toFixed(2),
       parseFloat(r.bardan_penalty || 0).toFixed(2),
       parseFloat(r.final_amount || 0).toFixed(2),
     ]);
 
     autoTable(doc, {
       startY: 28,
-      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total KG', 'Rate/Qt', 'Rate Amt', 'Interest', 'Bag Penalty', 'Final Amt']],
+      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total KG', 'Rate/Qt', 'Rate Amt', 'Interest', 'Godown Fund', 'Bag Penalty', 'Final Amt']],
       body: tableRows,
-      styles: { fontSize: 8, cellPadding: 2 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [30, 30, 60], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [245, 247, 255] },
       foot: [['', '', '', 'TOTAL', pdfTotals.totalQuintal.toFixed(2) + ' Qt', '',
-        pdfTotals.totalRateAmount.toFixed(2), pdfTotals.totalInterest.toFixed(2), pdfTotals.totalBardanPenalty.toFixed(2), pdfTotals.totalFinal.toFixed(2)]],
+        pdfTotals.totalRateAmount.toFixed(2), pdfTotals.totalInterest.toFixed(2), '', '', pdfTotals.totalFinal.toFixed(2)]],
       footStyles: { fillColor: [20, 20, 50], textColor: 255, fontStyle: 'bold' },
     });
     doc.save('dangar_payment_' + filters.startDate + '_' + filters.endDate + '.pdf');
@@ -410,8 +401,9 @@ const DangarPaymentReport = () => {
                   <th className="px-6 py-5 text-right text-indigo-500">Rate Amt</th>
                   <th className="px-6 py-5 text-right text-rose-500">Advance</th>
                   <th className="px-6 py-5 text-right text-blue-600">Interest</th>
-                  <th className="px-6 py-5 text-right text-amber-600">Penalty</th>
-                  <th className="px-6 py-5 text-right text-rose-700">Deduction</th>
+                  <th className="px-6 py-5 text-right text-indigo-500">Dangar Fund</th>
+                  <th className="px-6 py-5 text-right text-amber-600">Baradan Kapat</th>
+                  <th className="px-6 py-5 text-right text-rose-700">Total Deduction</th>
                   <th className="px-6 py-5 text-right text-emerald-600">Net Payable</th>
                 </tr>
               </thead>
@@ -442,6 +434,7 @@ const DangarPaymentReport = () => {
                       <td className="px-6 py-5 text-right font-bold text-indigo-600 text-sm">₹{row.rate_amount}</td>
                       <td className="px-6 py-5 text-right font-bold text-rose-500 text-sm">₹{row.member_advance}</td>
                       <td className="px-6 py-5 text-right font-bold text-blue-600 text-sm">₹{row.total_interest}</td>
+                      <td className="px-6 py-5 text-right font-bold text-indigo-500 text-sm">₹{row.godown_fund}</td>
                       <td className="px-6 py-5 text-right">
                         <p className="text-sm font-bold text-amber-600">₹{row.bardan_penalty}</p>
                         <p className="text-[9px] font-bold text-slate-400">{row.bardan_remaining} BAGS</p>

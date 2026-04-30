@@ -43,6 +43,9 @@ api.interceptors.request.use((config) => {
         } else {
           console.warn('⚠️ Missing company_id in user session');
         }
+        if (user.id) {
+          config.headers['X-User-Id'] = user.id;
+        }
       }
     } else {
       console.warn('⚠️ No user session found in localStorage');

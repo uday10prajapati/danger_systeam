@@ -3,6 +3,27 @@ import { query, execute } from '../db.js';
 
 const router = express.Router();
 
+// Auto-migration for deduction_targets table
+(async () => {
+  try {
+    // Check if table exists, create if not
+    await execute(`
+      CREATE TABLE IF NOT EXISTS deduction_targets (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        company_id INT NOT NULL,
+        target_type ENUM('member', 'account') NOT NULL,
+        target_id INT NOT NULL,
+        is_auto BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    // Migration: add is_auto if missing
+    try { await execute('ALTER TABLE deduction_targets ADD COLUMN is_auto BOOLEAN DEFAULT TRUE'); } catch (e) {}
+  } catch (err) {
+    console.error('Error in deduction_targets migration:', err);
+  }
+})();
+
 // GET all active deductions for a company
 router.get('/company/:companyId', async (req, res) => {
   try {
@@ -137,7 +158,7 @@ router.post('/batch-details', async (req, res) => {
 router.get('/targets', async (req, res) => {
   try {
     const companyId = req.headers['x-company-id'];
-    const rows = await query('SELECT id, target_type as type, target_id as db_id FROM deduction_targets WHERE company_id = ?', [companyId]);
+    const rows = await query('SELECT id, target_type as type, target_id as db_id, is_auto FROM deduction_targets WHERE company_id = ?', [companyId]);
     
     if (!rows || rows.length === 0) return res.json({ success: true, data: [] });
 
@@ -168,7 +189,8 @@ router.get('/targets', async (req, res) => {
             details: memRows[0].village_name || 'N/A',
             total_debit: totalDebit,
             total_credit: totalCredit,
-            balance: totalCredit - totalDebit
+            balance: totalCredit - totalDebit,
+            is_auto: row.is_auto !== 0
           });
         }
       } else {
@@ -182,7 +204,8 @@ router.get('/targets', async (req, res) => {
              is_subledger: accRows[0].is_subledger,
              total_debit: totalDebit,
              total_credit: totalCredit,
-             balance: totalCredit - totalDebit
+             balance: totalCredit - totalDebit,
+             is_auto: row.is_auto !== 0
           });
         }
       }
@@ -199,11 +222,15 @@ router.post('/targets/sync', async (req, res) => {
     const { identities } = req.body;
     const companyId = req.headers['x-company-id'];
 
+    // 1. Clear existing targets to allow full synchronization (including removals)
+    await execute('DELETE FROM deduction_targets WHERE company_id = ?', [companyId]);
+
+    // 2. Insert current selection
     if (identities && identities.length > 0) {
        for (const identity of identities) {
          await execute(
-           'INSERT IGNORE INTO deduction_targets (company_id, target_type, target_id) VALUES (?, ?, ?)',
-           [companyId, identity.type, identity.id]
+           'INSERT INTO deduction_targets (company_id, target_type, target_id, is_auto) VALUES (?, ?, ?, ?)',
+           [companyId, identity.type, identity.id, identity.is_auto !== false ? 1 : 0]
          );
        }
     }

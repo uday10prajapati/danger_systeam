@@ -195,7 +195,11 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
       const payload = {
         transaction_date: formData.transaction_date,
         account_id: formData.account_id,
+        member_id: batchEntries[0]?.member_id || null,
+        cash_in: batchEntries.reduce((s, e) => s + (e.cash_in || 0), 0),
+        cash_out: batchEntries.reduce((s, e) => s + (e.cash_out || 0), 0),
         description: formData.description || (isCredit ? 'Cash Receipt' : 'Cash Payment'),
+        notes: batchEntries[0]?.notes || '',
         entries: batchEntries
       };
 

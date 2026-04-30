@@ -52,21 +52,6 @@ router.post('/manual', async (req, res) => {
           entry.interest_member_id || null,
           entry.interest_account_id || null
         ]);
-
-        // 2. Counter Cash Account Entry (Symmetric Mapping: Credit in Rojmel = Credit in Cash Acc)
-        await query(`
-          INSERT INTO account_ledger (
-            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-            reference_no, description, debit, credit, notes, created_by, financial_year
-          ) VALUES (?, ?, NULL, ?, 'cash_account_entry', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          companyId,
-          14, // CASH_ACCOUNT_ID
-          transactionDate, referenceNo, entry.description || description,
-          parseFloat(entry.cash_out || 0),
-          parseFloat(entry.cash_in || 0),
-          entry.notes || '', userId, '2026-27'
-        ]);
       }
       return res.status(201).json({ success: true, data: { reference_no: referenceNo } });
     }
@@ -94,21 +79,6 @@ router.post('/manual', async (req, res) => {
         req.body.interest_member_id || null,
         req.body.interest_account_id || null
       ]);
-
-      // 2. Counter Cash Account Entry
-      await query(`
-        INSERT INTO account_ledger (
-          company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-          reference_no, description, debit, credit, notes, created_by, financial_year
-        ) VALUES (?, ?, NULL, ?, 'cash_account_entry', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        companyId,
-        14, // CASH_ACCOUNT_ID
-        transactionDate, referenceNo, description,
-        parseFloat(cash_out || 0),
-        parseFloat(cash_in || 0),
-        notes || '', userId, '2026-27'
-      ]);
     }
 
     return res.status(201).json({ success: true, data: { reference_no: referenceNo } });
@@ -133,8 +103,8 @@ router.get('/:id', async (req, res) => {
         al.id, 
         al.transaction_date, 
         al.description, 
-        al.debit as cash_in, 
-        al.credit as cash_out, 
+        al.credit as cash_in, 
+        al.debit as cash_out, 
         al.notes,
         al.account_id,
         al.member_id,
@@ -166,14 +136,15 @@ router.patch('/:id', async (req, res) => {
     const { transaction_date, description, cash_in, cash_out, notes, account_id } = req.body;
 
     // Update the main entry (The record we are editing)
+    // Debit = cash_out (Payment), Credit = cash_in (Receipt)
     await query(`
       UPDATE account_ledger 
       SET transaction_date = ?, description = ?, debit = ?, credit = ?, notes = ?, 
-          account_id = ?, member_id = ?,
+          account_id = ?, member_id = ?, transaction_type = 'cash_book',
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND company_id = ?
     `, [
-      transaction_date, description, cash_in || 0, cash_out || 0, notes || '',
+      transaction_date, description, cash_out || 0, cash_in || 0, notes || '',
       req.body.account_id || null, req.body.member_id || null,
       id, companyId
     ]);

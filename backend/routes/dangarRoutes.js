@@ -207,62 +207,65 @@ router.get('/payment-report', async (req, res) => {
          const memberBardan = await queryOne('SELECT bardan_opening FROM member_master WHERE id = ?', [row.member_id]);
          const bardanOpening = parseFloat(memberBardan?.bardan_opening || 0);
 
-         const bardanCompanyReturned = await queryOne(
-            'SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")',
-            [row.member_code, companyId]
-         );
-
-         bardanPhysicalRemaining = Math.max(0, bardanOpening + bardanIssued - bardanReturned);
-         bardanPenaltyBalance = Math.max(0, bardanOpening + bardanIssued - parseFloat(bardanCompanyReturned?.total || 0));
-         bardanSelfJama = Math.max(0, bardanReturned - parseFloat(bardanCompanyReturned?.total || 0));
+         // Initial penalty balance starts with opening
+         bardanPenaltyBalance = bardanOpening;
 
          const memberLedger = await query(`
-            SELECT account_id, debit, credit, transaction_date, interest_percent, reference_type 
+            SELECT account_id, debit, credit, transaction_date, interest_percent, interest_amount, reference_type, description 
             FROM account_ledger 
             WHERE member_id = ? AND company_id = ?
          `, [row.member_id, companyId]);
 
-          if (row.member_id === 8 || row.member_code === '1') {
-             console.log(`[API_DEBUG] Processing Member: ${row.member_name} (ID: ${row.member_id}), Company: ${companyId}`);
-             console.log(`[API_DEBUG] Ledger Entries Found: ${memberLedger.length}`);
-          }
-
           for (const entry of memberLedger) {
              const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
+             const desc = (entry.description || '').toLowerCase();
+             const isSelf = desc.includes('[self]');
              
-             if (entry.reference_type === 'dangar_entry_fund') {
-                if (row.member_id === 8 || row.member_code === '1') {
-                   console.log(`[API_DEBUG] Found Fund Entry: Ref=${entry.reference_type}, Bal=${bal}`);
-                }
-                godownFund += bal;
-             } else if (advAcId && entry.account_id === advAcId) {
-                memberAdvance += bal;
-             } else if (godownAcId && entry.account_id === godownAcId) {
-                godownFund += bal;
-             } else if (bardanAcId && entry.account_id === bardanAcId) {
-               // Skip Bardan System from Other Udhar (handled via Bardan Penalty logic)
-               continue;
-            } else if (Math.abs(bal) > 0.01) {
-               // Collect specific account names for other deductions
-               const accName = await queryOne('SELECT account_name FROM accounts WHERE id = ?', [entry.account_id]);
-               const existing = otherDeductionsList.find(d => d.account_name === accName.account_name);
-               if (existing) {
-                  existing.amount += bal;
-               } else {
-                  otherDeductionsList.push({ account_name: accName.account_name, amount: bal });
-               }
-               otherUdhar += bal;
-            }
+             // 1. System Account Identification
+             const isAdvance = advAcId && entry.account_id === advAcId;
+             const isGodownFund = (godownAcId && entry.account_id === godownAcId) || entry.reference_type === 'dangar_entry_fund' || desc.includes('godown fund');
+             const isBardan = bardanAcId && entry.account_id === bardanAcId;
 
-            if (parseFloat(entry.interest_percent || 0) > 0 && bal > 0.01) {
-               const start = new Date(entry.transaction_date);
-               const end = endDate ? new Date(endDate) : new Date();
-               const diff = end - start;
-               const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-               // Monthly Interest Formula: Principal * (Rate/100) * (Days/30)
-               pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * (days / 30.0));
-            }
-         }
+             if (isGodownFund) {
+                godownFund += bal;
+             } else if (isAdvance) {
+                memberAdvance += bal;
+             } else if (isBardan) {
+                // Bag Penalty Logic: Exclude [SELF] returns from penalty calculation
+                const penaltyCredit = isSelf ? 0 : parseFloat(entry.credit || 0);
+                bardanPenaltyBalance += parseFloat(entry.debit || 0) - penaltyCredit;
+                // Physical balance still tracks everything
+                if (isSelf) bardanSelfJama += parseFloat(entry.credit || 0);
+             } else if (Math.abs(bal) > 0.01) {
+                // Other deductions logic (Consolidated by Account Name)
+                const accRow = await queryOne('SELECT account_name FROM accounts WHERE id = ?', [entry.account_id]);
+                const accName = accRow?.account_name || 'Uncategorized';
+                
+                const existing = otherDeductionsList.find(d => d.account_name === accName);
+                if (existing) {
+                   existing.amount += bal;
+                } else {
+                   otherDeductionsList.push({ account_name: accName, amount: bal });
+                }
+                otherUdhar += bal;
+             }
+
+             // Interest Calculation: Prioritize stored interest_amount, fallback to real-time
+             if (parseFloat(entry.interest_amount || 0) > 0) {
+                pendingInterest += parseFloat(entry.interest_amount);
+             } else if (parseFloat(entry.interest_percent || 0) > 0 && bal > 0.01) {
+                const start = new Date(entry.transaction_date);
+                const end = endDate ? new Date(endDate) : new Date();
+                const diff = end - start;
+                const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
+                pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * (days / 30.0));
+             }
+          }
+          
+          // Ensure physical remaining is calculated correctly
+          bardanPhysicalRemaining = Math.max(0, bardanOpening + bardanIssued - bardanReturned);
+          bardanPenaltyBalance = Math.max(0, bardanPenaltyBalance);
+
       } catch (err) {
          console.error('Report Breakdown calculation failed', err);
       }

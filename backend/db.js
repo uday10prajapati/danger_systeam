@@ -2056,12 +2056,12 @@ export async function getCashBalance(companyId, upToDate = null) {
 
   const sql = `
     SELECT 
-      SUM(COALESCE(debit, debit_amount, 0)) as total_cash_in,
-      SUM(COALESCE(credit, credit_amount, 0)) as total_cash_out,
-      SUM(COALESCE(debit, 0) - COALESCE(credit, 0)) as current_balance
+      SUM(COALESCE(credit, credit_amount, 0)) as total_cash_in,
+      SUM(COALESCE(debit, debit_amount, 0)) as total_cash_out,
+      SUM(COALESCE(credit, 0) - COALESCE(debit, 0)) as current_balance
     FROM account_ledger
     WHERE company_id = ? 
-      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
+      AND (transaction_type = 'cash_book' OR (reference_type = 'cash_book' AND transaction_type != 'cash_account_entry'))
       ${dateCondition}
   `;
 
@@ -2080,16 +2080,16 @@ export async function getCashBookEntries(companyId, startDate, endDate) {
       al.member_id,
       m.member_name,
       m.member_code,
-      COALESCE(al.debit, al.debit_amount, 0) as cash_in,
-      COALESCE(al.credit, al.credit_amount, 0) as cash_out,
-      (COALESCE(al.debit, 0) - COALESCE(al.credit, 0)) as net_amount,
+      COALESCE(al.credit, al.credit_amount, 0) as cash_in,
+      COALESCE(al.debit, al.debit_amount, 0) as cash_out,
+      (COALESCE(al.credit, 0) - COALESCE(al.debit, 0)) as net_amount,
       u.username as created_by_user,
       al.created_at
     FROM account_ledger al
     LEFT JOIN users u ON al.created_by = u.id
     LEFT JOIN member_master m ON al.member_id = m.id
     WHERE al.company_id = ? 
-      AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book')
+      AND (al.transaction_type = 'cash_book' OR (al.reference_type = 'cash_book' AND al.transaction_type != 'cash_account_entry'))
       AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date DESC, al.created_at DESC
   `;
@@ -2100,13 +2100,13 @@ export async function getDailyCashSummary(companyId, startDate, endDate) {
   const sql = `
     SELECT 
       transaction_date,
-      SUM(COALESCE(debit, debit_amount, 0)) as daily_in,
-      SUM(COALESCE(credit, credit_amount, 0)) as daily_out,
-      SUM(COALESCE(debit, 0) - COALESCE(credit, 0)) as daily_net,
+      SUM(COALESCE(credit, credit_amount, 0)) as daily_in,
+      SUM(COALESCE(debit, debit_amount, 0)) as daily_out,
+      SUM(COALESCE(credit, 0) - COALESCE(debit, 0)) as daily_net,
       COUNT(*) as transaction_count
     FROM account_ledger
     WHERE company_id = ? 
-      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
+      AND (transaction_type = 'cash_book' OR (reference_type = 'cash_book' AND transaction_type != 'cash_account_entry'))
       AND transaction_date BETWEEN ? AND ?
     GROUP BY transaction_date
     ORDER BY transaction_date DESC

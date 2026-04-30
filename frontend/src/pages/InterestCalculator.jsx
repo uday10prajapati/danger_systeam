@@ -38,14 +38,20 @@ export default function InterestCalculator() {
 
       if (response.data.success) {
         const initialData = response.data.data.map(row => {
-          const start = new Date(row.transaction_date);
           const end = new Date(calculationDate);
+          
+          const start = new Date(row.transaction_date);
           const diffTime = end - start;
-          const elapsedDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+          const elapsedDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
 
           return {
             ...row,
-            elapsedDays: elapsedDays
+            elapsedDays: elapsedDays,
+            entries: (row.entries || []).map(entry => {
+               const eStart = new Date(entry.transaction_date);
+               const eDiff = end - eStart;
+               return { ...entry, elapsedDays: Math.max(0, Math.floor(eDiff / (1000 * 60 * 60 * 24)) + 1) };
+            })
           };
         });
         setResults(initialData);

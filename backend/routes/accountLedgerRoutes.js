@@ -75,7 +75,7 @@ router.get('/interest-calculations', async (req, res) => {
       LEFT JOIN accounts a ON al.account_id = a.id
       WHERE al.company_id = ? 
         AND al.member_id IS NOT NULL
-        AND (LOWER(a.account_code) = 'l0001' OR al.account_id IS NULL OR al.interest_percent > 0)
+        AND LOWER(a.account_code) = 'l0001'
       HAVING principal > 0
       ORDER BY al.transaction_date ASC
     `, [companyId]);
@@ -83,7 +83,7 @@ router.get('/interest-calculations', async (req, res) => {
     const rawResults = rows.map(row => {
        const trDate = new Date(row.transaction_date);
        const timeDiff = targetDate.getTime() - trDate.getTime();
-       const elapsedDays = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
+       const elapsedDays = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)) + 1);
        const elapsedMonths = elapsedDays / 30.0;
        
        const principal = parseFloat(row.principal || 0);
@@ -182,7 +182,7 @@ router.get('/account-stats/:accountId', async (req, res) => {
     const { startDate, endDate, memberId } = req.query;
     const companyId = req.header('x-company-id');
 
-    let filter = ' WHERE company_id = ?';
+    let filter = ' WHERE al.company_id = ?';
     const params = [companyId];
 
     if (parseInt(accountId) === 14) {
@@ -190,20 +190,20 @@ router.get('/account-stats/:accountId', async (req, res) => {
        filter += " AND (al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
     } else if (memberId && accountId && accountId !== 'all') {
        // Filter by both specific account and specific member
-       filter += ' AND account_id = ? AND (member_id = ? OR reference_id = ?)';
+       filter += ' AND al.account_id = ? AND (al.member_id = ? OR al.reference_id = ?)';
        params.push(accountId, memberId, memberId);
     } else if (memberId) {
        // If only memberId is provided, show their GLOBAL balance (original behavior for top stats)
-       filter += ' AND (member_id = ? OR reference_id = ?)';
+       filter += ' AND (al.member_id = ? OR al.reference_id = ?)';
        params.push(memberId, memberId);
     } else {
        // Standard account-only view
-       filter += ' AND account_id = ?';
+       filter += ' AND al.account_id = ?';
        params.push(accountId);
     }
 
     if (startDate && endDate) {
-      filter += ' AND DATE(transaction_date) BETWEEN ? AND ?';
+      filter += ' AND DATE(al.transaction_date) BETWEEN ? AND ?';
       params.push(startDate, endDate);
     }
 
@@ -211,7 +211,7 @@ router.get('/account-stats/:accountId', async (req, res) => {
       `SELECT 
          COALESCE(SUM(ABS(COALESCE(debit, debit_amount, 0))), 0) as total_debit,
          COALESCE(SUM(ABS(COALESCE(credit, credit_amount, 0))), 0) as total_credit
-       FROM account_ledger 
+       FROM account_ledger al 
        ${filter}`,
       params
     );
@@ -634,7 +634,7 @@ router.post('/bulk-apply-interest', async (req, res) => {
       FROM account_ledger al
       LEFT JOIN accounts a ON al.account_id = a.id
       WHERE al.company_id = ? 
-        AND (al.interest_percent > 0 OR a.account_code = 'L0001')
+        AND a.account_code = 'L0001'
     `, [companyId]);
 
     const targetDate = asOfDate ? new Date(asOfDate) : new Date();
@@ -647,7 +647,7 @@ router.post('/bulk-apply-interest', async (req, res) => {
 
       const startDate = new Date(entry.transaction_date);
       const diffTime = targetDate - startDate;
-      const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+      const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
       
       // Calculate multiplier based on rate type
       let multiplier = 0;

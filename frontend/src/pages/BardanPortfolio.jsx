@@ -266,21 +266,41 @@ const BardanPortfolio = () => {
     }
   };
 
-  const handleDelete = async (id, type) => {
-    if (!window.confirm('Delete this transaction node?')) return;
+  const handleVoid = async (id, type) => {
+    if (!window.confirm('⚠️ Are you sure you want to VOID this transaction? This will set quantity to zero but keep the record for audit.')) return;
     try {
       setLoading(true);
+      // 1. Fetch current details to preserve other fields
       const res = type === 'GIVEN'
-        ? await bardanEntryApi.deleteEntry(id)
-        : await jamaBardanEntryApi.deleteEntry(id);
+        ? await bardanEntryApi.getEntryById(id)
+        : await jamaBardanEntryApi.getEntryById(id);
 
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Node deleted successfully' });
-        loadData();
-        if (formData.code) fetchBalance(formData.code);
+        const entry = res.data.data;
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const payload = {
+          ...entry,
+          qty: 0,
+          gridRows: Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })),
+          remark: `[VOIDED] ${entry.remark || ''}`,
+          company_id: user.company_id,
+          financial_year: user.financial_year || '2026-27'
+        };
+
+        const updateRes = type === 'GIVEN'
+          ? await bardanEntryApi.updateEntry(id, payload)
+          : await jamaBardanEntryApi.updateEntry(id, payload);
+
+        if (updateRes.data.success) {
+          setMessage({ type: 'success', text: 'Transaction voided successfully' });
+          loadData();
+          if (formData.code) fetchBalance(formData.code);
+          setTimeout(() => setMessage(null), 5000);
+        }
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Deletion failed' });
+      console.error('Voiding failed:', error);
+      setMessage({ type: 'error', text: 'Operational failure during voiding' });
     } finally {
       setLoading(false);
     }
@@ -403,8 +423,8 @@ const BardanPortfolio = () => {
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                           {row.id !== 'OP' && (
                             <>
-                              <button onClick={() => handleEdit(row)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-lg shadow-sm transition-all"><ChevronRight size={16} /></button>
-                              <button onClick={() => handleDelete(row.id, row.type)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-lg shadow-sm transition-all"><Trash2 size={16} /></button>
+                              <button onClick={() => handleEdit(row)} title="Edit Entry" className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-lg shadow-sm transition-all"><ChevronRight size={16} /></button>
+                              <button onClick={() => handleVoid(row.id, row.type)} title="Void Entry (Zero out)" className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-lg shadow-sm transition-all"><RefreshCcw size={16} /></button>
                             </>
                           )}
                         </div>
