@@ -390,8 +390,8 @@ const BardanPortfolio = () => {
                     </td>
                     <td className="px-10 py-6 text-right">
                       {row.balance != null ? (
-                        <p className={`text-xl font-black italic ${row.balance > 0 ? 'text-rose-500' : 'text-slate-900'
-                          }`}>{row.balance}</p>
+                        <p className={`text-xl font-black italic ${row.balance >= 0 ? 'text-rose-500' : 'text-slate-900'
+                          }`}>{Math.abs(row.balance)} {row.balance >= 0 ? 'D' : 'C'}</p>
                       ) : (
                         <p className="text-xs font-bold text-slate-300 italic uppercase">Select member<br />for balance</p>
                       )}

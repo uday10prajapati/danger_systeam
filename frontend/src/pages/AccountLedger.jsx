@@ -479,12 +479,12 @@ export default function AccountLedger() {
                                              </td>
                                              <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.running_balance) >= 0 ? 'text-slate-800' : 'text-rose-600 underline decoration-rose-100 decoration-4 underline-offset-8'}`}>
                                                 {(selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
-                                                   ? parseFloat(row.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                                                   : `₹${parseFloat(row.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                                   ? `${Math.abs(parseFloat(row.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}`
+                                                   : `₹${Math.abs(parseFloat(row.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}`}
                                              </td>
                                              {selectedAccount?.account_code === 'BS0001' && (
                                                 <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
-                                                   ₹{(parseFloat(row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                   ₹{Math.abs(parseFloat(row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}
                                                 </td>
                                              )}
                                           </tr>
@@ -607,12 +607,14 @@ export default function AccountLedger() {
                                              </div>
                                           </td>
                                           <td className="px-10 py-5 text-[11px] font-bold text-slate-400 font-mono italic">{row.member_code || '—'}</td>
-                                          <td className={`px-6 py-5 text-right font-bold italic text-[11px] ${parseFloat(row.ledger_balance || 0) >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>₹{parseFloat(row.ledger_balance || 0).toLocaleString('en-IN')}</td>
+                                          <td className={`px-6 py-5 text-right font-bold italic text-[11px] ${parseFloat(row.ledger_balance || 0) >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>
+                                             ₹{Math.abs(parseFloat(row.ledger_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.ledger_balance || 0) >= 0 ? 'D' : 'C'}
+                                          </td>
                                           <td className="px-6 py-5 text-right font-bold text-indigo-600 italic text-[11px]">₹{parseFloat(row.dangar_amount || 0).toLocaleString('en-IN')}</td>
                                           <td className="px-6 py-5 text-right font-bold text-amber-600 italic text-[11px]">₹{parseFloat(row.bardan_penalty || 0).toLocaleString('en-IN')}</td>
                                           <td className="px-6 py-5 text-right font-bold text-orange-600 italic text-[11px]">₹{parseFloat(row.total_interest || 0).toLocaleString('en-IN')}</td>
                                           <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.net_position) >= 0 ? 'text-emerald-600' : 'text-rose-600 underline decoration-rose-100 decoration-4 underline-offset-8'}`}>
-                                             ₹{parseFloat(row.net_position).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                             ₹{Math.abs(parseFloat(row.net_position)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.net_position) >= 0 ? 'D' : 'C'}
                                           </td>
                                        </tr>
                                        {expandedMembers[row.member_id] && (
@@ -671,8 +673,8 @@ export default function AccountLedger() {
                                                                   </td>
                                                                   <td className={`px-6 py-3 text-right font-black text-[11px] italic ${parseFloat(me.running_balance) >= 0 ? 'text-slate-800' : 'text-rose-600'}`}>
                                                                      {(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]'))
-                                                                        ? parseFloat(me.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                                                                        : `₹${parseFloat(me.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                                                        ? `${Math.abs(parseFloat(me.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(me.running_balance) >= 0 ? 'D' : 'C'}`
+                                                                        : `₹${Math.abs(parseFloat(me.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(me.running_balance) >= 0 ? 'D' : 'C'}`}
                                                                   </td>
                                                                </tr>
                                                             ))
@@ -815,7 +817,11 @@ export default function AccountLedger() {
                                  <td className="p-4 text-black uppercase">{e.description}</td>
                                  <td className="p-4 text-right">{parseFloat(e.debit || 0) > 0 ? parseFloat(e.debit).toLocaleString('en-IN') : '—'}</td>
                                  <td className="p-4 text-right text-slate-400">{parseFloat(e.credit || 0) > 0 ? parseFloat(e.credit).toLocaleString('en-IN') : '—'}</td>
-                                 <td className="p-4 text-right font-black text-black">₹{parseFloat(e.running_balance).toLocaleString('en-IN')}</td>
+                                  <td className="p-4 text-right font-black text-black">
+                                     {selectedAccount?.account_code === 'BS0001' 
+                                       ? `${Math.abs(parseFloat(e.running_balance)).toLocaleString('en-IN')} ${parseFloat(e.running_balance) >= 0 ? 'D' : 'C'}`
+                                       : `₹${Math.abs(parseFloat(e.running_balance)).toLocaleString('en-IN')} ${parseFloat(e.running_balance) >= 0 ? 'D' : 'C'}`}
+                                  </td>
                               </tr>
                            ))}
                         </tbody>

@@ -135,8 +135,8 @@ export default function LedgerReport() {
     const val = parseFloat(balance);
     if (isNaN(val)) return '';
     const absVal = Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    if (val < 0) return `${absVal} CR`;
-    if (val > 0) return `${absVal} DR`;
+    if (val < 0) return `${absVal} C`;
+    if (val > 0) return `${absVal} D`;
     return '0.00';
   };
 

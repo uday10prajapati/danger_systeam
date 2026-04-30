@@ -405,7 +405,9 @@ export default function SabhasadLedgerSummary() {
                 <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
               </div>
               <p className={`text-2xl font-bold tracking-tighter ${stat.special ? 'text-emerald-600' : 'text-slate-800'}`}>
-                ₹{parseFloat(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                {(i === 0 || i === 3) 
+                  ? `₹${Math.abs(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(stat.val || 0) >= 0 ? 'C' : 'D'}`
+                  : `₹${parseFloat(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
               </p>
             </div>
           ))}
@@ -527,7 +529,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.quality_class || '1st'}</td>
                                 <td className="px-10 py-5 text-[10px] font-bold text-amber-500 uppercase tracking-[0.2em]">{row.book_type || 'Season'}</td>
                                 <td className="px-10 py-5 text-right font-black text-indigo-600 italic underline underline-offset-8 decoration-indigo-100 decoration-2">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[8px] opacity-50 not-italic ml-1">Qt</span></td>
-                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')} C</td>
                               </>
                             );
                           }
@@ -538,7 +540,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className="px-10 py-5 text-right font-bold text-indigo-600">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td>
                                 <td className="px-10 py-5 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">{row.days || 0} Days</td>
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description || 'Interest Accrual'}</td>
-                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')} D</td>
                               </>
                             );
                           }
@@ -548,7 +550,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
                                 <td className="px-10 py-5 text-[10px] font-black text-indigo-400 italic tracking-tight">{row.invoice_no}</td>
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description}</td>
-                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')} D</td>
                               </>
                             );
                           }
@@ -558,7 +560,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
                                 <td className="px-10 py-5 text-[10px] font-black text-indigo-400 italic tracking-tight">{row.invoice_no}</td>
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description}</td>
-                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
+                                <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')} D</td>
                               </>
                             );
                           }
@@ -572,15 +574,15 @@ export default function SabhasadLedgerSummary() {
                               <td className="px-10 py-5 text-right font-black text-amber-500 italic">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td>
                               <td className={`px-10 py-5 text-right font-black text-sm italic underline underline-offset-8 decoration-4 ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-emerald-600 decoration-emerald-50' : 'text-rose-600 decoration-rose-50'
                                 }`}>
-                                ₹{parseFloat(row.closing_balance || 0).toLocaleString('en-IN')}
+                                ₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.closing_balance || 0) >= 0 ? 'C' : 'D'}
                               </td>
                               {!hideBardan && (
                                 <>
                                   <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.bardan_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                    {parseFloat(row.bardan_balance || 0).toLocaleString()}
+                                    {Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'D' : 'C'}
                                   </td>
                                   <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
-                                    ₹{(parseFloat(row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    ₹{Math.abs(parseFloat(row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.bardan_balance || 0) >= 0 ? 'D' : 'C'}
                                   </td>
                                 </>
                               )}
@@ -649,11 +651,15 @@ export default function SabhasadLedgerSummary() {
                             <td className="px-10 py-8 border-r border-slate-700/50"></td>
                             <td className="px-10 py-8 text-right text-lg tracking-tighter text-indigo-400">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN')}</td>
                             <td className="px-10 py-8 text-right text-lg tracking-tighter text-amber-400">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN')}</td>
-                            <td className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400">₹{parseFloat(totals.closing_balance || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-400">₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.closing_balance || 0) >= 0 ? 'C' : 'D'}</td>
                             {!hideBardan && (
                               <>
-                                <td className="px-10 py-8 text-right text-lg tracking-tighter text-rose-400">{data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0).toLocaleString()}</td>
-                                <td className="px-10 py-8 text-right text-lg tracking-tighter text-blue-400">₹{data.reduce((s, r) => s + (parseFloat(r.bardan_balance || 0) * bardanPrice), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-10 py-8 text-right text-lg tracking-tighter text-rose-400">
+                                  {Math.abs(data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0)).toLocaleString()} {data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0) >= 0 ? 'D' : 'C'}
+                                </td>
+                                <td className="px-10 py-8 text-right text-lg tracking-tighter text-blue-400">
+                                  ₹{Math.abs(data.reduce((s, r) => s + (parseFloat(r.bardan_balance || 0) * bardanPrice), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0) >= 0 ? 'D' : 'C'}
+                                </td>
                               </>
                             )}
                           </>
@@ -726,7 +732,7 @@ export default function SabhasadLedgerSummary() {
                             }`}>
                             ₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             <span className="text-[8px] ml-1 opacity-50 uppercase not-italic">
-                              {parseFloat(tx.running_balance || 0) >= 0 ? 'Jama' : 'Udhar'}
+                              {parseFloat(tx.running_balance || 0) >= 0 ? 'C' : 'D'}
                             </span>
                           </td>
                         </tr>

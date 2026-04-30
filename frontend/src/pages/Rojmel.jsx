@@ -343,7 +343,7 @@ export default function Rojmel() {
                               <h4 className="text-slate-800 text-base font-black italic tracking-tighter uppercase leading-none">Gross Posted Jama</h4>
                            </div>
                            <div className="text-right relative z-10">
-                              <p className="text-emerald-600 text-2xl font-black italic font-mono tracking-tighter leading-none">₹{parseFloat(data.totals.jama_total).toFixed(2)}</p>
+                              <p className="text-emerald-600 text-2xl font-black italic font-mono tracking-tighter leading-none">₹{parseFloat(data.totals.jama_total).toFixed(2)} C</p>
                            </div>
                         </div>
                      )}
@@ -399,7 +399,7 @@ export default function Rojmel() {
                               <h4 className="text-slate-800 text-base font-black italic tracking-tighter uppercase leading-none">Gross Posted Udhar</h4>
                            </div>
                            <div className="text-right relative z-10">
-                              <p className="text-blue-600 text-2xl font-black italic font-mono tracking-tighter leading-none">₹{parseFloat(data.totals.udhar_total).toFixed(2)}</p>
+                              <p className="text-blue-600 text-2xl font-black italic font-mono tracking-tighter leading-none">₹{parseFloat(data.totals.udhar_total).toFixed(2)} D</p>
                            </div>
                         </div>
                      )}
