@@ -44,6 +44,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Narration text is required' });
     }
 
+    // Check for duplicate narration text
+    const existing = await queryOne(
+      'SELECT id FROM narrations WHERE company_id = ? AND narration_text = ?',
+      [company_id, narration_text]
+    );
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Narration text already exists' });
+    }
+
     await execute(
       'INSERT INTO narrations (company_id, narration_text, narration_code) VALUES (?, ?, ?)',
       [company_id, narration_text, narration_code]
@@ -63,6 +72,15 @@ router.put('/:id', async (req, res) => {
     }
     if (!narration_text || !String(narration_text).trim()) {
       return res.status(400).json({ success: false, error: 'Narration text is required' });
+    }
+
+    // Check for duplicate narration text (excluding current ID)
+    const duplicate = await queryOne(
+      'SELECT id FROM narrations WHERE company_id = ? AND narration_text = ? AND id != ?',
+      [company_id, narration_text, req.params.id]
+    );
+    if (duplicate) {
+      return res.status(400).json({ success: false, error: 'Narration text already exists' });
     }
     await execute(
       'UPDATE narrations SET narration_text = ?, narration_code = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?',

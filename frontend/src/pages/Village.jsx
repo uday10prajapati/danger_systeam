@@ -7,6 +7,7 @@ import {
   Navigation, Globe, Building2, Loader, Filter
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import TableHeading from '../components/TableHeading';
 
 export default function VillageMaster() {
   const { t } = useTranslation();
@@ -14,7 +15,7 @@ export default function VillageMaster() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -58,18 +59,38 @@ export default function VillageMaster() {
   const handleEdit = (village) => {
     setFormData(village);
     setIsEditing(true);
-    setShowForm(true);
+    setShowModal(true);
   };
 
   const handleCreateNew = async () => {
     const nextCode = await fetchNextCode();
-    setFormData({ id: null, villageCode: nextCode, villageName: '', talukaName: '', districtName: '', noOfVillage: villages.length + 1 });
+    setFormData({ 
+      id: null, 
+      villageCode: nextCode, 
+      villageName: '', 
+      talukaName: '', 
+      districtName: '', 
+      noOfVillage: villages.length + 1 
+    });
     setIsEditing(false);
-    setShowForm(true);
+    setShowModal(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    // Validation: Check for duplicate name
+    const isDuplicate = villages.some(v => 
+      v.villageName.toLowerCase().trim() === formData.villageName.toLowerCase().trim() && 
+      v.id !== formData.id
+    );
+
+    if (isDuplicate) {
+      setMessage({ type: 'error', text: 'Village name already exists. Please use a unique name.' });
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
+
     try {
       setLoading(true);
       if (isEditing) {
@@ -79,7 +100,7 @@ export default function VillageMaster() {
         await api.post('/village', formData);
         setMessage({ type: 'success', text: 'Village registered successfully.' });
       }
-      setShowForm(false);
+      setShowModal(false);
       loadVillages();
       setTimeout(() => setMessage(null), 3000);
     } catch {
@@ -107,98 +128,6 @@ export default function VillageMaster() {
     (v.talukaName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // ── Form View ──────────────────────────────────────────────────────────────
-  if (showForm) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] py-10 px-8 animate-in fade-in slide-in-from-bottom duration-400">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => setShowForm(false)}
-            className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
-          >
-            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all">
-              <X size={16} />
-            </div>
-            Back to Village Registry
-          </button>
-
-          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-8">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="p-3 bg-blue-600 text-white rounded-lg shadow-md shadow-blue-100">
-                {isEditing ? <Edit2 size={20} /> : <Plus size={20} />}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Village' : 'Register Village'}</h2>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Village Master</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSave} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Village Code</label>
-                  <input
-                    type="text"
-                    value={formData.villageCode}
-                    onChange={(e) => setFormData({ ...formData, villageCode: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Village Name</label>
-                  <input
-                    type="text"
-                    value={formData.villageName}
-                    onChange={(e) => setFormData({ ...formData, villageName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
-                    placeholder="Enter village name"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Taluka</label>
-                  <input
-                    type="text"
-                    value={formData.talukaName}
-                    onChange={(e) => setFormData({ ...formData, talukaName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-semibold text-slate-700 text-sm"
-                    placeholder="Taluka name"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">District</label>
-                  <input
-                    type="text"
-                    value={formData.districtName}
-                    onChange={(e) => setFormData({ ...formData, districtName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-semibold text-slate-700 text-sm"
-                    placeholder="District name"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
-                  {isEditing ? 'Save Changes' : 'Register Village'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── List View ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
       <div className="max-w-[1600px] mx-auto px-8">
@@ -208,25 +137,26 @@ export default function VillageMaster() {
           eyebrow="Management / Village Master"
           eyebrowIcon={<Shield size={12} />}
           title="Village Registry"
-
         >
-          <div className="flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-            <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search villages..."
-              className="bg-transparent border-none outline-none text-sm text-slate-600 w-56 placeholder:text-slate-300 font-medium"
-            />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
+              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search villages..."
+                className="bg-transparent border-none outline-none text-sm text-slate-600 w-56 placeholder:text-slate-300 font-medium"
+              />
+            </div>
+            <button
+              onClick={handleCreateNew}
+              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-xs font-black text-white uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+            >
+              <Plus size={18} />
+              Add Village
+            </button>
           </div>
-          <button
-            onClick={handleCreateNew}
-            className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-xs font-black text-white uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-          >
-            <Plus size={18} />
-            Add Village
-          </button>
         </PageHeader>
 
         {/* Messages */}
@@ -267,19 +197,19 @@ export default function VillageMaster() {
 
         {/* Table Card */}
         <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <div className="px-8 py-5 border-b border-slate-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
-              <MapPin size={16} className="text-slate-400" />
-              Village List
-              <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black">{filteredVillages.length}</span>
-            </div>
+          <TableHeading
+            icon={<MapPin size={16} />}
+            iconColor="blue"
+            title="Village List"
+            count={filteredVillages.length}
+          >
             <button
               onClick={loadVillages}
               className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
             >
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
-          </div>
+          </TableHeading>
 
           <div className="flex-1 overflow-x-auto">
             {loading && villages.length === 0 ? (
@@ -297,9 +227,12 @@ export default function VillageMaster() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    {['#', 'Village', 'Code', 'Taluka', 'District', 'Actions'].map((h, i) => (
-                      <th key={h} className={`px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider ${i === 0 ? 'w-16 text-center' : i === 5 ? 'text-right' : ''}`}>{h}</th>
-                    ))}
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-16 text-center">#</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Village</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Code</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Taluka</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">District</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -351,6 +284,107 @@ export default function VillageMaster() {
           </div>
         </div>
       </div>
+
+      {/* Village Form Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" 
+            onClick={() => !loading && setShowModal(false)}
+          ></div>
+          
+          <div className="bg-white rounded-lg w-full max-w-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-100">
+                    {isEditing ? <Edit2 size={20} /> : <Plus size={20} />}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Village' : 'Register Village'}</h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Village Master</p>
+                  </div>
+               </div>
+               <button onClick={() => setShowModal(false)} className="p-2 text-slate-300 hover:text-rose-500 transition-all">
+                 <X size={20} />
+               </button>
+            </div>
+
+            <form onSubmit={handleSave} className="p-8 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Village Code</label>
+                  <input
+                    type="text"
+                    value={formData.villageCode}
+                    onChange={(e) => setFormData({ ...formData, villageCode: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Village Name</label>
+                  <input
+                    type="text"
+                    value={formData.villageName}
+                    onChange={(e) => setFormData({ ...formData, villageName: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
+                    placeholder="Enter village name"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Taluka</label>
+                  <input
+                    type="text"
+                    value={formData.talukaName}
+                    onChange={(e) => setFormData({ ...formData, talukaName: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-semibold text-slate-700 text-sm"
+                    placeholder="Taluka name"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">District</label>
+                  <input
+                    type="text"
+                    value={formData.districtName}
+                    onChange={(e) => setFormData({ ...formData, districtName: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-semibold text-slate-700 text-sm"
+                    placeholder="District name"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-3.5 bg-white border border-slate-200 text-slate-500 rounded-lg font-bold text-sm hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-[2] py-3.5 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <RefreshCw className="animate-spin" size={18} />
+                  ) : isEditing ? (
+                    <Edit2 size={18} />
+                  ) : (
+                    <Save size={18} />
+                  )}
+                  {isEditing ? 'Save Changes' : 'Register Village'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

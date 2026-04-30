@@ -16,8 +16,6 @@ export default function AccountLedger() {
    const [accounts, setAccounts] = useState([]);
    const [selectedAccount, setSelectedAccount] = useState(null);
    const [ledgerEntries, setLedgerEntries] = useState([]);
-   const [trialBalance, setTrialBalance] = useState([]);
-   const [totals, setTotals] = useState({ total_debit: 0, total_credit: 0, difference: 0 });
    const [accountBalance, setAccountBalance] = useState({ total_debit: 0, total_credit: 0, running_balance: 0 });
    const [breakdownData, setBreakdownData] = useState([]);
    const [expandedMembers, setExpandedMembers] = useState({});
@@ -54,11 +52,8 @@ export default function AccountLedger() {
       if (company?.id) {
          fetchAccounts();
          fetchBardanPrice();
-         if (view === 'trial-balance') {
-            fetchTrialBalance();
-         }
       }
-   }, [view, company]);
+   }, [company]);
 
    const fetchBardanPrice = async () => {
       try {
@@ -162,23 +157,6 @@ export default function AccountLedger() {
       }
    };
 
-   const fetchTrialBalance = async () => {
-      try {
-         setLoading(true);
-         const response = await axios.get(
-            `/api/account-ledger/trial-balance`,
-            { headers: { 'x-company-id': company.id } }
-         );
-         if (response.data.success) {
-            setTrialBalance(response.data.data);
-            setTotals(response.data.totals);
-         }
-      } catch (err) {
-         console.error('Fetch trial balance error:', err);
-      } finally {
-         setLoading(false);
-      }
-   };
 
    const handleSelectAccount = async (account) => {
       setSelectedAccount(account);
@@ -215,6 +193,24 @@ export default function AccountLedger() {
          fetchAccountBalance(selectedAccount.id);
          fetchAccountBreakdown(selectedAccount.id);
       }
+   };
+
+   useEffect(() => {
+      handleDateChange();
+   }, [dateRange.startDate, dateRange.endDate]);
+
+   const clearFilters = () => {
+      setMemberCodeSearch('');
+      setMemberNameSearch('');
+      setSelectedAccount(null);
+      setLedgerEntries([]);
+      setAccountBalance({ total_debit: 0, total_credit: 0, running_balance: 0 });
+      setBreakdownData([]);
+      setDateRange({
+         startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+         endDate: new Date().toISOString().split('T')[0]
+      });
+      setView('ledger');
    };
 
    const handlePrint = () => {
@@ -254,12 +250,6 @@ export default function AccountLedger() {
                      className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'ledger' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'}`}
                   >
                      <Activity size={14} /> Transactions
-                  </button>
-                  <button
-                     onClick={() => { setView('trial-balance'); fetchTrialBalance(); }}
-                     className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${view === 'trial-balance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'}`}
-                  >
-                     <Layout size={14} /> Trial
                   </button>
                   {selectedAccount && (
                      <button
@@ -337,19 +327,25 @@ export default function AccountLedger() {
                            <div className="flex flex-wrap items-end gap-4">
                               <div>
                                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal Start</span>
-                                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onBlur={handleDateChange} className="bg-slate-50 border-none rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
+                                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50 border-none rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
                               </div>
                               <div>
                                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal End</span>
-                                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onBlur={handleDateChange} className="bg-slate-50 border-none rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
+                                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50 border-none rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-mono" />
                               </div>
                            </div>
                         </div>
 
                         <div className="flex gap-4">
                            <button
+                              onClick={clearFilters}
+                              className="bg-white border border-slate-200 text-slate-500 px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 flex items-center gap-3"
+                           >
+                              <X size={16} /> Clear Filter
+                           </button>
+                           <button
                               onClick={handlePrint}
-                              className="bg-slate-100 text-slate-900 px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 flex items-center gap-3"
+                              className="bg-blue-600 text-white px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 flex items-center gap-3"
                            >
                               <Printer size={16} /> Print Statement
                            </button>
@@ -479,7 +475,7 @@ export default function AccountLedger() {
                                              </td>
                                              {selectedAccount?.account_code === 'BS0001' && (
                                                 <td className="px-10 py-5 text-right font-black text-sm italic text-blue-600">
-                                                   ₹{Math.abs(parseFloat(row.penalty_balance || row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.penalty_balance || row.running_balance) >= 0 ? 'D' : 'C'}
+                                                   ₹{Math.abs(parseFloat(row.penalty_balance || row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                                 </td>
                                              )}
                                           </tr>
@@ -572,7 +568,12 @@ export default function AccountLedger() {
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-50">
-                              {breakdownData.length === 0 ? (
+                              {breakdownData
+                                 .filter(row => 
+                                    (String(row.member_id).includes(memberCodeSearch) || memberCodeSearch === '') &&
+                                    ((row.member_name || '').toLowerCase().includes(memberNameSearch.toLowerCase()) || memberNameSearch === '')
+                                 )
+                                 .length === 0 ? (
                                  <tr>
                                     <td colSpan="7" className="py-32 text-center">
                                        <Database size={48} className="mx-auto text-slate-50 mb-4" strokeWidth={1} />
@@ -580,7 +581,12 @@ export default function AccountLedger() {
                                     </td>
                                  </tr>
                               ) : (
-                                 breakdownData.map((row, idx) => (
+                                 breakdownData
+                                    .filter(row => 
+                                       (String(row.member_id).includes(memberCodeSearch) || memberCodeSearch === '') &&
+                                       ((row.member_name || '').toLowerCase().includes(memberNameSearch.toLowerCase()) || memberNameSearch === '')
+                                    )
+                                    .map((row, idx) => (
                                     <React.Fragment key={idx}>
                                        <tr
                                           className="group hover:bg-blue-50/30 cursor-pointer transition-all duration-300 border-l-4 border-transparent hover:border-blue-600"
@@ -686,59 +692,6 @@ export default function AccountLedger() {
                </div>
             )}
 
-            {view === 'trial-balance' && (
-               <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-700">
-                  <TableHeading
-                     icon={<Layout size={18} />}
-                     iconColor="blue"
-                     title="Global Settlement Summary"
-                     subtitle="Consolidated Institutional Trial Balance"
-                  >
-                     <button className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-blue-700 transition-all">
-                        <Download size={16} /> Data Export
-                     </button>
-                  </TableHeading>
-
-                  <div className="overflow-x-auto scroller-airy">
-                     <table className="w-full text-left">
-                        <thead className="bg-[#F8FAFC]">
-                           <tr>
-                              {['Nomenclature Identifier', 'Registry Class', 'Aggregate Credit (-)', 'Aggregate Debit (+)', 'Net Position Exposure'].map((col, i) => (
-                                 <th key={i} className={`px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${i > 1 ? 'text-right' : ''}`}>
-                                    {col}
-                                 </th>
-                              ))}
-                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                           {loading ? (
-                              <tr><td colSpan="5" className="py-32 text-center text-slate-300 uppercase font-black text-xs italic tracking-widest"><RefreshCcw className="animate-spin mx-auto mb-4" size={40} /> Processing Settlement Matrix...</td></tr>
-                           ) : (
-                              trialBalance.map((acc, idx) => (
-                                 <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-10 py-5 text-sm font-bold text-slate-700 uppercase italic transition-colors group-hover:text-blue-600">{acc.account_name}</td>
-                                    <td className="px-10 py-5 text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">{acc.account_type}</td>
-                                    <td className="px-10 py-5 text-right font-bold text-slate-400 italic">₹{parseFloat(acc.total_credit || 0).toLocaleString('en-IN')}</td>
-                                    <td className="px-10 py-5 text-right font-bold text-slate-900 italic">₹{parseFloat(acc.total_debit || 0).toLocaleString('en-IN')}</td>
-                                    <td className={`px-10 py-5 text-right font-black italic text-sm ${parseFloat(acc.balance) >= 0 ? 'text-slate-800' : 'text-rose-600'}`}>₹{Math.abs(parseFloat(acc.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                 </tr>
-                              ))
-                           )}
-                        </tbody>
-                        <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-black italic">
-                           <tr>
-                              <td colSpan="2" className="px-10 py-8 text-xs font-black uppercase tracking-[0.4em] text-blue-600">Master Settlement Integrity</td>
-                              <td className="px-10 py-8 text-right text-xl tracking-tighter text-slate-400">₹{parseFloat(totals.total_credit || 0).toLocaleString('en-IN')}</td>
-                              <td className="px-10 py-8 text-right text-xl tracking-tighter text-slate-900">₹{parseFloat(totals.total_debit || 0).toLocaleString('en-IN')}</td>
-                              <td className={`px-10 py-8 text-right text-xs tracking-widest uppercase ${totals.difference < 0.1 ? 'text-emerald-600' : 'text-rose-600 underline decoration-red-600 decoration-4'}`}>
-                                 {totals.difference < 0.1 ? '✓ VERIFIED' : `Δ ERROR: ₹${totals.difference.toFixed(2)}`}
-                              </td>
-                           </tr>
-                        </tfoot>
-                     </table>
-                  </div>
-               </div>
-            )}
          </div>
 
          {/* Modern High-Monochrome Print Modal */}

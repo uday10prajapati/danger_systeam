@@ -75,7 +75,7 @@ router.get('/interest-calculations', async (req, res) => {
       LEFT JOIN accounts a ON al.account_id = a.id
       WHERE al.company_id = ? 
         AND al.member_id IS NOT NULL
-        AND LOWER(a.account_code) = 'l0001'
+        AND (LOWER(a.account_code) = 'l0001' OR al.account_id IS NULL OR al.interest_percent > 0)
       HAVING principal > 0
       ORDER BY al.transaction_date ASC
     `, [companyId]);
@@ -369,9 +369,9 @@ router.get('/breakdown/:accountId', async (req, res) => {
       const allReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
       const companyReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")', [code, companyId]);
       
-      bBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(allReturned?.total || 0);
+      const bBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(allReturned?.total || 0);
       const pBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0);
-      bPenalty = pBal > 0 ? pBal * bardanPrice : 0;
+      const bPenalty = pBal > 0 ? pBal * bardanPrice : 0;
 
       // 4. Interest calculation for this member
       let interestTotal = 0;

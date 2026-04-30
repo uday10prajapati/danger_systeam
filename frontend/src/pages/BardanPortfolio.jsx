@@ -438,10 +438,10 @@ const BardanPortfolio = () => {
         ) : (
           <div className="animate-in fade-in duration-700">
             <PageHeader
-              eyebrow="Asset Management / Logistics"
+              eyebrow="Inventory / Bardan"
               eyebrowIcon={<ArrowLeftRight size={12} />}
-              title="Gunny Bag Portfolio"
-              subtitle="Unified Asset Protocol / Bardan Ledger"
+              title="Bardan Portfolio"
+              subtitle="Manage gunny bag inventory and ledger"
             >
               <div className="flex items-center gap-3">
                 <button
@@ -460,7 +460,7 @@ const BardanPortfolio = () => {
                   onClick={handleSave}
                   className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
                 >
-                  <Save size={15} /> Commit Transaction
+                  <Save size={15} /> Save Transaction
                 </button>
               </div>
             </PageHeader>
@@ -468,13 +468,13 @@ const BardanPortfolio = () => {
               <div className={`mb-6 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
                 }`}>
                 {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-                <span className="text-sm font-bold tracking-tight uppercase tracking-widest">{message.text}</span>
+                <span className="text-sm font-bold uppercase tracking-widest">{message.text}</span>
               </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-8 space-y-6">
-                <div className="bg-white p-8 rounded-lg border border-slate-200 shadow-sm space-y-8 relative overflow-hidden">
+              <div className="lg:col-span-8 space-y-4">
+                <div className="bg-white p-8 rounded-lg border border-slate-200 shadow-sm space-y-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-10 opacity-[0.02] select-none pointer-events-none">
                     <Package size={240} />
                   </div>
@@ -504,7 +504,7 @@ const BardanPortfolio = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Registry Prototype</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Book Type</label>
                       <select
                         name="bookType"
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
@@ -541,7 +541,7 @@ const BardanPortfolio = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Identity Node</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Code</label>
                       <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                         <select
@@ -550,14 +550,14 @@ const BardanPortfolio = () => {
                           value={formData.code}
                           onChange={handleChange}
                         >
-                          <option value="">IDENTITY NODE...</option>
+                          <option value="">SELECT CODE...</option>
                           {members.map(m => <option key={m.id} value={m.member_code}>{m.member_code}</option>)}
                         </select>
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Alias Pointer</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Name</label>
                       <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                         <select
@@ -566,7 +566,7 @@ const BardanPortfolio = () => {
                           value={formData.name}
                           onChange={handleChange}
                         >
-                          <option value="">NAME REFERENCE...</option>
+                          <option value="">SELECT NAME...</option>
                           {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
                         </select>
                       </div>
@@ -575,7 +575,7 @@ const BardanPortfolio = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Transaction Volume</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Quantity</label>
                       <div className="relative group">
                         <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                         <input
@@ -588,7 +588,7 @@ const BardanPortfolio = () => {
                         />
                         {formData.type === 'RETURNED' && (
                           <div className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg">
-                            <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-0.5">Stock Debt</p>
+                            <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-0.5">Pending</p>
                             <p className="text-[10px] font-black text-emerald-700 leading-none">#{balanceData.balance || 0}</p>
                           </div>
                         )}
@@ -596,7 +596,7 @@ const BardanPortfolio = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Membership Status</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Type</label>
                       <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
                         <input
                           type="checkbox"
@@ -606,7 +606,7 @@ const BardanPortfolio = () => {
                           onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
                         />
                         <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer select-none">
-                          {formData.memNominal === 'Member' ? 'Sabhasad (Active Member)' : 'Nominal Member'}
+                          {formData.memNominal === 'Member' ? 'Sabhasad (Active)' : 'Nominal Member'}
                         </label>
                       </div>
                     </div>
@@ -619,7 +619,7 @@ const BardanPortfolio = () => {
                       <textarea
                         name="remark"
                         className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 min-h-[100px] placeholder:text-slate-300"
-                        placeholder="ADDITIONAL CONTEXT..."
+                        placeholder="ENTER REMARK..."
                         value={formData.remark}
                         onChange={handleChange}
                       />

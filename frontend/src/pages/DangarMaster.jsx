@@ -3,7 +3,7 @@ import {
   Database, Search, Filter, Download,
   Eye, RefreshCcw, Layout, FileText,
   Calendar, User, Box, Shield,
-  CheckCircle, Loader, Info
+  CheckCircle, Loader, Info, Edit3
 } from 'lucide-react';
 import api from '../api';
 import { useTranslation } from 'react-i18next';
@@ -188,6 +188,7 @@ export default function DangarMaster() {
                     <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Amount</th>
                     <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Vehicle / Remark</th>
                     <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
+                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 bg-white">
@@ -238,6 +239,20 @@ export default function DangarMaster() {
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             Committed
                           </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                          <button
+                            onClick={() => {
+                              // Use window.location.hash for HashRouter if needed, but navigate is better
+                              window.location.hash = `#/dangar-entry/${row.id}`;
+                            }}
+                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-lg transition-all shadow-sm"
+                            title="Edit Transaction"
+                          >
+                            <Edit3 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>

@@ -225,12 +225,12 @@ router.post('/', async (req, res) => {
           INSERT INTO account_ledger (
              company_id, financial_year, account_id, member_id, 
              transaction_date, reference_no, description, 
-             debit, credit, source_table, source_id
+             debit, credit, reference_type, reference_id
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        `, [
           companyId, financialYear, bardanAccountId, member.id,
           date, pavtiNo, ledgerDesc,
-          qty || 0, 0, 'bardan_entry', entryId // Qty goes to Debit
+          qty || 0, 0, 'bardan_entry', entryId
        ]);
        console.log('✅ Ledger Synchronized for Taken Entry');
     } else {
@@ -289,7 +289,7 @@ router.put('/:id', async (req, res) => {
           UPDATE account_ledger SET
              member_id = ?, transaction_date = ?, reference_no = ?, 
              description = ?, debit = ?, financial_year = ?
-          WHERE source_table = "bardan_entry" AND source_id = ?
+          WHERE reference_type = "bardan_entry" AND reference_id = ?
        `, [
           member.id, date, pavtiNo, ledgerDesc, qty || 0, financialYear, req.params.id
        ]);
@@ -299,7 +299,7 @@ router.put('/:id', async (req, res) => {
              INSERT INTO account_ledger (
                 company_id, financial_year, account_id, member_id, 
                 transaction_date, reference_no, description, 
-                debit, credit, source_table, source_id
+                debit, credit, reference_type, reference_id
              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
              companyId, financialYear, bardanAccount.id, member.id,
@@ -334,7 +334,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     // 1. Delete from ledger first
-    await execute('DELETE FROM account_ledger WHERE source_table = "bardan_entry" AND source_id = ?', [req.params.id]);
+    await execute('DELETE FROM account_ledger WHERE reference_type = "bardan_entry" AND reference_id = ?', [req.params.id]);
 
     // 2. Delete the entry (Foreign key with ON DELETE CASCADE will handle bardan_items)
     await execute('DELETE FROM bardan_entry WHERE id = ?', [req.params.id]);

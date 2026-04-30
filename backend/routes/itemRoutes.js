@@ -37,16 +37,16 @@ router.post('/', validateCreateItem, handleValidationErrors, async (req, res) =>
       return res.status(400).json({ success: false, error: 'Company ID is required' });
     }
 
-    // Check if item_code already exists for this company
-    const itemCodes = await query(
-      'SELECT id FROM item_master WHERE item_code = ? AND company_id = ?',
-      [item_code, company_id]
+    // Check if item_code or item_name already exists for this company
+    const existing = await query(
+      'SELECT id FROM item_master WHERE (item_code = ? OR item_name = ?) AND company_id = ?',
+      [item_code, item_name, company_id]
     );
 
-    if (itemCodes && itemCodes.length > 0) {
+    if (existing && existing.length > 0) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Item code already exists for this company' 
+        error: 'Item code or name already exists for this company' 
       });
     }
 
@@ -315,6 +315,18 @@ router.put('/:id', validateUpdateItem, handleValidationErrors, async (req, res) 
       effective_date, sgst_percent, cgst_percent, igst_percent, cess_percent, hsn_code,
       category, tax_percentage, reorder_level, purchase_price, sale_price
     } = req.body;
+
+    // Check if new item name conflicts
+    if (item_name) {
+      const duplicate = await query(
+        'SELECT id FROM item_master WHERE company_id = (SELECT company_id FROM item_master WHERE id = ?) AND item_name = ? AND id != ?',
+        [id, item_name, id]
+      );
+
+      if (duplicate && duplicate.length > 0) {
+        return res.status(400).json({ success: false, error: 'Item name already exists for this company' });
+      }
+    }
 
     const updates = [];
     const values = [];

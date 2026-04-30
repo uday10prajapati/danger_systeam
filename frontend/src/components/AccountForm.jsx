@@ -1,35 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import {
   Building2, User, Phone, Mail, FileText,
   ShieldAlert, IndianRupee, Save, X, RefreshCcw,
   Layout, Database, Tag, ShieldCheck, Activity,
-  Briefcase, TrendingUp, Hash
+  Briefcase, TrendingUp, Hash, Layers, Globe,
+  CheckCircle, AlertCircle, Smartphone, Loader
 } from 'lucide-react';
 
-// Airy Label Component
-const FormLabel = ({ children, icon: Icon, className = "" }) => (
-  <div className={`flex items-center gap-2 mb-2 select-none ${className}`}>
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] whitespace-nowrap">
-      {children}
-    </label>
-    {Icon && <Icon size={12} className="text-slate-300" />}
-  </div>
-);
-
-// Airy Input Component
-const FormInput = ({ className = "", error, ...props }) => (
-  <div className="space-y-1.5 flex-1">
-    <input
-      className={`w-full h-12 px-5 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50 transition-all rounded-lg font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
-      {...props}
-    />
-    {error && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-2">{error}</p>}
-  </div>
-);
-
-export default function AccountForm({ companyId, initialData = null, onSuccess, onCancel }) {
+export default function AccountForm({ 
+  companyId, 
+  initialData = null, 
+  onSuccess, 
+  onCancel,
+  existingAccounts = [] 
+}) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState(initialData || {
     account_code: '',
@@ -74,7 +60,7 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!initialData && formData.account_type) {
       fetchNextId(formData.account_type);
       fetchNextCode(formData.account_type);
@@ -82,17 +68,18 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
   }, [initialData, companyId, formData.account_type]);
 
   const accountTypes = [
-    { value: 'customer', label: t('accountMaster.customer'), icon: <User size={14} />, color: 'blue' },
-    { value: 'vendor', label: t('accountMaster.vendor', 'Vendor'), icon: <Briefcase size={14} />, color: 'violet' },
-    { value: 'supplier', label: t('accountMaster.supplier'), icon: <Briefcase size={14} />, color: 'indigo' },
-    { value: 'bank', label: t('accountMaster.bank'), icon: <Database size={14} />, color: 'sky' },
-    { value: 'cash', label: t('accountMaster.cash'), icon: <IndianRupee size={14} />, color: 'emerald' },
-    { value: 'assets', label: t('accountMaster.assets'), icon: <TrendingUp size={14} />, color: 'emerald' },
-    { value: 'liabilities', label: t('accountMaster.liabilities'), icon: <ShieldAlert size={14} />, color: 'rose' },
-    { value: 'revenue', label: t('accountMaster.revenue'), icon: <Activity size={14} />, color: 'amber' },
-    { value: 'expense', label: t('accountMaster.expense'), icon: <ShieldAlert size={14} />, color: 'orange' },
-    { value: 'purchase', label: t('accountMaster.purchase', 'Purchase'), icon: <Briefcase size={14} />, color: 'indigo' },
-    { value: 'sales', label: t('accountMaster.sales', 'Sales'), icon: <TrendingUp size={14} />, color: 'emerald' }
+    { value: 'customer', label: 'Customer' },
+    { value: 'vendor', label: 'Vendor' },
+    { value: 'supplier', label: 'Supplier' },
+    { value: 'bank', label: 'Bank' },
+    { value: 'cash', label: 'Cash' },
+    { value: 'assets', label: 'Assets' },
+    { value: 'liabilities', label: 'Liabilities' },
+    { value: 'capital', label: 'Capital' },
+    { value: 'revenue', label: 'Revenue' },
+    { value: 'expense', label: 'Expense' },
+    { value: 'purchase', label: 'Purchase' },
+    { value: 'sales', label: 'Sales' }
   ];
 
   const handleChange = (e) => {
@@ -104,220 +91,261 @@ export default function AccountForm({ companyId, initialData = null, onSuccess, 
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.account_name || formData.account_name.trim().length < 2) {
-      newErrors.account_name = "Identity nomenclature required";
-    }
-    if (formData.phone && !/^[0-9\s\-\+\(\)]{7,20}$/.test(formData.phone)) {
-      newErrors.phone = "Invalid protocol string";
-    }
-    return newErrors;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = validateForm();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    setErrors({});
+    setMessage(null);
+
+    const isDuplicate = existingAccounts.some(acc => 
+      acc.account_name.toLowerCase().trim() === formData.account_name.toLowerCase().trim() && 
+      acc.id !== initialData?.id
+    );
+
+    if (isDuplicate) {
+      setMessage({ type: 'error', text: 'Account name already exists. Please use a unique name.' });
       return;
     }
 
     setLoading(true);
-    setMessage(null);
 
     try {
       const submitData = { company_id: companyId, ...formData };
 
-
       if (initialData?.id) {
         await axios.put(`/api/accounts/${initialData.id}`, formData);
-        setMessage({ type: 'success', text: 'Financial entity refined' });
+        setMessage({ type: 'success', text: 'Account updated successfully.' });
       } else {
         await axios.post('/api/accounts', submitData);
-        setMessage({ type: 'success', text: 'New fiscal ledger initialized' });
+        setMessage({ type: 'success', text: 'Account registered successfully.' });
       }
-      setTimeout(() => onSuccess?.(), 1500);
+      setTimeout(() => onSuccess?.(), 1000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Database synchronization failure' });
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to save account.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+    <div className="bg-white p-0 overflow-hidden rounded-lg">
+      <div className="bg-blue-600 px-8 py-6 flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-black text-white italic uppercase tracking-tight">
+            {initialData?.id ? 'Edit Account' : 'Initialize Account'}
+          </h2>
+          <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1">Configure ledger registry node</p>
+        </div>
+        {onCancel && (
+          <button onClick={onCancel} className="p-2 text-white/50 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        )}
+      </div>
 
-      <div className="relative z-10">
-        <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-10">
-          {initialData?.id ? 'Refine Ledger Identity' : 'Initialize Fiscal Node'}
-          <span className="block text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mt-1">Financial Shard Authorization</span>
-        </h2>
-
+      <div className="p-8">
         {message && (
-          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-            }`}>
-            <ShieldAlert size={20} />
-            <p className="text-sm font-bold uppercase tracking-widest text-[10px]">{message.text}</p>
+          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 border-l-4 ${
+            message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          }`}>
+            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+            <span className="text-[11px] font-bold uppercase tracking-wider">{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-12">
-
-          {/* Section 1: Entity Definition */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
-              <div className="w-6 h-0.5 bg-indigo-600"></div> Profile context
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="col-span-1">
-                <FormLabel icon={Hash}>Structural ID</FormLabel>
-                <div className="h-12 px-5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-3 group hover:bg-white transition-all">
-                  <span className="text-[10px] font-black text-slate-300">#</span>
-                  <span className="text-sm font-black text-slate-800 italic">
-                    {initialData?.id || nextId || '...'}
-                  </span>
-                  {!initialData && (
-                    <span className="ml-auto text-[7px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter animate-pulse">Auto-Fetch</span>
-                  )}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* Left Column: Basic & Identity */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><User size={18} /></div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Basic Information</h3>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-1 flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</label>
+                  <input
+                    type="text"
+                    name="account_code"
+                    value={formData.account_code}
+                    onChange={handleChange}
+                    placeholder="000"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                  />
+                </div>
+                <div className="col-span-3 flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Account Name</label>
+                  <input
+                    type="text"
+                    name="account_name"
+                    value={formData.account_name}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter Ledger Name"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs italic shadow-sm"
+                  />
                 </div>
               </div>
 
-              <div className="col-span-1">
-                <div className="flex justify-between items-center pr-1">
-                  <FormLabel icon={Tag}>Entity Code</FormLabel>
-                  {!initialData && (
-                    <span className="text-[7px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter">Autogen</span>
-                  )}
-                </div>
-                <FormInput
-                  name="account_code"
-                  value={formData.account_code}
-                  onChange={handleChange}
-                  placeholder="000"
-                  className="font-mono"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <FormLabel icon={Building2}>{t('accountMaster.accountName')} *</FormLabel>
-                <FormInput
-                  name="account_name"
-                  value={formData.account_name}
-                  onChange={handleChange}
-                  placeholder="e.g. Reliance Industries Ltd."
-                  error={errors.account_name}
-                />
-              </div>
-
-              <div>
-                <FormLabel icon={Layout}>{t('accountMaster.accountType')} *</FormLabel>
-                <div className="relative group">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Account Type</label>
                   <select
                     name="account_type"
                     value={formData.account_type}
                     onChange={handleChange}
-                    className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-lg outline-none font-bold text-slate-700 appearance-none cursor-pointer group-hover:bg-slate-50 transition-all uppercase tracking-widest"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs cursor-pointer uppercase tracking-widest"
                   >
                     {accountTypes.map(type => (
                       <option key={type.value} value={type.value}>{type.label}</option>
                     ))}
                   </select>
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mobile Number</label>
+                  <div className="relative">
+                    <Smartphone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="10-digit Primary"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
-
-              {!['bank', 'supplier', 'revenue', 'expense'].includes(formData.account_type) && (
-                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100 self-end h-12">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email / Handle</label>
+                <div className="relative">
+                  <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                   <input
-                    type="checkbox"
-                    id="is_subledger"
-                    name="is_subledger"
-                    checked={formData.is_subledger}
+                    type="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleChange}
-                    className="w-5 h-5 rounded-lg border-slate-200 accent-indigo-600 cursor-pointer"
+                    placeholder="finance@node.sh"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs"
                   />
-                  <label htmlFor="is_subledger" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer group-hover:text-slate-800">
-                    Assign as Sub-Ledger Registry
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 pt-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Advanced Logic</label>
+                <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      name="is_subledger"
+                      checked={formData.is_subledger}
+                      onChange={handleChange}
+                      className="w-4 h-4 accent-blue-600 cursor-pointer"
+                    />
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${formData.is_subledger ? 'text-blue-600' : 'text-slate-400'}`}>Enable Sub-Ledger Registry</span>
                   </label>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Section 2: Contact & Fiscal Details */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
-              <div className="w-6 h-0.5 bg-emerald-500"></div> Contact & Fiscal Meta
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <FormLabel icon={Phone}>{t('accountMaster.phone')}</FormLabel>
-                <FormInput name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 000 000 0000" error={errors.phone} />
-              </div>
-              <div>
-                <FormLabel icon={Mail}>{t('accountMaster.email')}</FormLabel>
-                <FormInput name="email" value={formData.email} onChange={handleChange} placeholder="finance@entity.sh" error={errors.email} />
-              </div>
-              <div>
-                <FormLabel icon={ShieldCheck}>{t('accountMaster.gstNumber')}</FormLabel>
-                <FormInput name="gst_no" value={formData.gst_no} onChange={handleChange} placeholder="GSTIN (24ABCDE...)" className="uppercase font-mono" />
-              </div>
-              <div>
-                <FormLabel icon={FileText}>{t('accountMaster.tinNumber')}</FormLabel>
-                <FormInput name="tin_no" value={formData.tin_no} onChange={handleChange} placeholder="TIN String" />
               </div>
             </div>
-          </div>
 
-          {/* Section 3: Value Context */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
-              <div className="w-6 h-0.5 bg-amber-500"></div> Opening fiscal context
-            </h3>
-            <div className="bg-[#F8FAFC]/50 p-10 rounded-lg border border-slate-100 flex items-center gap-4 group">
-              <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-100 text-amber-500 group-hover:rotate-12 transition-transform duration-500">
-                <IndianRupee size={24} />
+            {/* Right Column: Financial & Tax */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><TrendingUp size={18} /></div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Financial Configuration</h3>
               </div>
-              <div className="flex-1 flex gap-4">
-                <div className="flex-1">
-                  <FormLabel>{t('accountMaster.openingBalance')}</FormLabel>
-                  <FormInput type="number" name="opening_balance" value={formData.opening_balance} onChange={handleChange} className="text-right font-mono" />
+
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Opening Balance</label>
+                    <div className="relative">
+                      <IndianRupee size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input
+                        type="number"
+                        name="opening_balance"
+                        value={formData.opening_balance}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                        className="w-full pl-10 pr-4 py-3 bg-blue-50/30 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Balance Type</label>
+                    <select
+                      name="opening_balance_type"
+                      value={formData.opening_balance_type}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs uppercase tracking-widest cursor-pointer"
+                    >
+                      <option value="credit">Jama (Cr)</option>
+                      <option value="debit">Udhar (Dr)</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="w-40">
-                  <FormLabel>Type</FormLabel>
-                  <select
-                    name="opening_balance_type"
-                    value={formData.opening_balance_type}
-                    onChange={handleChange}
-                    className="w-full h-12 px-5 border border-slate-100 bg-white rounded-lg outline-none font-bold text-slate-700 appearance-none uppercase text-[10px] tracking-widest"
-                  >
-                    <option value="credit">{t('accountMaster.jama')}</option>
-                    <option value="debit">{t('accountMaster.udhar')}</option>
-                  </select>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">GST Number</label>
+                    <div className="relative">
+                      <ShieldCheck size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input
+                        type="text"
+                        name="gst_no"
+                        value={formData.gst_no}
+                        onChange={handleChange}
+                        placeholder="GSTIN String"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold uppercase text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">TIN / PAN String</label>
+                    <div className="relative">
+                      <FileText size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input
+                        type="text"
+                        name="tin_no"
+                        value={formData.tin_no}
+                        onChange={handleChange}
+                        placeholder="TIN Details"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 mt-2 flex items-center gap-4 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-blue-100/20 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
+                  <div className="p-3 bg-white rounded-lg text-blue-600 shadow-sm border border-slate-100 relative z-10">
+                    <Database size={20} />
+                  </div>
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Internal Shard ID</p>
+                    <p className="text-xl font-black text-slate-800">#{initialData?.id || nextId || '...'}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="flex gap-4 pt-4 border-t border-slate-100">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-slate-900 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-lg hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-300"
+              className="flex-3 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
             >
-              {loading ? <RefreshCcw className="animate-spin" size={18} /> : <><Save size={18} /> Commit Ledger Shard</>}
+              {loading ? <Loader className="animate-spin" size={18} /> : <><Save size={18} /> {initialData?.id ? 'Update Ledger' : 'Register Account'}</>}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-bold rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all uppercase text-[10px] tracking-widest"
+              className="flex-1 px-10 py-3 bg-slate-100 text-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all text-[10px] uppercase tracking-widest active:scale-95"
             >
-              Abort
+              Cancel
             </button>
           </div>
         </form>

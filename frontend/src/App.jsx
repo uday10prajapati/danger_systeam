@@ -106,6 +106,7 @@ function AppContent() {
           <Route path="/rates" element={<ProtectedRoute><ItemRate /></ProtectedRoute>} />
           <Route path="/village" element={<ProtectedRoute><Village /></ProtectedRoute>} />
           <Route path="/dangar-entry" element={<ProtectedRoute><DangarEntry /></ProtectedRoute>} />
+          <Route path="/dangar-entry/:id" element={<ProtectedRoute><DangarEntry /></ProtectedRoute>} />
           <Route path="/dangar-rates" element={<ProtectedRoute><DangarRateMaster /></ProtectedRoute>} />
           <Route path="/dangar-payment-report" element={<ProtectedRoute><DangarPaymentReport /></ProtectedRoute>} />
           <Route path="/dangar-summary" element={<ProtectedRoute><DangarSummaryReport /></ProtectedRoute>} />

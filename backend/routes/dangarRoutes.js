@@ -570,7 +570,7 @@ router.post('/', async (req, res) => {
               INSERT INTO account_ledger (
                  company_id, financial_year, account_id, member_id, 
                  transaction_date, reference_no, description, 
-                 debit, credit, source_table, source_id
+                 debit, credit, reference_type, reference_id
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            `, [
               companyId, currentFinancialYear, bardanAccountId, member.id,
@@ -586,6 +586,156 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Dangar Entry Commit Error:', error);
     res.status(500).json({ success: false, error: 'Database Synchronization Failure: ' + error.message });
+  }
+});
+
+// UPDATE dangar entry (Re-Commit Transaction)
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const companyId = req.headers['x-company-id'] || req.body.company_id;
+    const currentFinancialYear = req.headers['x-financial-year'] || '2026-27';
+
+    if (!companyId) {
+      throw new Error('Mandatory Header: X-Company-Id missing');
+    }
+
+    const { 
+      bookType, date, member_id, item_id, remark, vehicleNo, srNo,
+      total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
+      rate, amount, total_deduction, weights, deductions = [], returned_bags,
+      quality_class, weight_unit
+    } = req.body;
+
+    // 1. Update Header State
+    await execute(`
+      UPDATE dangar_entry SET
+        book_type = ?, entry_date = ?, member_id = ?, item_id = ?, 
+        remark = ?, vehicle_no = ?, quality_class = ?,
+        total_kg = ?, bardan = ?, gun = ?, gross_quintal = ?, 
+        less_bardan = ?, net_quintal = ?, rate = ?, amount = ?, 
+        total_deduction = ?, weight_unit = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND company_id = ?
+    `, [
+      bookType, date, member_id, item_id, remark, vehicleNo, quality_class || '1st',
+      total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
+      rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', id, companyId
+    ]);
+
+    // 2. Refresh Weight Matrix (Delete and Re-insert)
+    await execute('DELETE FROM dangar_weights WHERE entry_id = ?', [id]);
+    if (weights && Array.isArray(weights)) {
+      for (let i = 0; i < weights.length; i++) {
+        const val = parseFloat(weights[i].wgt);
+        if (!isNaN(val) && val > 0) {
+          await execute(
+            'INSERT INTO dangar_weights (entry_id, sr_no, weight) VALUES (?, ?, ?)',
+            [id, i + 1, val]
+          );
+        }
+      }
+    }
+
+    // 3. Refresh Kapat Matrix
+    await execute('DELETE FROM transaction_deductions WHERE entry_id = ?', [id]);
+    if (deductions.length > 0) {
+      for (const d of deductions) {
+        if (d.deduction_id) {
+          await execute(
+            `INSERT INTO transaction_deductions (entry_id, deduction_id, input_value, calculated_amount)
+             VALUES (?, ?, ?, ?)`,
+            [id, d.deduction_id, d.value || 0, d.calculated_amount || 0]
+          );
+        }
+      }
+    }
+
+    // 4. Re-sync Account Ledger
+    await execute('DELETE FROM account_ledger WHERE reference_type IN ("dangar_entry", "dangar_entry_fund", "jama_bardan_entry") AND reference_id = ?', [id]);
+
+    const dangarAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = ?', [companyId]);
+    const dangarAccountId = dangarAccount?.id || null;
+    const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
+    const targetLedgerAccId = itemData?.purchase_account_id || dangarAccountId;
+    const ledgerDesc = `${bookType} Purchase [Edit] - ${net_quintal} Qt @ ${rate}`;
+    const amountVal = parseFloat(amount || 0);
+
+    if (targetLedgerAccId) {
+      await execute(`
+        INSERT INTO account_ledger (
+          company_id, account_id, transaction_date, transaction_type, reference_type, 
+          reference_id, reference_no, description, debit, financial_year
+        ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+      `, [companyId, targetLedgerAccId, date, id, srNo, ledgerDesc, amountVal, currentFinancialYear]);
+
+      await execute(`
+        INSERT INTO account_ledger (
+          company_id, member_id, transaction_date, transaction_type, reference_type, 
+          reference_id, reference_no, description, credit, financial_year
+        ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+      `, [companyId, member_id, date, id, srNo, ledgerDesc, amountVal, currentFinancialYear]);
+    }
+
+    // 5. Re-sync Godown Fund
+    const godownFundAmount = (parseFloat(total_kg) || 0) * 0.05;
+    if (godownFundAmount > 0) {
+      const godownAc = await queryOne('SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = ?', [companyId]);
+      if (godownAc?.id) {
+        const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
+        await execute(`
+          INSERT INTO account_ledger (
+            company_id, member_id, transaction_date, transaction_type, reference_type, 
+            reference_id, reference_no, description, debit, financial_year
+          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+        `, [companyId, member_id, date, id, srNo, fundDesc, godownFundAmount, currentFinancialYear]);
+
+        await execute(`
+          INSERT INTO account_ledger (
+            company_id, account_id, transaction_date, transaction_type, reference_type, 
+            reference_id, reference_no, description, credit, financial_year
+          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+        `, [companyId, godownAc.id, date, id, srNo, fundDesc, godownFundAmount, currentFinancialYear]);
+      }
+    }
+
+    // 6. Re-sync Bardan Return
+    await execute('DELETE FROM jama_bardan_entry WHERE remark LIKE ? AND company_id = ?', [`%Dangar Settlement SR: ${srNo}%`, companyId]);
+    if (returned_bags && parseFloat(returned_bags) > 0) {
+      const member = await queryOne(`SELECT member_code, member_name FROM member_master WHERE id = ?`, [member_id]);
+      const bardanAccount = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+      if (member) {
+        const settleRemark = `Dangar Settlement SR: ${srNo}`;
+        const jamResult = await execute(`
+          INSERT INTO jama_bardan_entry (
+            company_id, financial_year, entry_date, 
+            book_type, pavti_no, mem_nominal, code, name, qty, remark,
+            member_id, account_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          companyId, currentFinancialYear, date,
+          'J', srNo, 'S', member.member_code, member.member_name, parseFloat(returned_bags), settleRemark,
+          member_id, bardanAccount?.id || null
+        ]);
+
+        if (bardanAccount?.id) {
+          await execute(`
+            INSERT INTO account_ledger (
+              company_id, financial_year, account_id, member_id, 
+              transaction_date, reference_no, description, 
+              debit, credit, reference_type, reference_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            companyId, currentFinancialYear, bardanAccount.id, member_id,
+            date, srNo, settleRemark, 0, parseFloat(returned_bags), 'jama_bardan_entry', jamResult.insertId || jamResult.lastID
+          ]);
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Transaction node re-committed successfully.' });
+  } catch (error) {
+    console.error('Update Dangar Entry Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -642,7 +792,7 @@ router.delete('/:id', async (req, res) => {
     // The purchase entry is linked via source_id = id AND source_table = 'dangar_entry' (if we use source_table)
     // Wait, in POST we didn't set source_table for the dangar purchase, we used reference_id.
     // Let's delete all ledger entries linked to this Dangar SR/ID
-    await execute('DELETE FROM account_ledger WHERE reference_type IN ("dangar_entry", "dangar_entry_fund") AND reference_id = ?', [req.params.id]);
+    await execute('DELETE FROM account_ledger WHERE reference_type IN ("dangar_entry", "dangar_entry_fund", "jama_bardan_entry") AND reference_id = ?', [req.params.id]);
     
     // 2. Delete associated jama_bardan_entry created during this dangar entry
     // These are linked via the same SR No or we can find them via the ledger source link

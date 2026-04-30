@@ -149,6 +149,15 @@ router.post('/', async (req, res) => {
       engName, nominalMember, ifscCode, bardanOpening, is_active
     } = req.body;
 
+    // Check for duplicate name
+    const existing = await queryOne(
+      'SELECT id FROM member_master WHERE member_name = ? AND company_id = ?',
+      [sabhasadName, company_id]
+    );
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Member name already exists in this company.' });
+    }
+
     const result = await execute(
       `INSERT INTO member_master 
       (company_id, financial_year, member_code, member_name, phone, village_code, village_name, 
@@ -185,6 +194,15 @@ router.put('/:id', async (req, res) => {
       fullAcNumber, bankName, branchName, accountType, addressNo,
       engName, nominalMember, ifscCode, bardanOpening, is_active
     } = req.body;
+
+    // Check for duplicate name
+    const existing = await queryOne(
+      'SELECT id FROM member_master WHERE member_name = ? AND company_id = ? AND id != ?',
+      [sabhasadName, company_id, req.params.id]
+    );
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Member name already exists in this company.' });
+    }
 
     await execute(
       `UPDATE member_master SET 

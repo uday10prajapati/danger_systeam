@@ -378,14 +378,14 @@ const DangarPaymentReport = () => {
             { label: 'Total Volume', val: `${summary.totalQuintal.toFixed(2)} Qt`, icon: Box, color: 'blue' },
             { label: 'Bag Penalty', val: `₹${summary.totalBardanPenalty?.toFixed(2) || '0.00'}`, icon: Shield, color: 'rose' },
             { label: 'Final Payable', val: `₹${summary.totalFinal.toFixed(2)}`, icon: CheckCircle, color: 'emerald' },
-          ].map((shard, i) => (
+          ].map((stat, i) => (
             <div key={i} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4 group">
-              <div className={`w-12 h-12 bg-${shard.color === 'emerald' ? 'emerald' : shard.color === 'rose' ? 'rose' : 'blue'}-50 text-${shard.color === 'emerald' ? 'emerald' : shard.color === 'rose' ? 'rose' : 'blue'}-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}>
-                <shard.icon size={24} />
+              <div className={`w-12 h-12 bg-${stat.color === 'emerald' ? 'emerald' : stat.color === 'rose' ? 'rose' : 'blue'}-50 text-${stat.color === 'emerald' ? 'emerald' : stat.color === 'rose' ? 'rose' : 'blue'}-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}>
+                <stat.icon size={24} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{shard.label}</p>
-                <p className="text-xl font-black text-slate-900 tracking-tight leading-none">{shard.val}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{stat.label}</p>
+                <p className="text-xl font-black text-slate-900 tracking-tight leading-none">{stat.val}</p>
               </div>
             </div>
           ))}
@@ -395,8 +395,8 @@ const DangarPaymentReport = () => {
           <TableHeading
             icon={<Layout size={18} />}
             iconColor="blue"
-            title="Payout Manifest"
-            subtitle="Audit-ready financial settlement ledger"
+            title="Payment List"
+            subtitle="Final payment settlement report"
           />
 
           <div className="overflow-x-auto">
@@ -404,8 +404,8 @@ const DangarPaymentReport = () => {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   <th className="px-6 py-5 w-12 text-center">#</th>
-                  <th className="px-6 py-5">Identity</th>
-                  <th className="px-6 py-5 text-right">Volume (Qt)</th>
+                  <th className="px-6 py-5">Member Name</th>
+                  <th className="px-6 py-5 text-right">Quintal (Qt)</th>
                   <th className="px-6 py-5 text-right text-indigo-500">Rate Amt</th>
                   <th className="px-6 py-5 text-right text-rose-500">Advance</th>
                   <th className="px-6 py-5 text-right text-blue-600">Interest</th>
@@ -420,7 +420,7 @@ const DangarPaymentReport = () => {
                   <tr>
                     <td colSpan="9" className="py-20 text-center">
                       <RefreshCcw size={32} className="animate-spin text-blue-500 mx-auto mb-3" />
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Compiling manifest...</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Report...</p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
@@ -436,7 +436,7 @@ const DangarPaymentReport = () => {
                       <td className="px-6 py-5 text-xs font-bold text-slate-300 text-center">{i + 1}</td>
                       <td className="px-6 py-5">
                         <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{row.member_name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">CODE: {row.member_code} • {row.entry_count} NODES</p>
+                        <p className="text-[10px] font-bold text-slate-400">CODE: {row.member_code} • {row.entry_count} Entries</p>
                       </td>
                       <td className="px-6 py-5 text-right font-bold text-slate-600 text-sm">{row.total_quintal}</td>
                       <td className="px-6 py-5 text-right font-bold text-indigo-600 text-sm">₹{row.rate_amount}</td>
@@ -466,7 +466,7 @@ const DangarPaymentReport = () => {
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden border border-white animate-in zoom-in-95 duration-200">
             <div className="bg-blue-600 p-6 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-black text-white italic uppercase tracking-tight">TXT Export Engine</h2>
+                <h2 className="text-xl font-black text-white italic uppercase tracking-tight">Bank Export</h2>
                 <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1">Bank Batch Configuration</p>
               </div>
               <button onClick={() => setTxtModal(false)} className="p-2 text-white/50 hover:text-white transition-colors"><X size={20} /></button>

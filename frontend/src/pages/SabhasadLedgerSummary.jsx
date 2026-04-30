@@ -159,6 +159,20 @@ export default function SabhasadLedgerSummary() {
     }
   };
 
+  const clearFilters = () => {
+    setAccountId('all');
+    setAccCode('');
+    setAccName('');
+    setMemberId('all');
+    setMemCode('');
+    setMemName('');
+    setHideZeroBalance(false);
+    setDateRange({
+      startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0]
+    });
+  };
+
   // Selection Handlers
   const handleSelectAcc = (acc) => {
     setAccountId(acc?.id || 'all');
@@ -192,6 +206,12 @@ export default function SabhasadLedgerSummary() {
       handleSelectMem(null);
     }
   }, [memCode]);
+
+  useEffect(() => {
+    if (company?.id) {
+      fetchReportData();
+    }
+  }, [dateRange.startDate, dateRange.endDate, accountId, memberId, hideZeroBalance]);
 
   const systemAccountNames = [
     'Brokerage Khate', 'Dangar Purchase', 'Dangar Sale',
@@ -261,12 +281,20 @@ export default function SabhasadLedgerSummary() {
           subtitle={`Audit connectivity established for ${company.company_name}`}
         >
 
-          <button
-            onClick={fetchReportData}
-            className="px-8 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-100 active:scale-95 flex items-center gap-2"
-          >
-            <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} /> Sync Report
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={clearFilters}
+              className="px-8 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 transition-all font-black uppercase text-[10px] tracking-widest active:scale-95 flex items-center gap-2"
+            >
+              <X size={16} /> Clear Filter
+            </button>
+            <button
+              onClick={fetchReportData}
+              className="px-8 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-100 active:scale-95 flex items-center gap-2"
+            >
+              <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} /> Sync Report
+            </button>
+          </div>
         </PageHeader>
 
         {/* Intelligence Control Console - Modern Dual Field Search */}
@@ -375,37 +403,57 @@ export default function SabhasadLedgerSummary() {
                 </div>
               </label>
             </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setMemCode('');
+                  setMemName('');
+                  setMemberId('all');
+                  setAccountId('all');
+                  setAccCode('');
+                  setAccName('');
+                  setHideZeroBalance(false);
+                  setDateRange({
+                    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                    endDate: new Date().toISOString().split('T')[0]
+                  });
+                }}
+                className="h-[52px] bg-white border border-slate-100 text-slate-400 hover:text-rose-600 px-6 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-3"
+              >
+                <X size={16} /> Reset
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Dynamic Metric Grid */}
+        {/* Summary Metric Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 print:hidden">
           {[
-            { label: 'Baseline Exposure (Opening)', val: totals.opening_balance, icon: <Layout size={18} />, color: 'blue' },
-            { label: 'Aggregate Debit Node', val: totals.debit, icon: <TrendingUp size={18} />, color: 'blue' },
-            { label: 'Aggregate Credit Node', val: totals.credit, icon: <TrendingDown size={18} />, color: 'blue' },
-            { label: 'Net Liquidity Position', val: totals.closing_balance, icon: <ShieldCheck size={18} />, color: 'emerald', special: true }
+            { label: 'Opening Balance', val: totals.opening_balance, icon: <Layout size={18} />, color: 'blue' },
+            { label: 'Total Debit (+)', val: totals.debit, icon: <TrendingUp size={18} />, color: 'blue' },
+            { label: 'Total Credit (-)', val: totals.credit, icon: <TrendingDown size={18} />, color: 'blue' },
+            { label: 'Closing Balance', val: totals.closing_balance, icon: <ShieldCheck size={18} />, color: 'emerald', special: true }
           ].map((stat, i) => (
-            <div key={i} className="bg-white p-8 rounded-lg border border-slate-50 shadow-sm relative group hover:border-blue-100 transition-all">
-              <div className="flex justify-between items-start mb-6">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <div className={`p-3 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+            <div key={i} className="bg-white p-6 rounded-lg border border-slate-50 shadow-sm relative group hover:border-blue-100 transition-all">
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
               </div>
-              <p className={`text-2xl font-bold tracking-tighter ${stat.special ? 'text-emerald-600' : 'text-slate-800'}`}>
+              <p className={`text-xl font-bold tracking-tight ${stat.special ? 'text-emerald-600' : 'text-slate-800'}`}>
                 {(i === 0 || i === 3) 
-                  ? `₹${Math.abs(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(stat.val || 0) >= 0 ? 'C' : 'D'}`
+                  ? `₹${Math.abs(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(stat.val || 0) >= 0 ? 'D' : 'C'}`
                   : `₹${parseFloat(stat.val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
               </p>
             </div>
           ))}
         </div>
 
-        {/* Operational Canvas */}
+        {/* Ledger Registry */}
         <div className="bg-white rounded-lg border border-slate-50 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
           <TableHeading
             icon={<Database size={18} />}
             iconColor="blue"
-            title="Sabhasad Ledger Report Manifesto"
+            title="Member Ledger Summary"
             subtitle={company.company_name}
           />
 
@@ -413,9 +461,9 @@ export default function SabhasadLedgerSummary() {
             <table className="w-full text-left">
               <thead className="bg-[#F8FAFC]">
                 <tr className="uppercase tracking-widest font-black text-slate-400 text-[10px]">
-                  <th className="px-10 py-6 border-r border-slate-50/50">Epoch_ID</th>
+                  <th className="px-10 py-6 border-r border-slate-50/50">Sr No</th>
                   <th className="px-10 py-6 border-r border-slate-50/50">Code</th>
-                  <th className="px-10 py-6 min-w-[250px] border-r border-slate-50/50">Sabhasad Nomenclature</th>
+                  <th className="px-10 py-6 min-w-[250px] border-r border-slate-50/50">Member Name</th>
 
                   {(() => {
                     if (isDangar) {
@@ -424,8 +472,8 @@ export default function SabhasadLedgerSummary() {
                           <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Date</th>
                           <th className="px-10 py-6 text-right text-blue-500 border-r border-slate-50/50 italic">Purches Rate</th>
                           <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Item Name</th>
-                          <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Danger Class</th>
-                          <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Bought Season</th>
+                          <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Class</th>
+                          <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Season</th>
                           <th className="px-10 py-6 text-right text-blue-500 border-r border-slate-50/50 italic uppercase">Total Qty (Qt)</th>
                           <th className="px-10 py-6 text-right text-emerald-500 border-r border-slate-50/50 italic uppercase">Total Rate</th>
                         </>
@@ -437,7 +485,7 @@ export default function SabhasadLedgerSummary() {
                           <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Accrual Date</th>
                           <th className="px-10 py-6 text-right text-blue-500 border-r border-slate-50/50 italic">Interest Rate (%)</th>
                           <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Days</th>
-                          <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50 italic">Reference Transaction</th>
+                          <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50 italic">Reference</th>
                           <th className="px-10 py-6 text-right text-emerald-500 border-r border-slate-50/50 italic uppercase">Interest Amount</th>
                         </>
                       );
@@ -464,11 +512,11 @@ export default function SabhasadLedgerSummary() {
                     }
                     return (
                       <>
-                        <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50">Nomenclature Account</th>
+                        <th className="px-10 py-6 min-w-[200px] border-r border-slate-50/50">Account Name</th>
                         <th className="px-10 py-6 text-blue-500 border-r border-slate-50/50 italic">Date</th>
                         <th className="px-10 py-6 text-right text-blue-500 border-r border-slate-50/50">Debit (+)</th>
                         <th className="px-10 py-6 text-right text-amber-500 border-r border-slate-50/50">Credit (-)</th>
-                        <th className="px-10 py-6 text-right border-r border-slate-50/50">Close Pos</th>
+                        <th className="px-10 py-6 text-right border-r border-slate-50/50">Closing</th>
                         {!hideBardan && (
                           <>
                             <th className="px-10 py-6 text-right border-r border-slate-50/50 text-indigo-400">Bardan Bal</th>
@@ -487,14 +535,14 @@ export default function SabhasadLedgerSummary() {
                   <tr>
                     <td colSpan="9" className="py-32 text-center">
                       <RefreshCcw size={48} className="animate-spin text-blue-100 mx-auto mb-6" />
-                      <p className="text-slate-300 font-black uppercase text-[10px] tracking-widest italic">Decrypting Member Registry Entries...</p>
+                      <p className="text-slate-300 font-black uppercase text-[10px] tracking-widest italic">Loading Ledger Entries...</p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
                     <td colSpan="9" className="py-32 text-center text-slate-200 font-black uppercase text-[10px] tracking-[0.4em] italic bg-slate-50/30">
                       <Database size={56} className="mx-auto mb-4 opacity-50" strokeWidth={1} />
-                      Void Detection: No Entities Found
+                      No Records Found
                     </td>
                   </tr>
                 ) : (
@@ -511,7 +559,7 @@ export default function SabhasadLedgerSummary() {
                               <>
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
                                 <td className="px-10 py-5 text-right font-bold text-blue-600">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td>
-                                <td className="px-10 py-5 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">{row.item_name || 'Generic Dangar'}</td>
+                                <td className="px-10 py-5 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">{row.item_name || 'Item'}</td>
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.quality_class || '1st'}</td>
                                 <td className="px-10 py-5 text-[10px] font-bold text-amber-500 uppercase tracking-[0.2em]">{row.book_type || 'Season'}</td>
                                 <td className="px-10 py-5 text-right font-black text-indigo-600 italic underline underline-offset-8 decoration-indigo-100 decoration-2">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[8px] opacity-50 not-italic ml-1">Qt</span></td>
@@ -525,7 +573,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className="px-10 py-5 text-[10px] font-bold text-slate-400 border-r border-slate-50/50 italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
                                 <td className="px-10 py-5 text-right font-bold text-blue-600">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td>
                                 <td className="px-10 py-5 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">{row.days || 0} Days</td>
-                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description || 'Interest Accrual'}</td>
+                                <td className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">{row.description || 'Interest'}</td>
                                 <td className="px-10 py-5 text-right font-black text-emerald-600 text-sm italic">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')} D</td>
                               </>
                             );
@@ -560,11 +608,11 @@ export default function SabhasadLedgerSummary() {
                               <td className="px-10 py-5 text-right font-black text-amber-500 italic">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td>
                               <td className={`px-10 py-5 text-right font-black text-sm italic underline underline-offset-8 decoration-4 ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-emerald-600 decoration-emerald-50' : 'text-rose-600 decoration-rose-50'
                                 }`}>
-                                ₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.closing_balance || 0) >= 0 ? 'C' : 'D'}
+                                ₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.closing_balance || 0) >= 0 ? 'D' : 'C'}
                               </td>
                               {!hideBardan && (
                                 <>
-                                  <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.bardan_balance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                  <td className={`px-10 py-5 text-right font-black text-sm italic ${parseFloat(row.bardan_balance || 0) <= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                                     {Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'D' : 'C'}
                                   </td>
                                   <td className="px-10 py-5 text-right font-black text-sm italic text-emerald-500">
@@ -581,7 +629,7 @@ export default function SabhasadLedgerSummary() {
                         <td className="px-10 py-5 text-center">
                           <button
                             onClick={() => openAudit(row)}
-                            className="p-3 bg-white border border-slate-100 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm group-hover:scale-110 active:scale-95"
+                            className="p-3 bg-white border border-slate-100 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm group-hover:scale-110 active:scale-95"
                           >
                             <Activity size={16} strokeWidth={3} />
                           </button>
@@ -589,13 +637,13 @@ export default function SabhasadLedgerSummary() {
                       </tr>
                     ))}
                     <tr className="bg-slate-50 border-t-2 border-slate-200 text-slate-900 font-black italic">
-                      <td colSpan="4" className="px-10 py-8 text-xs tracking-[0.4em] uppercase text-blue-600 font-black">Master Integrity Summary</td>
+                      <td colSpan="4" className="px-10 py-8 text-xs tracking-[0.4em] uppercase text-blue-600 font-black">Grand Total Summary</td>
 
                       {(() => {
                         if (isDangar) {
                           return (
                             <>
-                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Registry Aggregates</td>
+                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Summary</td>
                               <td colSpan="2" className="px-10 py-8 text-right text-lg tracking-tighter text-blue-600 border-r border-slate-200">
                                 {data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-xs opacity-50 ml-1">Qt</span>
                               </td>
@@ -608,7 +656,7 @@ export default function SabhasadLedgerSummary() {
                         if (isInterest) {
                           return (
                             <>
-                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Interest Aggregates</td>
+                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Summary</td>
                               <td colSpan="3" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-600 font-black italic">
                                 ₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}
                               </td>
@@ -618,7 +666,7 @@ export default function SabhasadLedgerSummary() {
                         if (isBrokerage) {
                           return (
                             <>
-                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Brokerage Aggregates</td>
+                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Summary</td>
                               <td colSpan="3" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-600 font-black italic">
                                 ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
                               </td>
@@ -628,7 +676,7 @@ export default function SabhasadLedgerSummary() {
                         if (isLabour) {
                           return (
                             <>
-                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Labour Aggregates</td>
+                              <td className="px-10 py-8 text-right text-slate-400 font-mono italic text-[10px] tracking-widest uppercase">Summary</td>
                               <td colSpan="3" className="px-10 py-8 text-right text-lg tracking-tighter text-emerald-600 font-black italic">
                                 ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
                               </td>
@@ -667,7 +715,7 @@ export default function SabhasadLedgerSummary() {
         </div>
       </div>
 
-      {/* Detailed Transaction Analysis Modal Overlay */}
+      {/* Detailed Transaction Analysis Modal */}
       {showAuditModal && auditMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowAuditModal(false)} />
@@ -684,7 +732,7 @@ export default function SabhasadLedgerSummary() {
                     {auditMember.member_name} 
                     <span className="text-blue-600 ml-3 font-mono not-italic text-lg">#{auditMember.member_code}</span>
                   </h2>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 italic">Detailed Transaction Analysis • Deep Shard Audit Registry</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2 italic">Detailed Transaction Analysis • System Audit</p>
                 </div>
               </div>
               <button 
@@ -700,7 +748,7 @@ export default function SabhasadLedgerSummary() {
               {auditLoading ? (
                 <div className="py-32 text-center space-y-4">
                   <RefreshCcw className="animate-spin mx-auto text-blue-500" size={40} strokeWidth={1} />
-                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">Synchronizing Ledger Shards...</p>
+                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">Loading Ledger Transactions...</p>
                 </div>
               ) : (
                 <div className="border border-slate-100 rounded-lg overflow-hidden shadow-sm">
@@ -744,13 +792,13 @@ export default function SabhasadLedgerSummary() {
             <div className="px-8 py-6 bg-[#F8FAFC] border-t border-slate-100 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-sm shadow-emerald-200" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Audit Integrity: Operational</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Status: Verified</span>
               </div>
               <button 
                 onClick={() => setShowAuditModal(false)} 
-                className="px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95"
+                className="px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold uppercase text-[10px] tracking-widest hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95"
               >
-                Close Audit Record
+                Close Audit
               </button>
             </div>
           </div>

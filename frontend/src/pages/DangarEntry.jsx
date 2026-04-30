@@ -8,12 +8,15 @@ import {
   TrendingDown, CreditCard, TrendingUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useParams, useNavigate } from 'react-router-dom';
 import api, { sabhasadMasterApi, dangarEntryApi, bardanEntryApi } from '../api';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 
 const DangarEntry = () => {
   const { t } = useTranslation();
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     bookType: 'Dangar',
     srNo: 'AUTO',
@@ -164,10 +167,53 @@ const DangarEntry = () => {
         setSeasons(seasonsRes.data.data);
         setCurrentSeason(latest);
         // Sync form season with verified DB season
-        setFormData(prev => ({
-          ...prev,
-          season: latest.season_type.toLowerCase()
-        }));
+        if (!id) {
+          setFormData(prev => ({
+            ...prev,
+            season: latest.season_type.toLowerCase()
+          }));
+        }
+      }
+
+      // EDIT MODE: Fetch Entry Details
+      if (id) {
+        const entryRes = await dangarEntryApi.getById(id);
+        if (entryRes.data.success) {
+          const entry = entryRes.data.data;
+          setFormData({
+            bookType: entry.book_type,
+            srNo: entry.sr_no,
+            date: new Date(entry.entry_date).toISOString().split('T')[0],
+            member_id: entry.member_id,
+            item_id: entry.item_id,
+            remark: entry.remark,
+            vehicleNo: entry.vehicle_no || '',
+            total_kg: entry.total_kg,
+            bardan: entry.bardan,
+            gun: entry.gun,
+            gross_quintal: entry.gross_quintal,
+            less_bardan: entry.less_bardan,
+            net_quintal: entry.net_quintal,
+            rate: entry.rate,
+            amount: entry.amount,
+            quality_class: entry.quality_class || '1st',
+            season: entry.season || 'winter'
+          });
+
+          if (entry.weights && entry.weights.length > 0) {
+            setWeightRows(entry.weights.map(w => ({ id: w.id, wgt: w.weight })));
+          }
+
+          // Trigger member change logic manually for edit mode
+          const member = (membersRes.data.data || []).find(m => m.id === entry.member_id);
+          if (member) {
+            setSelectedMember(member);
+            const bardanRes = await bardanEntryApi.getBalance(member.member_code);
+            if (bardanRes.data.success) {
+              setBardanBalance(bardanRes.data.data?.balance || 0);
+            }
+          }
+        }
       }
 
     } catch (error) {
@@ -312,14 +358,20 @@ const DangarEntry = () => {
         weight_unit: 'kg'
       };
 
-      const res = await dangarEntryApi.create(payload);
+      const res = id 
+        ? await dangarEntryApi.update(id, payload)
+        : await dangarEntryApi.create(payload);
+
       if (res.data.success) {
-        setMessage({ type: 'success', text: `Transaction committed. Node SR: ${res.data.data.srNo}` });
-        resetForm();
-        setTimeout(() => setMessage(null), 5000);
+        setMessage({ type: 'success', text: id ? 'Transaction node updated successfully' : `Transaction committed. Node SR: ${res.data.data.srNo}` });
+        if (!id) resetForm();
+        setTimeout(() => {
+          setMessage(null);
+          if (id) navigate('/dangar-master');
+        }, 3000);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Operational failure during commit' });
+      setMessage({ type: 'error', text: 'Operational failure during commit: ' + (error.response?.data?.error || error.message) });
     } finally {
       setLoading(false);
     }
@@ -441,10 +493,10 @@ const DangarEntry = () => {
 
         {/* Page Header */}
         <PageHeader
-          eyebrow="Transaction Node / Entry Console"
+          eyebrow={id ? "Transaction Node / Edit Mode" : "Transaction Node / Entry Console"}
           eyebrowIcon={<Database size={12} />}
-          title={t('dangarEntry.title', 'Dangar / Tuver / Divela Entry')}
-          subtitle={currentSeason ? `Season: ${currentSeason.name}` : undefined}
+          title={id ? "Update Dangar / Tuver / Divela" : t('dangarEntry.title', 'Dangar / Tuver / Divela Entry')}
+          subtitle={currentSeason ? `Season: ${currentSeason.name}${id ? ` · Editing SR: ${formData.srNo}` : ''}` : undefined}
         >
           <button
             onClick={loadHistory}
@@ -463,7 +515,8 @@ const DangarEntry = () => {
             disabled={loading}
             className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95 disabled:opacity-50"
           >
-            <Save size={16} /> Save Entry
+            {id ? <Edit3 size={16} /> : <Save size={16} />}
+            {id ? 'Update Entry' : 'Save Entry'}
           </button>
         </PageHeader>
 

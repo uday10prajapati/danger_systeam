@@ -110,6 +110,7 @@ export const dangarEntryApi = {
   getAll: (companyId, startDate, endDate) => api.get('/dangar-entry', { params: { companyId, startDate, endDate } }),
   getById: (id) => api.get(`/dangar-entry/${id}`),
   create: (data) => api.post('/dangar-entry', data),
+  update: (id, data) => api.put(`/dangar-entry/${id}`, data),
   delete: (id) => api.delete(`/dangar-entry/${id}`),
 };
 
