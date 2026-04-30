@@ -65,6 +65,7 @@ router.get('/payment-report', async (req, res) => {
         mm.full_ac_number,
         mm.bank_name,
         mm.branch_name,
+        mm.ifsc_code,
         SUM(al.credit) AS total_credit,
         SUM(al.debit)  AS total_debit,
         COUNT(al.id)   AS entry_count
@@ -73,7 +74,7 @@ router.get('/payment-report', async (req, res) => {
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, mm.member_code, mm.member_name, mm.full_ac_number, mm.bank_name, mm.branch_name
+      GROUP BY mm.id, mm.member_code, mm.member_name, mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code
       ORDER BY mm.member_code ASC
     `, [companyId, ...dateParams]);
 
@@ -235,6 +236,7 @@ router.get('/payment-report', async (req, res) => {
         full_ac_number:   row.full_ac_number || '',
         bank_name:        row.bank_name || '',
         branch_name:      row.branch_name || '',
+        ifsc_code:        row.ifsc_code || '',
         entry_count:      row.entry_count,
         total_kg:         totalKg.toFixed(2),
         total_quintal:    totalQuintal.toFixed(2),

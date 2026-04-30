@@ -131,6 +131,11 @@ const DangarPaymentReport = () => {
     if (!validData.length) { alert('No valid data to export.'); return; }
     const rows = validData.map((r, i) => ({
       'Sr.': i + 1,
+      'CODE': r.member_code,
+      'NAME': r.member_name,
+      'ACCOUNT NUMBER': r.full_ac_number || '',
+      'IFSC': r.ifsc_code || '',
+      'PAYABLE AMOUNT': parseFloat(r.final_amount || 0),
       'Member Code': r.member_code,
       'Member Name': r.member_name,
       'Account No.': r.full_ac_number || '',
@@ -143,7 +148,7 @@ const DangarPaymentReport = () => {
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     // Column widths
-    ws['!cols'] = [5, 12, 25, 18, 10, 10, 14, 12, 14, 14].map(w => ({ wch: w }));
+    ws['!cols'] = [5, 12, 25, 20, 15, 15, 12, 25, 18, 10, 10, 14, 12, 14, 14].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Payment Report');
     XLSX.writeFile(wb, 'dangar_payment_' + filters.startDate + '_' + filters.endDate + '.xlsx');
