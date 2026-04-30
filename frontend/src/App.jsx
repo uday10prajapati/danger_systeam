@@ -32,6 +32,7 @@ import BardanPortfolio from './pages/BardanPortfolio'
 import NarrationMaster from './pages/NarrationMaster'
 import DangarMaster from './pages/DangarMaster'
 import DangarPaymentReport from './pages/DangarPaymentReport'
+import DangarSummaryReport from './pages/DangarSummaryReport'
 import JamaBardanEntry from './pages/JamaBardanEntry'
 import InterestCalculator from './pages/InterestCalculator'
 import Navbar from './components/Navbar'
@@ -107,6 +108,7 @@ function AppContent() {
           <Route path="/dangar-entry" element={<ProtectedRoute><DangarEntry /></ProtectedRoute>} />
           <Route path="/dangar-rates" element={<ProtectedRoute><DangarRateMaster /></ProtectedRoute>} />
           <Route path="/dangar-payment-report" element={<ProtectedRoute><DangarPaymentReport /></ProtectedRoute>} />
+          <Route path="/dangar-summary" element={<ProtectedRoute><DangarSummaryReport /></ProtectedRoute>} />
           <Route path="/kapat" element={<ProtectedRoute><DeductionConsole /></ProtectedRoute>} />
           <Route path="/bardan-portfolio" element={<ProtectedRoute><BardanPortfolio /></ProtectedRoute>} />
           <Route path="/jama-bardan-entry" element={<ProtectedRoute><JamaBardanEntry /></ProtectedRoute>} />

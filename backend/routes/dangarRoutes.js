@@ -323,6 +323,54 @@ router.get('/payment-report', async (req, res) => {
   }
 });
 
+// GET Dangar Summary Report
+router.get('/summary-report', async (req, res) => {
+  try {
+    const { companyId, startDate, endDate } = req.query;
+    
+    // 1. Grouped Dangar Purchases
+    const dangarSummary = await query(`
+      SELECT 
+        im.item_name,
+        im.item_name_gu,
+        de.quality_class,
+        de.financial_year,
+        SUM(de.total_kg) as total_kg,
+        SUM(de.net_quintal) as total_quintal,
+        AVG(de.rate) as avg_rate,
+        SUM(de.amount) as total_amount,
+        SUM(de.total_deduction) as total_deduction
+      FROM dangar_entry de
+      LEFT JOIN item_master im ON de.item_id = im.id
+      WHERE de.company_id = ?
+        AND de.entry_date BETWEEN ? AND ?
+      GROUP BY de.item_id, de.quality_class, de.financial_year
+    `, [companyId, startDate, endDate]);
+
+    // 2. Global Fixed Account Balances (Kapat Vigat)
+    const fixedAccounts = await query(`
+       SELECT 
+         a.account_name,
+         a.account_code,
+         SUM(al.debit - al.credit) as total_balance
+       FROM account_ledger al
+       JOIN accounts a ON al.account_id = a.id
+       WHERE al.company_id = ?
+         AND al.transaction_date <= ?
+         AND (a.account_code IN ('L0001', 'GF0001', 'BS0001', 'IK0001') 
+              OR a.account_name LIKE '%Kapat%' 
+              OR a.account_name LIKE '%Deduction%')
+       GROUP BY a.id
+    `, [companyId, endDate]);
+
+    res.json({ success: true, data: { dangarSummary, fixedAccounts } });
+  } catch (error) {
+    console.error('Dangar Summary Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 
 
 // GET one dangar entry with weights
