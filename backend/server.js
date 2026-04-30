@@ -37,6 +37,7 @@ import deductionRoutes from './routes/deductionRoutes.js';
 import bardanPriceRoutes from './routes/bardanPriceRoutes.js';
 import seasonRoutes from './routes/seasonRoutes.js';
 import narrationRoutes from './routes/narrationRoutes.js';
+import { seedSystemAccounts } from './seed_system_accounts.js';
 dotenv.config();
 
 const app = express();
@@ -100,6 +101,10 @@ async function startServer() {
     console.log('🔄 Initializing database...');
     await initializeDatabase();
     console.log('✅ Database initialized successfully');
+
+    console.log('🛠 Synchronizing system accounts...');
+    await seedSystemAccounts();
+    console.log('✅ System accounts synchronized');
 
     // Financial Years Routes
     app.get('/api/financial-years/:companyId', async (req, res) => {

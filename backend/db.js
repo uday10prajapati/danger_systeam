@@ -2190,6 +2190,9 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
         WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = "DS0001" AND company_id = al.company_id LIMIT 1) 
              AND COUNT(*) > 1 
         THEN 'Dangar Purchase Entry'
+        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = al.company_id LIMIT 1) 
+             AND COUNT(*) > 1 
+        THEN 'Dangar Godown Fund'
         WHEN LOWER(COALESCE(al.description, '')) LIKE '%brokerage%'
         THEN 'Brokerage'
         ELSE GROUP_CONCAT(COALESCE(al.description, al.notes, '') SEPARATOR ' | ')

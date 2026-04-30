@@ -144,6 +144,7 @@ const DangarPaymentReport = () => {
       'Rate Amount': parseFloat(r.rate_amount || 0),
       'Interest': parseFloat(r.total_interest || 0),
       'Bag Penalty': parseFloat(r.bardan_penalty || 0),
+      'Godown Fund': parseFloat(r.godown_fund || 0),
       'Final Amount': parseFloat(r.final_amount || 0),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -805,15 +806,30 @@ const DangarPaymentReport = () => {
                            <div className="px-2 py-1 text-right">{bill.bardan_penalty}</div>
                         </div>
                         <div className="grid grid-cols-5 border-b border-slate-200">
+                           <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર ગોડાઉન ફંડ</div>
+                           <div className="border-r border-black px-2 py-1 text-right"></div>
+                           <div className="px-2 py-1 text-right">{bill.godown_fund}</div>
+                        </div>
+                        <div className="grid grid-cols-5 border-b border-slate-200">
                            <div className="col-span-3 border-r border-black px-2 py-1">વ્યાજ</div>
                            <div className="border-r border-black px-2 py-1 text-right"></div>
                            <div className="px-2 py-1 text-right">{bill.total_interest}</div>
                         </div>
-                        <div className="grid grid-cols-5 border-b border-black">
-                           <div className="col-span-3 border-r border-black px-2 py-1 italic opacity-60">અન્ય કપાત (Total)</div>
-                           <div className="border-r border-black px-2 py-1 text-right"></div>
-                           <div className="px-2 py-1 text-right">{(bill.total_deductions - bill.member_advance - bill.bardan_penalty - bill.total_interest).toFixed(2)}</div>
-                        </div>
+                         {bill.other_deductions && bill.other_deductions.length > 0 ? (
+                            bill.other_deductions.map((d, di) => (
+                               <div key={di} className="grid grid-cols-5 border-b border-slate-200">
+                                  <div className="col-span-3 border-r border-black px-2 py-1">{d.account_name}</div>
+                                  <div className="border-r border-black px-2 py-1 text-right"></div>
+                                  <div className="px-2 py-1 text-right">{d.amount}</div>
+                               </div>
+                            ))
+                         ) : (
+                            <div className="grid grid-cols-5 border-b border-black bg-slate-50 font-bold">
+                               <div className="col-span-3 border-r border-black px-2 py-1 text-slate-400 italic">અન્ય કપાત (Total)</div>
+                               <div className="border-r border-black px-2 py-1 text-right"></div>
+                               <div className="px-2 py-1 text-right">0.00</div>
+                            </div>
+                         )}
                      </div>
 
                      {/* Result Row */}

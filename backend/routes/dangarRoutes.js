@@ -183,32 +183,74 @@ router.get('/payment-report', async (req, res) => {
 
       const bardanIssued    = parseFloat(bardanIssuedMap[row.member_code]   || 0);
       const bardanReturned  = parseFloat(bardanReturnedMap[row.member_code] || 0);
-      const bardanRemaining = Math.max(0, bardanIssued - bardanReturned);
-      const bardanPenalty   = bardanRemaining * pricePerBardan;
+      let bardanPhysicalRemaining = Math.max(0, bardanIssued - bardanReturned);
       const totalKapat  = (kapatMap[row.member_id] || []).reduce((s, k) => s + parseFloat(k.amount || 0), 0);
       
       // Calculate REAL-TIME breakdown for this member
       let pendingInterest = 0;
       let memberAdvance = 0; // Specifically from L0001 Member Adv Ac
+      let godownFund = 0;    // Specifically from GF0001 Dangar Godown Fund
+      let bardanSelfJama = 0;
+      let bardanPenaltyBalance = bardanPhysicalRemaining;
       let otherUdhar = 0;    // Any other outstanding balance
+      let otherDeductionsList = []; // Breakdown of other udhar by account name
       
       try {
          // Resolve Member Adv Ac ID
          const advAc = await queryOne('SELECT id FROM accounts WHERE account_code = "L0001" AND company_id = ?', [companyId]);
+         const godownAc = await queryOne('SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = ?', [companyId]);
+         const bardanAc = await queryOne('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
          const advAcId = advAc?.id;
+         const godownAcId = godownAc?.id;
+         const bardanAcId = bardanAc?.id;
+
+         const memberBardan = await queryOne('SELECT bardan_opening FROM member_master WHERE id = ?', [row.member_id]);
+         const bardanOpening = parseFloat(memberBardan?.bardan_opening || 0);
+
+         const bardanCompanyReturned = await queryOne(
+            'SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != "Self")',
+            [row.member_code, companyId]
+         );
+
+         bardanPhysicalRemaining = Math.max(0, bardanOpening + bardanIssued - bardanReturned);
+         bardanPenaltyBalance = Math.max(0, bardanOpening + bardanIssued - parseFloat(bardanCompanyReturned?.total || 0));
+         bardanSelfJama = Math.max(0, bardanReturned - parseFloat(bardanCompanyReturned?.total || 0));
 
          const memberLedger = await query(`
-            SELECT account_id, debit, credit, transaction_date, interest_percent 
+            SELECT account_id, debit, credit, transaction_date, interest_percent, reference_type 
             FROM account_ledger 
             WHERE member_id = ? AND company_id = ?
          `, [row.member_id, companyId]);
 
-         for (const entry of memberLedger) {
-            const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
-            
-            if (advAcId && entry.account_id === advAcId) {
-               memberAdvance += bal;
-            } else {
+          if (row.member_id === 8 || row.member_code === '1') {
+             console.log(`[API_DEBUG] Processing Member: ${row.member_name} (ID: ${row.member_id}), Company: ${companyId}`);
+             console.log(`[API_DEBUG] Ledger Entries Found: ${memberLedger.length}`);
+          }
+
+          for (const entry of memberLedger) {
+             const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
+             
+             if (entry.reference_type === 'dangar_entry_fund') {
+                if (row.member_id === 8 || row.member_code === '1') {
+                   console.log(`[API_DEBUG] Found Fund Entry: Ref=${entry.reference_type}, Bal=${bal}`);
+                }
+                godownFund += bal;
+             } else if (advAcId && entry.account_id === advAcId) {
+                memberAdvance += bal;
+             } else if (godownAcId && entry.account_id === godownAcId) {
+                godownFund += bal;
+             } else if (bardanAcId && entry.account_id === bardanAcId) {
+               // Skip Bardan System from Other Udhar (handled via Bardan Penalty logic)
+               continue;
+            } else if (Math.abs(bal) > 0.01) {
+               // Collect specific account names for other deductions
+               const accName = await queryOne('SELECT account_name FROM accounts WHERE id = ?', [entry.account_id]);
+               const existing = otherDeductionsList.find(d => d.account_name === accName.account_name);
+               if (existing) {
+                  existing.amount += bal;
+               } else {
+                  otherDeductionsList.push({ account_name: accName.account_name, amount: bal });
+               }
                otherUdhar += bal;
             }
 
@@ -225,8 +267,16 @@ router.get('/payment-report', async (req, res) => {
          console.error('Report Breakdown calculation failed', err);
       }
 
-      // Final Amount = Rate Amount - (Specified Deductions: Advance + Interest + Penalty)
-      const totalDeductions = memberAdvance + pendingInterest + bardanPenalty;
+      // FALLBACK: If godownFund is still 0 but we have totalKg, calculate it (1 RS per 20 KG = 0.05 RS per KG)
+      if (parseFloat(godownFund) === 0 && parseFloat(totalKg) > 0) {
+         godownFund = parseFloat(totalKg) * 0.05;
+      }
+
+      const bardanRemaining = Math.max(0, bardanPenaltyBalance);
+      const bardanPenalty = bardanRemaining * pricePerBardan;
+
+      // Final Amount = Rate Amount - (Specified Deductions: Advance + Interest + Penalty + Godown Fund)
+      const totalDeductions = memberAdvance + pendingInterest + bardanPenalty + godownFund;
       const finalAmount = rateAmount - totalDeductions;
 
       report.push({
@@ -243,15 +293,19 @@ router.get('/payment-report', async (req, res) => {
         rate_per_kg:      weightedRate.toFixed(2),
         rate_amount:      rateAmount.toFixed(2),
         member_advance:   memberAdvance.toFixed(2),
+        godown_fund:      godownFund.toFixed(2),
         other_udhar:      otherUdhar.toFixed(2),
+        other_deductions: otherDeductionsList.map(d => ({ account_name: d.account_name, amount: d.amount.toFixed(2) })),
         total_interest:   pendingInterest.toFixed(2),
         total_kapat:      totalKapat.toFixed(2),
         total_deductions: totalDeductions.toFixed(2),
         final_amount:     finalAmount.toFixed(2),
         bardan_issued:    bardanIssued,
         bardan_returned:  bardanReturned,
+        bardan_physical_remaining: bardanPhysicalRemaining,
         bardan_remaining: bardanRemaining,
         bardan_penalty:   bardanPenalty.toFixed(2),
+        bardan_self_jama: bardanSelfJama,
         kapat_entries:    kapatMap[row.member_id] || [],
         dangar_name_gu:   dangarNameGu,
         entries:          entries,
@@ -407,6 +461,38 @@ router.post('/', async (req, res) => {
       console.warn('Ledger sync warning (non-fatal):', ledgerErr.message);
     }
 
+    // 5b. Auto-Calculate & Commit Godown Fund (1 RS per 20 KG)
+    const godownFundAmount = (parseFloat(total_kg) || 0) * 0.05;
+    if (godownFundAmount > 0) {
+       const godownAc = await queryOne('SELECT id FROM accounts WHERE account_code = "GF0001" AND company_id = ?', [companyId]);
+       const godownAccountId = godownAc?.id;
+       if (godownAccountId) {
+          const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
+          // A. DEBIT THE MEMBER (Reduction in Payable)
+          await execute(`
+             INSERT INTO account_ledger (
+                company_id, member_id, transaction_date, transaction_type, reference_type, 
+                reference_id, reference_no, description, debit, financial_year
+             ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+          `, [
+             companyId, member_id, date, entryId, srNo, fundDesc, 
+             godownFundAmount, currentFinancialYear
+          ]);
+
+          // B. CREDIT THE GODOWN FUND ACCOUNT
+          await execute(`
+             INSERT INTO account_ledger (
+                company_id, account_id, transaction_date, transaction_type, reference_type, 
+                reference_id, reference_no, description, credit, financial_year
+             ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+          `, [
+             companyId, godownAccountId, date, entryId, srNo, fundDesc, 
+             godownFundAmount, currentFinancialYear
+          ]);
+          console.log(`✅ Godown Fund Settle: ${godownFundAmount}`);
+       }
+    }
+
     // 6. Auto-Settle Bardan Balance (Jama Entry)
     // We credit the bags actually returned (returned_bags), not the remaining balance.
     if (returned_bags && parseFloat(returned_bags) > 0) {
@@ -505,7 +591,7 @@ router.delete('/:id', async (req, res) => {
     // The purchase entry is linked via source_id = id AND source_table = 'dangar_entry' (if we use source_table)
     // Wait, in POST we didn't set source_table for the dangar purchase, we used reference_id.
     // Let's delete all ledger entries linked to this Dangar SR/ID
-    await execute('DELETE FROM account_ledger WHERE reference_type = "dangar_entry" AND reference_id = ?', [req.params.id]);
+    await execute('DELETE FROM account_ledger WHERE reference_type IN ("dangar_entry", "dangar_entry_fund") AND reference_id = ?', [req.params.id]);
     
     // 2. Delete associated jama_bardan_entry created during this dangar entry
     // These are linked via the same SR No or we can find them via the ledger source link

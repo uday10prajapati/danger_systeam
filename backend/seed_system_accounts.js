@@ -56,6 +56,13 @@ const systemAccounts = [
     account_type: 'System Account',
     is_system: 1,
     is_subledger: 0
+  },
+  {
+    account_code: 'GF0001',
+    account_name: 'Dangar Godown Fund Account',
+    account_type: 'System Account',
+    is_system: 1,
+    is_subledger: 1
   }
 ];
 
