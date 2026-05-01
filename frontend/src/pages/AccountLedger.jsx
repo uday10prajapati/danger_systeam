@@ -388,15 +388,14 @@ export default function AccountLedger() {
                                     <tr>
                                        {[
                                           'Post Epoch', 
-                                          'Reference Registry', 
-                                          'Nomenclature Payload', 
+                                                                                    'Nomenclature Payload', 
                                           'Debit (+)', 
                                           'Credit (-)', 
                                            ...(selectedAccount?.account_code === 'BS0001' ? ['Self Jama'] : []),
                                            'Running Balance',
                                           ...(selectedAccount?.account_code === 'BS0001' ? ['Bardan Amount'] : [])
                                        ].map((h, i) => (
-                                          <th key={i} className={`px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${i > 2 ? 'text-right' : ''}`}>
+                                          <th key={i} className={`px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${i > 1 ? 'text-right' : ''}`}>
                                              {h}
                                           </th>
                                        ))}
@@ -430,7 +429,7 @@ export default function AccountLedger() {
                                        ledgerEntries.map((row, idx) => (
                                           <tr key={idx} className="group hover:bg-slate-50/50 transition-all duration-300">
                                              <td className="px-10 py-5 text-[11px] font-bold text-slate-400 font-mono italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
-                                             <td className="px-10 py-5 text-[10px] font-bold text-slate-300 uppercase tracking-tight italic">{row.reference_no}</td>
+                                             
                                              <td className="px-10 py-5 font-bold text-slate-700 text-sm uppercase tracking-tight">
                                                 <div className="flex flex-col">
                                                    <span>{selectedAccount?.account_code === 'IK0001' ? `[INTEREST ACCRUAL] ${row.description}` : row.description}</span>
@@ -747,7 +746,6 @@ export default function AccountLedger() {
                         <thead className="bg-[#000] text-white">
                            <tr>
                               <th className="p-4 text-left uppercase tracking-widest font-black">Epoch</th>
-                              <th className="p-4 text-left uppercase tracking-widest font-black">Ref_No</th>
                               <th className="p-4 text-left uppercase tracking-widest font-black">Particulars</th>
                               <th className="p-4 text-right uppercase tracking-widest font-black">Debit</th>
                               <th className="p-4 text-right uppercase tracking-widest font-black">Credit</th>
@@ -758,7 +756,7 @@ export default function AccountLedger() {
                            {ledgerEntries.map((e, i) => (
                               <tr key={i}>
                                  <td className="p-4 text-slate-400">{new Date(e.transaction_date).toLocaleDateString('en-GB')}</td>
-                                 <td className="p-4 text-slate-300">{e.reference_no}</td>
+                                 
                                  <td className="p-4 text-black uppercase">{e.description}</td>
                                  <td className="p-4 text-right">{parseFloat(e.debit || 0) > 0 ? parseFloat(e.debit).toLocaleString('en-IN') : '—'}</td>
                                  <td className="p-4 text-right text-slate-400">{parseFloat(e.credit || 0) > 0 ? parseFloat(e.credit).toLocaleString('en-IN') : '—'}</td>

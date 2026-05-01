@@ -1241,60 +1241,50 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
   const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
   const sql = `
     SELECT 
-      MIN(al.id) as id, al.transaction_date, 
-      STRING_AGG(DISTINCT COALESCE(al.transaction_type, al.reference_type, 'manual'), ', ') as transaction_type,
-      STRING_AGG(DISTINCT al.reference_no, ', ') as reference_no,
-      SUM(CASE 
+      al.id, al.transaction_date, 
+      COALESCE(al.transaction_type, al.reference_type, 'manual') as transaction_type,
+      al.reference_no,
+      CASE 
         WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0)
-        WHEN ${targetAccountId} = 5 THEN COALESCE(al.credit, 0)
         ELSE COALESCE(al.debit, 0) 
-      END) as debit,
-      SUM(CASE 
+      END as debit,
+      CASE 
         WHEN al.interest_account_id = ${targetAccountId} THEN 0 
-        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
-        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, 0)
         ELSE COALESCE(al.credit, 0) 
-      END) as credit,
-      SUM(CASE 
+      END as credit,
+      CASE 
         WHEN al.interest_account_id = ${targetAccountId} THEN 0 
-        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
-        WHEN ${targetAccountId} = 5 THEN 0
         WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN COALESCE(al.credit, 0)
         ELSE 0 
-      END) as self_credit,
-      SUM(CASE 
-        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
-        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
-        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, 0)
-        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
-        ELSE COALESCE(al.credit, 0) 
-      END) as company_credit,
-      SUM(CASE 
-        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
-        WHEN al.account_id = ${targetAccountId} AND COALESCE(al.interest_amount, 0) > 0 THEN 0
-        WHEN ${targetAccountId} = 5 THEN COALESCE(al.debit, 0)
-        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
-        ELSE COALESCE(al.credit, 0) 
-      END) as penalty_credit,
+      END as self_credit,
       CASE 
-        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = al.company_id LIMIT 1) 
-             AND COUNT(*) > 1 THEN 'Bardan Registry'
-        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'DS0001' AND company_id = al.company_id LIMIT 1) 
-             AND COUNT(*) > 1 THEN 'Dangar Purchase Entry'
-        WHEN al.account_id = (SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = al.company_id LIMIT 1) 
-             AND COUNT(*) > 1 THEN 'Dangar Godown Fund'
-        ELSE STRING_AGG(COALESCE(al.description, al.notes, ''), ' | ')
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
+        ELSE COALESCE(al.credit, 0) 
+      END as company_credit,
+      CASE 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
+        ELSE COALESCE(al.credit, 0) 
+      END as penalty_credit,
+      CASE 
+        WHEN al.transaction_type = 'cash_book' THEN
+          CASE 
+            WHEN al.credit > 0 THEN 'Cash IN - ' || (SELECT account_name FROM accounts WHERE id = (CASE WHEN ${targetAccountId} = -1 THEN al.account_id ELSE ${targetAccountId} END) LIMIT 1)
+            WHEN al.debit > 0 THEN 'Cash OUT - ' || (SELECT account_name FROM accounts WHERE id = (CASE WHEN ${targetAccountId} = -1 THEN al.account_id ELSE ${targetAccountId} END) LIMIT 1)
+            ELSE COALESCE(al.description, al.notes, '')
+          END
+        ELSE COALESCE(al.description, al.notes, '')
       END as description,
       CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END as member_id,
       m.member_name, m.member_code,
-      MAX(al.interest_percent) as interest_percent,
-      SUM(al.interest_amount) as interest_amount,
-      STRING_AGG(DISTINCT al.interest_a_per, ', ') as interest_a_per
+      al.interest_percent,
+      al.interest_amount,
+      al.interest_a_per
     FROM account_ledger al
     LEFT JOIN member_master m ON m.id = (CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END)
     WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
-    GROUP BY al.transaction_date, al.company_id, al.account_id, al.interest_account_id, al.interest_member_id, al.member_id, m.member_name, m.member_code
-    ORDER BY al.transaction_date ASC, MIN(al.created_at) ASC, MIN(al.id) ASC
+    ORDER BY al.transaction_date ASC, al.created_at ASC, al.id ASC
   `;
   params.push(startDate, endDate);
   return await query(sql, params);
