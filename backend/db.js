@@ -33,8 +33,7 @@ const pool = new Pool({
 const transformQuery = (sql) => {
   if (typeof sql !== 'string') return sql;
   
-  let index = 1;
-  let newSql = sql.replace(/\?/g, () => `$${index++}`);
+  let newSql = sql;
   
   // Basic Structural Translations (MySQL -> Postgres)
   newSql = newSql.replace(/INT PRIMARY KEY AUTO_INCREMENT/gi, 'SERIAL PRIMARY KEY');
@@ -114,6 +113,10 @@ const transformQuery = (sql) => {
   
   // Handle DATEDIFF (MySQL) -> Subtraction (Postgres)
   newSql = newSql.replace(/DATEDIFF\((.*?), (.*?)\)/gi, '(CAST($1 AS DATE) - CAST($2 AS DATE))');
+
+  // Handle PostgreSQL placeholders last to avoid interference with capture groups
+  let index = 1;
+  newSql = newSql.replace(/\?/g, () => `$${index++}`);
 
   return newSql;
 };
@@ -1174,9 +1177,26 @@ export async function getAccountBalance(accountId, upToDate = null, memberId = n
   let isMemberRequest = String(accountId).startsWith('M');
   const targetAccountId = isMemberRequest ? -1 : parseInt(accountId);
 
-  if (parseInt(accountId) === 14) {
-    whereClause = "(al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+  if (parseInt(accountId) === 10) {
+    whereClause = "(al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book' OR al.account_id = 10)";
     params = [];
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = 10');
+    openingBalance = parseFloat(account?.opening_balance || 0);
+  } else if (parseInt(accountId) === 1) {
+    whereClause = "(al.reference_type IN ('dangar_entry', 'dangar_entry_fund') OR al.account_id IN (1, 11))";
+    params = [];
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = 1');
+    openingBalance = parseFloat(account?.opening_balance || 0);
+  } else if (parseInt(accountId) === 4) {
+    whereClause = "(al.reference_type IN ('bardan_entry', 'jama_bardan_entry') OR al.account_id = 4)";
+    params = [];
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = 4');
+    openingBalance = parseFloat(account?.opening_balance || 0);
+  } else if (parseInt(accountId) === 8) {
+    whereClause = "(al.interest_account_id = 8 OR al.account_id = 8)";
+    params = [];
+    const account = await queryOne('SELECT opening_balance FROM accounts WHERE id = 8');
+    openingBalance = parseFloat(account?.opening_balance || 0);
   } else if (isMemberRequest) {
     const actualMemberId = accountId.substring(1);
     const member = await queryOne('SELECT bardan_opening as opening_balance FROM member_master WHERE id = ?', [actualMemberId]);
@@ -1200,19 +1220,31 @@ export async function getAccountBalance(accountId, upToDate = null, memberId = n
 
   const sql = `
     SELECT 
-      COALESCE(SUM(CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(debit, 0) END), 0) as total_debit,
-      COALESCE(SUM(CASE WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) ELSE COALESCE(credit, 0) END), 0) as total_credit,
+      COALESCE(SUM(CASE 
+        WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0)
+        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        ELSE COALESCE(al.debit, 0) 
+      END), 0) as total_debit,
+      COALESCE(SUM(CASE 
+        WHEN a.account_code = 'CS0001' THEN COALESCE(al.debit, 0)
+        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) 
+        ELSE COALESCE(al.credit, 0) 
+      END), 0) as total_credit,
       COALESCE(SUM(
-         CASE WHEN al.interest_account_id = ${targetAccountId} THEN 0 ELSE COALESCE(debit, 0) END 
-         - 
-         CASE WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) ELSE COALESCE(credit, 0) END
+         CASE 
+           WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0) - COALESCE(al.debit, 0)
+           WHEN al.interest_account_id = ${targetAccountId} THEN -COALESCE(al.interest_amount, 0)
+           ELSE COALESCE(al.debit, 0) - COALESCE(al.credit, 0)
+         END
       ), 0) as ledger_balance
     FROM account_ledger al
+    LEFT JOIN accounts a ON al.account_id = a.id
     WHERE ${whereClause} ${dateCondition}
   `;
 
   const ledgerData = await queryOne(sql, params) || { total_debit: 0, total_credit: 0, ledger_balance: 0 };
   return {
+    opening_balance: openingBalance,
     total_debit: ledgerData.total_debit,
     total_credit: ledgerData.total_credit,
     running_balance: openingBalance + parseFloat(ledgerData.ledger_balance)
@@ -1224,8 +1256,17 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
   let params = [accountId, accountId];
   let isMemberRequest = String(accountId).startsWith('M');
 
-  if (parseInt(accountId) === 14) {
-    whereClause = "(al.transaction_type = 'cash_book' OR (al.account_id = 14 AND al.transaction_type != 'cash_account_entry'))";
+  if (parseInt(accountId) === 10) {
+    whereClause = "(al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book' OR al.account_id = 10)";
+    params = [];
+  } else if (parseInt(accountId) === 1) {
+    whereClause = "(al.reference_type IN ('dangar_entry', 'dangar_entry_fund') OR al.account_id IN (1, 11))";
+    params = [];
+  } else if (parseInt(accountId) === 4) {
+    whereClause = "(al.reference_type IN ('bardan_entry', 'jama_bardan_entry') OR al.account_id = 4)";
+    params = [];
+  } else if (parseInt(accountId) === 8) {
+    whereClause = "(al.interest_account_id = 8 OR al.account_id = 8)";
     params = [];
   } else if (isMemberRequest) {
     const actualMemberId = accountId.substring(1);
@@ -1245,13 +1286,25 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
       COALESCE(al.transaction_type, al.reference_type, 'manual') as transaction_type,
       al.reference_no,
       CASE 
+        WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0)
+        WHEN a.account_type = 'sales' AND al.reference_no LIKE 'CR%' THEN COALESCE(al.credit, 0)
         WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0)
         ELSE COALESCE(al.debit, 0) 
       END as debit,
       CASE 
+        WHEN a.account_code = 'CS0001' THEN COALESCE(al.debit, 0)
+        WHEN a.account_type = 'sales' AND al.reference_no LIKE 'CR%' THEN 0
         WHEN al.interest_account_id = ${targetAccountId} THEN 0 
         ELSE COALESCE(al.credit, 0) 
       END as credit,
+      CASE 
+        WHEN a.account_code = 'CS0001' THEN COALESCE(al.debit, 0)
+        ELSE 0
+      END as penalty_debit,
+      CASE 
+        WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0)
+        ELSE 0
+      END as penalty_credit,
       CASE 
         WHEN al.interest_account_id = ${targetAccountId} THEN 0 
         WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN COALESCE(al.credit, 0)
@@ -1263,12 +1316,9 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
         ELSE COALESCE(al.credit, 0) 
       END as company_credit,
       CASE 
-        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
-        WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0
-        ELSE COALESCE(al.credit, 0) 
-      END as penalty_credit,
-      CASE 
-        WHEN al.transaction_type = 'cash_book' THEN
+        WHEN ${targetAccountId} = 8 THEN 
+          'Principal: ₹' || CAST(COALESCE(al.debit, 0) AS TEXT) || ' | Days: ' || CAST(COALESCE(al.interest_a_per, '') AS TEXT) || ' | Int: ₹' || CAST(COALESCE(al.interest_amount, 0) AS TEXT)
+        WHEN al.transaction_type = 'cash_book' AND al.reference_type = 'cash_book' THEN
           CASE 
             WHEN al.credit > 0 THEN 'Cash IN - ' || (SELECT account_name FROM accounts WHERE id = (CASE WHEN ${targetAccountId} = -1 THEN al.account_id ELSE ${targetAccountId} END) LIMIT 1)
             WHEN al.debit > 0 THEN 'Cash OUT - ' || (SELECT account_name FROM accounts WHERE id = (CASE WHEN ${targetAccountId} = -1 THEN al.account_id ELSE ${targetAccountId} END) LIMIT 1)
@@ -1276,13 +1326,19 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
           END
         ELSE COALESCE(al.description, al.notes, '')
       END as description,
-      CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END as member_id,
-      m.member_name, m.member_code,
+      CASE 
+        WHEN ${targetAccountId} = 8 THEN NULL 
+        WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id 
+        ELSE al.member_id 
+      END as member_id,
+      CASE WHEN ${targetAccountId} = 8 THEN NULL ELSE m.member_name END as member_name,
+      CASE WHEN ${targetAccountId} = 8 THEN NULL ELSE m.member_code END as member_code,
       al.interest_percent,
       al.interest_amount,
       al.interest_a_per
     FROM account_ledger al
     LEFT JOIN member_master m ON m.id = (CASE WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id ELSE al.member_id END)
+    LEFT JOIN accounts a ON al.account_id = a.id
     WHERE ${whereClause} AND al.transaction_date BETWEEN ? AND ?
     ORDER BY al.transaction_date ASC, al.created_at ASC, al.id ASC
   `;
@@ -1294,12 +1350,24 @@ export async function getAccountLedgerWithRunningBalance(accountId, startDate, e
   const prevDate = new Date(startDate);
   prevDate.setDate(prevDate.getDate() - 1);
   const balanceData = await getAccountBalance(accountId, prevDate.toISOString().split('T')[0], memberId);
+  
+  // Get account code to check for flipping logic
+  const account = await queryOne('SELECT account_code FROM accounts WHERE id = ?', [parseInt(accountId)]);
+  const isCashAccount = account?.account_code === 'CS0001';
+
   let runningBalance = parseFloat(balanceData.running_balance || 0);
   const entries = await getAccountLedger(accountId, startDate, endDate, memberId);
   let penaltyBalance = runningBalance;
   return entries.map(entry => {
-    runningBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
-    penaltyBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.penalty_credit) || 0);
+    if (isCashAccount) {
+      // For Cash Account: Credit (IN) increases, Debit (OUT) decreases
+      runningBalance += (parseFloat(entry.credit) || 0) - (parseFloat(entry.debit) || 0);
+      penaltyBalance += (parseFloat(entry.credit) || 0) - (parseFloat(entry.penalty_debit) || 0);
+    } else {
+      // Standard Account: Debit increases, Credit decreases
+      runningBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
+      penaltyBalance += (parseFloat(entry.debit) || 0) - (parseFloat(entry.penalty_credit) || 0);
+    }
     return { ...entry, running_balance: runningBalance, penalty_balance: penaltyBalance };
   });
 }
@@ -1378,6 +1446,27 @@ export async function createPurchase(companyId, supplierId, invoiceNo, invoiceDa
     }
     const grandTotal = totalAmount + gstAmount;
     await connection.query(`UPDATE purchases SET total_amount = ? WHERE id = ?`, [grandTotal, purchaseId]);
+
+    // --- NEW: Post to Account Ledger ---
+    // 1. Debit the Purchase Account
+    const [purchaseAcct] = await connection.query(`SELECT id FROM accounts WHERE company_id = ? AND account_type = 'purchase' LIMIT 1`, [companyId]);
+    if (purchaseAcct && purchaseAcct.length > 0) {
+      await connection.query(
+        `INSERT INTO account_ledger (company_id, account_id, transaction_date, transaction_type, reference_type, reference_id, reference_no, debit, credit, description, financial_year) 
+         VALUES (?, ?, ?, 'PURCHASE', 'PURCHASE', ?, ?, ?, 0, ?, ?)`,
+        [companyId, purchaseAcct[0].id, invoiceDate, purchaseId, invoiceNo, grandTotal, `PURCHASE INV #${invoiceNo}`, '2026-27']
+      );
+    }
+
+    // 2. Credit the Supplier Account
+    if (supplierId) {
+      await connection.query(
+        `INSERT INTO account_ledger (company_id, account_id, transaction_date, transaction_type, reference_type, reference_id, reference_no, debit, credit, description, financial_year) 
+         VALUES (?, ?, ?, 'PURCHASE', 'PURCHASE', ?, ?, 0, ?, ?, ?)`,
+        [companyId, supplierId, invoiceDate, purchaseId, invoiceNo, grandTotal, `PURCHASE INV #${invoiceNo}`, '2026-27']
+      );
+    }
+
     await connection.commit();
     return { id: purchaseId, total_amount: totalAmount, grand_total: grandTotal };
   } catch (error) {
@@ -1509,8 +1598,29 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
       const newStock = currentStock - item.quantity;
       await connection.query(`INSERT INTO purchase_stock_ledger (company_id, item_id, quantity_out, current_stock, transaction_type, reference_no, created_by, financial_year) VALUES (?, ?, ?, ?, 'SALE_OUT', ?, ?, ?)`, [companyId, item.item_id, item.quantity, newStock, `SALE-${saleId}`, userId, financialYear]);
     }
-    const netAmount = totalAmount - discountAmount;
+    const netAmount = totalAmount - (parseFloat(discountAmount) || 0);
     await connection.query(`UPDATE sales SET total_amount = ?, net_amount = ? WHERE id = ?`, [totalAmount, netAmount, saleId]);
+
+    // --- NEW: Post to Account Ledger ---
+    // 1. Credit the Sales Account (Net Amount)
+    const [salesAcct] = await connection.query(`SELECT id FROM accounts WHERE company_id = ? AND account_type = 'sales' LIMIT 1`, [companyId]);
+    if (salesAcct && salesAcct.length > 0) {
+      await connection.query(
+        `INSERT INTO account_ledger (company_id, account_id, transaction_date, transaction_type, reference_type, reference_id, reference_no, debit, credit, description, financial_year) 
+         VALUES (?, ?, ?, 'SALE', 'SALE', ?, ?, 0, ?, ?, ?)`,
+        [companyId, salesAcct[0].id, invoiceDate, saleId, invoiceNo, netAmount, `SALE INV #${invoiceNo}`, financialYear]
+      );
+    }
+
+    // 2. Debit the Customer/Member (Net Amount)
+    if (customerId || memberId) {
+       await connection.query(
+        `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, transaction_type, reference_type, reference_id, reference_no, debit, credit, description, financial_year) 
+         VALUES (?, ?, ?, ?, 'SALE', 'SALE', ?, ?, ?, 0, ?, ?)`,
+        [companyId, customerId || null, memberId || null, invoiceDate, saleId, invoiceNo, netAmount, `SALE INV #${invoiceNo}`, financialYear]
+      );
+    }
+
     await connection.commit();
     return { id: saleId, invoice_no: invoiceNo, total_amount: totalAmount, net_amount: netAmount };
   } catch (error) {

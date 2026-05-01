@@ -240,44 +240,20 @@ router.get('/company/:company_id', async (req, res) => {
 router.get('/:id/balance', async (req, res) => {
   try {
     const rawId = req.params.id;
-    const companyId = req.headers['x-company-id'];
-
-    const isMember = String(rawId).toUpperCase().startsWith('M');
-    const dbId = isMember ? parseInt(rawId.slice(1), 10) : parseInt(rawId, 10);
-    const identityCol = isMember ? 'member_id' : 'account_id';
-
-    // 1. Get Opening Balance
-    let openingBalance = 0;
-    if (isMember) {
-      const member = await queryOne('SELECT id FROM member_master WHERE id = ?', [dbId]);
-      if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
-      // Members typically don't have an opening balance column in this schema, assume 0
-      openingBalance = 0;
-    } else {
-      const account = await queryOne('SELECT COALESCE(opening_balance, 0) as opening_balance FROM accounts WHERE id = ?', [dbId]);
-      if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
-      openingBalance = parseFloat(account.opening_balance || 0);
-    }
-
-    // 2. Get total ledger debits and credits
-    const ledgerStats = await queryOne(`
-       SELECT 
-         COALESCE(SUM(COALESCE(debit, debit_amount, 0)), 0) as total_debit,
-         COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) as total_credit
-       FROM account_ledger
-       WHERE ${identityCol} = ? AND (company_id = ? OR ? IS NULL)
-    `, [dbId, companyId, companyId]);
-
-    const totalDebit = parseFloat(ledgerStats.total_debit || 0);
-    const totalCredit = parseFloat(ledgerStats.total_credit || 0);
+    const { getAccountBalance } = await import('../db.js');
+    
+    // Use the centralized balance function which handles flipping logic for Cash Account
+    const stats = await getAccountBalance(rawId);
     
     res.json({
       success: true,
       data: {
-        openingBalance,
-        totalDebit,
-        totalCredit,
-        currentBalance: openingBalance + totalDebit - totalCredit
+        openingBalance: stats.opening_balance || 0,
+        totalDebit: stats.total_debit,
+        totalCredit: stats.total_credit,
+        currentBalance: stats.running_balance,
+        // Compatibility with frontend expectation
+        balance: stats.running_balance 
       }
     });
 

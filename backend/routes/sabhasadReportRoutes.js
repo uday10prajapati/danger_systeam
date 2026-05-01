@@ -32,7 +32,13 @@ router.get('/', async (req, res) => {
 
     let accountFilter = '';
     if (accountId && accountId !== 'all') {
-      accountFilter = ' AND account_id = ?';
+      if (parseInt(accountId) === 1) { // Dangar System
+        accountFilter = ' AND account_id IN (1, 11)';
+      } else if (parseInt(accountId) === 4) { // Bardan System
+        accountFilter = ' AND account_id IN (4, 12)'; // Including potential Bardan Penalty/Fund accounts
+      } else {
+        accountFilter = ' AND account_id = ?';
+      }
     }
 
     if (memberId && memberId !== 'all') {
@@ -106,22 +112,22 @@ router.get('/', async (req, res) => {
 
     // Each of the 3 subqueries needs accountId if provided, plus date params
     // op_period_balance
-    if (accountFilter) queryParams.push(accountId);
+    if (accountFilter && !accountFilter.includes('IN')) queryParams.push(accountId);
     queryParams.push(startDate);
 
     // period_debit
-    if (accountFilter) queryParams.push(accountId);
+    if (accountFilter && !accountFilter.includes('IN')) queryParams.push(accountId);
     queryParams.push(startDate, endDate);
 
     // period_credit
-    if (accountFilter) queryParams.push(accountId);
+    if (accountFilter && !accountFilter.includes('IN')) queryParams.push(accountId);
     queryParams.push(startDate, endDate);
 
     // bardan_balance & bardan_penalty_balance & bardan_self_jama
     queryParams.push(companyId, companyId, companyId, companyId, companyId);
 
     // last_activity_date
-    if (accountFilter) queryParams.push(accountId);
+    if (accountFilter && !accountFilter.includes('IN')) queryParams.push(accountId);
 
     // Main query WHERE conditions
     queryParams.push(...params);
@@ -199,7 +205,11 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const [targetAccount] = await query('SELECT account_name, account_code FROM accounts WHERE id = ? AND company_id = ?', [accountId, companyId]);
+    let targetAccount = null;
+    if (accountId && accountId !== 'all') {
+      const accRows = await query('SELECT account_name, account_code FROM accounts WHERE id = ? AND company_id = ?', [accountId, companyId]);
+      targetAccount = accRows[0];
+    }
     const isBrokerage = targetAccount?.account_name?.toLowerCase().includes('brokerage');
     const isLabour = targetAccount?.account_name?.toLowerCase().includes('labour');
 

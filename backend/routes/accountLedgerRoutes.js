@@ -160,7 +160,8 @@ router.get('/account/:accountId', async (req, res) => {
     return res.json({ success: true, data: ledger });
   } catch (error) {
     console.error('Get account ledger error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error(error.stack);
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 });
 

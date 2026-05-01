@@ -522,11 +522,11 @@ router.post('/', async (req, res) => {
           // A. DEBIT THE MEMBER (Reduction in Payable)
           await execute(`
              INSERT INTO account_ledger (
-                company_id, member_id, transaction_date, transaction_type, reference_type, 
+                company_id, member_id, account_id, transaction_date, transaction_type, reference_type, 
                 reference_id, reference_no, description, debit, financial_year
-             ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+             ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
           `, [
-             companyId, member_id, date, entryId, srNo, fundDesc, 
+             companyId, member_id, godownAccountId, date, entryId, srNo, fundDesc, 
              godownFundAmount, currentFinancialYear
           ]);
 
@@ -684,10 +684,10 @@ router.put('/:id', async (req, res) => {
         const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
         await execute(`
           INSERT INTO account_ledger (
-            company_id, member_id, transaction_date, transaction_type, reference_type, 
+            company_id, member_id, account_id, transaction_date, transaction_type, reference_type, 
             reference_id, reference_no, description, debit, financial_year
-          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
-        `, [companyId, member_id, date, id, srNo, fundDesc, godownFundAmount, currentFinancialYear]);
+          ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+        `, [companyId, member_id, godownAc.id, date, id, srNo, fundDesc, godownFundAmount, currentFinancialYear]);
 
         await execute(`
           INSERT INTO account_ledger (
@@ -764,17 +764,24 @@ router.post('/recalculate', async (req, res) => {
       else if (entry.quality_class === '3rd') activeRate = rates.summer_rate || rates.rate;
 
       const newAmount = parseFloat(entry.net_quintal || 0) * parseFloat(activeRate || 0);
+      const newDesc = `Dangar Purchase [Recalc] - ${entry.net_quintal} Qt @ ${activeRate}`;
 
-      // Update Dangar Entry
+      // 1. Update Dangar Entry Table
       await execute(
         'UPDATE dangar_entry SET rate = ?, amount = ? WHERE id = ?',
         [activeRate, newAmount, entry.id]
       );
 
-      // Update Ledger (Matching by reference_id and reference_type)
+      // 2. Update Ledger - Member Side (Credit)
       await execute(
-        "UPDATE account_ledger SET credit = ? WHERE reference_type = 'cash_book' AND reference_id = ? AND company_id = ?",
-        [newAmount, entry.id, company_id]
+        "UPDATE account_ledger SET credit = ?, description = ? WHERE reference_type = 'dangar_entry' AND reference_id = ? AND member_id IS NOT NULL AND company_id = ?",
+        [newAmount, newDesc, entry.id, company_id]
+      );
+
+      // 3. Update Ledger - Purchase Account Side (Debit)
+      await execute(
+        "UPDATE account_ledger SET debit = ?, description = ? WHERE reference_type = 'dangar_entry' AND reference_id = ? AND account_id IS NOT NULL AND company_id = ?",
+        [newAmount, newDesc, entry.id, company_id]
       );
     }
 
