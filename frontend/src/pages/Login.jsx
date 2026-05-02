@@ -237,8 +237,9 @@ function Login() {
                   <button
                      type="submit"
                      disabled={loading}
-                     className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase text-xs tracking-widest transition shadow-lg active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border border-blue-500 text-white font-bold uppercase text-xs tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 rounded-none relative overflow-hidden group"
                   >
+                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                      {loading ? (
                         <>
                            <Loader className="animate-spin" size={14} />
@@ -246,7 +247,7 @@ function Login() {
                         </>
                      ) : (
                         <>
-                           ENTER SYSTEM <ArrowRight size={14} />
+                           ENTER SYSTEM <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </>
                      )}
                   </button>

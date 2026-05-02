@@ -157,44 +157,37 @@ function UserMaster() {
       <Toast message={toast?.text ? toast : null} type={toast?.type} onClose={() => setToast(null)} />
       {loading && users.length > 0 && <Loading />}
 
-      <div className="max-w-[1400px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-
-        {/* Superior Header */}
+      <div className="max-w-[1400px] mx-auto bg-white border border-zinc-300 shadow-sm p-5 space-y-6">
+        
+        {/* Top title and actions header - Minimal Accounting Style */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-              <Users size={20} className="text-zinc-600" />
-              User Master Registry
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+              <ShieldCheck size={20} className="text-zinc-600" />
+              Access Control Registry
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">
-              Management / Access Control Nodes
-            </p>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">System Administration / User Management</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={loadUsers}
-              className="p-2 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-500 transition"
-              title="Refresh Registry"
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={handleCreateUser}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
-              <Plus size={14} /> NEW USER
+              <Plus size={16} />
+              NEW USER
             </button>
           </div>
         </div>
 
-        {/* Flat Stat Grid — Village Style */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {/* Dense Minimalist Accounting Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Organization</span>
-            <span className="text-sm font-bold font-mono text-zinc-800 mt-1 truncate">{company.company_name}</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Organization Profile</span>
+            <span className="text-base font-bold font-mono text-zinc-800 mt-1 truncate">{company.company_name}</span>
           </div>
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Users</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total System Users</span>
             <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{users.length}</span>
           </div>
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">

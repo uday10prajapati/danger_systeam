@@ -52,6 +52,24 @@ export default function SabhasadLedgerSummary() {
   const [accounts, setAccounts] = useState([]);
   const [members, setMembers] = useState([]);
 
+  // Refs for navigation
+  const startDateRef = React.useRef(null);
+  const endDateRef = React.useRef(null);
+  const accRef = React.useRef(null);
+  const memCodeRef = React.useRef(null);
+  const memNameRef = React.useRef(null);
+
+  const handleKeyDown = (e, nextRef, submitFn) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      } else if (submitFn) {
+        submitFn(e);
+      }
+    }
+  };
+
   useEffect(() => {
     loadCompany();
   }, []);
@@ -469,426 +487,195 @@ export default function SabhasadLedgerSummary() {
     <div className="min-h-screen bg-zinc-100 p-6 font-sans select-none text-zinc-900">
       <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
 
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-4 space-y-4">
 
-        {/* Superior Header */}
-        <div className="space-y-5">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
-                <Users size={20} className="text-zinc-600" />
-                Sabhasad Ledger Summary
-              </h1>
-              <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">
-                Reports / Member Ledger Analytics
-              </p>
+        {/* Top title and actions header - Minimal Accounting Style */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+              <Activity size={20} className="text-zinc-600" />
+              Sabhasad Ledger Summary
+            </h1>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Reports / Ledger Analysis</p>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+            <button onClick={clearFilters} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><X size={14} /> Clear</button>
+            <button onClick={fetchReportData} className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} /> SYNC REPORT</button>
+            <button onClick={() => window.print()} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><Printer size={14} /> Print</button>
+            <button onClick={handleExportPDF} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><FileText size={14} /> PDF</button>
+          </div>
+        </div>
+
+        {/* Filter Registry Console */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-zinc-50 border border-zinc-200 rounded-none">
+          <div className="md:col-span-3 grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Start Date</span>
+              <input ref={startDateRef} type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onKeyDown={e => handleKeyDown(e, endDateRef)} className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
             </div>
-
-            <div className="flex items-center gap-2">
-              <button onClick={clearFilters} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-600 rounded-none shadow-sm hover:bg-zinc-50 transition font-bold text-xs flex items-center gap-2 select-none uppercase">
-                <X size={14} /> Clear
-              </button>
-              <button onClick={fetchReportData} className="px-4 py-2 bg-blue-600 border border-blue-500 text-white rounded-none shadow-sm hover:bg-blue-700 transition font-bold text-xs flex items-center gap-2 select-none uppercase">
-                <RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} /> Sync Report
-              </button>
-              <button onClick={handlePrint} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-600 rounded-none shadow-sm hover:bg-zinc-50 transition font-bold text-xs flex items-center gap-2 select-none uppercase">
-                <Printer size={14} /> Print
-              </button>
-              <button onClick={handleExportPDF} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-600 rounded-none shadow-sm hover:bg-zinc-50 transition font-bold text-xs flex items-center gap-2 select-none uppercase">
-                <FileText size={14} /> PDF
-              </button>
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">End Date</span>
+              <input ref={endDateRef} type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onKeyDown={e => handleKeyDown(e, accRef)} className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
             </div>
           </div>
 
-          {/* Intelligence Control Console */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-5 bg-zinc-50 border border-zinc-200 rounded-none">
-            <div className="md:col-span-3 grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Start Date</span>
-                <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-xs text-zinc-700" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">End Date</span>
-                <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-xs text-zinc-700" />
-              </div>
+          <div className="md:col-span-3 relative space-y-1">
+            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Account Nomenclature</span>
+            <div className="relative group">
+              <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input ref={accRef} type="text" value={accCode} onChange={(e) => { setAccCode(e.target.value); setShowAccDrop(true); }} onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }} onKeyDown={e => handleKeyDown(e, memCodeRef)} placeholder="ID / NAME" className="w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
             </div>
+            {showAccDrop && (
+              <div className="absolute top-[55px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden">
+                <div className="max-h-64 overflow-y-auto">
+                  <div onClick={() => handleSelectAcc(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">ALL ACCOUNTS</div>
+                  {filteredAccs.map(a => (
+                    <div key={a.id} onClick={() => handleSelectAcc(a)} className="px-4 py-2 hover:bg-blue-50 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group">
+                      <span className="text-[10px] font-bold text-zinc-700 group-hover:text-blue-600 transition-colors uppercase">{a.account_name}</span>
+                      <span className="text-[9px] font-mono text-zinc-400">#{a.id}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
-            <div className="md:col-span-3 relative space-y-1">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Account Nomenclature</span>
-              <div className="relative group">
+          <div className="md:col-span-4 relative space-y-1">
+            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Member Identity</span>
+            <div className="flex gap-2">
+              <div className="w-24 relative">
                 <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="text"
-                  value={accCode}
-                  onChange={(e) => { setAccCode(e.target.value); setShowAccDrop(true); }}
-                  onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }}
-                  placeholder="ID / NAME"
-                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-xs text-zinc-700"
-                />
+                <input ref={memCodeRef} type="text" value={memCode} onChange={(e) => { setMemCode(e.target.value); setShowMemDrop(true); }} onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }} onKeyDown={e => handleKeyDown(e, memNameRef)} placeholder="ID" className="w-full pl-9 pr-2 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
               </div>
-
-              {showAccDrop && (
-                <div className="absolute top-[60px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden">
-                  <div className="max-h-64 overflow-y-auto">
-                    <div onClick={() => handleSelectAcc(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[10px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">ALL ACCOUNTS</div>
-                    {filteredAccs.map(a => (
-                      <div key={a.id} onClick={() => handleSelectAcc(a)} className="px-4 py-2 hover:bg-blue-50 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group">
-                        <span className="text-[11px] font-bold text-zinc-700 group-hover:text-blue-600 transition-colors uppercase">{a.account_name}</span>
-                        <span className="text-[10px] font-mono text-zinc-400">#{a.id}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="flex-1 relative">
+                <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input ref={memNameRef} type="text" value={memName} onChange={(e) => { setMemName(e.target.value); setShowMemDrop(true); }} onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }} onKeyDown={e => handleKeyDown(e, null, fetchReportData)} placeholder="NAME SEARCH" className="w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700 uppercase" />
+              </div>
             </div>
-
-            <div className="md:col-span-4 relative space-y-1">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Member Identity</span>
-              <div className="flex gap-2">
-                <div className="w-24 relative">
-                  <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={memCode}
-                    onChange={(e) => { setMemCode(e.target.value); setShowMemDrop(true); }}
-                    onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }}
-                    placeholder="ID"
-                    className="w-full pl-9 pr-2 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-xs text-zinc-700"
-                  />
-                </div>
-                <div className="flex-1 relative">
-                  <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={memName}
-                    onChange={(e) => { setMemName(e.target.value); setShowMemDrop(true); }}
-                    onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }}
-                    placeholder="NAME SEARCH"
-                    className="w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-xs text-zinc-700 uppercase"
-                  />
+            {showMemDrop && (
+              <div className="absolute top-[55px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden">
+                <div className="max-h-64 overflow-y-auto">
+                  <div onClick={() => handleSelectMem(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">ALL MEMBERS</div>
+                  {filteredMems.map(m => (
+                    <div key={m.id} onClick={() => handleSelectMem(m)} className="px-4 py-2 hover:bg-blue-50 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group">
+                      <span className="text-[10px] font-bold text-zinc-700 group-hover:text-blue-600 transition-colors uppercase">{m.member_name}</span>
+                      <span className="text-[9px] font-mono text-zinc-400">#{m.id}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
+          </div>
 
-              {showMemDrop && (
-                <div className="absolute top-[60px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden">
-                  <div className="max-h-64 overflow-y-auto">
-                    <div onClick={() => handleSelectMem(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[10px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">ALL MEMBERS</div>
-                    {filteredMems.map(m => (
-                      <div key={m.id} onClick={() => handleSelectMem(m)} className="px-4 py-2 hover:bg-blue-50 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group">
-                        <span className="text-[11px] font-bold text-zinc-700 group-hover:text-blue-600 transition-colors uppercase">{m.member_name}</span>
-                        <span className="text-[10px] font-mono text-zinc-400">#{m.id}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="md:col-span-2 flex items-center justify-end h-[42px] pt-4">
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input type="checkbox" checked={hideZeroBalance} onChange={(e) => setHideZeroBalance(e.target.checked)} className="w-4 h-4 text-blue-600 border-zinc-300 rounded-none focus:ring-0 focus:ring-offset-0" />
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Hide Zero Bal</span>
-              </label>
-            </div>
+          <div className="md:col-span-2 flex items-center justify-end pt-4 md:pt-0">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" checked={hideZeroBalance} onChange={(e) => setHideZeroBalance(e.target.checked)} className="w-3.5 h-3.5 text-blue-600 border-zinc-300 rounded-none focus:ring-0 focus:ring-offset-0" />
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Hide Zero Bal</span>
+            </label>
           </div>
         </div>
 
-        {/* Summary Metric Grid — Village style */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Opening Balance</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
-              ₹{Math.abs(parseFloat(totals.opening_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-sm">{parseFloat(totals.opening_balance || 0) >= 0 ? 'DR' : 'CR'}</span>
-            </span>
+        {/* High-Density Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 select-none">
+          <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase">Opening Balance</span>
+            <span className="text-lg font-bold font-mono text-zinc-800 mt-0.5">₹{Math.abs(parseFloat(totals.opening_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-[9px]">{parseFloat(totals.opening_balance || 0) >= 0 ? 'DR' : 'CR'}</span></span>
           </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Debit (+)</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
-              ₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase">Total Debit (+)</span>
+            <span className="text-lg font-bold font-mono text-zinc-800 mt-0.5">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Credit (-)</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
-              ₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase">Total Credit (-)</span>
+            <span className="text-lg font-bold font-mono text-zinc-800 mt-0.5">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Closing Balance</span>
-            <span className="text-2xl font-bold font-mono text-blue-600 mt-1">
-              ₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-sm">{parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</span>
-            </span>
+          <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase">Closing Balance</span>
+            <span className="text-xl font-bold font-mono text-blue-600 mt-0.5">₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-[10px]">{parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</span></span>
           </div>
         </div>
 
-        {/* Ledger Registry */}
+        {/* Ledger Registry Module */}
         <div className="bg-white border border-zinc-300 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
+          <div className="px-4 py-2 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                Sabhasad Registry Summary
-              </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                {data.length} RECORDS
-              </span>
+              <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-wider select-none">Ledger Registry List</span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[9px] px-2 py-0.5 select-none">{data.length} RECORDS</span>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={fetchReportData}
-                className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                title="Refresh Registry"
-              >
-                <RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} />
-              </button>
+              <button onClick={fetchReportData} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title="Refresh Registry"><RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} /></button>
             </div>
           </div>
-
           <div className="overflow-x-auto scroller-airy">
             <table className="w-full text-left border-collapse select-none">
               <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-xs">
-                  <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Sr No</th>
-                  <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Code</th>
-                  <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[200px]">Member Name</th>
+                <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-[9px]">
+                  <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Sr No</th>
+                  <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Code</th>
+                  <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[200px]">Member Name</th>
                   {(() => {
-                    if (isDangar) {
-                      return (
-                        <>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Purches Rate</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Item Name</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Class</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Season</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Total Qty (Qt)</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Total Rate</th>
-                        </>
-                      );
-                    }
-                    if (isInterest) {
-                      return (
-                        <>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Accrual Date</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Interest Rate (%)</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Days</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Reference</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Interest Amount</th>
-                        </>
-                      );
-                    }
-                    if (isBrokerage) {
-                      return (
-                        <>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Invoice No</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Description</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Brokerage Amount</th>
-                        </>
-                      );
-                    }
-                    if (isLabour) {
-                      return (
-                        <>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Invoice No</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Description</th>
-                          <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Labour Amount</th>
-                        </>
-                      );
-                    }
-                    return (
-                      <>
-                        <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Account Name</th>
-                        <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                        <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Debit (+)</th>
-                        <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Credit (-)</th>
-                        <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Closing</th>
-                        {!hideBardan && (
-                          <>
-                            <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-indigo-600">Bardan Bal</th>
-                            <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-emerald-600">Self Jama</th>
-                            <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Bardan Amt</th>
-                          </>
-                        )}
-                      </>
-                    );
+                    if (isDangar) return <><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Purches Rate</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Item Name</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Class</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Season</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Total Qty (Qt)</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Total Rate</th></>;
+                    if (isInterest) return <><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Accrual Date</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Interest Rate (%)</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Days</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Reference</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Interest Amount</th></>;
+                    if (isBrokerage || isLabour) return <><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Invoice No</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Description</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">{isBrokerage ? 'Brokerage' : 'Labour'} Amt</th></>;
+                    return <><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Account Name</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Debit (+)</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Credit (-)</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Closing</th>{!hideBardan && <><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-indigo-600">Bardan Bal</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-emerald-600">Self Jama</th><th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Bardan Amt</th></>}</>;
                   })()}
-                  <th className="px-6 py-4 uppercase tracking-widest font-bold text-center">Audit</th>
+                  <th className="px-4 py-3 uppercase tracking-widest font-bold text-center">Audit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {syncing ? (
-                  <tr>
-                    <td colSpan="12" className="py-32 text-center">
-                      <RefreshCcw size={48} className="animate-spin text-zinc-200 mx-auto mb-4" />
-                      <p className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest italic">Synchronizing Registry...</p>
-                    </td>
-                  </tr>
+                  <tr><td colSpan="12" className="py-32 text-center"><RefreshCcw size={48} className="animate-spin text-zinc-200 mx-auto mb-4" /><p className="text-zinc-400 font-bold uppercase text-[9px] tracking-widest italic">Synchronizing Registry...</p></td></tr>
                 ) : data.length === 0 ? (
-                  <tr>
-                    <td colSpan="12" className="py-32 text-center text-zinc-300 font-bold uppercase text-[10px] tracking-[0.4em] italic bg-zinc-50/30">
-                      <Database size={56} className="mx-auto mb-4 opacity-50" strokeWidth={1} />
-                      No Sabhasad Records Found
-                    </td>
-                  </tr>
+                  <tr><td colSpan="12" className="py-32 text-center text-zinc-300 font-bold uppercase text-[9px] tracking-[0.4em] italic bg-zinc-50/30"><Database size={56} className="mx-auto mb-4 opacity-50" strokeWidth={1} />No Sabhasad Records Found</td></tr>
                 ) : (
                   <>
                     {data.map((row, idx) => (
-                      <tr key={idx} className="group hover:bg-zinc-50 transition-all duration-300">
-                        <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100">{String(idx + 1).padStart(3, '0')}</td>
-                        <td className="px-6 py-4 text-blue-600 font-bold border-r border-zinc-100 italic">{row.member_code}</td>
-                        <td className="px-6 py-4 font-bold text-zinc-800 uppercase border-r border-zinc-100">{row.member_name}</td>
+                      <tr key={idx} className="group hover:bg-zinc-50 transition-all duration-200">
+                        <td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 font-mono">{String(idx + 1).padStart(3, '0')}</td>
+                        <td className="px-4 py-2 text-[10px] text-blue-600 font-bold border-r border-zinc-100 italic font-mono">{row.member_code}</td>
+                        <td className="px-4 py-2 text-[10px] font-bold text-zinc-800 uppercase border-r border-zinc-100">{row.member_name}</td>
                         {(() => {
-                          if (isDangar) {
-                            return (
-                              <>
-                                <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
-                                <td className="px-6 py-4 text-right font-bold text-blue-600 border-r border-zinc-100">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td>
-                                <td className="px-6 py-4 text-zinc-500 uppercase border-r border-zinc-100">{row.item_name || 'Item'}</td>
-                                <td className="px-6 py-4 text-zinc-400 uppercase border-r border-zinc-100">{row.quality_class || '1st'}</td>
-                                <td className="px-6 py-4 text-amber-600 uppercase border-r border-zinc-100">{row.book_type || 'Season'}</td>
-                                <td className="px-6 py-4 text-right font-bold text-indigo-600 border-r border-zinc-100">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[9px] opacity-50 font-sans ml-1">Qt</span></td>
-                                <td className="px-6 py-4 text-right font-bold text-emerald-600 border-r border-zinc-100">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
-                              </>
-                            );
-                          }
-                          if (isInterest) {
-                            return (
-                              <>
-                                <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100 italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
-                                <td className="px-6 py-4 text-right font-bold text-blue-600 border-r border-zinc-100">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td>
-                                <td className="px-6 py-4 text-zinc-500 border-r border-zinc-100">{row.days || 0} Days</td>
-                                <td className="px-6 py-4 text-zinc-400 uppercase border-r border-zinc-100">{row.description || 'Interest'}</td>
-                                <td className="px-6 py-4 text-right font-bold text-emerald-600 border-r border-zinc-100">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td>
-                              </>
-                            );
-                          }
-                          if (isBrokerage) {
-                            return (
-                              <>
-                                <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
-                                <td className="px-6 py-4 text-blue-500 italic border-r border-zinc-100">{row.invoice_no}</td>
-                                <td className="px-6 py-4 text-zinc-400 uppercase border-r border-zinc-100">{row.description}</td>
-                                <td className="px-6 py-4 text-right font-bold text-emerald-600 border-r border-zinc-100">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
-                              </>
-                            );
-                          }
-                          if (isLabour) {
-                            return (
-                              <>
-                                <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100 italic">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
-                                <td className="px-6 py-4 text-blue-500 italic border-r border-zinc-100">{row.invoice_no}</td>
-                                <td className="px-6 py-4 text-zinc-400 uppercase border-r border-zinc-100">{row.description}</td>
-                                <td className="px-6 py-4 text-right font-bold text-emerald-600 border-r border-zinc-100">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td>
-                              </>
-                            );
-                          }
-                          return (
-                            <>
-                              <td className="px-6 py-4 text-zinc-400 uppercase border-r border-zinc-100">{row.account_name}</td>
-                              <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100 italic">
-                                {row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}
-                              </td>
-                              <td className="px-6 py-4 text-right font-bold text-blue-600 border-r border-zinc-100">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</td>
-                              <td className="px-6 py-4 text-right font-bold text-red-600 border-r border-zinc-100">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td>
-                              <td className={`px-6 py-4 text-right font-bold border-r border-zinc-100 ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>
-                                ₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}
-                              </td>
-                              {!hideBardan && (
-                                <>
-                                  <td className={`px-6 py-4 text-right font-bold border-r border-zinc-100 ${parseFloat(row.bardan_balance || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                    {Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-bold text-emerald-600 border-r border-zinc-100">
-                                    {parseFloat(row.bardan_self_jama || 0).toLocaleString()}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-bold text-blue-600 border-r border-zinc-100">
-                                    ₹{Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}
-                                  </td>
-                                </>
-                              )}
-                            </>
-                          );
+                          if (isDangar) return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.item_name || 'Item'}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.quality_class || '1st'}</td><td className="px-4 py-2 text-[10px] text-amber-600 uppercase border-r border-zinc-100">{row.book_type || 'Season'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-indigo-600 border-r border-zinc-100 font-mono">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[9px] opacity-50 font-sans ml-1">Qt</span></td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
+                          if (isInterest) return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td><td className="px-4 py-2 text-[10px] text-zinc-500 border-r border-zinc-100 font-mono">{row.days || 0} Days</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.description || 'Interest'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td></>;
+                          if (isBrokerage || isLabour) return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-blue-500 italic border-r border-zinc-100 font-mono">{row.invoice_no}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.description}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
+                          return <><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.account_name}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>{!hideBardan && <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.bardan_balance || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>{Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">{parseFloat(row.bardan_self_jama || 0).toLocaleString()}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td></>}</>;
                         })()}
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => openAudit(row)}
-                            className="p-2 bg-zinc-100 text-blue-600 border border-zinc-200 rounded hover:bg-blue-600 hover:text-white transition shadow-sm"
-                            title="Audit Ledger"
-                          >
-                            <Activity size={14} />
-                          </button>
-                        </td>
+                        <td className="px-4 py-2 text-center"><button onClick={() => openAudit(row)} className="p-1.5 bg-zinc-100 text-blue-600 border border-zinc-200 rounded-none hover:bg-blue-600 hover:text-white transition shadow-sm" title="Audit Ledger"><Activity size={12} /></button></td>
                       </tr>
                     ))}
-                    <tr className="bg-blue-600 font-bold text-white uppercase text-[11px] tracking-widest ">
-                      <td colSpan="4" className="px-6 py-4 text-right">CONSOLIDATED SUMMARY</td>
+                    <tr className="bg-blue-600 font-bold text-white uppercase text-[9px] tracking-widest ">
+                      <td colSpan="4" className="px-4 py-2 text-right">CONSOLIDATED SUMMARY</td>
                       {(() => {
-                        if (isDangar) {
-                          return (
-                            <>
-                              <td className="px-6 py-4 text-right">SUMMARY</td>
-                              <td colSpan="3" className="px-6 py-4 text-right text-lg tracking-tighter">
-                                {data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[10px] opacity-70 ml-1">Qt</span>
-                              </td>
-                              <td colSpan="1" className="px-6 py-4 text-right text-lg tracking-tighter">
-                                ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
-                              </td>
-                            </>
-                          );
-                        }
-                        if (isInterest) {
-                          return (
-                            <>
-                              <td className="px-6 py-4 text-right">TOTAL ACCRUAL</td>
-                              <td colSpan="4" className="px-6 py-4 text-right text-lg tracking-tighter">
-                                ₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}
-                              </td>
-                            </>
-                          );
-                        }
-                        if (isBrokerage || isLabour) {
-                          return (
-                            <>
-                              <td className="px-6 py-4 text-right">TOTAL BROKERAGE</td>
-                              <td colSpan="3" className="px-6 py-4 text-right text-lg tracking-tighter">
-                                ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
-                              </td>
-                            </>
-                          );
-                        }
-                        if (isLabour) {
-                          return (
-                            <>
-                              <td className="px-6 py-4 text-right">TOTAL LABOUR</td>
-                              <td colSpan="3" className="px-6 py-4 text-right text-lg tracking-tighter">
-                                ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}
-                              </td>
-                            </>
-                          );
-                        }
-                        return (
-                          <>
-                            <td className="px-6 py-4 border-r border-blue-500/30"></td>
-                            <td className="px-6 py-4 text-right text-white italic">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN')}</td>
-                            <td className="px-6 py-4 text-right text-white italic">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN')}</td>
-                            <td className="px-6 py-4 text-right text-white italic">₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>
-                            {!hideBardan && (
-                              <>
-                                <td className="px-6 py-4 text-right text-white">
-                                  {Math.abs(data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0)).toLocaleString()} {data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}
-                                </td>
-                                <td className="px-6 py-4 text-right text-white">
-                                  {data.reduce((s, r) => s + parseFloat(r.bardan_self_jama || 0), 0).toLocaleString()}
-                                </td>
-                                <td className="px-6 py-4 text-right text-white">
-                                  ₹{Math.abs(data.reduce((s, r) => s + (parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0) * bardanPrice), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {data.reduce((s, r) => s + parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}
-                                </td>
-                              </>
-                            )}
-                          </>
-                        );
+                        if (isDangar) return <>
+                          <td className="px-4 py-2 text-right">SUMMARY</td>
+                          <td colSpan="3" className="px-4 py-2"></td>
+                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">{data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[8px] opacity-70 ml-1">Qt</span></td>
+                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
+                        </>;
+                        if (isInterest) return <>
+                          <td className="px-4 py-2 text-right">TOTAL ACCRUAL</td>
+                          <td colSpan="3" className="px-4 py-2"></td>
+                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}</td>
+                        </>;
+                        if (isBrokerage || isLabour) return <>
+                          <td className="px-4 py-2 text-right">TOTAL {isBrokerage ? 'BROKERAGE' : 'LABOUR'}</td>
+                          <td colSpan="2" className="px-4 py-2"></td>
+                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
+                        </>;
+                        return <>
+                          <td className="px-4 py-2 border-r border-blue-500/30 font-mono"></td>
+                          <td className="px-4 py-2 text-right text-white italic font-mono text-[11px]">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-2 text-right text-white italic font-mono text-[11px]">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-2 text-right text-white italic font-mono text-[11px]">₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>
+                          {!hideBardan && <>
+                            <td className="px-4 py-2 text-right text-white font-mono text-[11px]">{Math.abs(data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0)).toLocaleString()} {data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}</td>
+                            <td className="px-4 py-2 text-right text-white font-mono text-[11px]">{data.reduce((s, r) => s + parseFloat(r.bardan_self_jama || 0), 0).toLocaleString()}</td>
+                            <td className="px-4 py-2 text-right text-white font-mono text-[11px]">₹{Math.abs(data.reduce((s, r) => s + (parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0) * bardanPrice), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {data.reduce((s, r) => s + parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}</td>
+                          </>}
+                        </>;
                       })()}
-                      <td className="px-6 py-6"></td>
+                      <td className="px-4 py-2"></td>
                     </tr>
                   </>
                 )}
@@ -898,66 +685,39 @@ export default function SabhasadLedgerSummary() {
         </div>
       </div>
 
-      {/* Audit Modal */}
       {showAuditModal && auditMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowAuditModal(false)} />
-
           <div className="relative w-full max-w-6xl bg-white border border-zinc-400 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] rounded-none">
-            {/* Header — AccountForm style */}
             <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-white border border-zinc-200 text-blue-600">
-                  <Activity size={18} />
-                </div>
+                <div className="p-2 bg-white border border-zinc-200 text-blue-600"><Activity size={18} /></div>
                 <div>
-                  <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
-                    {auditMember.member_name}
-                    <span className="text-blue-600 ml-2 font-mono">#{auditMember.member_code}</span>
-                  </h2>
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Audit Protocol Activation</p>
+                  <h2 className="text-[12px] font-bold text-zinc-800 uppercase tracking-tight">{auditMember.member_name}<span className="text-blue-600 ml-2 font-mono">#{auditMember.member_code}</span></h2>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Audit Protocol Activation</p>
                 </div>
               </div>
-              <button onClick={() => setShowAuditModal(false)} className="p-1 text-zinc-400 hover:text-red-600 transition">
-                <X size={18} />
-              </button>
+              <button onClick={() => setShowAuditModal(false)} className="p-1 text-zinc-400 hover:text-red-600 transition"><X size={18} /></button>
             </div>
-
             <div className="flex-1 overflow-y-auto p-6 scroller-airy bg-white">
               {auditLoading ? (
-                <div className="py-32 text-center">
-                  <RefreshCcw className="animate-spin mx-auto text-blue-500 mb-4" size={40} />
-                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest italic">Decrypting Ledger Stream...</p>
-                </div>
+                <div className="py-32 text-center"><RefreshCcw className="animate-spin mx-auto text-blue-500 mb-4" size={40} /><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">Decrypting Ledger Stream...</p></div>
               ) : (
                 <div className="border border-zinc-300 overflow-hidden">
-                  <table className="w-full text-left font-mono text-[11px] border-collapse">
+                  <table className="w-full text-left font-mono text-[10px] border-collapse">
                     <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                      <tr>
-                        <th className="px-4 py-3 border-r border-zinc-200">Date</th>
-                        <th className="px-4 py-3 border-r border-zinc-200">Description</th>
-                        <th className="px-4 py-3 border-r border-zinc-200">Reference</th>
-                        <th className="px-4 py-3 text-right border-r border-zinc-200">Debit (+)</th>
-                        <th className="px-4 py-3 text-right border-r border-zinc-200">Credit (-)</th>
-                        <th className="px-4 py-3 text-right border-r border-zinc-200">Self Jama</th>
-                        <th className="px-4 py-3 text-right">Running</th>
-                      </tr>
+                      <tr><th className="px-4 py-3 border-r border-zinc-200 uppercase">Date</th><th className="px-4 py-3 border-r border-zinc-200 uppercase">Description</th><th className="px-4 py-3 border-r border-zinc-200 uppercase">Reference</th><th className="px-4 py-3 text-right border-r border-zinc-200 uppercase">Debit (+)</th><th className="px-4 py-3 text-right border-r border-zinc-200 uppercase">Credit (-)</th><th className="px-4 py-3 text-right border-r border-zinc-200 uppercase">Self Jama</th><th className="px-4 py-3 text-right uppercase">Running</th></tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 font-bold uppercase">
                       {auditTransactions.map((tx, i) => (
                         <tr key={i} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-3 text-zinc-400 border-r border-zinc-200 italic">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
-                          <td className="px-4 py-3 text-zinc-800 border-r border-zinc-200">{tx.description}</td>
-                          <td className="px-4 py-3 text-zinc-400 border-r border-zinc-200">{tx.reference_no}</td>
-                          <td className="px-4 py-3 text-right text-blue-600 border-r border-zinc-200">₹{(parseFloat(tx.debit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className="px-4 py-3 text-right text-red-600 border-r border-zinc-200">{parseFloat(tx.company_credit || 0) > 0 ? `₹${parseFloat(tx.company_credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
-                          <td className="px-4 py-3 text-right text-emerald-600 border-r border-zinc-200">{parseFloat(tx.self_credit || 0) > 0 ? parseFloat(tx.self_credit).toLocaleString() : '—'}</td>
-                          <td className={`px-4 py-3 text-right font-black ${parseFloat(tx.running_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>
-                            ₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            <span className="text-[9px] ml-1 opacity-50 not-italic">
-                              {parseFloat(tx.running_balance || 0) >= 0 ? 'DR' : 'CR'}
-                            </span>
-                          </td>
+                          <td className="px-4 py-3 text-zinc-400 border-r border-zinc-100 italic">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
+                          <td className="px-4 py-3 text-zinc-800 border-r border-zinc-100">{tx.description}</td>
+                          <td className="px-4 py-3 text-zinc-400 border-r border-zinc-100">{tx.reference_no}</td>
+                          <td className="px-4 py-3 text-right text-blue-600 border-r border-zinc-100 font-mono">₹{(parseFloat(tx.debit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-3 text-right text-red-600 border-r border-zinc-100 font-mono">{parseFloat(tx.company_credit || 0) > 0 ? `₹${parseFloat(tx.company_credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
+                          <td className="px-4 py-3 text-right text-emerald-600 border-r border-zinc-100 font-mono">{parseFloat(tx.self_credit || 0) > 0 ? parseFloat(tx.self_credit).toLocaleString() : '—'}</td>
+                          <td className={`px-4 py-3 text-right font-black font-mono ${parseFloat(tx.running_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}<span className="text-[8px] ml-1 opacity-50 not-italic font-sans">{parseFloat(tx.running_balance || 0) >= 0 ? 'DR' : 'CR'}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -965,15 +725,7 @@ export default function SabhasadLedgerSummary() {
                 </div>
               )}
             </div>
-
-            <div className="px-5 py-3.5 bg-zinc-100 border-t border-zinc-300 flex justify-end">
-              <button
-                onClick={() => setShowAuditModal(false)}
-                className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
-              >
-                Close Audit
-              </button>
-            </div>
+            <div className="px-5 py-3.5 bg-zinc-100 border-t border-zinc-300 flex justify-end"><button onClick={() => setShowAuditModal(false)} className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px]">Close Audit</button></div>
           </div>
         </div>
       )}

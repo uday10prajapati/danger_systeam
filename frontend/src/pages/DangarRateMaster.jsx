@@ -349,40 +349,23 @@ export default function DangarRateMaster() {
                </div>
             </div>
 
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <div className="bg-white p-5 border border-zinc-300 relative overflow-hidden flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-100 text-zinc-600 border border-zinc-200 flex items-center justify-center shrink-0">
-                     <Database size={24} />
-                  </div>
-                  <div>
-                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Commodities</p>
-                     <p className="text-xl font-black text-zinc-800 tracking-tight leading-none mt-1">{filteredItems.length}</p>
-                  </div>
+            {/* Dense Minimalist Accounting Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 select-none">
+               <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Commodities</span>
+                  <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{filteredItems.length}</span>
                </div>
-
-               <div className="bg-white p-5 border border-zinc-300 relative overflow-hidden flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-100 text-zinc-600 border border-zinc-200 flex items-center justify-center shrink-0">
-                     <TrendingUp size={24} />
-                  </div>
-                  <div>
-                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Avg 1st Class Rate</p>
-                     <p className="text-xl font-black text-zinc-800 tracking-tight leading-none mt-1">
-                        ₹{rates.length ? (rates.reduce((s, r) => s + (parseFloat(r.rate) || 0), 0) / rates.length).toFixed(2) : '0.00'}
-                     </p>
-                  </div>
+               <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase">Avg 1st Class Rate</span>
+                  <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
+                     ₹{rates.length ? (rates.reduce((s, r) => s + (parseFloat(r.rate) || 0), 0) / rates.length).toFixed(2) : '0.00'}
+                  </span>
                </div>
-
-               <div className="bg-white p-5 border border-zinc-300 relative overflow-hidden flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-100 text-zinc-600 border border-zinc-200 flex items-center justify-center shrink-0">
-                     <Calendar size={24} />
-                  </div>
-                  <div>
-                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Active Season</p>
-                     <p className="text-xl font-black text-zinc-800 tracking-tight leading-none mt-1 uppercase">
-                        {currentSeason ? `${currentSeason.name} (${currentSeason.season})` : 'Winter 26-27'}
-                     </p>
-                  </div>
+               <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase">Active Season</span>
+                  <span className="text-2xl font-bold font-mono text-zinc-800 mt-1 uppercase truncate">
+                     {currentSeason ? `${currentSeason.name} (${currentSeason.season})` : 'Winter 26-27'}
+                  </span>
                </div>
             </div>
 
