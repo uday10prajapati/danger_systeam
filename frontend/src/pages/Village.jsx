@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
 import {
   Plus, AlertCircle, Edit2, Trash2, CheckCircle,
-  MapPin, Search, Shield, RefreshCw, Save, X,
-  Navigation, Globe, Building2, Loader, Filter
+  MapPin, Search, RefreshCw, Save, X, Loader
 } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
-import TableHeading from '../components/TableHeading';
+import Toast from '../components/Toast';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import Loading from '../components/Loading';
 
 export default function VillageMaster() {
   const { t } = useTranslation();
@@ -15,8 +15,13 @@ export default function VillageMaster() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState(null);
+  const [modalMessage, setModalMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Delete Modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [villageToDelete, setVillageToDelete] = useState(null);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -26,6 +31,11 @@ export default function VillageMaster() {
     districtName: '',
     noOfVillage: 0
   });
+
+  const villageCodeRef = useRef(null);
+  const villageNameRef = useRef(null);
+  const talukaNameRef = useRef(null);
+  const districtNameRef = useRef(null);
 
   useEffect(() => { loadVillages(); }, []);
 
@@ -59,7 +69,11 @@ export default function VillageMaster() {
   const handleEdit = (village) => {
     setFormData(village);
     setIsEditing(true);
+    setModalMessage(null);
     setShowModal(true);
+    setTimeout(() => {
+      if (villageCodeRef.current) villageCodeRef.current.focus();
+    }, 100);
   };
 
   const handleCreateNew = async () => {
@@ -73,21 +87,28 @@ export default function VillageMaster() {
       noOfVillage: villages.length + 1 
     });
     setIsEditing(false);
+    setModalMessage(null);
     setShowModal(true);
+    setTimeout(() => {
+      if (villageNameRef.current) villageNameRef.current.focus();
+    }, 100);
   };
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+
+    if (!formData.villageName || !formData.villageName.trim()) {
+      setModalMessage({ type: 'error', text: 'Village name is required.' });
+      return;
+    }
     
-    // Validation: Check for duplicate name
     const isDuplicate = villages.some(v => 
       v.villageName.toLowerCase().trim() === formData.villageName.toLowerCase().trim() && 
       v.id !== formData.id
     );
 
     if (isDuplicate) {
-      setMessage({ type: 'error', text: 'Village name already exists. Please use a unique name.' });
-      setTimeout(() => setMessage(null), 3000);
+      setModalMessage({ type: 'error', text: 'Village name already exists. Please use a unique name.' });
       return;
     }
 
@@ -102,23 +123,42 @@ export default function VillageMaster() {
       }
       setShowModal(false);
       loadVillages();
-      setTimeout(() => setMessage(null), 3000);
     } catch {
-      setMessage({ type: 'error', text: 'Save failed. Please try again.' });
+      setModalMessage({ type: 'error', text: 'Save failed. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this village?')) return;
+  const confirmDelete = (village) => {
+    setVillageToDelete(village);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!villageToDelete) return;
     try {
-      await api.delete(`/village/${id}`);
-      setMessage({ type: 'success', text: 'Village deleted.' });
+      setLoading(true);
+      await api.delete(`/village/${villageToDelete.id}`);
+      setMessage({ type: 'success', text: 'Village deleted successfully.' });
+      setDeleteModalOpen(false);
+      setVillageToDelete(null);
       loadVillages();
-      setTimeout(() => setMessage(null), 3000);
     } catch {
       setMessage({ type: 'error', text: 'Delete failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e, nextFieldRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextFieldRef && nextFieldRef.current) {
+        nextFieldRef.current.focus();
+      } else {
+        handleSave(e);
+      }
     }
   };
 
@@ -128,151 +168,153 @@ export default function VillageMaster() {
     (v.talukaName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+  if (loading) {
+    return <Loading />;
+  }
 
-        {/* Page Header */}
-        <PageHeader
-          eyebrow="Management / Village Master"
-          eyebrowIcon={<Shield size={12} />}
-          title="Village Registry"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search villages..."
-                className="bg-transparent border-none outline-none text-sm text-slate-600 w-56 placeholder:text-slate-300 font-medium"
-              />
-            </div>
+  return (
+    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 animate-in fade-in duration-300">
+      
+      {/* Toast message component */}
+      <Toast message={message} onClose={() => setMessage(null)} />
+
+      <div className="max-w-[1400px] mx-auto bg-white border border-zinc-300 shadow-sm p-5 space-y-6">
+        
+        {/* Top title and actions header - Minimal Accounting Style */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+              <MapPin size={20} className="text-zinc-600" />
+              Village Registry Master
+            </h1>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Master Data / Villages</p>
+          </div>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={handleCreateNew}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-xs font-black text-white uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
-              <Plus size={18} />
-              Add Village
+              <Plus size={16} />
+              NEW VILLAGE
             </button>
-          </div>
-        </PageHeader>
-
-        {/* Messages */}
-        {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error'
-            ? 'bg-rose-50 border border-rose-100 text-rose-700'
-            : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-            }`}>
-            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-            <p className="text-sm font-bold">{message.text}</p>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Villages</p>
-              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><MapPin size={16} /></div>
-            </div>
-            <p className="text-2xl font-bold text-slate-800">{villages.length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Talukas</p>
-              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><Navigation size={16} /></div>
-            </div>
-            <p className="text-2xl font-bold text-emerald-600">{[...new Set(villages.map(v => v.talukaName).filter(Boolean))].length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Districts</p>
-              <div className="p-2 bg-violet-50 rounded-lg text-violet-600"><Globe size={16} /></div>
-            </div>
-            <p className="text-2xl font-bold text-violet-600">{[...new Set(villages.map(v => v.districtName).filter(Boolean))].length}</p>
           </div>
         </div>
 
-        {/* Table Card */}
-        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <TableHeading
-            icon={<MapPin size={16} />}
-            iconColor="blue"
-            title="Village List"
-            count={filteredVillages.length}
-          >
-            <button
-              onClick={loadVillages}
-              className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-            >
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            </button>
-          </TableHeading>
+        {/* Dense Minimalist Accounting Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 select-none">
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Registered Villages</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{villages.length}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Talukas</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
+              {[...new Set(villages.map(v => v.talukaName).filter(Boolean))].length}
+            </span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Districts</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
+              {[...new Set(villages.map(v => v.districtName).filter(Boolean))].length}
+            </span>
+          </div>
+        </div>
 
-          <div className="flex-1 overflow-x-auto">
+        {/* Minimal Classic Registry Table */}
+        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
+          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider select-none">
+                Village Registry List
+              </span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 select-none">
+                {filteredVillages.length} RECORDS
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
+                <Search size={16} className="text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or code..."
+                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                />
+              </div>
+              <button
+                onClick={loadVillages}
+                className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
+                title="Refresh Registry"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-x-auto bg-white">
             {loading && villages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
-                <Loader className="animate-spin" size={32} />
-                <p className="text-sm font-bold italic">Loading villages...</p>
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
+                <Loader className="animate-spin text-zinc-500" size={24} />
+                <p className="text-xs font-mono">LOADING REGISTRY DATA...</p>
               </div>
             ) : filteredVillages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-300">
-                <MapPin size={48} strokeWidth={1} />
-                <p className="text-sm font-bold italic">No villages found</p>
-                <button onClick={handleCreateNew} className="text-blue-600 text-xs font-bold uppercase hover:underline">Register First Village</button>
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500">
+                <MapPin size={32} className="text-zinc-400" />
+                <p className="text-xs font-mono">NO VILLAGE RECORDS FOUND</p>
+                <button 
+                  onClick={handleCreateNew} 
+                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold select-none mt-2 transition"
+                >
+                  ADD FIRST VILLAGE
+                </button>
               </div>
             ) : (
-              <table className="w-full text-left">
+              <table className="w-full text-left border-collapse select-none">
                 <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-16 text-center">#</th>
-                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Village</th>
-                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Code</th>
-                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Taluka</th>
-                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">District</th>
-                    <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-xs">
+                    <th className="px-4 py-2 border-r border-zinc-200 w-12 text-center">#</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Village Name</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 w-28 text-center">Village Code</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Taluka Name</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">District Name</th>
+                    <th className="px-4 py-2 text-center w-28">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-zinc-200">
                   {filteredVillages.map((v, idx) => (
-                    <tr key={v.id} className="group hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-5 text-center">
-                        <span className="text-xs font-black text-slate-300">{idx + 1}</span>
+                    <tr key={v.id} className="hover:bg-zinc-50/60 font-mono text-xs transition-colors">
+                      <td className="px-4 py-2 border-r border-zinc-200 text-center text-zinc-400">
+                        {idx + 1}
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 bg-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <Building2 size={18} />
-                          </div>
-                          <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{v.villageName}</p>
-                        </div>
+                      <td className="px-4 py-2 border-r border-zinc-200 font-sans font-bold tracking-tight text-zinc-800 uppercase">
+                        {v.villageName}
                       </td>
-                      <td className="px-6 py-5">
-                        <span className="bg-white px-3 py-1 rounded-lg text-xs font-bold text-slate-500 border border-slate-100">
-                          {v.villageCode.toString().padStart(4, '0')}
-                        </span>
+                      <td className="px-4 py-2 border-r border-zinc-200 font-mono font-bold text-center text-zinc-700 tracking-wider">
+                        {v.villageCode.toString().padStart(4, '0')}
                       </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-semibold text-slate-500">{v.talukaName || '—'}</p>
+                      <td className="px-4 py-2 border-r border-zinc-200 text-zinc-600">
+                        {v.talukaName ? v.talukaName.toUpperCase() : '—'}
                       </td>
-                      <td className="px-6 py-5">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{v.districtName || '—'}</p>
+                      <td className="px-4 py-2 border-r border-zinc-200 text-zinc-600">
+                        {v.districtName ? v.districtName.toUpperCase() : '—'}
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                      <td className="px-4 py-2">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleEdit(v)}
-                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg shadow-sm transition-all"
+                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
+                            title="Edit"
                           >
-                            <Edit2 size={16} />
+                            <Edit2 size={13} />
                           </button>
                           <button
-                            onClick={() => handleDelete(v.id)}
-                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 rounded-lg shadow-sm transition-all"
+                            onClick={() => confirmDelete(v)}
+                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
+                            title="Delete"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -285,106 +327,137 @@ export default function VillageMaster() {
         </div>
       </div>
 
-      {/* Village Form Modal */}
+      {/* Classic Accounting Form Modal - No Roundings, Solid Gray/White Palette */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" 
+            className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" 
             onClick={() => !loading && setShowModal(false)}
           ></div>
           
-          <div className="bg-white rounded-lg w-full max-w-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-               <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-100">
-                    {isEditing ? <Edit2 size={20} /> : <Plus size={20} />}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Village' : 'Register Village'}</h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Village Master</p>
-                  </div>
-               </div>
-               <button onClick={() => setShowModal(false)} className="p-2 text-slate-300 hover:text-rose-500 transition-all">
-                 <X size={20} />
-               </button>
+          <div className="bg-white border border-zinc-400 rounded-none w-full max-w-md shadow-lg relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="px-5 py-3.5 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
+              <div className="flex items-center gap-2">
+                {isEditing ? <Edit2 size={16} className="text-zinc-600" /> : <Plus size={16} className="text-zinc-600" />}
+                <h2 className="text-sm font-bold tracking-tight text-zinc-800 uppercase font-mono">
+                  {isEditing ? 'EDIT VILLAGE RECORD' : 'REGISTER NEW VILLAGE'}
+                </h2>
+              </div>
+              <button 
+                onClick={() => setShowModal(false)} 
+                className="p-1 text-zinc-400 hover:text-red-600 transition"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-8 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="p-5 space-y-4 font-mono text-xs">
+              {/* Modal local validation message */}
+              {modalMessage && (
+                <div className={`p-2 border text-xs font-mono select-none mb-1 ${
+                  modalMessage.type === 'error'
+                    ? 'bg-red-50 border-red-300 text-red-800'
+                    : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {modalMessage.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle size={14} />}
+                    <p className="uppercase leading-none">{modalMessage.text}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Village Code</label>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">Village Code</label>
                   <input
+                    ref={villageCodeRef}
                     type="text"
                     value={formData.villageCode}
                     onChange={(e) => setFormData({ ...formData, villageCode: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
+                    onKeyDown={(e) => handleKeyDown(e, villageNameRef)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Village Name</label>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">Village Name</label>
                   <input
+                    ref={villageNameRef}
                     type="text"
                     value={formData.villageName}
                     onChange={(e) => setFormData({ ...formData, villageName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
-                    placeholder="Enter village name"
+                    onKeyDown={(e) => handleKeyDown(e, talukaNameRef)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-sans font-bold text-zinc-800"
+                    placeholder="ENTER VILLAGE NAME"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Taluka</label>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">Taluka</label>
                   <input
+                    ref={talukaNameRef}
                     type="text"
-                    value={formData.talukaName}
+                    value={formData.talukaName || ''}
                     onChange={(e) => setFormData({ ...formData, talukaName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-semibold text-slate-700 text-sm"
-                    placeholder="Taluka name"
+                    onKeyDown={(e) => handleKeyDown(e, districtNameRef)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700"
+                    placeholder="TALUKA"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">District</label>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">District</label>
                   <input
+                    ref={districtNameRef}
                     type="text"
-                    value={formData.districtName}
+                    value={formData.districtName || ''}
                     onChange={(e) => setFormData({ ...formData, districtName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none transition-all font-semibold text-slate-700 text-sm"
-                    placeholder="District name"
+                    onKeyDown={(e) => handleKeyDown(e, null)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700"
+                    placeholder="DISTRICT"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 flex gap-3">
+              {/* Action Buttons */}
+              <div className="pt-3 flex gap-2 justify-end border-t border-zinc-200 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-3.5 bg-white border border-slate-200 text-slate-500 rounded-lg font-bold text-sm hover:bg-slate-50 transition-all"
+                  className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold tracking-tight select-none rounded-none transition"
                 >
-                  Cancel
+                  CANCEL
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-[2] py-3.5 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold tracking-tight select-none rounded-none transition shadow-sm flex items-center justify-center gap-1 disabled:opacity-60"
                 >
                   {loading ? (
-                    <RefreshCw className="animate-spin" size={18} />
+                    <RefreshCw className="animate-spin" size={14} />
                   ) : isEditing ? (
-                    <Edit2 size={18} />
+                    <Save size={14} />
                   ) : (
-                    <Save size={18} />
+                    <Save size={14} />
                   )}
-                  {isEditing ? 'Save Changes' : 'Register Village'}
+                  {isEditing ? 'UPDATE' : 'SAVE'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="DELETE VILLAGE RECORD"
+        message={`ARE YOU SURE YOU WANT TO DELETE THE VILLAGE RECORD FOR "${villageToDelete?.villageName?.toUpperCase() || ''}"? THIS ACTION CANNOT BE UNDONE.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
     </div>
   );
 }
-

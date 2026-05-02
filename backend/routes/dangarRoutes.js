@@ -327,14 +327,15 @@ router.get('/payment-report', async (req, res) => {
 router.get('/summary-report', async (req, res) => {
   try {
     const { companyId, startDate, endDate } = req.query;
-    
-    // 1. Grouped Dangar Purchases
+
+    // 1. Grouped Dangar Purchases (by variety & quality class)
     const dangarSummary = await query(`
       SELECT 
         im.item_name,
         im.item_name_gu,
         de.quality_class,
         de.financial_year,
+        COUNT(de.id) AS entry_count,
         SUM(de.total_kg) as total_kg,
         SUM(de.net_quintal) as total_quintal,
         AVG(de.rate) as avg_rate,
@@ -345,14 +346,18 @@ router.get('/summary-report', async (req, res) => {
       WHERE de.company_id = ?
         AND de.entry_date BETWEEN ? AND ?
       GROUP BY im.item_name, im.item_name_gu, de.quality_class, de.financial_year
+      ORDER BY SUM(de.amount) DESC
     `, [companyId, startDate, endDate]);
 
     // 2. Global Fixed Account Balances (Kapat Vigat)
     const fixedAccounts = await query(`
        SELECT 
+         a.id AS account_id,
          a.account_name,
          a.account_code,
-         SUM(al.debit - al.credit) as total_balance
+         SUM(al.debit - al.credit) as total_balance,
+         SUM(al.debit) as total_debit,
+         SUM(al.credit) as total_credit
        FROM account_ledger al
        JOIN accounts a ON al.account_id = a.id
        WHERE al.company_id = ?
@@ -361,14 +366,108 @@ router.get('/summary-report', async (req, res) => {
               OR a.account_name LIKE '%Kapat%' 
               OR a.account_name LIKE '%Deduction%')
        GROUP BY a.id, a.account_name, a.account_code
+       ORDER BY ABS(SUM(al.debit - al.credit)) DESC
     `, [companyId, endDate]);
 
-    res.json({ success: true, data: { dangarSummary, fixedAccounts } });
+    // 3. Payment per account — how much has been paid out via each account
+    const paymentPerAccount = await query(`
+      SELECT
+        a.id AS account_id,
+        a.account_name,
+        a.account_code,
+        a.account_type,
+        COUNT(al.id) AS txn_count,
+        SUM(al.credit) AS total_credited,
+        SUM(al.debit)  AS total_debited,
+        SUM(al.credit - al.debit) AS net_paid
+      FROM account_ledger al
+      JOIN accounts a ON al.account_id = a.id
+      WHERE al.company_id = ?
+        AND al.transaction_date BETWEEN ? AND ?
+        AND al.account_id IS NOT NULL
+      GROUP BY a.id, a.account_name, a.account_code, a.account_type
+      ORDER BY SUM(al.credit) DESC
+    `, [companyId, startDate, endDate]);
+
+    // 4. Grand totals
+    const totalsRow = await query(`
+      SELECT
+        COALESCE(SUM(de.total_kg), 0)         AS grand_total_kg,
+        COALESCE(SUM(de.net_quintal), 0)      AS grand_total_quintal,
+        COALESCE(SUM(de.amount), 0)           AS grand_rate_amount,
+        COALESCE(SUM(de.total_deduction), 0)  AS grand_total_deduction,
+        COUNT(de.id)                           AS grand_entry_count
+      FROM dangar_entry de
+      WHERE de.company_id = ?
+        AND de.entry_date BETWEEN ? AND ?
+    `, [companyId, startDate, endDate]);
+
+    // 5. Total interest accumulated in period
+    const interestRow = await query(`
+      SELECT
+        COALESCE(SUM(al.interest_amount), 0) AS total_interest
+      FROM account_ledger al
+      WHERE al.company_id = ?
+        AND al.transaction_date BETWEEN ? AND ?
+        AND al.interest_amount > 0
+    `, [companyId, startDate, endDate]);
+
+    // 6. Member count with activity
+    const memberCountRow = await query(`
+      SELECT COUNT(DISTINCT de.member_id) AS active_members
+      FROM dangar_entry de
+      WHERE de.company_id = ?
+        AND de.entry_date BETWEEN ? AND ?
+    `, [companyId, startDate, endDate]);
+
+    // 7. Journal/Ledger payment summary (credited to member = amount owed)
+    const memberPaymentSummary = await query(`
+      SELECT
+        SUM(CASE WHEN al.credit > 0 THEN al.credit ELSE 0 END) AS total_member_credit,
+        SUM(CASE WHEN al.debit > 0 THEN al.debit ELSE 0 END)   AS total_member_debit
+      FROM account_ledger al
+      WHERE al.company_id = ?
+        AND al.member_id IS NOT NULL
+        AND al.transaction_date BETWEEN ? AND ?
+    `, [companyId, startDate, endDate]);
+
+    // 8. Procurement by Village
+    const villageSummary = await query(`
+      SELECT 
+        m.village_name AS village_name,
+        NULL AS village_name_gu,
+        COUNT(de.id) AS entry_count,
+        SUM(de.total_kg) AS total_kg,
+        SUM(de.net_quintal) AS total_quintal,
+        SUM(de.amount) AS total_amount,
+        SUM(de.total_deduction) AS total_deduction
+      FROM dangar_entry de
+      JOIN member_master m ON de.member_id = m.id
+      WHERE de.company_id = ?
+        AND de.entry_date BETWEEN ? AND ?
+      GROUP BY m.village_name
+      ORDER BY SUM(de.amount) DESC
+    `, [companyId, startDate, endDate]);
+
+    res.json({
+      success: true,
+      data: {
+        dangarSummary,
+        villageSummary,
+        fixedAccounts,
+        paymentPerAccount,
+        grandTotals: totalsRow[0] || {},
+        totalInterest: parseFloat(interestRow[0]?.total_interest || 0),
+        activeMembers: parseInt(memberCountRow[0]?.active_members || 0),
+        memberPaymentSummary: memberPaymentSummary[0] || {},
+      }
+    });
   } catch (error) {
     console.error('Dangar Summary Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 
 

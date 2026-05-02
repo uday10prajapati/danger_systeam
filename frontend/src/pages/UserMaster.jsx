@@ -7,9 +7,11 @@ import {
   Loader, AlertCircle, CheckCircle,
   Users, UserCheck, UserMinus, Shield,
   Search, Filter, ChevronRight, X,
-  Building2, Command
+  Building2, Command, RefreshCw, Activity, ShieldCheck
 } from 'lucide-react'
 import UserForm from '../components/UserForm'
+import Toast from '../components/Toast'
+import Loading from '../components/Loading'
 
 function UserMaster() {
   const { t } = useTranslation()
@@ -17,9 +19,9 @@ function UserMaster() {
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState([])
   const [company, setCompany] = useState(null)
-  const [showForm, setShowForm] = useState(false)
+  const [showModal, setShowModal] = useState(false)
   const [editingUserId, setEditingUserId] = useState(null)
-  const [message, setMessage] = useState(null)
+  const [toast, setToast] = useState(null)
   const [filter, setFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -39,10 +41,10 @@ function UserMaster() {
       if (response.data.success && response.data.data) {
         setCompany(response.data.data)
       } else {
-        setMessage({ type: 'error', text: t('userMaster.noCompanyFound') })
+        setToast({ type: 'error', text: t('userMaster.noCompanyFound') })
       }
     } catch (error) {
-      setMessage({
+      setToast({
         type: 'error',
         text: error.response?.data?.error || t('userMaster.failedToLoadCompany')
       })
@@ -57,7 +59,7 @@ function UserMaster() {
         setUsers(response.data.data)
       }
     } catch (error) {
-      setMessage({
+      setToast({
         type: 'error',
         text: error.response?.data?.error || t('userMaster.failedToLoadUsers')
       })
@@ -68,22 +70,21 @@ function UserMaster() {
 
   const handleCreateUser = () => {
     setEditingUserId(null)
-    setShowForm(true)
+    setShowModal(true)
   }
 
   const handleEditUser = (userId) => {
     setEditingUserId(userId)
-    setShowForm(true)
+    setShowModal(true)
   }
 
   const handleFormSuccess = () => {
-    setShowForm(false)
+    setShowModal(false)
     setEditingUserId(null)
-    setMessage({
+    setToast({
       type: 'success',
       text: editingUserId ? t('userMaster.userUpdatedSuccessfully') : t('userMaster.userCreatedSuccessfully')
     })
-    setTimeout(() => setMessage(null), 3000)
     loadUsers()
   }
 
@@ -96,15 +97,14 @@ function UserMaster() {
       const response = await axios.post(endpoint)
 
       if (response.data.success) {
-        setMessage({
+        setToast({
           type: 'success',
           text: currentStatus ? t('userMaster.userDeactivated') : t('userMaster.userActivated')
         })
-        setTimeout(() => setMessage(null), 3000)
         loadUsers()
       }
     } catch (error) {
-      setMessage({
+      setToast({
         type: 'error',
         text: error.response?.data?.error || t('userMaster.failedToUpdateUser')
       })
@@ -120,231 +120,214 @@ function UserMaster() {
     return matchesFilter && matchesSearch
   })
 
+  if (loading && users.length === 0) return <Loading />
+
   if (!company) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
-        <div className="bg-white rounded-lg border border-slate-100 shadow-xl p-12 text-center max-w-md animate-in zoom-in duration-500">
-          <div className="w-20 h-20 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500 mx-auto mb-6">
-            <AlertCircle size={40} />
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-8 font-sans">
+        <div className="bg-white border border-zinc-300 shadow-xl p-10 text-center max-w-md">
+          <div className="w-16 h-16 bg-zinc-50 border border-zinc-200 flex items-center justify-center text-amber-500 mx-auto mb-6">
+            <AlertCircle size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('userMaster.noCompanyFound', 'No Company Found')}</h2>
-          <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-            {t('userMaster.createCompanyFirst', 'Please set up your organization profile before managing team members.')}
+          <h2 className="text-lg font-bold text-zinc-800 uppercase tracking-tight mb-2">Company Required</h2>
+          <p className="text-zinc-500 text-xs font-mono uppercase leading-relaxed mb-8">
+            Organization profile setup is mandatory before managing team members.
           </p>
-          <div className="flex flex-col gap-3">
+          <div className="space-y-3">
             <button
               onClick={() => navigate('/company')}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-100 transition-all active:scale-95"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest transition shadow-sm"
             >
-              {t('company.goToCompanySetup', 'Go to Company Setup')}
+              Setup Organization
             </button>
             <button
               onClick={loadCompany}
-              className="w-full py-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-lg transition-all"
+              className="w-full py-3 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 font-bold text-xs uppercase tracking-widest transition"
             >
-              {t('userMaster.refresh', 'Refresh System')}
+              Refresh System
             </button>
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (showForm) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] py-12 px-8">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => { setShowForm(false); setEditingUserId(null); }}
-            className="group mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors"
-          >
-            <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-800 transition-all">
-              <X size={16} />
-            </div>
-            {t('userMaster.backToUsers', 'Back to User Master')}
-          </button>
-          <UserForm
-            userId={editingUserId}
-            company_id={company.id}
-            onSuccess={handleFormSuccess}
-            onCancel={() => { setShowForm(false); setEditingUserId(null); }}
-          />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-6">
+    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none">
+      <Toast message={toast?.text ? toast : null} type={toast?.type} onClose={() => setToast(null)} />
+      {loading && users.length > 0 && <Loading />}
 
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 gap-4">
+      <div className="max-w-[1400px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+
+        {/* Superior Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
           <div>
-            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
-              <Shield size={12} />
-              <span>{t('modules.management', 'Management')} / {t('userMaster.userMaster', 'User Master')}</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('userMaster.userMaster', 'System User Repository')}</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
+              <Users size={20} className="text-zinc-600" />
+              User Master Registry
+            </h1>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">
+              Management / Access Control Nodes
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-5 py-3 border border-slate-100 shadow-sm focus-within:border-blue-500 transition-all group">
-              <Search size={18} className="text-slate-400 group-focus-within:text-blue-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('dashboard.search', 'Search users...')}
-                className="bg-transparent border-none outline-none text-sm text-slate-600 w-64 placeholder:text-slate-300 font-medium"
-              />
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadUsers}
+              className="p-2 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-500 transition"
+              title="Refresh Registry"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
             <button
               onClick={handleCreateUser}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm"
             >
-              <Plus size={20} />
-              {t('userMaster.createUser', 'Add New User')}
+              <Plus size={14} /> NEW USER
             </button>
           </div>
         </div>
 
-        {/* Global Messages */}
-        {message && (
-          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-            }`}>
-            {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-            <p className="text-sm font-bold">{message.text}</p>
+        {/* Flat Stat Grid — Village Style */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Organization</span>
+            <span className="text-sm font-bold font-mono text-zinc-800 mt-1 truncate">{company.company_name}</span>
           </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.company', 'Organization')}</p>
-              <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Building2 size={16} /></div>
-            </div>
-            <p className="text-lg font-bold text-slate-800 truncate">{company.company_name}</p>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Users</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{users.length}</span>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.totalUsers', 'User Count')}</p>
-              <div className="p-2 bg-slate-50 rounded-lg text-slate-600"><Users size={16} /></div>
-            </div>
-            <p className="text-2xl font-bold text-slate-800">{users.length}</p>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Active Nodes</span>
+            <span className="text-2xl font-bold font-mono text-emerald-600 mt-1">
+              {users.filter(u => u.is_active).length}
+            </span>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-emerald-200 transition-all">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.activeUsers', 'Active Node')}</p>
-              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><UserCheck size={16} /></div>
-            </div>
-            <p className="text-2xl font-bold text-emerald-600">{users.filter(u => u.is_active).length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-rose-200 transition-all">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.inactiveUsers', 'Offline')}</p>
-              <div className="p-2 bg-rose-50 rounded-lg text-rose-600"><UserMinus size={16} /></div>
-            </div>
-            <p className="text-2xl font-bold text-rose-600">{users.filter(u => !u.is_active).length}</p>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Offline/Inactive</span>
+            <span className="text-2xl font-bold font-mono text-rose-600 mt-1">
+              {users.filter(u => !u.is_active).length}
+            </span>
           </div>
         </div>
 
-        {/* User Table Card */}
-        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <div className="p-8 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex gap-1.5 p-1 bg-slate-50 rounded-lg border border-slate-100">
-              {[
-                { id: 'all', label: t('userMaster.allUsers', 'Operational List') },
-                { id: 'active', label: t('userMaster.activeOnly', 'Active Only') },
-                { id: 'inactive', label: t('userMaster.inactiveOnly', 'Restricted') }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilter(tab.id)}
-                  className={`px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+        {/* Registry Table Section */}
+        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
+          
+          {/* Action Bar */}
+          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <button className="p-2.5 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-all"><Filter size={18} /></button>
-              <button className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-widest hover:underline">
-                <Command size={14} /> Bulk Actions
-              </button>
+              <div className="flex gap-1 bg-white border border-zinc-300 p-0.5">
+                {[
+                  { id: 'all', label: 'ALL' },
+                  { id: 'active', label: 'ACTIVE' },
+                  { id: 'inactive', label: 'INACTIVE' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFilter(tab.id)}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase transition-all ${
+                      filter === tab.id 
+                        ? 'bg-zinc-800 text-white' 
+                        : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-1 uppercase">
+                {filteredUsers.length} Records
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-64">
+                <Search size={14} className="text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by username or email..."
+                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full font-mono"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-x-auto">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
-                <Loader className="animate-spin" size={32} />
-                <p className="text-sm font-bold italic">{t('common.loading', 'Synchronizing users...')}</p>
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-300">
-                <Users size={48} strokeWidth={1} />
-                <p className="text-sm font-bold italic">{t('userMaster.noUsersFound', 'No users matches your criteria')}</p>
+          {/* Table Body */}
+          <div className="flex-1 overflow-x-auto bg-white">
+            {filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
+                <Users size={32} strokeWidth={1} className="text-zinc-300" />
+                <p className="text-xs font-mono uppercase tracking-widest">No matching user records</p>
               </div>
             ) : (
-              <table className="w-full text-left">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100">
-                    {['User Profile', 'Role', 'Status', 'Created', 'Actions'].map((h, i) => (
-                      <th key={h} className={`px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider ${i === 4 ? 'text-right' : ''}`}>{h}</th>
-                    ))}
+                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-xs">
+                    <th className="px-4 py-2 border-r border-zinc-200 w-12 text-center">#</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Username</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Email Address</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 w-24 text-center">Role</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 w-28 text-center">Status</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 w-32 text-center">Joined Date</th>
+                    <th className="px-4 py-2 text-center w-24">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="group hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm bg-linear-to-br transition-transform group-hover:scale-110 ${user.is_active ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500'
-                            }`}>
-                            {user.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-slate-800">{user.username}</p>
-                            <p className="text-[11px] font-medium text-slate-400 mt-0.5">{user.email}</p>
-                          </div>
-                        </div>
+                <tbody className="divide-y divide-zinc-100 font-mono text-[11px]">
+                  {filteredUsers.map((user, i) => (
+                    <tr key={user.id} className="hover:bg-zinc-50 group transition-colors">
+                      <td className="px-4 py-3 border-r border-zinc-100 text-center text-zinc-400">
+                        {String(i + 1).padStart(3, '0')}
                       </td>
-                      <td className="px-6 py-5">
-                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${user.role === 'hod' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                          user.role === 'manager' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                            'bg-amber-50 text-amber-600 border-amber-100'
-                          }`}>
+                      <td className="px-4 py-3 border-r border-zinc-100 font-bold text-zinc-800">
+                        {user.username}
+                      </td>
+                      <td className="px-4 py-3 border-r border-zinc-100 text-zinc-500">
+                        {user.email}
+                      </td>
+                      <td className="px-4 py-3 border-r border-zinc-100 text-center">
+                        <span className={`px-2 py-0.5 border text-[9px] font-bold uppercase ${
+                          user.role === 'admin' || user.role === 'hod'
+                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                            : user.role === 'manager'
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                        }`}>
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest ${user.is_active ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {user.is_active ? t('userMaster.active', 'Operational') : t('userMaster.inactive', 'Offline')}
+                      <td className="px-4 py-3 border-r border-zinc-100 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                          <span className={`font-bold uppercase text-[9px] ${user.is_active ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {user.is_active ? 'Active' : 'Offline'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-[11px] font-bold text-slate-400 italic">
+                      <td className="px-4 py-3 border-r border-zinc-100 text-center text-zinc-500">
                         {new Date(user.created_at).toLocaleDateString('en-GB')}
                       </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleEditUser(user.id)}
-                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-lg transition-all shadow-sm"
-                            title={t('userMaster.editUser')}
+                            className="p-1.5 border border-zinc-200 bg-white text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition shadow-xs"
+                            title="Edit User"
                           >
-                            <Edit3 size={16} />
+                            <Edit3 size={13} />
                           </button>
                           <button
                             onClick={() => handleDeactivateUser(user.id, user.is_active)}
-                            className={`p-2.5 bg-white border border-slate-200 rounded-lg transition-all shadow-sm ${user.is_active ? 'text-slate-400 hover:text-rose-600 hover:border-rose-600' : 'text-emerald-500 hover:bg-emerald-50 border-emerald-200'
-                              }`}
+                            className={`p-1.5 border border-zinc-200 bg-white transition shadow-xs ${
+                              user.is_active 
+                                ? 'text-zinc-400 hover:text-rose-600 hover:border-rose-300' 
+                                : 'text-emerald-500 hover:bg-emerald-50 border-emerald-200'
+                            }`}
+                            title={user.is_active ? 'Deactivate' : 'Activate'}
                           >
-                            <Power size={16} />
+                            <Power size={13} />
                           </button>
                         </div>
                       </td>
@@ -356,6 +339,44 @@ function UserMaster() {
           </div>
         </div>
       </div>
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-4xl bg-white border border-zinc-400 shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+            
+            {/* Modal Header */}
+            <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white border border-zinc-200 text-blue-600">
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
+                    {editingUserId ? 'Edit User Configuration' : 'Create New System Identity'}
+                  </h2>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">
+                    Access Control & Module Privileges
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowModal(false)} className="p-1 text-zinc-400 hover:text-red-600 transition">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto bg-white">
+              <UserForm
+                userId={editingUserId}
+                company_id={company.id}
+                onSuccess={handleFormSuccess}
+                onCancel={() => { setShowModal(false); setEditingUserId(null); }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

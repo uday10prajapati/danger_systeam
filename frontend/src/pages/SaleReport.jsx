@@ -7,9 +7,13 @@ import {
   FileText, BarChart3, LayoutGrid, Box, ChevronDown,
   ChevronRight, UserCheck, TrendingUp, Tags, Database,
   ShieldCheck, Layout, Layers, Filter, Calendar, ArrowRight,
-  CheckCircle2, History, Package, RefreshCcw
+  CheckCircle2, History, Package, RefreshCcw, Printer
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import PageHeader from '../components/PageHeader';
+import Toast from '../components/Toast';
 
 const formatCurrency = (num) => {
   return parseFloat(num || 0).toLocaleString('en-IN', {
@@ -36,6 +40,16 @@ export default function SaleReport() {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [company, setCompany] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [message, setMessage] = useState(null);
+
+  const exportToExcel = () => {
+    setMessage('Excel export functionality coming soon');
+  };
+
+  const exportGroupToExcel = (e, group, type) => {
+    e.stopPropagation();
+    setMessage('Group export coming soon');
+  };
 
   useEffect(() => {
     loadCompany();
@@ -111,106 +125,195 @@ export default function SaleReport() {
 
   const totalRevenueAudit = filteredReports.reduce((sum, s) => sum + parseFloat(s.total_amount || 0), 0);
 
-  const exportToExcel = () => {
-    const ws_data = viewType === 'report' ?
-      filteredReports.map(s => ({
-        'Client': s.customer_name || 'COUNTER SALE',
-        'Date': new Date(s.invoice_date).toLocaleDateString('en-GB'),
-        'Invoice ID': s.invoice_no,
-        'Type': s.payment_type?.toUpperCase() || 'CASH',
-        'Proceeds': parseFloat(s.total_amount || 0)
-      })) :
-      filteredSummary.map(i => ({
-        'Category': i.category || 'UNCATEGORIZED',
-        'Product': i.item_name,
-        'SKU': i.item_code,
-        'Outward Qty': parseFloat(i.outward || 0),
-        'Unit Rate': parseFloat(i.sale_price || 0),
-        'Total Proceeds': parseFloat(i.outward || 0) * parseFloat(i.sale_price || 0)
-      }));
+  const addGujaratiFont = async (doc) => {
+      try {
+         const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
+         const blob = await res.blob();
+         return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+               const base64 = reader.result.split(',')[1];
+               doc.addFileToVFS('NotoSansGujarati.ttf', base64);
+               doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
+               resolve();
+            };
+            reader.readAsDataURL(blob);
+         });
+      } catch (e) {
+         console.warn('Could not load Gujarati font', e);
+      }
+   };
 
-    const ws = XLSX.utils.json_to_sheet(ws_data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "AuditExport");
-    XLSX.writeFile(wb, `Sale_Audit_${new Date().toISOString().split('T')[0]}.xlsx`);
+  const handlePrint = () => {
+    const cName = company?.company_name || 'Company';
+    const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.total_amount || 0), 0);
+    const win = window.open('', '_blank', 'width=900,height=800');
+    const rows = filteredReports.map((s, i) => `
+      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
+        <td>${s.customer_name || 'COUNTER SALE'}</td>
+        <td>${new Date(s.invoice_date).toLocaleDateString('en-GB')}</td>
+        <td>#${s.invoice_no}</td>
+        <td style="text-align:center">${s.item_count} Items</td>
+        <td style="text-align:right">${formatCurrency(s.total_amount)}</td>
+        <td style="text-align:right">${formatCurrency(s.discount_amount || 0)}</td>
+        <td style="text-align:right;font-weight:700">${formatCurrency(s.net_amount)}</td>
+        <td style="text-align:center">${(s.payment_type || 'cash').toUpperCase()}</td>
+      </tr>`);
+    win.document.write(`
+      <html><head><title>${cName} - Sale Report</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:20px}
+        .logo-bar{background:#0f172a;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-radius:4px}
+        .logo-bar h1{font-size:13px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
+        .logo-bar span{font-size:9px;color:#94a3b8}
+        .report-title{font-size:18px;font-weight:900;text-transform:uppercase;color:#0f172a;margin-bottom:2px}
+        .report-sub{font-size:9px;color:#64748b;margin-bottom:10px}
+        .divider{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
+        table{width:100%;border-collapse:collapse;margin-top:6px}
+        thead tr{background:#0f172a;color:#fff}
+        th{padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left}
+        td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:9px}
+        tfoot tr{background:#1e293b;color:#fff;font-weight:700}
+        @media print{@page{size:A4 portrait;margin:1.5cm}}
+      </style></head><body>
+      <div class='logo-bar'><h1>${cName}</h1><span>Sale Report / Analytics &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
+      <div class='report-title'>Revenue Command Deck</div>
+      <div class='report-sub'>Period: ${startDate} &rarr; ${endDate} &nbsp;|&nbsp; Records: ${filteredReports.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</div>
+      <hr class='divider'/>
+      <table>
+        <thead><tr>
+          <th>Client</th><th>Date</th><th>Invoice</th><th>Items</th>
+          <th style='text-align:right'>Gross Amt</th>
+          <th style='text-align:right'>Discount</th>
+          <th style='text-align:right'>Net Amt</th>
+          <th style='text-align:center'>Mode</th>
+        </tr></thead>
+        <tbody>${rows.join('')}</tbody>
+        <tfoot><tr>
+          <td colspan='4'>TOTALS &mdash; ${filteredReports.length} Records</td>
+          <td colspan='2'></td>
+          <td style='text-align:right'>${formatCurrency(totalAmt)}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
-  const exportGroupToExcel = (e, groupData, type) => {
-    e.stopPropagation();
-    const ws_data = type === 'report' ?
-      groupData.invoices.map(s => ({
-        'Client': s.customer_name || 'COUNTER SALE',
-        'Date': new Date(s.invoice_date).toLocaleDateString('en-GB'),
-        'Invoice ID': s.invoice_no,
-        'Type': s.payment_type?.toUpperCase() || 'CASH',
-        'Proceeds': parseFloat(s.total_amount || 0)
-      })) :
-      groupData.items.map(i => ({
-        'Category': i.category || 'UNCATEGORIZED',
-        'Product': i.item_name,
-        'SKU': i.item_code,
-        'Outward Qty': parseFloat(i.outward || 0),
-        'Unit Rate': parseFloat(i.sale_price || 0),
-        'Total Proceeds': parseFloat(i.outward || 0) * parseFloat(i.sale_price || 0)
-      }));
+  const handleExportPDF = async () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    await addGujaratiFont(doc);
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const M = 32;
+    const navy = [15,23,42], white = [255,255,255], gray = [100,116,139], dark = [30,41,59], stripe = [241,245,249];
+    const cName = company?.company_name || 'Company';
 
-    const ws = XLSX.utils.json_to_sheet(ws_data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "GroupAudit");
-    XLSX.writeFile(wb, `${groupData.name}_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const hdr = () => {
+       doc.setFillColor(...navy); doc.rect(0,0,W,26,'F');
+       doc.setFont('NotoGujarati','normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+       doc.text(cName.toUpperCase(), M, 17);
+       doc.setFontSize(7); doc.setTextColor(148,163,184);
+       doc.text('SALE REPORT / ANALYTICS', W/2, 17, {align:'center'});
+       doc.setFontSize(7); doc.setTextColor(239,68,68);
+       doc.text('CONFIDENTIAL', W-M, 17, {align:'right'});
+    };
+
+    const ftr = (pg, tot) => {
+       doc.setDrawColor(226,232,240); doc.setLineWidth(0.4); doc.line(M, H-18, W-M, H-18);
+       doc.setFont('NotoGujarati','normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+       doc.text(cName + ' - Sale Report', M, H-9);
+       doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W/2, H-9, {align:'center'});
+       doc.text('Page ' + pg + ' of ' + tot, W-M, H-9, {align:'right'});
+    };
+
+    hdr();
+    let y = 40;
+    doc.setFont('NotoGujarati','normal'); doc.setFontSize(15); doc.setTextColor(...navy);
+    doc.text('Revenue Command Deck', M, y);
+    doc.setFontSize(7.5); doc.setTextColor(...gray);
+    doc.text('Period: ' + startDate + ' to ' + endDate + '  |  Records: ' + filteredReports.length + '  |  Generated: ' + new Date().toLocaleString('en-IN'), M, y+13);
+    doc.setDrawColor(226,232,240); doc.setLineWidth(0.4); doc.line(M, y+18, W-M, y+18);
+    y += 28;
+
+    const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.net_amount || 0), 0);
+
+    const bodyRows = filteredReports.map(s => [
+        s.customer_name || 'COUNTER SALE',
+        new Date(s.invoice_date).toLocaleDateString('en-GB'),
+        '#' + s.invoice_no,
+        s.item_count + ' Items',
+        'Rs.' + parseFloat(s.total_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2}),
+        'Rs.' + parseFloat(s.discount_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2}),
+        'Rs.' + parseFloat(s.net_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2}),
+        (s.payment_type || 'cash').toUpperCase()
+    ]);
+
+    autoTable(doc, {
+       startY: y,
+       head: [['Client', 'Date', 'Invoice', 'Items', 'Gross Amt', 'Discount', 'Net Amt', 'Mode']],
+       body: bodyRows,
+       foot: [['', '', '', '', '', 'TOTAL', 'Rs.' + totalAmt.toLocaleString('en-IN', {minimumFractionDigits:2}), '']],
+       styles: { font: 'helvetica', fontSize:7.5, cellPadding:[4,5], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
+       headStyles: { font: 'helvetica', fillColor:navy, textColor:white, fontStyle: 'normal' },
+       footStyles: { font: 'helvetica', fillColor:[30,41,59], textColor:white },
+       alternateRowStyles: { fillColor:stripe },
+       theme: 'grid',
+       margin: { left:M, right:M }
+    });
+
+    const tot = doc.internal.getNumberOfPages();
+    for (let i=1; i<=tot; i++) { doc.setPage(i); ftr(i,tot); }
+    doc.save('Sale_Report_' + startDate + '_to_' + endDate + '.pdf');
   };
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
-        <div className="text-center font-black uppercase tracking-widest text-slate-300">
-          <p className="text-xs mb-6 italic tracking-[0.4em]">Initialising Revenue Bridge...</p>
-          <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
-            <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
-          </div>
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-8 font-sans">
+        <div className="text-center font-bold text-zinc-400">
+          <p className="text-xs mb-4 uppercase tracking-widest font-mono">Loading Enterprise Core...</p>
+          <RefreshCcw className="animate-spin mx-auto text-blue-500" size={24} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+      <Toast message={message} onClose={() => setMessage(null)} />
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
 
-        {/* Superior Header - Dashboard Style */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4 print:hidden">
-          <div>
-            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
-              <ShoppingCart size={12} />
-              <span>Revenue Core / Sales Audit registry</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-              Revenue Command Deck
-            </h1>
+        <PageHeader
+          eyebrow="Revenue Core / Sales Audit Registry"
+          eyebrowIcon={<ShoppingCart size={12} />}
+          title="Revenue Command Deck"
+          subtitle="Consolidated analytics for enterprise revenue"
+        >
+          <div className="flex gap-2">
+            <button onClick={() => setViewType('report')} className={`px-4 py-2 border text-xs font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
+              <UserCheck size={14} className="inline mr-2" /> Report
+            </button>
+            <button onClick={() => setViewType('summary')} className={`px-4 py-2 border text-xs font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
+              <Tags size={14} className="inline mr-2" /> Summary
+            </button>
+            <button onClick={handleExportPDF} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all flex items-center gap-2">
+              <FileText size={14} /> PDF
+            </button>
+            <button onClick={handlePrint} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all flex items-center gap-2">
+              <Printer size={14} /> Print
+            </button>
+            <button onClick={exportToExcel} className="px-3 py-2 bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition-all">
+              <Download size={14} />
+            </button>
+            <button onClick={fetchData} className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-all">
+              <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
           </div>
+        </PageHeader>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex gap-1.5 p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm">
-              <button onClick={() => setViewType('report')} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}>
-                <UserCheck size={14} /> Report
-              </button>
-              <button onClick={() => setViewType('summary')} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-slate-400 hover:text-slate-600'}`}>
-                <Tags size={14} /> Summary
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={exportToExcel} className="p-3.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all shadow-sm active:scale-95">
-                <Download size={18} />
-              </button>
-              <button onClick={fetchData} className="p-3.5 bg-blue-600 text-white rounded-lg transition-all shadow-lg shadow-blue-100 active:scale-95">
-                <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Audit Command Grid - Compact Metric Modules */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
           {[
             { label: 'Total Revenue Yield', val: formatCurrency(totalRevenueAudit), icon: <TrendingUp size={18} />, color: 'blue' },

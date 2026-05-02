@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
    Lock, Eye, EyeOff, Loader,
-   AlertCircle, Sparkles, Shield,
-   Zap, TrendingUp, Users, ShoppingBag,
-   ArrowRight, CheckCircle2, Globe
+   AlertCircle, Shield,
+   Zap, TrendingUp, ShoppingBag,
+   ArrowRight, CheckCircle2, User, Mail, ShieldCheck
 } from 'lucide-react'
 import api from '../api'
 
@@ -19,7 +19,20 @@ function Login() {
    const [yearsLoading, setYearsLoading] = useState(false)
    const [error, setError] = useState('')
    const [rememberMe, setRememberMe] = useState(false)
-   const [focusedField, setFocusedField] = useState('')
+
+   const yearRef = useRef(null)
+   const passwordRef = useRef(null)
+
+   const handleKeyDown = (e, nextRef) => {
+      if (e.key === 'Enter') {
+         e.preventDefault()
+         if (nextRef && nextRef.current) {
+            nextRef.current.focus()
+         } else {
+            handleSubmit(e)
+         }
+      }
+   }
 
    useEffect(() => {
       const user = localStorage.getItem('user');
@@ -28,7 +41,6 @@ function Login() {
       }
    }, [navigate]);
 
-   // Fetch years when user types email
    const fetchYears = async (emailVal) => {
       if (!emailVal || !emailVal.includes('@')) return;
       try {
@@ -49,7 +61,6 @@ function Login() {
 
    const handleEmailBlur = () => {
       fetchYears(email);
-      setFocusedField('');
    }
 
    const handleSubmit = async (e) => {
@@ -59,7 +70,7 @@ function Login() {
 
       try {
          if (!email || !password || !selectedYear) {
-            setError('Verification parameters required')
+            setError('All credentials required')
             setLoading(false)
             return
          }
@@ -73,7 +84,6 @@ function Login() {
          if (response.data.success) {
             const userData = response.data.user;
             localStorage.setItem('user', JSON.stringify(userData));
-            // Store company separately so all pages can do localStorage.getItem('company').id
             localStorage.setItem('company', JSON.stringify({
                id: userData.company_id,
                company_name: userData.company_name,
@@ -84,201 +94,202 @@ function Login() {
             }
             navigate('/dashboard')
          } else {
-            setError(response.data.error || 'Identity verification failed')
+            setError(response.data.error || 'Invalid credentials')
          }
       } catch (err) {
-         if (err.response?.data?.message) {
-            setError(err.response.data.message)
-         } else if (err.response?.data?.error) {
-            setError(err.response.data.error)
-         } else {
-            setError('Infrastructure connection timeout. Retry active.')
-         }
+         setError(err.response?.data?.message || err.response?.data?.error || 'Connection failed')
       } finally {
          setLoading(false)
       }
    }
 
    return (
-      <div className="fixed inset-0 w-full h-full bg-[#F8FAFC] overflow-hidden flex items-center justify-center font-sans select-none">
-
-         {/* Premium Light Background Layers - Locked and Contained */}
-         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px] animate-pulse"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/5 rounded-full blur-[120px] animate-pulse delay-2000"></div>
-            <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#2563eb 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-         </div>
-
-         {/* Main Interaction Hub - Forced Center */}
-         <div className="relative z-10 w-full max-w-5xl px-6 flex items-center justify-center">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center w-full max-w-[900px]">
-
-               {/* Left Content Shard - Visual Identity */}
-               <div className="hidden lg:flex flex-col gap-5 animate-in fade-in slide-in-from-left duration-700">
-                  <div className="space-y-2">
-                     <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-xl shadow-blue-100 rotate-3 transform hover:rotate-0 transition-all">
-                        <ShoppingBag size={24} strokeWidth={2.5} />
+      <div className="fixed inset-0 w-full h-full bg-zinc-100 flex items-center justify-center font-sans select-none overflow-hidden">
+         
+         <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white border border-zinc-300 shadow-2xl overflow-hidden">
+            
+            {/* Left Section - Identity & Stats */}
+            <div className="hidden md:flex flex-col justify-between p-10 bg-zinc-50 border-r border-zinc-200">
+               <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2.5 bg-zinc-800 text-white">
+                        <ShoppingBag size={24} />
                      </div>
-                     <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-[1.1]">
-                        Danger Systeam<br />
-                        <span className="text-blue-600 italic text-2xl">Management.</span>
+                     <h1 className="text-xl font-bold tracking-tighter text-zinc-800 uppercase">
+                        Danger Systeam
                      </h1>
-                     <p className="text-slate-400 text-[11px] font-bold max-w-[220px] leading-relaxed">
-                        The next-generation industrial ledger for modern retail clusters.
-                     </p>
                   </div>
+                  <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest leading-relaxed">
+                     Enterprise Accounting & Industrial Ledger Management System
+                  </p>
+               </div>
 
-                  <div className="space-y-2.5">
-                     {[
-                        { icon: Shield, text: "Enterprise security protocols", color: "text-emerald-500" },
-                        { icon: Globe, text: "Multi-point distribution sync", color: "text-blue-500" },
-                        { icon: Zap, text: "Instantaneous fiscal reporting", color: "text-amber-500" }
-                     ].map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3 group">
-                           <div className={`p-1.5 rounded-lg bg-white border border-slate-100 shadow-sm group-hover:shadow-md transition-all ${item.color}`}>
-                              <item.icon size={14} strokeWidth={3} />
-                           </div>
-                           <span className="text-slate-500 font-black text-[9px] uppercase tracking-wider">{item.text}</span>
-                        </div>
-                     ))}
+               <div className="space-y-3">
+                  <SectionLabel>System Integrity</SectionLabel>
+                  <div className="space-y-2">
+                     <BenefitItem icon={<Shield size={14} />} text="Audit Certified Logs" />
+                     <BenefitItem icon={<Zap size={14} />} text="Zero-Latency Sync" />
+                     <BenefitItem icon={<ShieldCheck size={14} />} text="Encrypted Data Vault" />
                   </div>
                </div>
 
-               {/* Right Card - Login Interaction Node */}
-               <div className="w-full max-w-[340px] mx-auto animate-in zoom-in-95 duration-700">
-                  <div className="bg-white/90 backdrop-blur-3xl p-7 rounded-lg border border-white shadow-2xl shadow-slate-200/40">
+               <div className="pt-6 border-t border-zinc-200">
+                  <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+                     Authorized Personnel Only • v4.2.0
+                  </p>
+               </div>
+            </div>
 
-                     <div className="mb-5">
-                        <p className="text-[8px] font-black text-blue-600 uppercase tracking-[0.4em] mb-1 italic text-center lg:text-left">Authentication Portal</p>
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight text-center lg:text-left">Welcome Back.</h2>
+            {/* Right Section - Login Form */}
+            <div className="p-8 md:p-12 flex flex-col justify-center bg-white">
+               <div className="mb-8">
+                  <h2 className="text-lg font-bold text-zinc-800 uppercase tracking-tight">System Login</h2>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
+                     Verify your credentials to enter
+                  </p>
+               </div>
+
+               <form onSubmit={handleSubmit} className="space-y-5">
+                  {error && (
+                     <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                        <AlertCircle size={14} /> {error}
                      </div>
+                  )}
 
-                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                           <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in duration-300">
-                              <AlertCircle size={14} strokeWidth={3} /> {error}
-                           </div>
-                        )}
+                  <ModalField label="Identity Node (Email)">
+                     <div className="relative">
+                        <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <input
+                           type="email"
+                           value={email}
+                           onChange={(e) => setEmail(e.target.value)}
+                           onBlur={handleEmailBlur}
+                           onKeyDown={e => handleKeyDown(e, yearRef)}
+                           className={inputCls + ' pl-10'}
+                           placeholder="admin@danger.com"
+                           required
+                           autoFocus
+                        />
+                     </div>
+                  </ModalField>
 
-                        <div className="space-y-1">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identity Node</label>
-                           <div className={`relative transition-all duration-300 ${focusedField === 'email' ? 'translate-x-1' : ''}`}>
-                              <input
-                                 type="email"
-                                 value={email}
-                                 onChange={(e) => setEmail(e.target.value)}
-                                 onFocus={() => setFocusedField('email')}
-                                 onBlur={handleEmailBlur}
-                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-lg outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
-                                 placeholder="admin@danger-systeam.com"
-                                 required
-                              />
-                           </div>
-                        </div>
-
-                        <div className="space-y-1">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Fiscal Cycle</label>
-                           <div className={`relative transition-all duration-300 ${focusedField === 'year' ? 'translate-x-1' : ''}`}>
-                              <select
-                                 value={selectedYear}
-                                 onChange={(e) => setSelectedYear(e.target.value)}
-                                 onFocus={() => setFocusedField('year')}
-                                 onBlur={() => setFocusedField('')}
-                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-lg outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner appearance-none cursor-pointer"
-                                 required
-                              >
-                                 {financialYears.length > 0 ? (
-                                    financialYears.map(y => (
-                                       <option key={y.id} value={y.year_label}>{y.year_label}</option>
-                                    ))
-                                 ) : (
-                                    <option value="2026-27">2026-27 (Default)</option>
-                                 )}
-                              </select>
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                 {yearsLoading ? <Loader size={12} className="animate-spin text-blue-500" /> : <TrendingUp size={12} className="text-slate-300" />}
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="space-y-1">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Security Protocol</label>
-                           <div className={`relative transition-all duration-300 ${focusedField === 'password' ? 'translate-x-1' : ''}`}>
-                              <input
-                                 type={showPassword ? 'text' : 'password'}
-                                 value={password}
-                                 onChange={(e) => setPassword(e.target.value)}
-                                 onFocus={() => setFocusedField('password')}
-                                 onBlur={() => setFocusedField('')}
-                                 className="w-full px-4 py-3 bg-[#F8FAFC] border border-slate-100 rounded-lg outline-none focus:bg-white focus:border-blue-200 transition-all font-bold text-slate-700 text-xs shadow-inner"
-                                 placeholder="••••••••"
-                                 required
-                              />
-                              <button
-                                 type="button"
-                                 onClick={() => setShowPassword(!showPassword)}
-                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-500 transition-colors"
-                              >
-                                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                              </button>
-                           </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                           <label className="flex items-center gap-2 cursor-pointer group">
-                              <div className={`w-3.5 h-3.5 rounded border-2 transition-all flex items-center justify-center ${rememberMe ? 'bg-blue-600 border-blue-600' : 'border-slate-100 bg-slate-50'}`}>
-                                 <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="hidden" />
-                                 {rememberMe && <CheckCircle2 size={8} className="text-white" strokeWidth={4} />}
-                              </div>
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Stay linked</span>
-                           </label>
-                           <button type="button" className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline italic">Recover</button>
-                        </div>
-
-                        <button
-                           type="submit"
-                           disabled={loading}
-                           className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-3 mt-1 disabled:grayscale"
+                  <ModalField label="Fiscal Cycle">
+                     <div className="relative">
+                        <TrendingUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <select
+                           ref={yearRef}
+                           value={selectedYear}
+                           onChange={(e) => setSelectedYear(e.target.value)}
+                           onKeyDown={e => handleKeyDown(e, passwordRef)}
+                           className={inputCls + ' pl-10 cursor-pointer appearance-none'}
+                           required
                         >
-                           {loading ? (
-                              <>
-                                 <Loader className="animate-spin" size={16} strokeWidth={3} />
-                                 Authenticating...
-                              </>
+                           {financialYears.length > 0 ? (
+                              financialYears.map(y => (
+                                 <option key={y.id} value={y.year_label}>{y.year_label}</option>
+                              ))
                            ) : (
-                              <>
-                                 Enter System <ArrowRight size={14} strokeWidth={3} />
-                              </>
+                              <option value="2026-27">2026-27 (Default)</option>
                            )}
-                        </button>
-                     </form>
-
-                     <div className="mt-6 text-center pt-4 border-t border-slate-50">
-                        <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.1em]">
-                           Restricted Access Node • v4.2.0
-                        </p>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                           {yearsLoading && <Loader size={12} className="animate-spin text-zinc-400" />}
+                        </div>
                      </div>
+                  </ModalField>
+
+                  <ModalField label="Security Key">
+                     <div className="relative">
+                        <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <input
+                           ref={passwordRef}
+                           type={showPassword ? 'text' : 'password'}
+                           value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           onKeyDown={e => handleKeyDown(e, null)}
+                           className={inputCls + ' pl-10 pr-10'}
+                           placeholder="••••••••"
+                           required
+                        />
+                        <button
+                           type="button"
+                           onClick={() => setShowPassword(!showPassword)}
+                           className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-600"
+                        >
+                           {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                     </div>
+                  </ModalField>
+
+                  <div className="flex items-center justify-between pt-1">
+                     <label className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                           type="checkbox" 
+                           checked={rememberMe} 
+                           onChange={(e) => setRememberMe(e.target.checked)} 
+                           className="w-4 h-4 rounded-none border-zinc-300 text-blue-600"
+                        />
+                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest group-hover:text-zinc-600">Stay Linked</span>
+                     </label>
+                     <button type="button" className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Recover Access</button>
                   </div>
-               </div>
+
+                  <button
+                     type="submit"
+                     disabled={loading}
+                     className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase text-xs tracking-widest transition shadow-lg active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                     {loading ? (
+                        <>
+                           <Loader className="animate-spin" size={14} />
+                           Authenticating...
+                        </>
+                     ) : (
+                        <>
+                           ENTER SYSTEM <ArrowRight size={14} />
+                        </>
+                     )}
+                  </button>
+               </form>
             </div>
          </div>
 
          <style dangerouslySetInnerHTML={{
             __html: `
-        html, body, #root { 
-          height: 100vh !important; 
-          width: 100vw !important; 
-          overflow: hidden !important; 
-          margin: 0 !important; 
-          padding: 0 !important; 
-          position: fixed !important;
-          top: 0;
-          left: 0;
-          touch-action: none;
-        }
-        * { box-sizing: border-box; }
-        input::placeholder { font-style: italic; opacity: 0.5; font-weight: normal; }
+         * { box-sizing: border-box; }
+         input::placeholder { font-style: italic; opacity: 0.5; font-weight: normal; }
       `}} />
+      </div>
+   )
+}
+
+const inputCls = 'w-full px-3 py-3 bg-white border border-zinc-300 rounded-none focus:border-zinc-800 outline-none transition font-mono text-zinc-700 font-bold text-xs'
+
+function SectionLabel({ children }) {
+   return (
+      <div className="flex items-center gap-3">
+         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">{children}</span>
+         <div className="flex-1 h-px bg-zinc-200" />
+      </div>
+   )
+}
+
+function ModalField({ label, children }) {
+   return (
+      <div className="space-y-1">
+         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-0.5">
+            {label}
+         </label>
+         {children}
+      </div>
+   )
+}
+
+function BenefitItem({ icon, text }) {
+   return (
+      <div className="flex items-center gap-2.5">
+         <div className="text-zinc-400">{icon}</div>
+         <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{text}</span>
       </div>
    )
 }

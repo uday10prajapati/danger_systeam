@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  X, Search, Calendar, Hash, Calculator, Plus, Printer,
-  Check, ArrowDownLeft, ArrowUpRight, Users, User, RefreshCcw,
-  Layout, Database, Info, Trash2
+  X, Search, Calendar, Hash, Plus, Check, ArrowDownLeft, ArrowUpRight,
+  RefreshCcw, Layout, Database, Info, Trash2, Save
 } from 'lucide-react';
 import api from '../api';
 
@@ -45,7 +44,17 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     }
   }, [company]);
 
-  // Focus helper
+  // Handle Enter key for non-interactive areas if needed
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const focusInput = (rowId, field) => {
     if (rowRefs.current[rowId] && rowRefs.current[rowId][field]) {
       rowRefs.current[rowId][field].focus();
@@ -60,7 +69,6 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
   useEffect(() => {
     if (subEntries.length > 0) {
       const lastRow = subEntries[subEntries.length - 1];
-      // Only focus if it's a new empty row
       if (!lastRow.code && !lastRow.description && !lastRow.amount) {
         setTimeout(() => focusInput(lastRow.id, 'code'), 50);
       }
@@ -99,7 +107,6 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
       if (res.data.success) {
         const entry = res.data.data;
 
-        // Find and set selected account FIRST so we know if it's a subledger
         const acc = loadedAccs.find(a => a.id === entry.account_id);
         if (acc) {
           setSelectedAccount(acc);
@@ -115,7 +122,6 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           description: entry.description || ''
         });
 
-        // Hydrate subEntries from notes or from the main entry
         if (entry.notes && entry.notes.includes(': ')) {
           const rows = entry.notes.split('; ').filter(p => p.includes(': ')).map(pair => {
             const [desc, amt] = pair.split(': ');
@@ -142,7 +148,6 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           });
           if (rows.length > 0) setSubEntries(rows);
         } else {
-          // If no complex notes, use the main entry data (now including member details from API join)
           setSubEntries([{
             id: Date.now(),
             description: entry.member_name || entry.description || '',
@@ -220,101 +225,109 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
   const totalAmount = subEntries.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl flex flex-col border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh]">
-
-        {/* Header */}
-        <div className="bg-blue-600 text-white px-4 py-4 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/10 rounded-lg backdrop-blur-md">
-              {isCredit ? <ArrowUpRight size={22} strokeWidth={2.5} /> : <ArrowDownLeft size={22} strokeWidth={2.5} />}
-            </div>
-            <div>
-              <h2 className="font-black uppercase tracking-tight text-xl">{title}</h2>
-              <p className="text-[10px] font-bold text-blue-100 uppercase tracking-[0.3em] mt-0.5 opacity-80">{subtitle}</p>
-            </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => !loading && onClose()}></div>
+      
+      <div className="bg-white border border-zinc-400 rounded-none w-full max-w-4xl shadow-lg relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
+        
+        {/* Modal Header */}
+        <div className="px-5 py-3.5 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
+          <div className="flex items-center gap-2">
+            {isCredit ? <ArrowUpRight size={16} className="text-emerald-700" /> : <ArrowDownLeft size={16} className="text-red-700" />}
+            <h2 className="text-sm font-bold tracking-tight text-zinc-800 uppercase font-mono">
+              {editId ? `EDIT ${title} RECORD` : `NEW ${title} RECORD`}
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition-all active:scale-90">
-            <X size={24} />
+          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+        {/* Modal Body */}
+        <div className="p-4 flex-1 overflow-y-auto space-y-4 bg-zinc-50">
           {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-4 rounded-lg text-sm font-bold flex items-center gap-4 animate-in slide-in-from-top-2">
-              <Info size={18} /> {error}
+            <div className="p-2 border border-red-300 bg-red-50 text-red-700 text-[10px] font-bold font-mono uppercase tracking-widest leading-normal">
+              • {error}
             </div>
           )}
 
-          {/* Primary Details Card */}
-          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Date Selection */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Transaction Date</label>
-                <div className="relative group">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
-                  <input
-                    type="date"
-                    value={formData.transaction_date}
-                    onChange={e => setFormData({ ...formData, transaction_date: e.target.value })}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-lg focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 outline-none text-sm font-black text-slate-700 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Reference No */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Voucher / Ref No</label>
-                <div className="relative group">
-                  <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Enter Reference Number..."
-                    value={formData.reference_no}
-                    onChange={e => setFormData({ ...formData, reference_no: e.target.value })}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-lg focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 outline-none text-sm font-black text-slate-700 font-mono transition-all"
-                  />
-                </div>
+          {/* Core Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white border border-zinc-300 p-3">
+            <div className="flex flex-col">
+              <label className="text-[10px] font-bold font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                Transaction Date *
+              </label>
+              <div className="relative flex items-center border border-zinc-300 bg-white px-2.5 h-9 focus-within:border-zinc-500">
+                <Calendar className="text-zinc-400 mr-2" size={14} />
+                <input
+                  type="date"
+                  value={formData.transaction_date}
+                  onChange={e => setFormData({ ...formData, transaction_date: e.target.value })}
+                  className="bg-transparent text-xs font-mono font-bold text-zinc-700 outline-none w-full"
+                />
               </div>
             </div>
 
-            {/* Account Search */}
-            <div className="space-y-2 relative" ref={dropdownRef}>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Account Node</label>
-              <div className="flex gap-3">
+            <div className="flex flex-col">
+              <label className="text-[10px] font-bold font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                Reference / Voucher #
+              </label>
+              <div className="relative flex items-center border border-zinc-300 bg-white px-2.5 h-9 focus-within:border-zinc-500">
+                <Hash className="text-zinc-400 mr-2" size={14} />
+                <input
+                  type="text"
+                  placeholder="AUTO"
+                  value={formData.reference_no}
+                  onChange={e => setFormData({ ...formData, reference_no: e.target.value })}
+                  className="bg-transparent text-xs font-mono font-bold text-zinc-700 outline-none w-full placeholder:text-zinc-300"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:col-span-2 relative" ref={dropdownRef}>
+              <label className="text-[10px] font-bold font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                Target Account Node *
+              </label>
+              <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="CODE"
                   value={searchCode}
                   onChange={e => { setSearchCode(e.target.value); setShowDropdown(true); }}
-                  className="w-24 px-4 py-4 bg-slate-50 border border-slate-100 rounded-lg text-sm font-black text-center outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 transition-all font-mono"
+                  className="w-20 text-center border border-zinc-300 bg-white px-2 py-1.5 focus:border-zinc-500 text-xs font-mono font-bold text-zinc-700 outline-none h-9 uppercase"
                 />
-                <div className="flex-1 relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                <div className="flex-1 relative">
                   <input
                     type="text"
-                    placeholder="Search Account Name (e.g. Purchase, Sales, Bank...)"
+                    placeholder="SEARCH ACCOUNT NAME..."
                     value={searchText}
                     onChange={e => { setSearchText(e.target.value); setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-lg text-sm font-black text-slate-700 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full border border-zinc-300 bg-white px-2.5 py-1.5 focus:border-zinc-500 text-xs font-mono font-bold text-zinc-700 outline-none h-9 placeholder:text-zinc-300 uppercase"
                   />
                   {showDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 shadow-2xl z-50 max-h-60 overflow-y-auto rounded-lg divide-y divide-slate-50 animate-in slide-in-from-top-2">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-zinc-200">
                       {filteredAccounts.length === 0 ? (
-                        <div className="p-4 text-center text-xs font-bold text-slate-400 italic">No matching accounts found</div>
+                        <div className="p-2 text-center text-[10px] font-bold font-mono text-zinc-400 uppercase">
+                          No Nodes Isolated
+                        </div>
                       ) : filteredAccounts.map(acc => (
                         <div
                           key={acc.id}
                           onClick={() => handleAccountSelect(acc)}
-                          className="px-5 py-4 hover:bg-blue-50 cursor-pointer flex justify-between items-center group transition-colors"
+                          className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center select-none"
                         >
                           <div>
-                            <p className="text-sm font-black text-slate-800 group-hover:text-blue-600 transition-colors">{acc.account_name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{acc.account_type || 'Standard'}</p>
+                            <span className="text-xs font-bold text-zinc-800 uppercase tracking-tight leading-tight block">
+                              {acc.account_name}
+                            </span>
+                            <span className="text-[9px] font-bold font-mono text-zinc-400 uppercase tracking-widest mt-0.5">
+                              {acc.account_type || 'Ledger Node'}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-lg text-slate-500 font-mono group-hover:bg-blue-600 group-hover:text-white transition-all">#{acc.account_code || acc.id}</span>
+                          <span className="text-[10px] font-bold font-mono text-zinc-400 border border-zinc-200 px-1.5 py-0.5 uppercase bg-zinc-50">
+                            #{acc.account_code || acc.id}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -324,36 +337,37 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
             </div>
           </div>
 
-          {/* Sub-Entries Matrix */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[300px]">
-            <div className="bg-slate-50 px-4 py-4 border-b border-slate-200 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Layout size={16} /></div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Entry Allocation Matrix</h3>
-              </div>
+          {/* Matrix Ledger Subentries */}
+          <div className="bg-white border border-zinc-300 overflow-hidden flex flex-col min-h-[260px]">
+            <div className="bg-zinc-100 px-3 py-2 border-b border-zinc-300 flex justify-between items-center">
+              <span className="text-[10px] font-bold text-zinc-700 font-mono uppercase tracking-widest">Entry Allocation Matrix</span>
               <button
                 disabled={!selectedAccount}
                 onClick={addNewRow}
-                className="flex items-center gap-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-30"
+                className="flex items-center gap-1 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-2 py-1 select-none uppercase tracking-widest shadow-sm disabled:opacity-30 disabled:hover:bg-white"
               >
-                <Plus size={14} strokeWidth={3} /> Add Record
+                <Plus size={12} /> Add Row
               </button>
             </div>
 
             <div className="flex-1 overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/50 border-b border-slate-100">
-                  <tr className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">
-                    <th className="w-24 px-4 py-4 text-center">Code</th>
-                    <th className="px-4 py-4">{selectedAccount?.is_subledger ? 'Member (Sabhasad)' : 'Narration / Detail'}</th>
-                    <th className="w-48 px-4 py-4 text-right">{isCredit ? 'Jama' : 'Udhar'} (₹)</th>
-                    <th className="w-16 px-4 py-4"></th>
+              <table className="w-full text-left font-sans text-xs select-none">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    <th className="w-24 px-3 py-2 border-r border-zinc-200 text-center">Code</th>
+                    <th className="px-3 py-2 border-r border-zinc-200">
+                      {selectedAccount?.is_subledger ? 'Subledger (Member)' : 'Narration / Description'}
+                    </th>
+                    <th className="w-40 px-3 py-2 border-r border-zinc-200 text-right">
+                      {isCredit ? 'Jama' : 'Udhar'} Amount
+                    </th>
+                    <th className="w-12 px-3 py-2 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-zinc-200">
                   {subEntries.map((row, idx) => (
-                    <tr key={row.id} className="group hover:bg-slate-50/30 transition-colors">
-                      <td className="px-4 py-4">
+                    <tr key={row.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-3 py-1 border-r border-zinc-200 text-center">
                         <input
                           type="text"
                           ref={el => { if (!rowRefs.current[row.id]) rowRefs.current[row.id] = {}; rowRefs.current[row.id].code = el; }}
@@ -381,11 +395,10 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             setSubEntries(updated);
                           }}
                           placeholder="0000"
-                          className="w-full bg-slate-50/50 border border-transparent rounded-lg py-2 px-1 text-center text-xs font-mono font-black text-slate-700 focus:bg-white focus:border-blue-300 outline-none transition-all"
+                          className="w-full bg-white border border-zinc-300 py-1 px-2 text-center text-xs font-mono font-bold text-zinc-700 focus:border-zinc-500 outline-none uppercase"
                         />
-
                       </td>
-                      <td className="px-4 py-4 relative">
+                      <td className="px-3 py-1 border-r border-zinc-200 relative">
                         <input
                           type="text"
                           ref={el => { if (!rowRefs.current[row.id]) rowRefs.current[row.id] = {}; rowRefs.current[row.id].description = el; }}
@@ -405,12 +418,12 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             setActiveRowId(row.id);
                             setShowMemberDropdown(true);
                           }}
-                          placeholder={selectedAccount?.is_subledger ? "Search member name..." : "Enter details..."}
-                          className="w-full bg-transparent border-none py-2 px-0 text-xs font-black text-slate-800 outline-none placeholder:text-slate-300"
+                          placeholder={selectedAccount?.is_subledger ? "SEARCH MEMBER..." : "ENTER DETAIL..."}
+                          className="w-full bg-transparent border-none py-1 px-1 text-xs font-bold text-zinc-800 outline-none placeholder:text-zinc-300 uppercase"
                         />
 
                         {showMemberDropdown && activeRowId === row.id && row.description.length > 0 && (
-                          <div className="absolute top-full left-4 right-4 mt-1 bg-white border border-slate-200 shadow-2xl z-[100] max-h-48 overflow-y-auto rounded-lg divide-y divide-slate-50">
+                          <div className="absolute top-full left-1 right-1 mt-0.5 bg-white border border-zinc-300 shadow-2xl z-[100] max-h-40 overflow-y-auto divide-y divide-zinc-200">
                             {(selectedAccount?.is_subledger ? members : narrationsList)
                               .filter(m => {
                                 const target = selectedAccount?.is_subledger ? m.member_name : m.narration_text;
@@ -431,17 +444,21 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                                     setShowMemberDropdown(false);
                                     focusInput(row.id, 'amount');
                                   }}
-                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center group transition-colors"
+                                  className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center select-none"
                                 >
-                                  <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">{selectedAccount?.is_subledger ? m.member_name : m.narration_text}</span>
-                                  <span className="text-[9px] font-black bg-slate-100 px-2 py-0.5 rounded-lg text-slate-400">#{selectedAccount?.is_subledger ? m.member_code : (m.narration_code || 'UNC')}</span>
+                                  <span className="text-xs font-bold text-zinc-700 uppercase leading-tight">
+                                    {selectedAccount?.is_subledger ? m.member_name : m.narration_text}
+                                  </span>
+                                  <span className="text-[9px] font-bold font-mono text-zinc-400 uppercase tracking-widest border border-zinc-200 px-1.5 py-0.5 bg-zinc-50">
+                                    #{selectedAccount?.is_subledger ? m.member_code : (m.narration_code || 'UNC')}
+                                  </span>
                                 </div>
                               ))
                             }
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-1 border-r border-zinc-200">
                         <input
                           type="number"
                           ref={el => { if (!rowRefs.current[row.id]) rowRefs.current[row.id] = {}; rowRefs.current[row.id].amount = el; }}
@@ -459,19 +476,19 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             setFormData(prev => ({ ...prev, amount: total.toFixed(2) }));
                           }}
                           placeholder="0.00"
-                          className="w-full bg-slate-50/50 border border-transparent rounded-lg py-2 px-4 text-right text-xs font-black text-slate-800 focus:bg-white focus:border-blue-300 outline-none transition-all font-mono"
+                          className="w-full bg-white border border-zinc-300 py-1 px-2 text-right text-xs font-mono font-bold text-zinc-700 focus:border-zinc-500 outline-none"
                         />
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-3 py-1 text-center">
                         <button
                           onClick={() => {
                             if (subEntries.length > 1) {
                               setSubEntries(subEntries.filter(r => r.id !== row.id));
                             }
                           }}
-                          className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                          className="p-1 border border-zinc-300 bg-white hover:bg-zinc-50 hover:text-red-600 text-zinc-500 transition shadow-sm"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={12} />
                         </button>
                       </td>
                     </tr>
@@ -481,47 +498,32 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
             </div>
 
             {/* Matrix Footer */}
-            <div className="bg-slate-50 border-t border-slate-200 px-4 py-4 flex justify-between items-center">
-              <div className="flex items-center gap-4 text-slate-400">
-                <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-100">
-                  <Info size={14} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest italic">Consolidated Aggregate Verification</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Grand Aggregate</span>
-                <span className="text-xl font-black text-slate-900 font-mono italic tracking-tighter">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
+            <div className="bg-zinc-100 border-t border-zinc-300 px-3 py-2 flex justify-between items-center">
+              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Aggregate Verified</span>
+              <span className="text-sm font-bold font-mono text-zinc-800">
+                ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="bg-white px-4 py-4 border-t border-slate-100 flex justify-between items-center shrink-0">
-          <div className="flex gap-4">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Node Status</span>
-              <div className="flex items-center gap-2 text-emerald-500 font-black text-[11px] uppercase italic">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Ready to Commit
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <button
-              onClick={onClose}
-              className="px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-black uppercase tracking-widest hover:border-slate-400 transition-all active:scale-95 shadow-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading || !selectedAccount}
-              className="px-10 py-3.5 bg-blue-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-100 flex items-center gap-4 disabled:opacity-50 disabled:shadow-none"
-            >
-              {loading ? <RefreshCcw size={16} className="animate-spin" /> : <Check size={16} strokeWidth={4} />}
-              Commit Record
-            </button>
-          </div>
+        {/* Modal Footer */}
+        <div className="px-5 py-3 border-t border-zinc-200 bg-zinc-50 flex justify-end gap-3 mt-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs tracking-tight"
+          >
+            CANCEL
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading || !selectedAccount}
+            className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs tracking-tight disabled:opacity-50 disabled:hover:bg-blue-600"
+          >
+            {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Save size={14} />}
+            {editId ? 'UPDATE' : 'SAVE'}
+          </button>
         </div>
       </div>
     </div>

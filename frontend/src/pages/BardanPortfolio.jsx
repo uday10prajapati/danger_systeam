@@ -8,9 +8,9 @@ import {
   TrendingDown, TrendingUp, IndianRupee, Tag, Edit2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api, { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
-import PageHeader from '../components/PageHeader';
-import TableHeading from '../components/TableHeading';
 
 const BardanPortfolio = () => {
   const { t } = useTranslation();
@@ -41,7 +41,7 @@ const BardanPortfolio = () => {
   const [bardanPrice, setBardanPrice] = useState(0);
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [priceForm, setPriceForm] = useState({ price_per_bardan: '' });
-  const [searchTerms, setSearchTerms] = useState({ code: '', name: '' });
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [dropdowns, setDropdowns] = useState({ code: false, name: false });
 
   useEffect(() => {
@@ -200,10 +200,125 @@ const BardanPortfolio = () => {
     }
   };
 
+  const handleHistoryPrint = () => {
+    const dataToPrint = formData.code ? ledgerData : history;
+    const rows = dataToPrint.filter(row => {
+      const term = (historySearchQuery || '').toLowerCase();
+      return !term ||
+        String(row.sabhasad_name || row.sabhasad_code || row.member_name || row.member_code || '').toLowerCase().includes(term) ||
+        String(row.particulars || '').toLowerCase().includes(term) ||
+        String(row.pavti_no || '').toLowerCase().includes(term);
+    }).map((r, i) =>
+      '<tr style="background:' + (i % 2 === 0 ? '#fff' : '#f8fafc') + '">' +
+        '<td>' + (r.date || '') + '</td>' +
+        '<td>' + (r.particulars || '') + '</td>' +
+        '<td style="text-align:right">' + (r.taken || r.debit || r.given || '-') + '</td>' +
+        '<td style="text-align:right">' + (r.returned || r.credit || '-') + '</td>' +
+        '<td style="text-align:right">' + (r.balance || '-') + '</td>' +
+      '</tr>'
+    );
+
+    const win = window.open('', '_blank', 'width=1100,height=800');
+    win.document.write('<html><head><title>Bardan History</title>' +
+    '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:32px}' +
+      '.logo-bar{background:#0f172a;color:#fff;padding:8px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}' +
+      '.logo-bar h1{font-size:11px;font-weight:normal;text-transform:uppercase}' +
+      '.logo-bar .lbl{font-size:9px;color:#94a3b8;font-weight:normal;letter-spacing:1px}' +
+      '.logo-bar .conf{font-size:9px;color:#ef4444;font-weight:bold;letter-spacing:0.5px}' +
+      'h2{font-size:18px;font-weight:bold;color:#0f172a;margin-bottom:2px}' +
+      'p.sub{font-size:9px;color:#64748b;margin-bottom:12px}' +
+      'hr{border:none;border-top:1px solid #e2e8f0;margin:8px 0}' +
+      'table{width:100%;border-collapse:collapse}' +
+      'thead tr{background:#0f172a;color:#fff}' +
+      'th{padding:8px 10px;font-size:9px;font-weight:700;text-transform:uppercase;text-align:left}' +
+      'td{padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:9px}' +
+      'tfoot tr{background:#1e293b;color:#fff;font-weight:700}' +
+      '@media print{@page{size:A4 portrait;margin:1.5cm}}' +
+    '</style></head><body>' +
+    '<div class="logo-bar">' +
+       '<h1>BARDAN HISTORY</h1>' +
+       '<span class="lbl">BARDAN LEDGER REPORT</span>' +
+       '<span class="conf">CONFIDENTIAL</span>' +
+    '</div>' +
+    '<h2>Bardan History & Ledger</h2>' +
+    '<p class="sub">Generated: ' + new Date().toLocaleString('en-IN') + '</p>' +
+    '<hr/>' +
+    '<table>' +
+      '<thead><tr><th>Date</th><th>Particulars</th><th style="text-align:right">Debit (Taken)</th><th style="text-align:right">Credit (Returned)</th><th style="text-align:right">Balance</th></tr></thead>' +
+      '<tbody>' + rows.join('') + '</tbody>' +
+    '</table></body></html>');
+    win.document.close(); win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
+  };
+
+  const handleHistoryExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const M = 32;
+    const navy = [15, 23, 42], white = [255, 255, 255], gray = [100, 116, 139];
+    const dark = [30, 41, 59], stripe = [241, 245, 249];
+
+    const hdr = () => {
+       doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
+       doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+       doc.text('BARDAN LEDGER', M, 17);
+       doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+       doc.text('BARDAN PORTFOLIO HISTORY', W / 2, 17, { align: 'center' });
+       doc.setFontSize(7); doc.setTextColor(239, 68, 68);
+       doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+    };
+    const ftr = (pg, tot) => {
+       doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
+       doc.line(M, H - 18, W - M, H - 18);
+       doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+       doc.text('Bardan Ledger Summary', M, H - 9);
+       doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
+       doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
+    };
+
+    hdr();
+    let y = 45;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
+    doc.text('Bardan History & Ledger', M, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+    doc.text('Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
+    y += 28;
+
+    const dataToPrint = formData.code ? ledgerData : history;
+    autoTable(doc, {
+       startY: y,
+       head: [['Date', 'Particulars', 'Debit (Taken)', 'Credit (Returned)', 'Balance']],
+       body: dataToPrint.filter(row => {
+          const term = (historySearchQuery || '').toLowerCase();
+          return !term ||
+            String(row.sabhasad_name || row.sabhasad_code || row.member_name || row.member_code || '').toLowerCase().includes(term) ||
+            String(row.particulars || '').toLowerCase().includes(term) ||
+            String(row.pavti_no || '').toLowerCase().includes(term);
+       }).map(r => [
+          r.date || '',
+          r.particulars || '',
+          r.taken || r.debit || r.given || '-',
+          r.returned || r.credit || '-',
+          r.balance || '-'
+       ]),
+       styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [5, 6], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+       headStyles: { font: 'helvetica', fillColor: navy, textColor: white },
+       footStyles: { font: 'helvetica', fillColor: [30, 41, 59], textColor: white },
+       alternateRowStyles: { fillColor: stripe },
+       theme: 'grid',
+       margin: { left: M, right: M }
+    });
+
+    const tot = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
+    doc.save('Bardan_History_' + (formData.code || 'all') + '.pdf');
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setSearchTerms(prev => ({ ...prev, [name]: value }));
     setDropdowns(prev => ({ ...prev, [name]: true }));
 
     if (name === 'code') {
@@ -235,7 +350,6 @@ const BardanPortfolio = () => {
       name: member.member_name,
       memNominal: member.nominal_member === 'Member' ? 'Member' : 'Nominal'
     }));
-    setSearchTerms({ code: member.member_code, name: member.member_name });
     setDropdowns({ code: false, name: false });
     fetchBalance(member.member_code);
   };
@@ -275,17 +389,14 @@ const BardanPortfolio = () => {
 
       if (res.data.success) {
         setMessage({ type: 'success', text: formData.id ? 'Transaction updated' : 'Transaction committed' });
-        console.log('✅ Commit Success:', res.data);
         if (!formData.id) resetForm();
         loadData();
         if (formData.code) fetchBalance(formData.code);
         setTimeout(() => setMessage(null), 5000);
       } else {
-        console.error('❌ Commit Failure:', res.data);
         setMessage({ type: 'error', text: res.data.error || 'Operational failure' });
       }
     } catch (err) {
-      console.error('🚀 Dispatching Error:', err);
       setMessage({ type: 'error', text: 'Network or server error during commit' });
     } finally {
       setLoading(false);
@@ -296,7 +407,6 @@ const BardanPortfolio = () => {
     if (!window.confirm('⚠️ Are you sure you want to VOID this transaction? This will set quantity to zero but keep the record for audit.')) return;
     try {
       setLoading(true);
-      // 1. Fetch current details to preserve other fields
       const res = type === 'GIVEN'
         ? await bardanEntryApi.getEntryById(id)
         : await jamaBardanEntryApi.getEntryById(id);
@@ -325,7 +435,6 @@ const BardanPortfolio = () => {
         }
       }
     } catch (error) {
-      console.error('Voiding failed:', error);
       setMessage({ type: 'error', text: 'Operational failure during voiding' });
     } finally {
       setLoading(false);
@@ -386,166 +495,207 @@ const BardanPortfolio = () => {
     setGridRows(Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
     setBalanceData({ taken: 0, returned: 0, balance: 0 });
   };
-  const handlePrint = () => { window.print(); };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12">
-      <div className="max-w-[1600px] mx-auto px-8">
-        {showHistory ? (
-          <div className="animate-in slide-in-from-right duration-500">
-            <PageHeader
-              eyebrow="Asset Management / Logistics"
-              eyebrowIcon={<ArrowLeftRight size={12} />}
-              title="Bardan Registry"
-              subtitle="Combined Logistics & Return Manifest"
-            >
-              <button
-                onClick={() => setShowHistory(false)}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-blue-700 transition-all"
-              >
-                <X size={16} /> Exit History
-              </button>
-            </PageHeader>
+    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+      {message && (
+        <div className={`p-4 mb-4 border text-xs font-bold ${message.type === 'error' ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-emerald-50 border-emerald-300 text-emerald-700'}`}>
+          {message.text}
+        </div>
+      )}
 
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="px-10 py-6">Date</th>
-                    <th className="px-10 py-6">Particulars</th>
-                    <th className="px-10 py-6 text-right">Debit (Taken)</th>
-                    <th className="px-10 py-6 text-right">Credit (Jama)</th>
-                    <th className="px-10 py-6 text-right">Balance</th>
-                    <th className="px-10 py-6 text-right">Operations</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(formData.code ? ledgerData : history).map((row, i) => (
-                    <tr key={row.id || i} className="group hover:bg-slate-50/50 transition-all">
-                      <td className="px-10 py-6">
-                        <p className="text-sm font-bold text-slate-600 font-mono">
-                          {(row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—'}
-                        </p>
-                      </td>
-                      <td className="px-10 py-6">
-                        <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{row.particulars || row.name || (row.type === 'GIVEN' ? 'Given' : 'Returned')}</p>
-                        {row.pavti_no && <p className="text-[10px] font-bold text-blue-500 tracking-widest uppercase mt-0.5">PVT: {row.pavti_no}</p>}
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        <p className="text-lg font-bold text-slate-800">{row.debit ?? (row.type === 'GIVEN' ? row.qty : '—')}</p>
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        <p className="text-lg font-bold text-emerald-600">{row.credit ?? (row.type === 'RETURNED' ? row.qty : '—')}</p>
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        {row.balance != null ? (
-                          <p className={`text-xl font-bold ${row.balance > 0 ? 'text-rose-500' : 'text-slate-900'
-                            }`}>{row.balance}</p>
-                        ) : (
-                          <p className="text-[10px] font-bold text-slate-300 uppercase leading-tight">Select member<br />for balance</p>
-                        )}
-                      </td>
-                      <td className="px-10 py-6">
-                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                          {row.id !== 'OP' && row.type !== 'OPENING' && (
-                            <>
-                              <button 
-                                onClick={() => handleEdit(row)} 
-                                title="Edit Transaction" 
-                                className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg shadow-sm transition-all border border-blue-100"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button 
-                                onClick={() => handleVoid(row.id, row.type)} 
-                                title="Void Entry (Set to 0)" 
-                                className="p-2.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg shadow-sm transition-all border border-rose-100"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+        {showHistory ? (
+          <div className="space-y-6 select-none animate-none">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
+                  <History size={20} className="text-zinc-600" />
+                  Bardan History & Ledger
+                </h1>
+                <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Asset Management / Logistics</p>
+              </div>
+
+              <div className="flex items-center gap-2 select-none w-full md:w-auto">
+                <button
+                  onClick={handleHistoryPrint}
+                  className="flex items-center gap-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold px-3 py-2 transition shadow-sm select-none"
+                >
+                  <Printer size={15} /> PRINT
+                </button>
+                <button
+                  onClick={handleHistoryExportPDF}
+                  className="flex items-center gap-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold px-3 py-2 transition shadow-sm select-none"
+                >
+                  <FileText size={15} /> PDF
+                </button>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 transition shadow-sm select-none"
+                >
+                  <X size={16} /> EXIT HISTORY
+                </button>
+              </div>
+            </div>
+
+            {/* Dense Table Layout */}
+            <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
+              <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                    Transaction History Log
+                  </span>
+                  <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
+                    {(formData.code ? ledgerData : history).length} RECORDS
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
+                  <Search size={16} className="text-zinc-400" />
+                  <input
+                    type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    placeholder="Search logs..."
+                    className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto bg-white">
+                <table className="min-w-full divide-y divide-zinc-200 select-none">
+                  <thead className="bg-zinc-50 select-none">
+                    <tr className="text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-300">
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Particulars</th>
+                      <th className="px-4 py-3 text-right">Debit (Taken)</th>
+                      <th className="px-4 py-3 text-right">Credit (Jama)</th>
+                      <th className="px-4 py-3 text-right">Balance</th>
+                      <th className="px-4 py-3 text-right w-24">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-zinc-200 text-xs select-none">
+                    {(formData.code ? ledgerData : history).filter(row => {
+                      const term = (historySearchQuery || '').toLowerCase();
+                      const dateStr = (row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—';
+                      const partStr = row.particulars || row.name || (row.type === 'GIVEN' ? 'Given' : 'Returned');
+                      const pvtStr = row.pavti_no || '';
+                      return dateStr.toLowerCase().includes(term) || partStr.toLowerCase().includes(term) || pvtStr.toLowerCase().includes(term);
+                    }).map((row, i) => (
+                      <tr key={row.id || i} className="hover:bg-zinc-50 transition select-none">
+                        <td className="px-4 py-3 font-mono">
+                          {(row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-4 py-3 font-bold text-zinc-800 uppercase tracking-tight">
+                          {row.particulars || row.name || (row.type === 'GIVEN' ? 'Given' : 'Returned')}
+                          {row.pavti_no && <span className="block text-[10px] font-mono text-blue-600 mt-0.5">PVT: {row.pavti_no}</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-zinc-700">
+                          {row.debit ?? (row.type === 'GIVEN' ? row.qty : '—')}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600">
+                          {row.credit ?? (row.type === 'RETURNED' ? row.qty : '—')}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-zinc-800">
+                          {row.balance != null ? row.balance : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1.5">
+                            {row.id !== 'OP' && row.type !== 'OPENING' && (
+                              <>
+                                <button 
+                                  onClick={() => handleEdit(row)} 
+                                  className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-blue-600 transition"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button 
+                                  onClick={() => handleVoid(row.id, row.type)} 
+                                  className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-rose-600 transition"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="animate-in fade-in duration-700">
-            <PageHeader
-              eyebrow="Inventory / Bardan"
-              eyebrowIcon={<ArrowLeftRight size={12} />}
-              title="Bardan Portfolio"
-              subtitle="Manage gunny bag inventory and ledger"
-            >
-              <div className="flex items-center gap-3">
+          <div className="space-y-6 select-none animate-none">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
+                  <ArrowLeftRight size={20} className="text-zinc-600" />
+                  Bardan Portfolio Registry
+                </h1>
+                <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Inventory & Logistics Management</p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full md:w-auto">
                 <button
                   onClick={() => setShowPriceModal(true)}
-                  className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+                  className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
                 >
-                  <Tag size={15} /> Bardan Rate
+                  <Tag size={14} /> BARDAN RATE
                 </button>
                 <button
                   onClick={() => setShowHistory(true)}
-                  className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+                  className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
                 >
-                  <History size={15} /> History
+                  <History size={14} /> HISTORY
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 select-none transition shadow-sm"
                 >
-                  <Save size={15} /> Save Transaction
+                  <Save size={14} /> SAVE TRANSACTION
                 </button>
               </div>
-            </PageHeader>
-            {message && (
-              <div className={`mb-6 p-5 rounded-lg flex items-center gap-4 animate-in slide-in-from-top duration-300 border-l-[6px] ${message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                }`}>
-                {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-                <span className="text-sm font-bold uppercase tracking-widest">{message.text}</span>
-              </div>
-            )}
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Entry Workspace Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               <div className="lg:col-span-8 space-y-4">
-                <div className="bg-white p-8 rounded-lg border border-slate-200 shadow-sm space-y-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-10 opacity-[0.02] select-none pointer-events-none">
-                    <Package size={240} />
-                  </div>
-
-                  <div className="flex gap-4 p-1.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="bg-white p-5 border border-zinc-300 space-y-5">
+                  {/* Ledger Type Toggler */}
+                  <div className="flex gap-1 bg-zinc-100 border border-zinc-300 p-1 select-none">
                     <button
                       onClick={() => setFormData({ ...formData, type: 'GIVEN' })}
                       disabled={!!formData.id}
-                      className={`flex-1 py-3.5 rounded-lg flex items-center justify-center gap-3 transition-all font-bold text-xs uppercase tracking-wider ${formData.type === 'GIVEN'
-                        ? 'bg-rose-600 text-white shadow-lg shadow-rose-100'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-800'
+                      className={`flex-1 py-2.5 rounded-sm flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'GIVEN'
+                        ? 'bg-blue-600 text-white border border-blue-600'
+                        : 'text-zinc-600'
                         } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      <TrendingUp size={16} /> Give Bags (Uthar)
+                      <TrendingUp size={15} /> Give Bags (Uthar)
                     </button>
                     <button
                       onClick={() => setFormData({ ...formData, type: 'RETURNED' })}
                       disabled={!!formData.id}
-                      className={`flex-1 py-3.5 rounded-lg flex items-center justify-center gap-3 transition-all font-bold text-xs uppercase tracking-wider ${formData.type === 'RETURNED'
-                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-800'
+                      className={`flex-1 py-2.5 rounded-sm flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'RETURNED'
+                        ? 'bg-blue-600 text-white border border-blue-600'
+                        : 'text-zinc-600'
                         } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      <TrendingDown size={16} /> Return Bags (Jama)
+                      <TrendingDown size={15} /> Return Bags (Jama)
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Book Type</label>
+                  {/* Form Grid Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Book Type</label>
                       <select
                         name="bookType"
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
+                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs select-none"
                         value={formData.bookType}
                         onChange={handleChange}
                       >
@@ -554,240 +704,222 @@ const BardanPortfolio = () => {
                       </select>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.pavti_no')}</label>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.pavti_no')}</label>
                       <input
                         name="pavtiNo"
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300"
-                        placeholder="ENTER PVT NO."
+                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs"
+                        placeholder="ENTER PVT NO"
                         value={formData.pavtiNo}
                         onChange={handleChange}
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.date')}</label>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.date')}</label>
                       <input
                         type="date"
                         name="date"
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700"
+                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs"
                         value={formData.date}
                         onChange={handleChange}
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5 relative">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Code</label>
-                      <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="code"
-                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 uppercase"
-                          placeholder="SEARCH CODE..."
-                          value={formData.code}
-                          autoComplete="off"
-                          onFocus={() => setDropdowns(prev => ({ ...prev, code: true }))}
-                          onChange={handleChange}
-                        />
-                        {dropdowns.code && (
-                          <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-[300px] overflow-y-auto scroller-airy">
-                            {members
-                              .filter(m => m.member_code.toString().toLowerCase().includes(formData.code.toLowerCase()))
-                              .slice(0, 50)
-                              .map(m => (
-                                <div
-                                  key={m.id}
-                                  onClick={() => selectMember(m)}
-                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-none group transition-colors"
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-black text-slate-800 tracking-tighter">{m.member_code}</span>
-                                    <span className="text-[10px] font-bold text-slate-400 group-hover:text-blue-500 uppercase">{m.village_name}</span>
-                                  </div>
-                                  <p className="text-[10px] font-bold text-slate-500 uppercase">{m.member_name}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1 relative member-select-container">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Member Code</label>
+                      <input
+                        type="text"
+                        name="code"
+                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs"
+                        placeholder="SEARCH CODE"
+                        value={formData.code}
+                        autoComplete="off"
+                        onFocus={() => setDropdowns(prev => ({ ...prev, code: true }))}
+                        onChange={handleChange}
+                      />
+                      {dropdowns.code && (
+                        <div className="absolute z-[100] w-full top-full left-0 mt-1 bg-white border border-zinc-300 shadow-lg max-h-[250px] overflow-y-auto">
+                          {members
+                            .filter(m => m.member_code.toString().toLowerCase().includes(formData.code.toLowerCase()))
+                            .slice(0, 50)
+                            .map(m => (
+                              <div
+                                key={m.id}
+                                onClick={() => selectMember(m)}
+                                className="px-3 py-2 hover:bg-zinc-100 border-b border-zinc-200 cursor-pointer text-xs transition"
+                              >
+                                <div className="flex justify-between items-center select-none">
+                                  <span className="font-bold text-zinc-800">{m.member_code}</span>
+                                  <span className="text-[10px] font-bold text-zinc-400 uppercase">{m.village_name}</span>
                                 </div>
-                              ))}
-                          </div>
-                        )}
-                      </div>
+                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">{m.member_name}</p>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="space-y-1.5 relative">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Name</label>
-                      <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="name"
-                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 uppercase"
-                          placeholder="SEARCH NAME..."
-                          value={formData.name}
-                          autoComplete="off"
-                          onFocus={() => setDropdowns(prev => ({ ...prev, name: true }))}
-                          onChange={handleChange}
-                        />
-                        {dropdowns.name && (
-                          <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-[300px] overflow-y-auto scroller-airy">
-                            {members
-                              .filter(m => m.member_name.toLowerCase().includes(formData.name.toLowerCase()))
-                              .slice(0, 50)
-                              .map(m => (
-                                <div
-                                  key={m.id}
-                                  onClick={() => selectMember(m)}
-                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-none group transition-colors"
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-black text-slate-800 tracking-tighter">{m.member_name}</span>
-                                    <span className="text-[10px] font-bold text-slate-400 group-hover:text-blue-500 uppercase">{m.member_code}</span>
-                                  </div>
-                                  <p className="text-[10px] font-bold text-slate-500 uppercase">{m.village_name}</p>
+                    <div className="flex flex-col gap-1 relative member-select-container">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Member Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs"
+                        placeholder="SEARCH NAME"
+                        value={formData.name}
+                        autoComplete="off"
+                        onFocus={() => setDropdowns(prev => ({ ...prev, name: true }))}
+                        onChange={handleChange}
+                      />
+                      {dropdowns.name && (
+                        <div className="absolute z-[100] w-full top-full left-0 mt-1 bg-white border border-zinc-300 shadow-lg max-h-[250px] overflow-y-auto">
+                          {members
+                            .filter(m => m.member_name.toLowerCase().includes(formData.name.toLowerCase()))
+                            .slice(0, 50)
+                            .map(m => (
+                              <div
+                                key={m.id}
+                                onClick={() => selectMember(m)}
+                                className="px-3 py-2 hover:bg-zinc-100 border-b border-zinc-200 cursor-pointer text-xs transition"
+                              >
+                                <div className="flex justify-between items-center select-none">
+                                  <span className="font-bold text-zinc-800">{m.member_name}</span>
+                                  <span className="text-[10px] font-bold text-zinc-400 uppercase">{m.member_code}</span>
                                 </div>
-                              ))}
-                          </div>
-                        )}
-                      </div>
+                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">{m.village_name}</p>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Quantity</label>
-                      <div className="relative group">
-                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 select-none">
+                    <div className="flex flex-col gap-1 relative">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Quantity</label>
+                      <div className="relative">
                         <input
                           type="number"
                           name="qty"
-                          className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300"
+                          className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs"
                           placeholder="0.00"
                           value={formData.qty}
                           onChange={handleChange}
                         />
                         {formData.type === 'RETURNED' && (
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg">
-                            <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-0.5">Pending</p>
-                            <p className="text-[10px] font-black text-emerald-700 leading-none">#{balanceData.balance || 0}</p>
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-zinc-50 border border-zinc-300 px-2 py-0.5 select-none">
+                            <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest leading-none">Pending: </span>
+                            <span className="text-emerald-700 font-mono font-bold text-xs leading-none">#{balanceData.balance || 0}</span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Member Type</label>
-                      <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Member Type</label>
+                      <div className="flex items-center gap-3 bg-zinc-50 p-2 border border-zinc-300 select-none">
                         <input
                           type="checkbox"
                           id="memNominalCheck"
-                          className="w-5 h-5 rounded text-blue-600 border-slate-300 focus:ring-blue-500 transition-all cursor-pointer"
+                          className="w-4 h-4 rounded text-zinc-600 border-zinc-300 focus:ring-zinc-500 transition-all cursor-pointer"
                           checked={formData.memNominal === 'Member'}
                           onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
                         />
-                        <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer select-none">
+                        <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-zinc-700 cursor-pointer select-none">
                           {formData.memNominal === 'Member' ? 'Sabhasad (Active)' : 'Nominal Member'}
                         </label>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.remark')}</label>
-                    <div className="relative group">
-                      <Info className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-                      <textarea
-                        name="remark"
-                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 min-h-[100px] placeholder:text-slate-300"
-                        placeholder="ENTER REMARK..."
-                        value={formData.remark}
-                        onChange={handleChange}
-                      />
-                    </div>
+                  <div className="flex flex-col gap-1 select-none">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('bardanEntry.remark')}</label>
+                    <textarea
+                      name="remark"
+                      className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs min-h-[70px]"
+                      placeholder="ENTER REMARK..."
+                      value={formData.remark}
+                      onChange={handleChange}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="lg:col-span-4 space-y-4">
-                <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp size={16} className="text-blue-600" />
-                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Asset Load</p>
+              {/* Side Panels - Metric Insights & Grid Matrix */}
+              <div className="lg:col-span-4 space-y-4 select-none">
+                <div className="bg-white p-4 border border-zinc-300 space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-300">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp size={15} className="text-zinc-600" />
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase">Asset Load</p>
                     </div>
-                    <p className="text-lg font-black text-slate-900 tracking-tight">#{((balanceData.opening || 0) + (balanceData.taken || 0)).toFixed(2)}</p>
+                    <p className="text-base font-mono font-bold text-zinc-800 leading-none">#{((balanceData.opening || 0) + (balanceData.taken || 0)).toFixed(2)}</p>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <TrendingDown size={16} className="text-emerald-600" />
-                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Return Reg</p>
+                  <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-300">
+                    <div className="flex items-center gap-2">
+                      <TrendingDown size={15} className="text-zinc-600" />
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase">Return Reg</p>
                     </div>
-                    <p className="text-lg font-black text-emerald-700 tracking-tight">#{balanceData.returned}</p>
+                    <p className="text-base font-mono font-bold text-zinc-800 leading-none">#{balanceData.returned}</p>
                   </div>
 
-                  <div className="p-5 bg-white rounded-lg border-2 border-blue-600 shadow-lg shadow-blue-50 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12">
-                      <Database size={48} className="text-blue-600" />
-                    </div>
-                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest relative z-10">Net Position</p>
-                    <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                      <p className="text-3xl font-black text-slate-900 tracking-tight">#{balanceData.balance}</p>
-                      <span className="text-[8px] text-blue-600 font-bold uppercase tracking-widest">Outstanding</span>
+                  <div className="p-4 bg-zinc-50 border border-zinc-300 flex justify-between items-center">
+                    <div className="flex flex-col justify-between">
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest leading-none">Net Position</span>
+                      <span className="text-lg font-bold font-mono text-zinc-800 mt-1 leading-none">#{balanceData.balance}</span>
                     </div>
                     {bardanPrice > 0 && (
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-3 relative z-10 pt-3 border-t border-slate-100">
-                        VALUATION: ₹{(balanceData.balance * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </p>
+                      <div className="text-right flex flex-col justify-between">
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest leading-none">Valuation</span>
+                        <span className="text-sm font-bold font-mono text-blue-600 mt-1 leading-none">₹{(balanceData.balance * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col">
-                  <TableHeading
-                    icon={<Layout size={18} />}
-                    iconColor="blue"
-                    title="Transaction Context"
-                    subtitle="Allocation & Category Mapping"
-                  />
+                <div className="bg-white border border-zinc-300 flex flex-col select-none">
+                  <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
+                    <span className="text-xs font-bold text-zinc-700 uppercase">Allocation Matrix</span>
+                  </div>
                   
-                  <div className="p-6 space-y-6">
+                  <div className="p-4 space-y-4">
                     {formData.type === 'RETURNED' && (
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic">Return Category</label>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <select
-                            name="option"
-                            className="w-full bg-transparent border-none outline-none font-bold text-xs text-slate-700 uppercase appearance-none"
-                            value={formData.option}
-                            onChange={handleChange}
-                          >
-                            <option value="Company">Company Bags</option>
-                            <option value="Self">Self Bags (Penalty Applies)</option>
-                          </select>
-                        </div>
+                      <div className="flex flex-col gap-1 select-none">
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase italic">Return Category</label>
+                        <select
+                          name="option"
+                          className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-mono font-bold text-xs select-none"
+                          value={formData.option}
+                          onChange={handleChange}
+                        >
+                          <option value="Company">Company Bags</option>
+                          <option value="Self">Self Bags (Penalty Applies)</option>
+                        </select>
                       </div>
                     )}
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic">Allocation Matrix</label>
-                      <div className="max-h-[300px] overflow-y-auto pr-2 custom-scroller">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <div className="flex flex-col gap-1 select-none">
+                      <div className="max-h-[180px] overflow-y-auto border border-zinc-200">
+                        <table className="w-full text-xs select-none">
+                          <thead className="bg-zinc-50 select-none">
+                            <tr className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-300 select-none">
                               <th className="py-2 text-center w-8">#</th>
                               <th className="py-2 px-1 text-left">POS 1</th>
                               <th className="py-2 px-1 text-left">POS 2</th>
                               <th className="py-2 px-1 text-left">POS 3</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-50">
+                          <tbody className="divide-y divide-zinc-200">
                             {gridRows.map((row, i) => (
-                              <tr key={i} className="group">
-                                <td className="text-center font-bold text-slate-300">{i + 1}</td>
+                              <tr key={i} className="hover:bg-zinc-50 transition select-none">
+                                <td className="text-center font-bold text-zinc-400 font-mono text-[10px] select-none">{i + 1}</td>
                                 <td className="px-1 py-1">
                                   <input
-                                    className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-1.5 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                                    className="w-full bg-white border border-zinc-300 px-2 py-1 font-mono font-bold text-zinc-700 outline-none focus:border-zinc-500"
                                     value={row.col1}
                                     onChange={(e) => {
                                       const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
@@ -796,7 +928,7 @@ const BardanPortfolio = () => {
                                 </td>
                                 <td className="px-1 py-1">
                                   <input
-                                    className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-1.5 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                                    className="w-full bg-white border border-zinc-300 px-2 py-1 font-mono font-bold text-zinc-700 outline-none focus:border-zinc-500"
                                     value={row.col2}
                                     onChange={(e) => {
                                       const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
@@ -805,7 +937,7 @@ const BardanPortfolio = () => {
                                 </td>
                                 <td className="px-1 py-1">
                                   <input
-                                    className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-1.5 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                                    className="w-full bg-white border border-zinc-300 px-2 py-1 font-mono font-bold text-zinc-700 outline-none focus:border-zinc-500"
                                     value={row.col3}
                                     onChange={(e) => {
                                       const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
@@ -820,10 +952,10 @@ const BardanPortfolio = () => {
                     </div>
                   </div>
 
-                  <div className="p-5 border-t border-slate-100">
-                    <div className="flex justify-between items-center text-blue-600 px-2">
+                  <div className="p-4 border-t border-zinc-300 bg-zinc-50 select-none">
+                    <div className="flex justify-between items-center text-zinc-600">
                       <p className="text-[10px] font-bold uppercase tracking-wider">Total Volume</p>
-                      <p className="text-2xl font-black tracking-tight">{parseFloat(formData.qty || 0).toFixed(2)}</p>
+                      <p className="text-xl font-mono font-bold tracking-tight text-zinc-900 leading-none">{parseFloat(formData.qty || 0).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -833,82 +965,61 @@ const BardanPortfolio = () => {
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .custom-scroller::-webkit-scrollbar { width: 4px; }
-        .custom-scroller::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroller::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scroller:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
-        
-        .scroller-airy::-webkit-scrollbar { width: 6px; }
-        .scroller-airy::-webkit-scrollbar-track { background: #f8fafc; }
-        .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; border: 2px solid #f8fafc; }
-        .scroller-airy:hover::-webkit-scrollbar-thumb { background: #cbd5e1; }
-      `}} />
-
+      {/* Bardan Rate Modal */}
       {showPriceModal && (
-        <div className="fixed inset-0 z-[100] flex justify-center items-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPriceModal(false)}></div>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative z-10 border border-white/20">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-                  <Tag size={18} />
-                </div>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+          <div className="bg-white border border-zinc-300 p-5 w-full max-w-md flex flex-col animate-none">
+            <div className="flex justify-between items-center border-b border-zinc-300 pb-3 mb-4 select-none">
+              <div className="flex items-center gap-2">
+                <Tag size={18} className="text-zinc-600" />
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">Bardan Protocol</h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Configure System Rate (₹)</p>
+                  <h2 className="text-base font-bold text-zinc-900">Bardan Price Protocol</h2>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase">Set rate calculation (₹)</p>
                 </div>
               </div>
-              <button onClick={() => setShowPriceModal(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={20} /></button>
+              <button onClick={() => setShowPriceModal(false)} className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-700 transition"><X size={16} /></button>
             </div>
 
-            <div className="p-8 space-y-8 bg-slate-50/30">
-              {/* Current Status Display */}
-              <div className="p-5 bg-blue-50 border border-blue-100 rounded-lg flex justify-between items-center shadow-sm">
-                <div className="flex items-center gap-3">
-                  <Database size={14} className="text-blue-400" />
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Active System Rate</p>
+            <div className="space-y-4 select-none">
+              <div className="p-4 bg-zinc-50 border border-zinc-300 flex justify-between items-center">
+                <div className="flex items-center gap-2 leading-none">
+                  <Database size={14} className="text-zinc-400" />
+                  <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-none">Active System Rate</p>
                 </div>
-                <p className="text-xl font-black text-blue-700 tracking-tighter">₹{parseFloat(bardanPrice || 0).toFixed(2)}</p>
+                <p className="text-lg font-mono font-bold text-zinc-800 leading-none">₹{parseFloat(bardanPrice || 0).toFixed(2)}</p>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">New Market Valuation (Per Bag)</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 group-focus-within:border-blue-500 group-focus-within:text-blue-500 transition-all">
-                    <IndianRupee size={14} />
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full pl-16 pr-4 py-4 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 text-lg outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-200"
-                    placeholder="0.00"
-                    value={priceForm.price_per_bardan}
-                    onChange={(e) => setPriceForm({ ...priceForm, price_per_bardan: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveBardanPrice();
-                    }}
-                  />
-                </div>
-                <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-relaxed ml-1">
-                  This rate defines the financial value of gunny bags for all ledger computations.
+              <div className="flex flex-col gap-1 select-none">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-relaxed">Market Valuation (Per Bag)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-sm font-mono font-bold text-zinc-800 text-lg outline-none focus:border-zinc-500 transition"
+                  placeholder="0.00"
+                  value={priceForm.price_per_bardan}
+                  onChange={(e) => setPriceForm({ ...priceForm, price_per_bardan: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveBardanPrice();
+                  }}
+                />
+                <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider leading-relaxed select-none">
+                  This rate defines the valuation for extraction computing protocols.
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 pt-2 border-t border-zinc-200">
                 <button
                   onClick={() => setShowPriceModal(false)}
-                  className="flex-1 py-4 bg-white border border-slate-200 text-slate-500 font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-slate-50 transition-all"
+                  className="flex-1 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold select-none transition"
                 >
-                  Discard
+                  Cancel
                 </button>
                 <button
                   onClick={saveBardanPrice}
-                  className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 active:scale-95 group"
+                  className="flex-[2] py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold select-none transition flex items-center justify-center gap-1.5"
                 >
-                  <Save size={16} className="group-hover:scale-110 transition-transform" /> 
-                  <span>Save New Rate</span>
+                  <Save size={15} />
+                  <span>Update Rate</span>
                 </button>
               </div>
             </div>

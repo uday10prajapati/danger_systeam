@@ -1,38 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import {
-  X, AlertCircle, ShoppingBag, IndianRupee,
-  Calendar, TrendingUp, Save, RefreshCcw,
-  Target, ShieldCheck, Activity, Layers,
-  ArrowRight
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Save, RefreshCcw, Layers, Loader } from 'lucide-react';
 
-// Airy Label Component
-const FormLabel = ({ children, icon: Icon, className = "" }) => (
-  <div className={`flex items-center gap-2 mb-2 select-none ${className}`}>
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] whitespace-nowrap">
-      {children}
-    </label>
-    {Icon && <Icon size={12} className="text-slate-300" />}
-  </div>
-);
-
-// Airy Input Component
-const FormInput = ({ className = "", error, ...props }) => (
-  <div className="space-y-1.5 flex-1 group">
-    <div className="relative">
-      <input
-        className={`w-full h-12 px-5 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50 transition-all rounded-lg font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
-        {...props}
-      />
-    </div>
-    {error && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-2">{error}</p>}
-  </div>
-);
-
-export default function ItemRateForm({ rate, items, company, onSubmit, onClose }) {
-  const { t } = useTranslation();
+export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
   const [formData, setFormData] = useState({
     item_id: '',
     purchase_rate: '',
@@ -42,7 +11,6 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
   });
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     if (rate) {
@@ -53,20 +21,37 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
         mrp: rate.mrp || '',
         effective_from: new Date(rate.effective_from).toISOString().split('T')[0]
       });
-      const item = items.find(i => i.id === rate.item_id);
-      setSelectedItem(item);
     }
-  }, [rate, items]);
+  }, [rate]);
+
+  const itemIdRef = useRef(null);
+  const purchaseRateRef = useRef(null);
+  const saleRateRef = useRef(null);
+  const mrpRef = useRef(null);
+  const effectiveFromRef = useRef(null);
+
+  const handleKeyDown = (e, nextRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      } else {
+        handleSubmit(e);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
-    if (name === 'item_id') {
-      const item = items.find(i => i.id === parseInt(value));
-      setSelectedItem(item);
-    }
-
     if (errors.length > 0) setErrors([]);
   };
 
@@ -79,7 +64,7 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const newErrors = validateForm();
     if (newErrors.length > 0) {
       setErrors(newErrors);
@@ -108,134 +93,143 @@ export default function ItemRateForm({ rate, items, company, onSubmit, onClose }
     }
   };
 
-  const margin = formData.purchase_rate && formData.sale_rate
-    ? ((formData.sale_rate - formData.purchase_rate) / formData.purchase_rate * 100).toFixed(1)
-    : '0.0';
-
   return (
-    <div className="bg-white rounded-lg border border-slate-100 shadow-2xl p-12 overflow-hidden relative animate-in slide-in-from-bottom duration-500">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full -mr-32 -mt-32 blur-3xl shadow-inner"></div>
-
-      <div className="relative z-10">
-        <div className="flex justify-between items-start mb-10">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-              {rate ? 'Modify Tariff Manifest' : 'Initialize Price Gradient'}
-            </h2>
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mt-1 italic">Financial Shard Valuation Protocol</p>
-          </div>
-          <button onClick={onClose} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><X size={24} /></button>
+    <div className="bg-white p-0 overflow-hidden border border-zinc-400 font-mono text-xs select-none rounded-none animate-none">
+      {/* Modal Header */}
+      <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
+        <div>
+          <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
+            {rate ? 'EDIT TARIFF RECORD' : 'ADD TARIFF RECORD'}
+          </h2>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Configure price logic</p>
         </div>
+        <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
+          <X size={18} />
+        </button>
+      </div>
 
+      {/* Modal Body */}
+      <div className="p-5 overflow-y-auto space-y-4 animate-none">
         {errors.length > 0 && (
-          <div className="mb-8 p-5 bg-rose-50 border border-rose-100 rounded-lg flex gap-4 animate-in slide-in-from-top duration-300">
-            <AlertCircle className="text-rose-500 shrink-0" size={20} />
-            <ul className="text-[10px] font-black text-rose-700 uppercase tracking-widest space-y-1">
-              {errors.map((err, i) => <li key={i}>• {err}</li>)}
-            </ul>
+          <div className="p-3 border border-red-300 bg-red-50 text-red-800 space-y-0.5">
+            {errors.map((err, i) => (
+              <p key={i} className="text-[10px] font-bold font-mono uppercase tracking-widest leading-normal">
+                • {err}
+              </p>
+            ))}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-12">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              Item / SKU *
+            </label>
+            <select
+              ref={itemIdRef}
+              name="item_id"
+              value={formData.item_id}
+              onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, purchaseRateRef)}
+              disabled={loading || !!rate}
+              className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase disabled:bg-zinc-100 disabled:text-zinc-400"
+            >
+              <option value="">-- SELECT SKU --</option>
+              {items.filter(i => i.is_active === 1).map(item => (
+                <option key={item.id} value={item.id}>
+                  {item.item_name} ({item.item_code})
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* Section 1: SKU Identification */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
-              <div className="w-6 h-0.5 bg-blue-600"></div> Core Inventory Link
-            </h3>
-            <div className="relative group">
-              <FormLabel icon={ShoppingBag}>Designated SKU Registry *</FormLabel>
-              <div className="relative">
-                <select
-                  name="item_id"
-                  value={formData.item_id}
-                  onChange={handleChange}
-                  disabled={loading || !!rate}
-                  className="w-full h-12 px-5 text-sm border border-slate-100 bg-slate-50/50 focus:border-blue-500 focus:bg-white rounded-lg outline-none font-bold text-slate-700 appearance-none cursor-pointer hover:bg-slate-50 transition-all uppercase tracking-widest disabled:bg-slate-100 disabled:text-slate-400"
-                >
-                  <option value="">SCAN OR SELECT SYSTEM ID...</option>
-                  {items.filter(i => i.is_active === 1).map(item => (
-                    <option key={item.id} value={item.id}>{item.item_name} ({item.item_code})</option>
-                  ))}
-                </select>
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">▼</div>
-              </div>
-              {selectedItem && (
-                <div className="mt-3 flex items-center gap-3 px-4 py-2 bg-[#F8FAFC] rounded-lg border border-slate-50">
-                  <div className="p-1.5 bg-white rounded-lg shadow-sm text-blue-500"><Layers size={12} /></div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    Classification: {selectedItem.category} | Logged Unit: {selectedItem.unit}
-                  </span>
-                </div>
-              )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                Procurement Rate *
+              </label>
+              <input
+                ref={purchaseRateRef}
+                type="number"
+                step="0.01"
+                name="purchase_rate"
+                value={formData.purchase_rate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, saleRateRef)}
+                placeholder="0.00"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                Release Rate *
+              </label>
+              <input
+                ref={saleRateRef}
+                type="number"
+                step="0.01"
+                name="sale_rate"
+                value={formData.sale_rate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, mrpRef)}
+                placeholder="0.00"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+              />
             </div>
           </div>
 
-          {/* Section 2: Valuation Protocol */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-3">
-              <div className="w-6 h-0.5 bg-emerald-500"></div> Fiscal Valuation Gradients
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <FormLabel icon={IndianRupee}>Procurement Valuation *</FormLabel>
-                <FormInput type="number" step="0.01" name="purchase_rate" value={formData.purchase_rate} onChange={handleChange} placeholder="0.00" className="text-right font-mono" />
-              </div>
-              <div>
-                <FormLabel icon={Activity}>Target Release Yield *</FormLabel>
-                <FormInput type="number" step="0.01" name="sale_rate" value={formData.sale_rate} onChange={handleChange} placeholder="0.00" className="text-right font-mono" />
-              </div>
-              <div>
-                <FormLabel icon={ShieldCheck}>Market Ceiling (M.R.P.)</FormLabel>
-                <FormInput type="number" step="0.01" name="mrp" value={formData.mrp} onChange={handleChange} placeholder="0.00" className="text-right font-mono" />
-              </div>
-              <div>
-                <FormLabel icon={Calendar}>Timeline Activation *</FormLabel>
-                <FormInput type="date" name="effective_from" value={formData.effective_from} onChange={handleChange} className="uppercase tracking-widest" />
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                Market Ceiling (MRP)
+              </label>
+              <input
+                ref={mrpRef}
+                type="number"
+                step="0.01"
+                name="mrp"
+                value={formData.mrp}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, effectiveFromRef)}
+                placeholder="0.00"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+              />
             </div>
 
-            {/* Real-time ROI Analysis */}
-            {formData.purchase_rate && formData.sale_rate && (
-              <div className="mt-10 p-10 rounded-lg bg-slate-900 shadow-2xl shadow-slate-200 group relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 text-slate-800 opacity-20 group-hover:rotate-45 transition-transform duration-700"><TrendingUp size={120} /></div>
-                <div className="relative z-10 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 italic">Yield Gradient Index</p>
-                    <div className="flex items-end gap-2">
-                      <p className="text-4xl font-black text-white italic tracking-tighter">{margin}%</p>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${parseFloat(margin) > 20 ? 'bg-emerald-500' : 'bg-rose-500'} text-white mb-1 uppercase`}>
-                        {parseFloat(margin) > 20 ? 'Optimal' : 'Low ROI'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right border-l border-slate-800 pl-10">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 italic">Net Profit per Shard</p>
-                    <p className="text-4xl font-black text-white italic tracking-tighter">₹{(formData.sale_rate - formData.purchase_rate).toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                Activation Date *
+              </label>
+              <input
+                ref={effectiveFromRef}
+                type="date"
+                name="effective_from"
+                value={formData.effective_from}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, null)}
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:bg-slate-200"
-            >
-              {loading ? <RefreshCcw className="animate-spin" size={18} /> : <><Save size={18} /> Commit Tariff Manifest</>}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-12 py-5 bg-white border border-slate-100 text-slate-400 font-bold rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all uppercase text-[10px] tracking-widest"
-            >
-              Abort
-            </button>
-          </div>
-        </form>
+        <div className="flex gap-3 pt-4 border-t border-zinc-200 justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px] tracking-widest shadow-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm"
+          >
+            {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {rate ? 'Update' : 'Save'}</>}
+          </button>
+        </div>
       </div>
     </div>
   );

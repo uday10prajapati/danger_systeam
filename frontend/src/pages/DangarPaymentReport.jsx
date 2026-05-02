@@ -14,12 +14,16 @@ import { toPng } from 'html-to-image';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
+import Toast from '../components/Toast';
+import Loading from '../components/Loading';
 
 const DangarPaymentReport = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     startDate: '2026-04-01',
     endDate: new Date().toISOString().split('T')[0],
@@ -142,14 +146,39 @@ const DangarPaymentReport = () => {
   const exportPDF = () => {
     const validData = data.filter(r => parseFloat(r.final_amount || 0) >= 0);
     if (!validData.length) { alert('No valid data to export.'); return; }
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Dangar Payment Report', 14, 16);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Period: ' + filters.startDate + ' to ' + filters.endDate, 14, 23);
-    doc.text('Generated: ' + new Date().toLocaleDateString('en-IN'), 220, 23, { align: 'right' });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const M = 32;
+    const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
+    const cName = (() => { try { const u = JSON.parse(localStorage.getItem('company')); return u?.company_name || 'Company'; } catch (e) { return 'Company'; } })();
+
+    const hdr = () => {
+      doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+      doc.text(cName.toUpperCase(), M, 17);
+      doc.setFontSize(7); doc.setTextColor(191, 219, 254);
+      doc.text('DANGAR PAYMENT REPORT', W / 2, 17, { align: 'center' });
+      doc.setFontSize(7); doc.setTextColor(239, 68, 68);
+      doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+    };
+
+    const ftr = (pg, tot) => {
+      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+      doc.text(cName + ' - Dangar Payment Report', M, H - 9);
+      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
+      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
+    };
+
+    hdr();
+    let y = 45;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
+    doc.text('Dangar Payment Report', M, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+    doc.text('Period: ' + filters.startDate + ' to ' + filters.endDate + '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
+    y += 28;
 
     const pdfTotals = validData.reduce((acc, r) => ({
       totalQuintal: acc.totalQuintal + parseFloat(r.total_quintal || 0),
@@ -164,7 +193,7 @@ const DangarPaymentReport = () => {
       r.member_code,
       r.member_name,
       r.full_ac_number || '-',
-      parseFloat(r.total_kg || 0).toFixed(2),
+      parseFloat(r.total_quintal || 0).toFixed(2),
       parseFloat(r.rate_per_kg || 0).toFixed(2),
       parseFloat(r.rate_amount || 0).toFixed(2),
       parseFloat(r.total_interest || 0).toFixed(2),
@@ -174,16 +203,21 @@ const DangarPaymentReport = () => {
     ]);
 
     autoTable(doc, {
-      startY: 28,
-      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total KG', 'Rate/Qt', 'Rate Amt', 'Interest', 'Godown Fund', 'Bag Penalty', 'Final Amt']],
+      startY: y,
+      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total Qt', 'Rate/Qt', 'Rate Amt', 'Interest', 'Godown Fund', 'Bag Penalty', 'Final Amt']],
       body: tableRows,
-      styles: { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [30, 30, 60], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [245, 247, 255] },
-      foot: [['', '', '', 'TOTAL', pdfTotals.totalQuintal.toFixed(2) + ' Qt', '',
+      styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+      headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
+      footStyles: { font: 'helvetica', fillColor: [30, 41, 59], textColor: white },
+      alternateRowStyles: { fillColor: stripe },
+      theme: 'grid',
+      foot: [['', '', '', 'TOTALS', pdfTotals.totalQuintal.toFixed(2) + ' Qt', '',
         pdfTotals.totalRateAmount.toFixed(2), pdfTotals.totalInterest.toFixed(2), '', '', pdfTotals.totalFinal.toFixed(2)]],
-      footStyles: { fillColor: [20, 20, 50], textColor: 255, fontStyle: 'bold' },
+      margin: { left: M, right: M }
     });
+
+    const tot = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
     doc.save('dangar_payment_' + filters.startDate + '_' + filters.endDate + '.pdf');
   };
 
@@ -226,6 +260,7 @@ const DangarPaymentReport = () => {
     a.click();
     URL.revokeObjectURL(url);
     setTxtModal(false);
+    setMessage({ type: 'success', text: 'Batch TXT file exported successfully' });
   };
 
   const downloadAllBillsPDF = async () => {
@@ -257,82 +292,89 @@ const DangarPaymentReport = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-8">
+  if (loading) return <Loading />;
 
-        <PageHeader
-          eyebrow="Financial Intelligence / Payout Analytics"
-          eyebrowIcon={<TrendingUp size={12} />}
-          title="Dangar Payment Report"
-          subtitle="Audit-Ready Manifest · Fiscal 2026-27"
-        >
-          <div className="flex items-center gap-3">
+  return (
+    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+      <Toast message={message} onClose={() => setMessage(null)} />
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+              <TrendingUp size={20} className="text-zinc-600" />
+              Dangar Payment Report
+            </h1>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Financial Intelligence / Payout Analytics</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 select-none w-full md:w-auto">
             <button
               onClick={() => { setBillModal(true); setSelectedBills([]); }}
-              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
             >
-              <Printer size={15} /> Print Bill
+              <Printer size={14} /> Print Bill
             </button>
             <button
               onClick={openExportModal}
-              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
             >
-              <FileText size={15} /> TXT
+              <FileText size={14} /> TXT
             </button>
             <button
               onClick={exportExcel}
-              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
             >
-              <Database size={15} /> Excel
+              <Database size={14} /> Excel
             </button>
             <button
               onClick={exportPDF}
-              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
             >
-              <FileText size={15} /> PDF
+              <FileText size={14} /> PDF
             </button>
             <button
               onClick={() => navigate('/dangar-summary')}
-              className="px-4 py-2.5 bg-blue-600 border border-blue-500 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 text-white"
+              className="px-4 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-xs font-bold flex items-center gap-2 transition-all shadow-sm text-white select-none"
             >
               <TrendingUp size={15} /> Dangar Summary
             </button>
           </div>
-        </PageHeader>
+        </div>
 
-        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-4">
+        <div className="bg-white p-5 border border-zinc-300 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Start Date</label>
               <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                 <input
                   type="date"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700"
                   value={filters.startDate}
                   onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">End Date</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">End Date</label>
               <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                 <input
                   type="date"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700"
                   value={filters.endDate}
                   onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sabhasad</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Sabhasad</label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                 <select
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700 appearance-none uppercase"
                   value={filters.memberId}
                   onChange={(e) => setFilters({ ...filters, memberId: e.target.value })}
                 >
@@ -342,11 +384,11 @@ const DangarPaymentReport = () => {
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Bank Stream</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Bank Stream</label>
               <div className="relative">
-                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                 <select
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700 appearance-none uppercase"
                   value={filters.bankName}
                   onChange={(e) => setFilters({ ...filters, bankName: e.target.value })}
                 >
@@ -358,7 +400,7 @@ const DangarPaymentReport = () => {
             <button
               onClick={fetchReport}
               disabled={loading}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100 disabled:opacity-50"
+              className="px-6 py-2.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-xs select-none shadow-sm"
             >
               {loading ? <RefreshCcw className="animate-spin" size={15} /> : <Filter size={15} />}
               GENERATE REPORT
@@ -373,83 +415,100 @@ const DangarPaymentReport = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {[
-            { label: 'Total Volume', val: `${summary.totalQuintal.toFixed(2)} Qt`, icon: Box, color: 'blue' },
-            { label: 'Bag Penalty', val: `₹${summary.totalBardanPenalty?.toFixed(2) || '0.00'}`, icon: Shield, color: 'rose' },
-            { label: 'Final Payable', val: `₹${summary.totalFinal.toFixed(2)}`, icon: CheckCircle, color: 'emerald' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4 group">
-              <div className={`w-12 h-12 bg-${stat.color === 'emerald' ? 'emerald' : stat.color === 'rose' ? 'rose' : 'blue'}-50 text-${stat.color === 'emerald' ? 'emerald' : stat.color === 'rose' ? 'rose' : 'blue'}-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}>
-                <stat.icon size={24} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{stat.label}</p>
-                <p className="text-xl font-black text-slate-900 tracking-tight leading-none">{stat.val}</p>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 select-none">
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Total Volume</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{summary.totalQuintal.toFixed(2)} Qt</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Bag Penalty</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">₹{summary.totalBardanPenalty?.toFixed(2) || '0.00'}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Final Payable</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">₹{summary.totalFinal.toFixed(2)}</span>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-          <TableHeading
-            icon={<Layout size={18} />}
-            iconColor="blue"
-            title="Payment List"
-            subtitle="Final payment settlement report"
-          />
+        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[400px]">
+          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider select-none">
+                Payment List
+              </span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 select-none">
+                {data.length} RECORDS
+              </span>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[1200px] w-full text-left">
+            <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
+              <Search size={16} className="text-zinc-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by member..."
+                className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto bg-white select-none flex-1">
+            <table className="min-w-[1200px] w-full text-left border-collapse font-sans text-xs select-none">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <th className="px-6 py-5 w-12 text-center">#</th>
-                  <th className="px-6 py-5">Member Name</th>
-                  <th className="px-6 py-5 text-right">Quintal (Qt)</th>
-                  <th className="px-6 py-5 text-right text-indigo-500">Rate Amt</th>
-                  <th className="px-6 py-5 text-right text-rose-500">Advance</th>
-                  <th className="px-6 py-5 text-right text-blue-600">Interest</th>
-                  <th className="px-6 py-5 text-right text-indigo-500">Dangar Fund</th>
-                  <th className="px-6 py-5 text-right text-amber-600">Baradan Kapat</th>
-                  <th className="px-6 py-5 text-right text-rose-700">Total Deduction</th>
-                  <th className="px-6 py-5 text-right text-emerald-600">Net Payable</th>
+                <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-wider select-none font-sans">
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 w-12 text-center select-none">#</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 select-none">Member Name</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none">Quintal (Qt)</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-zinc-800">Rate Amt</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-rose-600">Advance</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-blue-600">Interest</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-zinc-800">Dangar Fund</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-amber-600">Baradan Kapat</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-rose-600">Total Deduction</th>
+                  <th scope="col" className="px-4 py-2 text-right select-none text-emerald-600">Net Payable</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-zinc-200 text-xs font-mono">
                 {loading ? (
                   <tr>
-                    <td colSpan="9" className="py-20 text-center">
+                    <td colSpan="10" className="py-20 text-center">
                       <RefreshCcw size={32} className="animate-spin text-blue-500 mx-auto mb-3" />
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Report...</p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="py-20 text-center">
+                    <td colSpan="10" className="py-20 text-center">
                       <Info size={48} className="text-slate-100 mx-auto mb-3" />
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No transaction data available</p>
                     </td>
                   </tr>
                 ) : (
-                  data.map((row, i) => (
-                    <tr key={row.member_id} className="hover:bg-slate-50/50 transition-all group">
-                      <td className="px-6 py-5 text-xs font-bold text-slate-300 text-center">{i + 1}</td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{row.member_name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">CODE: {row.member_code} • {row.entry_count} Entries</p>
+                  data.filter(row => {
+                    const term = (searchQuery || '').toLowerCase();
+                    return !term ||
+                      String(row.member_name).toLowerCase().includes(term) ||
+                      String(row.member_code).toLowerCase().includes(term);
+                  }).map((row, i) => (
+                    <tr key={row.member_id} className="hover:bg-zinc-50/60 transition-all select-none">
+                      <td className="px-4 py-3 border-r border-zinc-200 text-xs font-bold text-zinc-400 text-center select-none">{i + 1}</td>
+                      <td className="px-4 py-3 border-r border-zinc-200 select-none">
+                        <p className="text-sm font-bold text-slate-800 uppercase tracking-tight font-sans italic">{row.member_name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">CODE: {row.member_code} • {row.entry_count} Entries</p>
                       </td>
-                      <td className="px-6 py-5 text-right font-bold text-slate-600 text-sm">{row.total_quintal}</td>
-                      <td className="px-6 py-5 text-right font-bold text-indigo-600 text-sm">₹{row.rate_amount}</td>
-                      <td className="px-6 py-5 text-right font-bold text-rose-500 text-sm">₹{row.member_advance}</td>
-                      <td className="px-6 py-5 text-right font-bold text-blue-600 text-sm">₹{row.total_interest}</td>
-                      <td className="px-6 py-5 text-right font-bold text-indigo-500 text-sm">₹{row.godown_fund}</td>
-                      <td className="px-6 py-5 text-right">
-                        <p className="text-sm font-bold text-amber-600">₹{row.bardan_penalty}</p>
-                        <p className="text-[9px] font-bold text-slate-400">{row.bardan_remaining} BAGS</p>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-slate-600 text-sm font-mono select-none">{row.total_quintal}</td>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.rate_amount}</td>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.member_advance}</td>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-blue-600 text-sm font-mono select-none">₹{row.total_interest}</td>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.godown_fund}</td>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right select-none">
+                        <p className="text-sm font-bold text-amber-600 font-mono">₹{row.bardan_penalty}</p>
+                        <p className="text-[9px] font-bold text-slate-400 font-sans uppercase tracking-wider">{row.bardan_remaining} BAGS</p>
                       </td>
-                      <td className="px-6 py-5 text-right font-bold text-rose-700 text-sm">₹{row.total_deductions}</td>
-                      <td className="px-6 py-5 text-right">
-                        <span className="text-base font-black text-emerald-600 tracking-tighter bg-emerald-50 px-3 py-1.5 rounded-lg">₹{row.final_amount}</span>
+                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.total_deductions}</td>
+                      <td className="px-4 py-3 text-right select-none">
+                        <span className="text-base font-black text-emerald-600 tracking-tighter bg-emerald-50/50 px-3 py-1 border border-emerald-200/60 font-mono select-none">₹{row.final_amount}</span>
                       </td>
                     </tr>
                   ))
@@ -479,6 +538,12 @@ const DangarPaymentReport = () => {
                   maxLength={67}
                   value={narration}
                   onChange={e => setNarration(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && narration.trim()) {
+                      e.preventDefault();
+                      doExportTxt();
+                    }
+                  }}
                   placeholder="e.g. MILK PAYMENT MARCH-2026"
                   className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm font-mono focus:bg-white focus:border-blue-500"
                 />

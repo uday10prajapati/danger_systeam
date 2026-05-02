@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import {
   Plus, Edit2, Trash2, Search,
@@ -7,8 +7,9 @@ import {
   Save, Database
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import PageHeader from '../components/PageHeader';
-import TableHeading from '../components/TableHeading';
+import Toast from '../components/Toast';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import Loading from '../components/Loading';
 
 export default function NarrationMaster() {
   const { t } = useTranslation();
@@ -21,6 +22,15 @@ export default function NarrationMaster() {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [narrationToDelete, setNarrationToDelete] = useState(null);
+
+  // Focus Refs
+  const narrationCodeRef = useRef(null);
+  const narrationTypeRef = useRef(null);
+  const narrationTextRef = useRef(null);
 
   useEffect(() => { fetchNarrations(); }, []);
 
@@ -52,11 +62,21 @@ export default function NarrationMaster() {
     setShowModal(true);
   };
 
+  const handleKeyDown = (e, nextRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      } else {
+        handleSubmit(e);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!formData.narration_text.trim()) return;
 
-    // Client-side duplicate check
     const isDuplicate = narrations.some(n => 
       n.narration_text.toLowerCase().trim() === formData.narration_text.toLowerCase().trim() && 
       n.id !== editingId
@@ -78,21 +98,26 @@ export default function NarrationMaster() {
       }
       setShowModal(false);
       fetchNarrations();
-      setTimeout(() => setMessage(null), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save narration context.');
+      setError(err.response?.data?.error || 'Failed to save narration.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this narration node?')) return;
+  const confirmDelete = (n) => {
+    setNarrationToDelete(n);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!narrationToDelete) return;
     try {
-      await api.delete(`/narrations/${id}`);
+      await api.delete(`/narrations/${narrationToDelete.id}`);
       setMessage({ type: 'success', text: 'Narration deleted successfully.' });
+      setDeleteModalOpen(false);
+      setNarrationToDelete(null);
       fetchNarrations();
-      setTimeout(() => setMessage(null), 3000);
     } catch (err) {
       setMessage({ type: 'error', text: 'Delete operation failed.' });
     }
@@ -104,121 +129,140 @@ export default function NarrationMaster() {
     (n.narration_type && n.narration_type.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  if (loading) {
+    return <Loading />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700 font-sans">
-      <div className="max-w-[1600px] mx-auto px-8">
+    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+      
+      {/* Toast Notification */}
+      <Toast message={message} onClose={() => setMessage(null)} />
+
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
 
         {/* Page Header */}
-        <PageHeader
-          eyebrow="Management / Ledger Registry"
-          eyebrowIcon={<Shield size={12} className="text-blue-500" />}
-          title="Narration Master"
-          subtitle="Define reusable ledger descriptions for accounting clarity"
-        >
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-4 py-2.5 border border-slate-200 shadow-sm focus-within:border-blue-500 transition-all group">
-              <Search size={16} className="text-slate-400 group-focus-within:text-blue-500" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search descriptions..."
-                className="bg-transparent border-none outline-none text-xs text-slate-600 w-48 placeholder:text-slate-300 font-bold"
-              />
-            </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
+              <MessageSquare size={20} className="text-zinc-600" />
+              Narration Registry
+            </h1>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Management / Ledger Registry</p>
+          </div>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={() => handleOpenModal()}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-2.5 rounded-lg text-xs font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-100 active:scale-95"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
-              <Plus size={16} /> Add Narration
+              <Plus size={16} />
+              ADD NARRATION
             </button>
           </div>
-        </PageHeader>
-
-        {/* Messages */}
-        {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 border-l-4 shadow-sm ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
-          }`}>
-            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-            <span className="text-xs font-bold uppercase tracking-wider">{message.text}</span>
-          </div>
-        )}
+        </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: 'Registry Nodes', val: narrations.length, icon: <MessageSquare size={18} />, color: 'blue' },
-            { label: 'Coded Entities', val: narrations.filter(n => n.narration_code).length, icon: <Hash size={18} />, color: 'violet' },
-            { label: 'System Health', val: 'Online', icon: <Activity size={18} />, color: 'emerald' },
-            { label: 'Active Filter', val: filtered.length, icon: <FileText size={18} />, color: 'slate' }
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-blue-100 transition-all">
-              <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
-              </div>
-              <p className="text-xl font-black text-slate-800">{stat.val}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Registry Nodes</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{narrations.length}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Coded Entities</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{narrations.filter(n => n.narration_code).length}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">System Health</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">ONLINE</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Active Filter</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{filtered.length}</span>
+          </div>
         </div>
 
         {/* Content Table Area */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
-          <TableHeading
-            icon={<MessageSquare size={18} />}
-            iconColor="blue"
-            title="Narration Registry"
-            subtitle={`Total ${filtered.length} accounting descriptions registered`}
-          >
-            <button onClick={fetchNarrations} className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-100">
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            </button>
-          </TableHeading>
+        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
+          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                Narration List
+              </span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
+                {filtered.length} RECORDS
+              </span>
+            </div>
 
-          <div className="flex-1 p-8">
-            {loading ? (
-              <div className="flex-1 flex flex-col items-center justify-center h-full p-20">
-                <Loader size={48} className="animate-spin text-blue-100 mb-6" />
-                <p className="text-slate-300 font-bold uppercase tracking-widest text-[10px] italic">Synchronizing Ledger Narrations...</p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
+                <Search size={16} className="text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search descriptions..."
+                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                />
+              </div>
+              <button onClick={fetchNarrations} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm">
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 p-5 bg-white">
+            {loading && narrations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
+                <Loader className="animate-spin text-zinc-500" size={24} />
+                <p className="text-xs font-mono">LOADING REGISTRY DATA...</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center h-full p-20 text-center">
-                <Database size={48} className="text-slate-200 mb-6" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-10 italic">No matched descriptions found</p>
-                <button onClick={() => handleOpenModal()} className="px-10 py-3 bg-blue-600 text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100 active:scale-95">
-                  Authorize First Narration
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
+                <MessageSquare size={32} className="text-zinc-400" />
+                <p className="text-xs font-mono">NO NARRATION RECORDS FOUND</p>
+                <button 
+                  onClick={() => handleOpenModal()} 
+                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition"
+                >
+                  ADD FIRST NARRATION
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 font-mono text-xs select-none">
                 {filtered.map(n => (
-                  <div key={n.id} className="bg-white border border-slate-100 rounded-lg p-6 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-50/50 transition-all group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/20 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700"></div>
-                    
-                    <div className="flex justify-between items-start mb-4 relative z-10">
+                  <div key={n.id} className="bg-zinc-50 border border-zinc-300 p-4 flex flex-col justify-between gap-3 hover:bg-white hover:border-zinc-400 transition">
+                    <div className="flex justify-between items-start">
                       <div className="flex gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-100 rounded text-[10px] font-black text-slate-400 uppercase tracking-widest italic group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
-                          <Hash size={10} /> {n.narration_code || 'UNTITLED'}
+                        <span className="inline-flex bg-zinc-200 text-zinc-800 border border-zinc-300 font-bold text-[9px] px-1.5 py-0.5 w-fit uppercase">
+                          <Hash size={10} className="mr-0.5" /> {n.narration_code || 'UNTITLED'}
                         </span>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 border rounded text-[10px] font-black uppercase tracking-widest italic transition-colors ${
-                          n.narration_type === 'Credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          n.narration_type === 'Debit' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                          'bg-blue-50 text-blue-600 border-blue-100'
+                        <span className={`inline-flex font-bold text-[9px] px-1.5 py-0.5 w-fit border uppercase ${
+                          n.narration_type === 'Credit' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' :
+                          n.narration_type === 'Debit' ? 'bg-red-50 border-red-200 text-red-600' :
+                          'bg-zinc-100 border-zinc-300 text-zinc-700'
                         }`}>
                           {n.narration_type || 'JV'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                        <button onClick={() => handleOpenModal(n)} className="p-2 bg-white border border-slate-100 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-95">
-                          <Edit2 size={14} />
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenModal(n)}
+                          className="p-1 border border-zinc-300 bg-white hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
+                          title="Edit"
+                        >
+                          <Edit2 size={13} />
                         </button>
-                        <button onClick={() => handleDelete(n.id)} className="p-2 bg-white border border-slate-100 text-rose-500 rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95">
-                          <Trash2 size={14} />
+                        <button
+                          onClick={() => confirmDelete(n)}
+                          className="p-1 border border-zinc-300 bg-white hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-slate-700 leading-relaxed group-hover:text-slate-900 transition-colors relative z-10">
+                    <p className="text-zinc-800 font-sans font-bold leading-relaxed tracking-tight italic uppercase">
                       "{n.narration_text}"
                     </p>
                   </div>
@@ -229,52 +273,54 @@ export default function NarrationMaster() {
         </div>
       </div>
 
-      {/* Modern Modal Workflow */}
+      {/* Form Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg border border-slate-100 animate-in zoom-in-95 duration-300 overflow-hidden">
-            <div className="bg-blue-600 px-8 py-6 flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-none">
+          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-none border border-zinc-400 shadow-xl overflow-hidden font-mono text-xs select-none">
+            <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-black text-white italic uppercase tracking-tight">
-                  {editingId ? 'Edit Narration' : 'Add New Narration'}
+                <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
+                  {editingId ? 'EDIT NARRATION' : 'ADD NEW NARRATION'}
                 </h2>
-                <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1">Configure registry node</p>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Configure registry node</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-2 text-white/50 hover:text-white transition-colors">
-                <X size={20} />
+              <button onClick={() => setShowModal(false)} className="p-1 text-zinc-400 hover:text-red-600 transition">
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-8">
+            <div className="p-5">
               {error && (
-                <div className="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-700 text-[11px] font-bold uppercase tracking-wider rounded flex items-center gap-3">
-                  <AlertCircle size={16} />
+                <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-800 text-[11px] font-bold uppercase flex items-center gap-2">
+                  <AlertCircle size={15} />
                   {error}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Reference Code</label>
-                    <div className="relative">
-                      <Hash size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input
-                        type="text"
-                        value={formData.narration_code}
-                        onChange={e => setFormData({ ...formData, narration_code: e.target.value.toUpperCase() })}
-                        className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm uppercase tracking-widest shadow-sm"
-                        placeholder="e.g. 1"
-                      />
-                    </div>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-none">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Reference Code</label>
+                    <input
+                      ref={narrationCodeRef}
+                      type="text"
+                      value={formData.narration_code}
+                      onChange={e => setFormData({ ...formData, narration_code: e.target.value.toUpperCase() })}
+                      onKeyDown={(e) => handleKeyDown(e, narrationTypeRef)}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 uppercase tracking-widest"
+                      placeholder="E.G. 1"
+                    />
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Narration Type</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Narration Type</label>
                     <select
+                      ref={narrationTypeRef}
                       value={formData.narration_type}
                       onChange={e => setFormData({ ...formData, narration_type: e.target.value })}
-                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm shadow-sm"
+                      onKeyDown={(e) => handleKeyDown(e, narrationTextRef)}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 cursor-pointer uppercase tracking-widest"
                     >
                       <option value="Credit">Credit</option>
                       <option value="Debit">Debit</option>
@@ -283,32 +329,33 @@ export default function NarrationMaster() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Narration Description</label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Narration Description</label>
                   <textarea
+                    ref={narrationTextRef}
                     rows={4}
                     value={formData.narration_text}
                     onChange={e => setFormData({ ...formData, narration_text: e.target.value })}
-                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-sm resize-none italic shadow-sm"
-                    placeholder="Enter ledger description..."
+                    className="w-full px-2.5 py-2 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold font-sans text-zinc-700 resize-none italic uppercase"
+                    placeholder="ENTER LEDGER DESCRIPTION..."
                     required
                   />
                 </div>
 
-                <div className="flex gap-4 pt-4 border-t border-slate-50 mt-2">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-3 bg-blue-600 text-white font-bold py-3.5 rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-                  >
-                    {submitting ? <Loader className="animate-spin" size={18} /> : <><Save size={18} /> {editingId ? 'Update Narration' : 'Save Narration'}</>}
-                  </button>
+                <div className="flex gap-3 pt-3 border-t border-zinc-200 justify-end">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-10 py-3.5 bg-slate-100 text-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all text-[10px] uppercase tracking-widest active:scale-95"
+                    className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
                   >
                     Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
+                  >
+                    {submitting ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {editingId ? 'Update' : 'Save'}</>}
                   </button>
                 </div>
               </form>
@@ -316,6 +363,15 @@ export default function NarrationMaster() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="DELETE NARRATION"
+        message={`ARE YOU SURE YOU WANT TO DELETE THE NARRATION "${narrationToDelete?.narration_text?.toUpperCase() || ''}"? THIS ACTION CANNOT BE UNDONE.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
     </div>
   );
 }

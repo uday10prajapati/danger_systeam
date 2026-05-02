@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import {
@@ -34,6 +34,18 @@ export default function AccountForm({
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [nextId, setNextId] = useState(null);
+
+  // Focus Refs
+  const accountCodeRef = useRef(null);
+  const pCodeRef = useRef(null);
+  const accountNameRef = useRef(null);
+  const accountTypeRef = useRef(null);
+  const phoneRef = useRef(null);
+  const emailRef = useRef(null);
+  const openingBalanceRef = useRef(null);
+  const openingBalanceTypeRef = useRef(null);
+  const gstNoRef = useRef(null);
+  const tinNoRef = useRef(null);
 
   const fetchNextCode = async (type) => {
     try {
@@ -106,10 +118,26 @@ export default function AccountForm({
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const handleKeyDown = (e, nextRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      } else {
+        handleSubmit(e);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setErrors({});
     setMessage(null);
+
+    if (!formData.account_name || !formData.account_name.trim()) {
+      setMessage({ type: 'error', text: 'Account name is required.' });
+      return;
+    }
 
     const isDuplicate = existingAccounts.some(acc => 
       acc.account_name.toLowerCase().trim() === formData.account_name.toLowerCase().trim() && 
@@ -128,12 +156,11 @@ export default function AccountForm({
 
       if (initialData?.id) {
         await axios.put(`/api/accounts/${initialData.id}`, formData);
-        setMessage({ type: 'success', text: 'Account updated successfully.' });
+        onSuccess?.('Account updated successfully.');
       } else {
         await axios.post('/api/accounts', submitData);
-        setMessage({ type: 'success', text: 'Account registered successfully.' });
+        onSuccess?.('Account registered successfully.');
       }
-      setTimeout(() => onSuccess?.(), 1000);
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to save account.' });
     } finally {
@@ -142,170 +169,175 @@ export default function AccountForm({
   };
 
   return (
-    <div className="bg-white p-0 overflow-hidden rounded-lg">
-      <div className="bg-blue-600 px-8 py-6 flex justify-between items-center">
+    <div className="bg-white p-0 overflow-hidden border border-zinc-400 font-mono text-xs select-none rounded-none animate-none">
+      <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
         <div>
-          <h2 className="text-xl font-black text-white italic uppercase tracking-tight">
-            {initialData?.id ? 'Edit Account' : 'Initialize Account'}
+          <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
+            {initialData?.id ? 'EDIT ACCOUNT' : 'INITIALIZE ACCOUNT'}
           </h2>
-          <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1">Configure ledger registry node</p>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Configure ledger registry node</p>
         </div>
         {onCancel && (
-          <button onClick={onCancel} className="p-2 text-white/50 hover:text-white transition-colors">
-            <X size={20} />
+          <button onClick={onCancel} className="p-1 text-zinc-400 hover:text-red-600 transition">
+            <X size={18} />
           </button>
         )}
       </div>
 
-      <div className="p-8">
+      <div className="p-5 animate-none">
         {message && (
-          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 border-l-4 ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          <div className={`mb-4 p-3 border text-xs flex items-center gap-2 animate-none ${
+            message.type === 'error' ? 'bg-red-50 border-red-300 text-red-800' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
           }`}>
-            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-            <span className="text-[11px] font-bold uppercase tracking-wider">{message.text}</span>
+            {message.type === 'error' ? <AlertCircle size={15} /> : <CheckCircle size={15} />}
+            <span className="font-bold uppercase leading-none">{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             
             {/* Left Column: Basic & Identity */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><User size={18} /></div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Basic Information</h3>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
+                <User size={15} className="text-zinc-500" />
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Basic Information</h3>
               </div>
               
-              <div className="grid grid-cols-5 gap-4">
-                <div className="col-span-1 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</label>
+              <div className="grid grid-cols-5 gap-3">
+                <div className="col-span-1 flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Code</label>
                   <input
+                    ref={accountCodeRef}
                     type="text"
                     name="account_code"
                     value={formData.account_code || ''}
                     onChange={handleChange}
-                    placeholder="000"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                    onKeyDown={(e) => handleKeyDown(e, pCodeRef)}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
                   />
                 </div>
-                <div className="col-span-1 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">P-Code</label>
+                <div className="col-span-1 flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">P-Code</label>
                   <input
+                    ref={pCodeRef}
                     type="text"
                     name="p_code"
                     value={formData.p_code || ''}
                     onChange={handleChange}
-                    placeholder="P-000"
-                    className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                    onKeyDown={(e) => handleKeyDown(e, accountNameRef)}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
                   />
                 </div>
-                <div className="col-span-3 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Account Name</label>
+                <div className="col-span-3 flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Account Name</label>
                   <input
+                    ref={accountNameRef}
                     type="text"
                     name="account_name"
                     value={formData.account_name || ''}
                     onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, accountTypeRef)}
                     required
-                    placeholder="Enter Ledger Name"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs italic shadow-sm"
+                    placeholder="ENTER LEDGER NAME"
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-sans font-bold text-zinc-800"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Account Type</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Account Type</label>
                   <select
+                    ref={accountTypeRef}
                     name="account_type"
                     value={formData.account_type}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs cursor-pointer uppercase tracking-widest"
+                    onKeyDown={(e) => handleKeyDown(e, phoneRef)}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 cursor-pointer uppercase tracking-widest"
                   >
                     {accountTypes.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
+                      <option key={type.value} value={type.value}>{type.label.toUpperCase()}</option>
                     ))}
                   </select>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mobile Number</label>
-                  <div className="relative">
-                    <Smartphone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone || ''}
-                      onChange={handleChange}
-                      placeholder="10-digit Primary"
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email / Handle</label>
-                <div className="relative">
-                  <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Mobile Number</label>
                   <input
-                    type="email"
-                    name="email"
-                    value={formData.email || ''}
+                    ref={phoneRef}
+                    type="tel"
+                    name="phone"
+                    value={formData.phone || ''}
                     onChange={handleChange}
-                    placeholder="finance@node.sh"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs"
+                    onKeyDown={(e) => handleKeyDown(e, emailRef)}
+                    placeholder="10-DIGIT PRIMARY"
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5 pt-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Advanced Logic</label>
-                <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase">Email / Handle</label>
+                <input
+                  ref={emailRef}
+                  type="email"
+                  name="email"
+                  value={formData.email || ''}
+                  onChange={handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, openingBalanceRef)}
+                  placeholder="FINANCE@NODE.SH"
+                  className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 pt-1">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase">Advanced Logic</label>
+                <div className="flex items-center gap-4 bg-zinc-50 p-2 border border-zinc-300">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       name="is_subledger"
                       checked={formData.is_subledger}
                       onChange={handleChange}
-                      className="w-4 h-4 accent-blue-600 cursor-pointer"
+                      className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
                     />
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${formData.is_subledger ? 'text-blue-600' : 'text-slate-400'}`}>Enable Sub-Ledger Registry</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${formData.is_subledger ? 'text-zinc-800' : 'text-zinc-400'}`}>Enable Sub-Ledger Registry</span>
                   </label>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Financial & Tax */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><TrendingUp size={18} /></div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Financial Configuration</h3>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
+                <TrendingUp size={15} className="text-zinc-500" />
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Financial Configuration</h3>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Opening Balance</label>
-                    <div className="relative">
-                      <IndianRupee size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input
-                        type="number"
-                        name="opening_balance"
-                        value={formData.opening_balance}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                        className="w-full pl-10 pr-4 py-3 bg-blue-50/30 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"
-                      />
-                    </div>
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Opening Balance</label>
+                    <input
+                      ref={openingBalanceRef}
+                      type="number"
+                      name="opening_balance"
+                      value={formData.opening_balance}
+                      onChange={handleChange}
+                      onKeyDown={(e) => handleKeyDown(e, openingBalanceTypeRef)}
+                      placeholder="0.00"
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Balance Type</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Balance Type</label>
                     <select
+                      ref={openingBalanceTypeRef}
                       name="opening_balance_type"
                       value={formData.opening_balance_type}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs uppercase tracking-widest cursor-pointer"
+                      onKeyDown={(e) => handleKeyDown(e, gstNoRef)}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 uppercase tracking-widest cursor-pointer"
                     >
                       <option value="credit">Jama (Cr)</option>
                       <option value="debit">Udhar (Dr)</option>
@@ -313,65 +345,62 @@ export default function AccountForm({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">GST Number</label>
-                    <div className="relative">
-                      <ShieldCheck size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input
-                        type="text"
-                        name="gst_no"
-                        value={formData.gst_no || ''}
-                        onChange={handleChange}
-                        placeholder="GSTIN String"
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold uppercase text-xs"
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">GST Number</label>
+                    <input
+                      ref={gstNoRef}
+                      type="text"
+                      name="gst_no"
+                      value={formData.gst_no || ''}
+                      onChange={handleChange}
+                      onKeyDown={(e) => handleKeyDown(e, tinNoRef)}
+                      placeholder="GSTIN STRING"
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold uppercase"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">TIN / PAN String</label>
-                    <div className="relative">
-                      <FileText size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input
-                        type="text"
-                        name="tin_no"
-                        value={formData.tin_no || ''}
-                        onChange={handleChange}
-                        placeholder="TIN Details"
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"
-                      />
-                    </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">TIN / PAN String</label>
+                    <input
+                      ref={tinNoRef}
+                      type="text"
+                      name="tin_no"
+                      value={formData.tin_no || ''}
+                      onChange={handleChange}
+                      onKeyDown={(e) => handleKeyDown(e, null)}
+                      placeholder="TIN DETAILS"
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold"
+                    />
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 mt-2 flex items-center gap-4 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-blue-100/20 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
-                  <div className="p-3 bg-white rounded-lg text-blue-600 shadow-sm border border-slate-100 relative z-10">
-                    <Database size={20} />
+                <div className="bg-zinc-50 p-3 border border-zinc-300 mt-1 flex items-center gap-3">
+                  <div className="p-2 bg-white border border-zinc-200 text-zinc-600">
+                    <Database size={18} />
                   </div>
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Internal Shard ID</p>
-                    <p className="text-xl font-black text-slate-800">#{initialData?.id || nextId || '...'}</p>
+                  <div>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Internal Shard ID</p>
+                    <p className="text-base font-bold text-zinc-800">#{initialData?.id || nextId || '...'}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-slate-100">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-3 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-            >
-              {loading ? <Loader className="animate-spin" size={18} /> : <><Save size={18} /> {initialData?.id ? 'Update Ledger' : 'Register Account'}</>}
-            </button>
+          <div className="flex gap-3 pt-3 border-t border-zinc-200 justify-end">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-10 py-3 bg-slate-100 text-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all text-[10px] uppercase tracking-widest active:scale-95"
+              className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
+            >
+              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {initialData?.id ? 'Update' : 'Save'}</>}
             </button>
           </div>
         </form>

@@ -5,12 +5,15 @@ import {
   ChevronRight, Phone, MapPin,
   RefreshCcw, Building2, CreditCard,
   X, Shield, AlertCircle, CheckCircle,
-  Loader, Globe, Hash
+  Loader, Globe, Hash, FileText
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import api, { sabhasadMasterApi } from '../api'
 import MemberForm from '../components/MemberForm'
-import PageHeader from '../components/PageHeader'
-import TableHeading from '../components/TableHeading'
+import Toast from '../components/Toast'
+import DeleteConfirmModal from '../components/DeleteConfirmModal'
+import Loading from '../components/Loading'
 
 export default function MemberMaster() {
   const [members, setMembers] = useState([])
@@ -21,6 +24,10 @@ export default function MemberMaster() {
   const [showModal, setShowModal] = useState(false)
   const [editingMember, setEditingMember] = useState(null)
   const [company, setCompany] = useState(null)
+
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState(null);
 
   useEffect(() => {
     loadCompany()
@@ -90,17 +97,24 @@ export default function MemberMaster() {
       await sabhasadMasterApi.updateSabhasad(member.id, payload);
       setMessage({ type: 'success', text: `Member ${member.is_active ? 'deactivated' : 'activated'} successfully` })
       loadMembers()
-      setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       setMessage({ type: 'error', text: 'Status update failed.' })
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this member?')) return;
+  const confirmDelete = (member) => {
+    setMemberToDelete(member);
+    setDeleteModalOpen(true);
+  }
+
+  const handleDelete = async () => {
+    if (!memberToDelete) return;
     try {
-      await sabhasadMasterApi.deleteSabhasad(id);
-      setMessage({ type: 'success', text: 'Member deleted.' });
+      setLoading(true)
+      await sabhasadMasterApi.deleteSabhasad(memberToDelete.id);
+      setMessage({ type: 'success', text: 'Member deleted successfully.' });
+      setDeleteModalOpen(false);
+      setMemberToDelete(null);
       loadMembers();
     } catch (error) {
       if (error.response?.status === 404) {
@@ -109,6 +123,8 @@ export default function MemberMaster() {
         return;
       }
       setMessage({ type: 'error', text: 'Delete failed.' });
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -128,187 +144,293 @@ export default function MemberMaster() {
     loadMembers()
   }
 
-  if (!company && !loading) {
-    return (
-      <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
-        <Loader className="animate-spin text-blue-500" size={40} />
-        <p className="font-bold text-slate-400 uppercase tracking-widest">Loading Member Data...</p>
-      </div>
-    );
+  const addGujaratiFont = async (doc) => {
+    try {
+      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf')
+      const blob = await res.blob()
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1]
+          doc.addFileToVFS('NotoSansGujarati.ttf', base64)
+          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal')
+          resolve()
+        }
+        reader.readAsDataURL(blob)
+      })
+    } catch (e) {
+      console.warn('Could not load Gujarati font', e)
+    }
+  }
+
+  const handleExportPDF = async () => {
+    const cName = company ? (company.company_name || 'Company') : 'Company'
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    await addGujaratiFont(doc)
+    const W = doc.internal.pageSize.getWidth()
+    const H = doc.internal.pageSize.getHeight()
+    const M = 32
+    const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139];
+    const dark = [30, 41, 59], stripe = [241, 245, 249];
+
+    const hdr = () => {
+      doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
+      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+      doc.text(cName.toUpperCase(), M, 17);
+      doc.setFontSize(7); doc.setTextColor(191, 219, 254);
+      doc.text('SABHASAD MASTER REGISTRY', W / 2, 17, { align: 'center' });
+      doc.setFontSize(7); doc.setTextColor(239, 68, 68);
+      doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+    };
+
+    const ftr = (pg, tot) => {
+      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
+      doc.line(M, H - 18, W - M, H - 18);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+      doc.text(cName + ' - Member Master', M, H - 9);
+      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
+      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
+    };
+
+    hdr();
+    let y = 60;
+
+    doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...navy);
+    doc.text('Sabhasad Master Registry', M, y);
+    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+    doc.text('Filter: ' + (statusFilter === 'all' ? 'All Members' : statusFilter.toUpperCase()) +
+      '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
+    y += 28;
+
+    const bodyRows = filteredMembers.map(m => [
+      m.member_name || '-',
+      m.p_code || m.member_code || '-',
+      m.village_name || '-',
+      m.address_no || '-',
+      m.bank_name || '-',
+      m.is_active ? 'Active' : 'Inactive'
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Member Name', 'Code', 'Village', 'Address', 'Bank', 'Status']],
+      body: bodyRows,
+      foot: [['', '', '', '', 'TOTAL MEMBERS', filteredMembers.length + ' Nodes']],
+      styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
+      footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: stripe },
+      theme: 'grid',
+      margin: { left: M, right: M }
+    });
+
+    const tot = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
+    doc.save('Member_Master_' + new Date().toISOString().split('T')[0] + '.pdf');
+  };
+
+  if (loading || !company) {
+    return <Loading />;
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-      <div className="max-w-[1600px] mx-auto px-6">
+    <div className="min-h-screen bg-zinc-50 p-6 font-sans text-zinc-900 select-none">
+      
+      {/* Toast Component */}
+      <Toast message={message} onClose={() => setMessage(null)} />
 
-        <PageHeader
-          eyebrow="Management / Members"
-          eyebrowIcon={<Shield size={12} />}
-          title="Sabhasad Master"
-          subtitle="Manage member profiles and bank settings"
-        >
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-3 bg-white rounded-lg px-4 py-2.5 border border-slate-200 shadow-sm focus-within:border-blue-500 transition-all group">
-              <Search size={16} className="text-slate-400 group-focus-within:text-blue-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="bg-transparent border-none outline-none text-xs text-slate-600 w-48 placeholder:text-slate-300 font-bold"
-              />
-            </div>
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+        
+        {/* Top Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4 select-none">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
+              <Users size={20} className="text-zinc-600" />
+              Sabhasad Master Registry
+            </h1>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Management / Members</p>
+          </div>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+            >
+              <FileText size={14} /> PDF
+            </button>
+            
             <button
               onClick={handleCreateMember}
-              className="flex items-center gap-2 bg-blue-600 px-6 py-2.5 rounded-lg text-xs font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-100 active:scale-95"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
-              <Plus size={16} /> Add Member
+              <Plus size={16} />
+              ADD MEMBER
             </button>
           </div>
-        </PageHeader>
-
-        {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 border-l-4 ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
-          }`}>
-            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-            <span className="text-xs font-bold uppercase tracking-wider">{message.text}</span>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: 'Organization', val: company.company_name, icon: <Building2 size={18} />, color: 'blue' },
-            { label: 'Active Members', val: members.filter(m => m.is_active).length, icon: <UserCheck size={18} />, color: 'emerald' },
-            { label: 'Inactive', val: members.filter(m => !m.is_active).length, icon: <UserMinus size={18} />, color: 'rose' },
-            { label: 'Total Members', val: members.length, icon: <Globe size={18} />, color: 'slate' }
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-blue-100 transition-all">
-              <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
-              </div>
-              <p className={`text-xl font-black truncate ${i === 1 ? 'text-emerald-600' : i === 2 ? 'text-rose-600' : 'text-slate-800'}`}>{stat.val}</p>
-            </div>
-          ))}
         </div>
 
-        {/* Table Card */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
-          <TableHeading
-            icon={<Users size={18} />}
-            iconColor="blue"
-            title="Member List"
-            subtitle={`Total ${filteredMembers.length} records found`}
-          >
-            <div className="flex items-center p-1 bg-slate-50 rounded-lg border border-slate-200 gap-1">
-              {['all', 'active', 'inactive'].map((filt) => (
-                <button
-                  key={filt}
-                  onClick={() => setStatusFilter(filt)}
-                  className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${statusFilter === filt ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                  {filt}
-                </button>
-              ))}
-            </div>
-          </TableHeading>
+        {/* Dense Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Organization</span>
+            <span className="text-base font-bold font-mono text-zinc-800 mt-1 uppercase truncate">{company?.company_name || 'N/A'}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Active Members</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{members.filter(m => m.is_active).length}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Inactive</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{members.filter(m => !m.is_active).length}</span>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Members</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{members.length}</span>
+          </div>
+        </div>
 
-          {loading ? (
-            <div className="p-32 text-center">
-              <RefreshCcw size={48} className="animate-spin text-blue-100 mx-auto mb-6" />
-              <p className="text-slate-300 font-bold uppercase tracking-widest text-[10px] italic">Updating Registry...</p>
+        {/* Table List Section */}
+        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
+          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                Sabhasad List
+              </span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
+                {filteredMembers.length} RECORDS
+              </span>
             </div>
-          ) : filteredMembers.length === 0 ? (
-            <div className="p-32 text-center">
-              <UserMinus size={48} className="text-slate-200 mx-auto mb-6" />
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-10 italic">No matching members found</p>
-              <button onClick={handleCreateMember} className="px-10 py-3 bg-blue-600 text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100 active:scale-95">
-                Register New Member
+            
+            <div className="flex items-center flex-wrap gap-3">
+              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
+                <Search size={16} className="text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, code or village..."
+                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                />
+              </div>
+              <div className="flex items-center p-0.5 bg-zinc-200 border border-zinc-300">
+                {['all', 'active', 'inactive'].map((filt) => (
+                  <button
+                    key={filt}
+                    onClick={() => setStatusFilter(filt)}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase transition select-none ${statusFilter === filt ? 'bg-white text-zinc-800 font-mono font-bold border border-zinc-300' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  >
+                    {filt}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={loadMembers}
+                className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
+                title="Refresh Registry"
+              >
+                <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
             </div>
-          ) : (
-            <div className="overflow-x-auto scroller-airy">
-              <table className="w-full text-left">
-                <thead className="bg-[#F8FAFC]">
-                  <tr className="uppercase tracking-widest font-black text-slate-400 text-[10px]">
-                    <th className="px-6 py-5 border-r border-slate-50/50">Member</th>
-                    <th className="px-6 py-5 border-r border-slate-50/50">Village / Address</th>
-                    <th className="px-6 py-5 border-r border-slate-50/50">Bank Details</th>
-                    <th className="px-6 py-5 border-r border-slate-50/50">Status</th>
-                    <th className="px-6 py-5 text-center">Actions</th>
+          </div>
+
+          <div className="flex-1 overflow-x-auto bg-white">
+            {loading && members.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
+                <Loader className="animate-spin text-zinc-500" size={24} />
+                <p className="text-xs font-mono">LOADING REGISTRY DATA...</p>
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
+                <UserMinus size={32} className="text-zinc-400" />
+                <p className="text-xs font-mono">NO MEMBERS REGISTERED</p>
+                <button 
+                  onClick={handleCreateMember} 
+                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition"
+                >
+                  REGISTER FIRST MEMBER
+                </button>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse select-none font-mono text-xs">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
+                    <th className="px-4 py-2 border-r border-zinc-200">Member Info</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Village / Address</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Bank Details</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-center w-24">Status</th>
+                    <th className="px-4 py-2 text-center w-28">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-zinc-200">
                   {filteredMembers.map((member) => (
-                    <tr key={member.id} className="group hover:bg-blue-50/30 transition-all duration-300">
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-800 font-black text-base group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                            {member.member_name ? member.member_name[0] : '#'}
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase tracking-tight italic">{member.member_name}</p>
-                            <div className="flex items-center gap-2">
-                              {member.p_code ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600 rounded text-[10px] font-black text-white uppercase tracking-[0.15em] shadow-sm shadow-blue-100">
-                                  {member.p_code}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                  <Hash size={10} /> {member.member_code}
-                                </span>
-                              )}
-                              {member.p_code && (
-                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">
-                                  #{member.member_code}
-                                </span>
-                              )}
-                              <span className="text-[11px] font-bold text-slate-400 italic ml-1">{member.eng_name || '-'}</span>
-                            </div>
+                    <tr key={member.id} className="hover:bg-zinc-50/60 transition-colors">
+                      <td className="px-4 py-2 border-r border-zinc-200">
+                        <div className="flex flex-col">
+                          <p className="text-xs font-bold text-zinc-800 font-sans uppercase tracking-tight italic">
+                            {member.member_name}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {member.p_code ? (
+                              <span className="inline-flex items-center bg-zinc-100 text-zinc-800 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300">
+                                {member.p_code}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center bg-zinc-100 text-zinc-700 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300">
+                                {member.member_code}
+                              </span>
+                            )}
+                            {member.p_code && (
+                              <span className="text-[9px] text-zinc-400">#{member.member_code}</span>
+                            )}
+                            <span className="text-[10px] text-zinc-400 font-sans italic">{member.eng_name || '-'}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 italic">
-                            <Globe size={14} className="text-blue-400" />
+                      <td className="px-4 py-2 border-r border-zinc-200">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5 text-xs text-zinc-700 font-sans font-bold uppercase">
+                            <MapPin size={12} className="text-zinc-500" />
                             {member.village_name || 'Unassigned'}
                           </div>
-                          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            <MapPin size={12} className="text-slate-300" />
-                            {member.address_no || 'No Address'}
+                          <div className="text-[10px] font-bold text-zinc-400 uppercase leading-none">
+                            {member.address_no || 'NO ADDRESS'}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-amber-50 rounded-lg text-amber-600 border border-amber-100 shadow-sm">
-                            <Building2 size={14} />
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-bold text-slate-800 leading-none mb-1 uppercase tracking-tight">{member.bank_name || 'No Bank'}</p>
-                            <p className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">{member.full_ac_number || 'N/A'}</p>
-                          </div>
+                      <td className="px-4 py-2 border-r border-zinc-200">
+                        <div className="flex flex-col">
+                          <p className="text-[10px] font-bold text-zinc-700 uppercase tracking-tight leading-none mb-0.5">{member.bank_name || 'NO BANK'}</p>
+                          <p className="text-[10px] font-bold text-zinc-400">{member.full_ac_number || 'N/A'}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border shadow-sm ${member.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-400 border-rose-100'}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${member.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'}`} />
-                          {member.is_active ? 'Active' : 'Inactive'}
-                        </div>
+                      <td className="px-4 py-2 border-r border-zinc-200 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${member.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                          {member.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleEditMember(member)} className="p-2.5 bg-white border border-slate-100 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-95">
-                            <Edit3 size={16} />
+                      <td className="px-4 py-2">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleEditMember(member)}
+                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
+                            title="Edit"
+                          >
+                            <Edit3 size={13} />
                           </button>
-                          <button onClick={() => handleStatusToggle(member)} className={`p-2.5 bg-white border border-slate-100 rounded-lg shadow-sm transition-all active:scale-95 ${member.is_active ? 'text-rose-500 hover:bg-rose-600 hover:text-white' : 'text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}>
-                            <Power size={16} />
+                          <button
+                            onClick={() => handleStatusToggle(member)}
+                            className={`p-1 border border-zinc-300 bg-zinc-50 transition shadow-sm ${member.is_active ? 'text-red-600 hover:bg-red-50 hover:border-red-300' : 'text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300'}`}
+                            title={member.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            <Power size={13} />
                           </button>
-                          <button onClick={() => handleDelete(member.id)} className="p-2.5 bg-white border border-slate-100 text-rose-500 rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95">
-                            <Trash2 size={16} />
+                          <button
+                            onClick={() => confirmDelete(member)}
+                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
+                            title="Delete"
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -316,26 +438,38 @@ export default function MemberMaster() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
       {/* Modal for Member Form */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scroller-airy bg-white rounded-lg shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-none border border-zinc-400 shadow-xl">
             <MemberForm
-              companyId={company.id}
-              onSuccess={handleFormSuccess}
+              companyId={company?.id}
+              onSuccess={(msg) => {
+                setMessage({ type: 'success', text: msg || 'Member saved successfully.' });
+                handleFormSuccess();
+              }}
               editingMember={editingMember}
               onClose={() => setShowModal(false)}
-              existingMembers={members} // Pass for duplicate check
+              existingMembers={members}
             />
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="DELETE MEMBER RECORD"
+        message={`ARE YOU SURE YOU WANT TO DELETE "${memberToDelete?.member_name?.toUpperCase() || ''}"? THIS ACTION CANNOT BE UNDONE.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
     </div>
   )
 }

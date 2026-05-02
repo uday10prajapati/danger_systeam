@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   X, User, MapPin, Phone,
@@ -41,6 +41,20 @@ export default function MemberForm({
     bardanOpening: 0,
     is_active: true
   })
+
+  // Field refs
+  const sabhasadCodeRef = useRef(null);
+  const pCodeRef = useRef(null);
+  const sabhasadNameRef = useRef(null);
+  const engNameRef = useRef(null);
+  const villageCodeRef = useRef(null);
+  const phoneNoRef = useRef(null);
+  const bankNameRef = useRef(null);
+  const ifscCodeRef = useRef(null);
+  const fullAcNumberRef = useRef(null);
+  const accountTypeRef = useRef(null);
+  const bardanOpeningRef = useRef(null);
+  const addressNoRef = useRef(null);
 
   const [localEditId, setLocalEditId] = useState(null)
   const [isFetchingCode, setIsFetchingCode] = useState(false)
@@ -103,7 +117,7 @@ export default function MemberForm({
       })
     } else {
       initNewForm()
-      fetchNextPCode(false) // Default Sabhasad
+      fetchNextPCode(false)
     }
   }, [editingMember, loadMasterData, initNewForm])
 
@@ -155,10 +169,26 @@ export default function MemberForm({
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
   }
 
+  const handleKeyDown = (e, nextRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      } else {
+        handleSubmit(e);
+      }
+    }
+  }
+
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault();
     setMessage(null)
     setErrors({})
+
+    if (!formData.sabhasadName || !formData.sabhasadName.trim()) {
+      setMessage({ type: 'error', text: 'Member Name is required.' });
+      return;
+    }
 
     const isDuplicate = existingMembers.some(m => 
       m.member_name.toLowerCase().trim() === formData.sabhasadName.toLowerCase().trim() && 
@@ -176,13 +206,11 @@ export default function MemberForm({
 
       if (currentId) {
         await sabhasadMasterApi.updateSabhasad(currentId, formData);
-        setMessage({ type: 'success', text: 'Member updated successfully.' })
+        onSuccess('Member updated successfully.');
       } else {
         await sabhasadMasterApi.createSabhasad(formData);
-        setMessage({ type: 'success', text: 'Member registered successfully.' })
+        onSuccess('Member registered successfully.');
       }
-
-      setTimeout(() => onSuccess(), 1000)
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to save member.' })
     } finally {
@@ -191,135 +219,142 @@ export default function MemberForm({
   }
 
   return (
-    <div className="bg-white p-0 overflow-hidden rounded-lg border border-slate-200">
-      <div className="bg-blue-600 px-8 py-6 flex justify-between items-center">
+    <div className="bg-white p-0 overflow-hidden rounded-none border border-zinc-400 font-mono text-xs select-none animate-none">
+      <div className="bg-zinc-100 px-5 py-3 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
         <div>
-          <h2 className="text-xl font-black text-white italic uppercase tracking-tight">
-            {localEditId || editingMember ? 'Edit Member' : 'Add New Member'}
+          <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight animate-none">
+            {localEditId || editingMember ? 'EDIT MEMBER' : 'ADD NEW MEMBER'}
           </h2>
-          <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1">Configure sabhasad registry data</p>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Configure sabhasad registry data</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-2 text-white/50 hover:text-white transition-colors">
-            <X size={20} />
+          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
+            <X size={18} />
           </button>
         )}
       </div>
 
-      <div className="p-8">
+      <div className="p-5 animate-none">
         {message && (
-          <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 border-l-4 ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+          <div className={`mb-4 p-3 border text-xs flex items-center gap-2 ${
+            message.type === 'error' ? 'bg-red-50 border-red-300 text-red-800' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
           }`}>
-            {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-            <span className="text-[11px] font-bold uppercase tracking-wider">{message.text}</span>
+            {message.type === 'error' ? <AlertCircle size={15} /> : <CheckCircle size={15} />}
+            <span className="font-bold uppercase leading-none">{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             
-            {/* Left Column: Personal & Village */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><User size={18} /></div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Basic Information</h3>
+            {/* Left Column */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
+                <User size={15} className="text-zinc-500" />
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Basic Information</h3>
               </div>
               
-              <div className="grid grid-cols-5 gap-4">
-                <div className="col-span-1 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</label>
+              <div className="grid grid-cols-5 gap-3">
+                <div className="col-span-1 flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Code</label>
                   <div className="relative">
                     <input
+                      ref={sabhasadCodeRef}
                       type="text"
                       name="sabhasadCode"
                       value={formData.sabhasadCode}
                       onChange={handleChange}
                       onBlur={(e) => handleCodeFetch(e.target.value)}
-                      placeholder="000"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs"
+                      onKeyDown={(e) => handleKeyDown(e, pCodeRef)}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
                     />
-                    {isFetchingCode && <Loader size={12} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-blue-500" />}
+                    {isFetchingCode && <Loader size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-blue-600" />}
                   </div>
                 </div>
-                <div className="col-span-1 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">P-Code</label>
+                <div className="col-span-1 flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">P-Code</label>
                   <input
+                    ref={pCodeRef}
                     type="text"
                     name="p_code"
                     value={formData.p_code}
                     onChange={handleChange}
-                    placeholder="P-000"
-                    className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs shadow-sm"
+                    onKeyDown={(e) => handleKeyDown(e, sabhasadNameRef)}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
                   />
                 </div>
-                <div className="col-span-3 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Sabhasad Name (Local)</label>
+                <div className="col-span-3 flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Sabhasad Name (Local)</label>
                   <input
+                    ref={sabhasadNameRef}
                     type="text"
                     name="sabhasadName"
                     value={formData.sabhasadName}
                     onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, engNameRef)}
                     required
-                    placeholder="Enter Name"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs italic shadow-sm"
+                    placeholder="ENTER NAME"
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-sans font-bold text-zinc-800"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">English Name / Alias</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase">English Name / Alias</label>
                 <input
+                  ref={engNameRef}
                   type="text"
                   name="engName"
                   value={formData.engName}
                   onChange={handleChange}
-                  placeholder="Enter English Name"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-600 text-xs"
+                  onKeyDown={(e) => handleKeyDown(e, villageCodeRef)}
+                  placeholder="ENTER ENGLISH NAME"
+                  className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-600"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Village</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Village</label>
                   <select
+                    ref={villageCodeRef}
                     name="villageCode"
                     value={formData.villageCode}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs cursor-pointer"
+                    onKeyDown={(e) => handleKeyDown(e, phoneNoRef)}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 cursor-pointer"
                   >
-                    <option value="">Select Village</option>
+                    <option value="">SELECT VILLAGE</option>
                     {villageList.map(v => (
-                      <option key={v.id} value={v.village_code}>{v.village_code} - {v.village_name}</option>
+                      <option key={v.id} value={v.village_code}>{v.village_code} - {v.village_name.toUpperCase()}</option>
                     ))}
                   </select>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mobile Number</label>
-                  <div className="relative">
-                    <Smartphone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                      type="tel"
-                      name="phoneNo"
-                      value={formData.phoneNo}
-                      onChange={handleChange}
-                      placeholder="10-digit Mobile"
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs font-mono"
-                    />
-                  </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Mobile Number</label>
+                  <input
+                    ref={phoneNoRef}
+                    type="tel"
+                    name="phoneNo"
+                    value={formData.phoneNo}
+                    onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, bankNameRef)}
+                    placeholder="10-DIGIT MOBILE"
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
+                  />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Member Classification</label>
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase">Member Classification</label>
+                <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-1 border border-zinc-300">
                   <button
                     type="button"
                     onClick={() => {
                       setFormData(p => ({ ...p, nominalMember: false }));
                       if (!editingMember) fetchNextPCode(false);
                     }}
-                    className={`py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.nominalMember ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`py-1.5 text-[10px] font-bold uppercase transition rounded-none ${!formData.nominalMember ? 'bg-blue-600 border border-blue-500 text-white' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
                     Sabhasad
                   </button>
@@ -329,7 +364,7 @@ export default function MemberForm({
                       setFormData(p => ({ ...p, nominalMember: true }));
                       if (!editingMember) fetchNextPCode(true);
                     }}
-                    className={`py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.nominalMember ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-400'}`}
+                    className={`py-1.5 text-[10px] font-bold uppercase transition rounded-none ${formData.nominalMember ? 'bg-blue-600 border border-blue-500 text-white' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
                     Nominal
                   </button>
@@ -337,96 +372,103 @@ export default function MemberForm({
               </div>
             </div>
 
-            {/* Right Column: Banking & Financial */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Building2 size={18} /></div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Banking Details</h3>
+            {/* Right Column */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
+                <Building2 size={15} className="text-zinc-500" />
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Banking Details</h3>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Bank Institution</label>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Bank Institution</label>
                   <select
+                    ref={bankNameRef}
                     name="bankName"
                     value={formData.bankName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs cursor-pointer"
+                    onKeyDown={(e) => handleKeyDown(e, ifscCodeRef)}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 cursor-pointer"
                   >
-                    <option value="">Select Bank Master</option>
+                    <option value="">SELECT BANK MASTER</option>
                     {bankList.map(b => (
-                      <option key={b.id} value={b.bank_name}>{b.bank_name}</option>
+                      <option key={b.id} value={b.bank_name}>{b.bank_name.toUpperCase()}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">IFSC Code</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">IFSC Code</label>
                     <input
+                      ref={ifscCodeRef}
                       type="text"
                       name="ifscCode"
                       value={formData.ifscCode}
                       onChange={handleChange}
+                      onKeyDown={(e) => handleKeyDown(e, fullAcNumberRef)}
                       placeholder="IFSC0000XXX"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold uppercase text-xs"
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold uppercase text-zinc-700"
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Account No.</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Account No.</label>
                     <input
+                      ref={fullAcNumberRef}
                       type="text"
                       name="fullAcNumber"
                       value={formData.fullAcNumber}
                       onChange={handleChange}
-                      placeholder="Bank A/c No."
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"
+                      onKeyDown={(e) => handleKeyDown(e, accountTypeRef)}
+                      placeholder="BANK A/C NO."
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700 font-bold"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Account Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Account Type</label>
                     <select
+                      ref={accountTypeRef}
                       name="accountType"
                       value={formData.accountType}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-700 text-xs"
+                      onKeyDown={(e) => handleKeyDown(e, bardanOpeningRef)}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
                     >
-                      <option value="">Select Type</option>
-                      <option value="Savings">Savings</option>
-                      <option value="Current">Current</option>
+                      <option value="">SELECT TYPE</option>
+                      <option value="Savings">SAVINGS</option>
+                      <option value="Current">CURRENT</option>
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Opening Bardan</label>
-                    <div className="relative">
-                      <Package size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="bardanOpening"
-                        value={formData.bardanOpening}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                        className="w-full pl-10 pr-4 py-3 bg-blue-50/30 border border-blue-100 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-mono text-slate-700 font-bold text-xs"
-                      />
-                    </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Opening Bardan</label>
+                    <input
+                      ref={bardanOpeningRef}
+                      type="number"
+                      step="0.01"
+                      name="bardanOpening"
+                      value={formData.bardanOpening}
+                      onChange={handleChange}
+                      onKeyDown={(e) => handleKeyDown(e, addressNoRef)}
+                      placeholder="0.00"
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
+                    />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5 pt-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Registry Status</label>
-                  <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="flex flex-col gap-1 pt-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Registry Status</label>
+                  <div className="flex items-center gap-4 bg-zinc-50 p-2 border border-zinc-300">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={formData.is_active}
                         onChange={(e) => setFormData(p => ({ ...p, is_active: e.target.checked }))}
-                        className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                        className="w-3.5 h-3.5 cursor-pointer accent-blue-600"
                       />
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${formData.is_active ? 'text-emerald-600' : 'text-slate-400'}`}>Active Record</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${formData.is_active ? 'text-zinc-800' : 'text-zinc-400'}`}>Active Record</span>
                     </label>
                   </div>
                 </div>
@@ -434,34 +476,34 @@ export default function MemberForm({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-2">
-              <MapPin size={12} /> Address / Locality
-            </label>
+          <div className="flex flex-col gap-1 mt-1">
+            <label className="text-[10px] font-bold text-zinc-500 uppercase">Address / Locality</label>
             <textarea
+              ref={addressNoRef}
               name="addressNo"
               value={formData.addressNo}
               onChange={handleChange}
               rows="2"
-              placeholder="House details, Landmark, Street info..."
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 transition-all font-medium text-slate-600 text-xs"
+              onKeyDown={(e) => handleKeyDown(e, null)}
+              placeholder="HOUSE DETAILS, STREET INFO..."
+              className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700"
             />
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-slate-100">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-3 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-            >
-              {loading ? <Loader className="animate-spin" size={18} /> : <><Save size={18} /> {localEditId || editingMember ? 'Update Member' : 'Save Member'}</>}
-            </button>
+          <div className="flex gap-3 pt-3 border-t border-zinc-200 justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-10 py-3 bg-slate-100 text-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all text-[10px] uppercase tracking-widest active:scale-95"
+              className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
+            >
+              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {localEditId || editingMember ? 'Update' : 'Save'}</>}
             </button>
           </div>
         </form>

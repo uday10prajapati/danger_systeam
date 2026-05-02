@@ -222,7 +222,7 @@ export default function ProfitLoss() {
                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inventory Values</p>
                                     </div>
                                  </div>
-                                 <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData.costOfGoodsSold.netCostOfGoodsSold)}</p>
+                                 <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData?.costOfGoodsSold?.netCostOfGoodsSold)}</p>
                               </div>
 
                               {plData.expenseAccounts?.map((acc, i) => (
@@ -273,7 +273,7 @@ export default function ProfitLoss() {
                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inwards Revenue</p>
                                     </div>
                                  </div>
-                                 <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData.revenue.netSales)}</p>
+                                 <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData?.revenue?.netSales)}</p>
                               </div>
 
                               {plData.incomeAccounts?.map((acc, i) => (
@@ -314,8 +314,8 @@ export default function ProfitLoss() {
                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Expenditure</span>
                            <p className="text-2xl font-bold text-white italic tracking-tighter">
                               ₹{formatCurrency(Math.max(
-                                 plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-                                 plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                                 (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                                 (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
                               ))}
                            </p>
                         </div>
@@ -323,8 +323,8 @@ export default function ProfitLoss() {
                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Revenue</span>
                            <p className="text-2xl font-bold text-white italic tracking-tighter">
                               ₹{formatCurrency(Math.max(
-                                 plData.revenue.netSales + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-                                 plData.costOfGoodsSold.netCostOfGoodsSold + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                                 (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                                 (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
                               ))}
                            </p>
                         </div>

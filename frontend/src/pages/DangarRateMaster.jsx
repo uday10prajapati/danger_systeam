@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
    Shield, Search, Plus, Save, RefreshCcw,
    AlertCircle, CheckCircle, Database, Calendar,
-   TrendingUp, Scale, Box, Loader, Info, Edit3, X
+   TrendingUp, Scale, Box, Loader, Info, Edit3, X, FileText, Printer
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api from '../api';
-import PageHeader from '../components/PageHeader';
-import TableHeading from '../components/TableHeading';
+import Toast from '../components/Toast';
+import Loading from '../components/Loading';
 
 export default function DangarRateMaster() {
    const { t } = useTranslation();
@@ -32,6 +34,11 @@ export default function DangarRateMaster() {
    const [editWinterRate, setEditWinterRate] = useState('');
    const [editSummerRate, setEditSummerRate] = useState('');
 
+   // Refs for season modal
+   const seasonNameRef = useRef(null);
+   const seasonTypeRef = useRef(null);
+   const seasonYearRef = useRef(null);
+
    useEffect(() => {
       loadInitialData();
    }, [financialYear]);
@@ -39,26 +46,22 @@ export default function DangarRateMaster() {
    const loadInitialData = async () => {
       try {
          setLoading(true);
-         // Fetch only what we need from company (id + name)
          const companyRes = await api.get('/company');
          const comp = companyRes?.data?.data;
 
          if (!companyRes?.data?.success || !comp?.id) {
-            const errorText = companyRes?.data?.error || companyRes?.data?.message || 'Company not found. Please create company first.';
             setCompanyId(null);
             setCompanyName('');
             setItems([]);
             setRates([]);
             setCurrentSeason(null);
-            setMessage({ type: 'error', text: errorText });
+            setMessage({ type: 'error', text: 'Company not found. Please create company first.' });
             return;
          }
 
          setCompanyId(comp.id);
          setCompanyName(comp.company_name || '');
 
-         // Load items, rates, and current season in parallel
-         // Pass company header explicitly so the page works even if localStorage user.company_id is missing.
          const headers = { 'X-Company-Id': comp.id };
          const [itemsListRes, ratesRes, seasonsRes] = await Promise.all([
             api.get('/items', { headers }),
@@ -79,7 +82,7 @@ export default function DangarRateMaster() {
          }
 
          if (seasonsRes?.data?.success && (seasonsRes.data.data || []).length > 0) {
-            setCurrentSeason(seasonsRes.data.data[0]); // Most recent
+            setCurrentSeason(seasonsRes.data.data[0]);
          } else {
             setCurrentSeason(null);
          }
@@ -114,7 +117,6 @@ export default function DangarRateMaster() {
             setMessage({ type: 'success', text: 'Rate configuration finalized' });
             setEditingItemId(null);
             loadInitialData();
-            setTimeout(() => setMessage(null), 3000);
          }
       } catch (error) {
          setMessage({ type: 'error', text: 'Secure commit failed' });
@@ -124,10 +126,9 @@ export default function DangarRateMaster() {
    };
 
    const handleCreateSeason = async (e) => {
-      e.preventDefault();
+      if (e) e.preventDefault();
       try {
          setIsSaving(true);
-
          const payload = {
             company_id: companyId,
             name: newSeason.name,
@@ -141,7 +142,6 @@ export default function DangarRateMaster() {
             setMessage({ type: 'success', text: 'New season configuration registered successfully' });
             setShowSeasonModal(false);
             setNewSeason({ name: '', season: 'Winter', year: '2026-27' });
-            // Optional: reload any data if seasons are displayed in the main UI
             loadInitialData();
          } else {
             throw new Error(res.data.error || 'Server rejection');
@@ -151,7 +151,17 @@ export default function DangarRateMaster() {
          setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to initialize new season' });
       } finally {
          setIsSaving(false);
-         setTimeout(() => setMessage(null), 4000);
+      }
+   };
+
+   const handleSeasonKeyDown = (e, nextRef) => {
+      if (e.key === 'Enter') {
+         e.preventDefault();
+         if (nextRef && nextRef.current) {
+            nextRef.current.focus();
+         } else {
+            handleCreateSeason();
+         }
       }
    };
 
@@ -160,305 +170,474 @@ export default function DangarRateMaster() {
       (item.item_code || '').toLowerCase().includes(searchTerm.toLowerCase())
    );
 
+   const handlePrint = () => {
+      const cName = companyName || 'Company';
+      const rows = filteredItems.map((item, i) => {
+         const rateObj = rates.find(r => r.item_id === item.id);
+         return `
+         <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
+           <td>${item.item_name}</td>
+           <td>${item.item_code || '-'}</td>
+           <td style="text-align:right">₹${parseFloat(rateObj?.rate || 0).toFixed(2)}</td>
+           <td style="text-align:right">₹${parseFloat(rateObj?.winter_rate || 0).toFixed(2)}</td>
+           <td style="text-align:right">₹${parseFloat(rateObj?.summer_rate || 0).toFixed(2)}</td>
+         </tr>`;
+      });
+      const win = window.open('', '_blank', 'width=1100,height=800');
+      win.document.write(`<html><head><title>Dangar Rate Master</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:32px}
+        .logo-bar{background:#2563eb;color:#fff;padding:6px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+        .logo-bar h1{font-size:9.5px;font-weight:bold;text-transform:uppercase}
+        .logo-bar .lbl{font-size:8px;color:#bfdbfe;font-weight:normal;letter-spacing:1px}
+        .logo-bar .conf{font-size:8px;color:#fecaca;font-weight:bold;letter-spacing:0.5px}
+        h2{font-size:16px;font-weight:bold;color:#0f172a;margin-bottom:2px}
+        p.sub{font-size:8.5px;color:#64748b;margin-bottom:12px}
+        hr{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
+        table{width:100%;border-collapse:collapse}
+        thead tr{background:#2563eb;color:#fff}
+        th{padding:8px 10px;font-size:8.5px;font-weight:700;text-transform:uppercase;text-align:left}
+        td{padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:8.5px}
+        tfoot tr{background:#1e40af;color:#fff;font-weight:700}
+        @media print{@page{size:A4 portrait;margin:1.5cm}}
+      </style></head><body>
+
+      <div class='logo-bar'>
+         <h1>${cName.toUpperCase()}</h1>
+         <span class='lbl'>DANGAR RATE MASTER REGISTRY</span>
+         <span class='conf'>CONFIDENTIAL</span>
+      </div>
+      <h2>Year-Wise Dangar Rate Master</h2>
+      <p class='sub'>Financial Year: ${financialYear} &nbsp;|&nbsp; Items: ${filteredItems.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
+      <hr/>
+      <table>
+        <thead><tr><th>Item Name</th><th>SKU / Code</th><th style="text-align:right">1st Class Rate</th><th style="text-align:right">2nd Class Rate</th><th style="text-align:right">3rd Class Rate</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+        <tfoot><tr><td colspan='5'>TOTAL ITEMS: ${filteredItems.length} Commodities</td></tr></tfoot>
+      </table></body></html>`);
+      win.document.close(); win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 400);
+   };
+
+   const handleExportPDF = async () => {
+      const cName = companyName || 'Company';
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+      const M = 32;
+      const navy = [15, 23, 42], white = [255, 255, 255], gray = [100, 116, 139];
+      const dark = [30, 41, 59], stripe = [241, 245, 249];
+
+      try {
+         const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
+         const blob = await res.blob();
+         await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+               doc.addFileToVFS('NotoSansGujarati.ttf', reader.result.split(',')[1]);
+               doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
+               resolve();
+            };
+            reader.readAsDataURL(blob);
+         });
+      } catch (e) { console.warn('Could not load font', e); }
+
+      const hdr = () => {
+         const navy = [37, 99, 235], white = [255, 255, 255];
+         doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
+         doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+         doc.text(cName.toUpperCase(), M, 17);
+         doc.setFontSize(7); doc.setTextColor(191, 219, 254);
+         doc.text('DANGAR RATE MASTER REGISTRY', W / 2, 17, { align: 'center' });
+         doc.setFontSize(7); doc.setTextColor(239, 68, 68);
+         doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+      };
+      const ftr = (pg, tot) => {
+         doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
+         doc.line(M, H - 18, W - M, H - 18);
+         doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+         doc.text(cName + ' - Dangar Rate Master', M, H - 9);
+         doc.text('FY: ' + financialYear + '  |  Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
+         doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
+      };
+
+      hdr();
+      let y = 60;
+      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(15); doc.setTextColor(37, 99, 235);
+      doc.text('Year-Wise Dangar Rate Master', M, y);
+      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+      doc.text('Financial Year: ' + financialYear + '  |  Items: ' + filteredItems.length + '  |  Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
+      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
+      y += 28;
+
+      autoTable(doc, {
+         startY: y,
+         head: [['Item Name', 'SKU / Code', '1st Class Rate', '2nd Class Rate', '3rd Class Rate']],
+         body: filteredItems.map(item => {
+            const rateObj = rates.find(r => r.item_id === item.id);
+            return [
+               item.item_name,
+               item.item_code || '-',
+               rateObj ? parseFloat(rateObj.rate || 0).toFixed(2) : '0.00',
+               rateObj ? parseFloat(rateObj.winter_rate || 0).toFixed(2) : '0.00',
+               rateObj ? parseFloat(rateObj.summer_rate || 0).toFixed(2) : '0.00'
+            ];
+         }),
+         foot: [['', 'TOTAL ITEMS', filteredItems.length + ' Commodities', '', '']],
+         styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [5, 6], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'NotoGujarati', fillColor: [37, 99, 235], textColor: white, fontStyle: 'bold' },
+         footStyles: { font: 'NotoGujarati', fillColor: [37, 99, 235], textColor: white, fontStyle: 'bold' },
+         alternateRowStyles: { fillColor: stripe },
+         theme: 'grid',
+         margin: { left: M, right: M }
+      });
+
+      const tot = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
+      doc.save('Dangar_Rate_Master_FY' + financialYear.replace('-', '_') + '.pdf');
+   };
+
    if (loading && !companyId) {
-      return (
-         <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-24">
-            <Loader className="w-12 h-12 text-blue-100 animate-spin mb-4" />
-            <p className="text-slate-300 font-bold uppercase tracking-[0.2em] text-[10px]">Authorizing Price Shards...</p>
-         </div>
-      );
+      return <Loading />;
    }
 
    return (
-      <div className="min-h-screen bg-[#F8FAFC] pb-12 animate-in fade-in duration-700">
-         <div className="max-w-[1600px] mx-auto px-8">
+      <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+         <Toast message={message} onClose={() => setMessage(null)} />
 
-            <PageHeader
-               eyebrow="Rate Configuration / Fiscal Registry"
-               eyebrowIcon={<TrendingUp size={12} />}
-               title="Year Wise Dangar Rate"
-               subtitle={`Financial Year ${financialYear}`}
-            >
-               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-                  <Calendar size={15} className="text-slate-400" />
-                  <select
-                     value={financialYear}
-                     onChange={(e) => setFinancialYear(e.target.value)}
-                     className="bg-transparent border-none outline-none text-sm text-slate-600 font-bold cursor-pointer"
-                  >
-                     <option value="2026-27">2026-27</option>
-                     <option value="2025-26">2025-26</option>
-                  </select>
+         <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+            
+            {/* Page Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+               <div>
+                  <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+                     <TrendingUp size={20} className="text-zinc-600" />
+                     Dangar Rate Master
+                  </h1>
+                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Registry Management / Dangar Rates</p>
                </div>
-               <button
-                  onClick={() => setShowSeasonModal(true)}
-                  className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-slate-400 transition-all"
-               >
-                  <Plus size={15} /> New Season
-               </button>
-               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-                  <Search size={15} className="text-slate-400" />
-                  <input
-                     type="text"
-                     value={searchTerm}
-                     onChange={(e) => setSearchTerm(e.target.value)}
-                     placeholder="Search items..."
-                     className="bg-transparent border-none outline-none text-sm text-slate-600 w-44 placeholder:text-slate-300 font-medium"
-                  />
-               </div>
-            </PageHeader>
-
-            {/* Global Messages */}
-            {message && (
-               <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 animate-in slide-in-from-top duration-300 ${message.type === 'error' ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-                  }`}>
-                  {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-                  <p className="text-sm font-bold">{message.text}</p>
-               </div>
-            )}
-
-            {/* Content Table */}
-            <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-               <TableHeading
-                  icon={<TrendingUp size={16} />}
-                  iconColor="blue"
-                  title={`Tariff Matrix — ${financialYear}`}
-                  subtitle="Rates per 100 kg (1 Quintal)"
-                  count={filteredItems.length}
-               />
-
-               <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                     <thead>
-                        <tr className="bg-[#F8FAFC]">
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Commodity</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">SKU</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">1st Class (100kg)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-blue-50/30 font-black">2nd Class (100kg)</th>
-                           <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right bg-emerald-50/30 font-black">3rd Class (100kg)</th>
-                           <th className="px-10 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Ops</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-50">
-                        {filteredItems.map(item => {
-                           const rateObj = rates.find(r => r.item_id === item.id);
-                           const isEditing = editingItemId === item.id;
-
-                           return (
-                              <tr key={item.id} className="group hover:bg-blue-50/20 transition-all duration-300">
-                                 <td className="px-10 py-6">
-                                    <div className="flex items-center gap-4">
-                                       <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                          <Box size={16} />
-                                       </div>
-                                       <div>
-                                          <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{item.item_name}</p>
-                                          <p className="text-[10px] font-medium text-slate-400">Category: {item.category || 'N/A'}</p>
-                                       </div>
-                                    </div>
-                                 </td>
-                                 <td className="px-10 py-6 text-center font-mono text-[10px] font-black text-slate-400">
-                                    {item.item_code}
-                                 </td>
-                                 <td className="px-6 py-6 text-right">
-                                    {isEditing ? (
-                                       <input
-                                          type="number"
-                                          value={editRate}
-                                          onChange={(e) => setEditRate(e.target.value)}
-                                          placeholder="0.00"
-                                          className="w-24 h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-right font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
-                                       />
-                                    ) : (
-                                       <span className="text-sm font-black text-slate-800">
-                                          {rateObj ? `₹${parseFloat(rateObj.rate).toFixed(2)}` : '0.00'}
-                                       </span>
-                                    )}
-                                 </td>
-                                 <td className="px-6 py-6 text-right bg-blue-50/10">
-                                    {isEditing ? (
-                                       <input
-                                          type="number"
-                                          value={editWinterRate}
-                                          onChange={(e) => setEditWinterRate(e.target.value)}
-                                          placeholder="0.00"
-                                          className="w-24 h-10 px-3 bg-white border border-blue-200 rounded-lg text-right font-bold text-blue-700 outline-none focus:border-blue-500 transition-all shadow-sm"
-                                       />
-                                    ) : (
-                                       <span className="text-sm font-black text-blue-600">
-                                          {rateObj ? `₹${parseFloat(rateObj.winter_rate || 0).toFixed(2)}` : '0.00'}
-                                       </span>
-                                    )}
-                                 </td>
-                                 <td className="px-6 py-6 text-right bg-emerald-50/10">
-                                    {isEditing ? (
-                                       <input
-                                          type="number"
-                                          value={editSummerRate}
-                                          onChange={(e) => setEditSummerRate(e.target.value)}
-                                          placeholder="0.00"
-                                          className="w-24 h-10 px-3 bg-white border border-emerald-200 rounded-lg text-right font-bold text-emerald-700 outline-none focus:border-emerald-500 transition-all shadow-sm"
-                                       />
-                                    ) : (
-                                       <span className="text-sm font-black text-emerald-600">
-                                          {rateObj ? `₹${parseFloat(rateObj.summer_rate || 0).toFixed(2)}` : '0.00'}
-                                       </span>
-                                    )}
-                                 </td>
-
-                                 <td className="px-10 py-6 text-right">
-                                    {isEditing ? (
-                                       <div className="flex items-center justify-end gap-2">
-                                          <button
-                                             onClick={() => handleSave(item.id)}
-                                             disabled={isSaving}
-                                             className="p-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95"
-                                          >
-                                             {isSaving ? <RefreshCcw size={16} className="animate-spin" /> : <Save size={16} />}
-                                          </button>
-                                          <button
-                                             onClick={() => setEditingItemId(null)}
-                                             className="p-2.5 bg-slate-100 text-slate-400 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-all"
-                                          >
-                                             <Plus className="rotate-45" size={16} />
-                                          </button>
-                                       </div>
-                                    ) : (
-                                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                          <button
-                                             onClick={async () => {
-                                                if (!window.confirm(`Sync all previous entries for ${item.item_name} with current master rates?`)) return;
-                                                try {
-                                                   setIsSaving(true);
-                                                   const res = await api.post('/dangar-entry/recalculate', {
-                                                      item_id: item.id,
-                                                      financial_year: financialYear,
-                                                      company_id: companyId
-                                                   });
-                                                   if (res.data.success) {
-                                                      setMessage({ type: 'success', text: res.data.message });
-                                                      setTimeout(() => setMessage(null), 3000);
-                                                   }
-                                                } catch (e) {
-                                                   setMessage({ type: 'error', text: 'Synchronization engine error' });
-                                                } finally {
-                                                   setIsSaving(false);
-                                                }
-                                             }}
-                                             disabled={isSaving}
-                                             title="Recalculate earlier entries"
-                                             className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-amber-600 hover:border-amber-100 hover:shadow-lg rounded-lg transition-all"
-                                          >
-                                             <RefreshCcw size={16} className={isSaving ? 'animate-spin' : ''} />
-                                          </button>
-                                          <button
-                                             onClick={() => handleEdit(item, rateObj)}
-                                             className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-lg rounded-lg"
-                                          >
-                                             <Edit3 size={16} />
-                                          </button>
-                                       </div>
-                                    )}
-                                 </td>
-                              </tr>
-                           );
-                        })}
-                     </tbody>
-                  </table>
-               </div>
-
-               {filteredItems.length === 0 && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-24 text-center">
-                     <div className="w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center text-slate-200 mb-6"><Scale size={40} /></div>
-                     <h3 className="text-lg font-bold text-slate-400 mb-2">Registry Void</h3>
-                     <p className="text-slate-300 text-sm max-w-xs mx-auto mb-8 font-medium">Authorised items not found in current company sharding.</p>
+               
+               <div className="flex flex-wrap items-center gap-2 select-none">
+                  <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-300 px-3 py-1.5 select-none">
+                     <Calendar size={14} className="text-zinc-400" />
+                     <select
+                        value={financialYear}
+                        onChange={(e) => setFinancialYear(e.target.value)}
+                        className="bg-transparent border-none outline-none text-xs text-zinc-700 font-bold select-none"
+                     >
+                        <option value="2026-27">2026-27</option>
+                        <option value="2025-26">2025-26</option>
+                     </select>
                   </div>
-               )}
+                  <button
+                     onClick={() => setShowSeasonModal(true)}
+                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+                  >
+                     <Plus size={14} /> New Season
+                  </button>
+                  <button
+                     onClick={handleExportPDF}
+                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+                  >
+                     <FileText size={14} /> PDF
+                  </button>
+                  <button
+                     onClick={handlePrint}
+                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+                  >
+                     <Printer size={14} /> Print
+                  </button>
+               </div>
+            </div>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <div className="bg-white p-5 border border-zinc-300 relative overflow-hidden flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-100 text-zinc-600 border border-zinc-200 flex items-center justify-center shrink-0">
+                     <Database size={24} />
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Commodities</p>
+                     <p className="text-xl font-black text-zinc-800 tracking-tight leading-none mt-1">{filteredItems.length}</p>
+                  </div>
+               </div>
+
+               <div className="bg-white p-5 border border-zinc-300 relative overflow-hidden flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-100 text-zinc-600 border border-zinc-200 flex items-center justify-center shrink-0">
+                     <TrendingUp size={24} />
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Avg 1st Class Rate</p>
+                     <p className="text-xl font-black text-zinc-800 tracking-tight leading-none mt-1">
+                        ₹{rates.length ? (rates.reduce((s, r) => s + (parseFloat(r.rate) || 0), 0) / rates.length).toFixed(2) : '0.00'}
+                     </p>
+                  </div>
+               </div>
+
+               <div className="bg-white p-5 border border-zinc-300 relative overflow-hidden flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-100 text-zinc-600 border border-zinc-200 flex items-center justify-center shrink-0">
+                     <Calendar size={24} />
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Active Season</p>
+                     <p className="text-xl font-black text-zinc-800 tracking-tight leading-none mt-1 uppercase">
+                        {currentSeason ? `${currentSeason.name} (${currentSeason.season})` : 'Winter 26-27'}
+                     </p>
+                  </div>
+               </div>
+            </div>
+
+            {/* Table Area */}
+            <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
+               <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+                  <div className="flex items-center gap-2">
+                     <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider select-none">
+                        Dangar Rate Configuration Matrix
+                     </span>
+                     <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 select-none">
+                        {filteredItems.length} RECORDS
+                     </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
+                     <Search size={16} className="text-zinc-400" />
+                     <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search items..."
+                        className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                     />
+                  </div>
+               </div>
+
+               <div className="overflow-x-auto bg-white select-none flex-1">
+                  <table className="min-w-full divide-y divide-zinc-200">
+                  <thead className="bg-zinc-50 select-none">
+                     <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Item Name</th>
+                        <th scope="col" className="px-4 py-3 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">SKU</th>
+                        <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider">1st Class (100kg)</th>
+                        <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider">2nd Class (100kg)</th>
+                        <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider">3rd Class (100kg)</th>
+                        <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Ops</th>
+                     </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-zinc-200 text-xs select-none">
+                     {filteredItems.map((item, idx) => {
+                        const rateObj = rates.find(r => r.item_id === item.id);
+                        const isEditing = editingItemId === item.id;
+
+                        return (
+                           <tr key={item.id} className="hover:bg-zinc-50 transition select-none">
+                              <td className="px-4 py-3.5 select-none">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-zinc-100 border border-zinc-300 flex items-center justify-center text-zinc-400 font-mono text-xs select-none">
+                                       {idx + 1}
+                                    </div>
+                                    <div>
+                                       <p className="font-bold text-zinc-800 uppercase tracking-tight">{item.item_name}</p>
+                                       <p className="text-[10px] font-bold text-zinc-400">Category: {item.category || 'N/A'}</p>
+                                    </div>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-3.5 text-center font-mono text-xs font-bold text-zinc-500 select-none">
+                                 {item.item_code}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-mono font-bold text-zinc-800 select-none">
+                                 {isEditing ? (
+                                    <input
+                                       type="number"
+                                       value={editRate}
+                                       onChange={(e) => setEditRate(e.target.value)}
+                                       placeholder="0.00"
+                                       className="w-24 px-2 py-1 bg-white border border-zinc-300 text-right font-bold text-zinc-700 outline-none focus:border-zinc-500 transition shadow-sm font-mono"
+                                    />
+                                 ) : (
+                                    <span>
+                                       {rateObj ? `₹${parseFloat(rateObj.rate).toFixed(2)}` : '0.00'}
+                                    </span>
+                                 )}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-mono font-bold text-zinc-800 select-none">
+                                 {isEditing ? (
+                                    <input
+                                       type="number"
+                                       value={editWinterRate}
+                                       onChange={(e) => setEditWinterRate(e.target.value)}
+                                       placeholder="0.00"
+                                       className="w-24 px-2 py-1 bg-white border border-zinc-300 text-right font-bold text-zinc-700 outline-none focus:border-zinc-500 transition shadow-sm font-mono"
+                                    />
+                                 ) : (
+                                    <span>
+                                       {rateObj ? `₹${parseFloat(rateObj.winter_rate || 0).toFixed(2)}` : '0.00'}
+                                    </span>
+                                 )}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-mono font-bold text-zinc-800 select-none">
+                                 {isEditing ? (
+                                    <input
+                                       type="number"
+                                       value={editSummerRate}
+                                       onChange={(e) => setEditSummerRate(e.target.value)}
+                                       placeholder="0.00"
+                                       className="w-24 px-2 py-1 bg-white border border-zinc-300 text-right font-bold text-zinc-700 outline-none focus:border-zinc-500 transition shadow-sm font-mono"
+                                    />
+                                 ) : (
+                                    <span>
+                                       {rateObj ? `₹${parseFloat(rateObj.summer_rate || 0).toFixed(2)}` : '0.00'}
+                                    </span>
+                                 )}
+                              </td>
+
+                              <td className="px-4 py-3.5 text-right select-none">
+                                 {isEditing ? (
+                                    <div className="flex items-center justify-end gap-1">
+                                       <button
+                                          onClick={() => handleSave(item.id)}
+                                          disabled={isSaving}
+                                          className="p-1.5 border border-zinc-300 bg-zinc-50 hover:bg-emerald-50 hover:text-emerald-600 text-zinc-600 transition"
+                                          title="Save rates"
+                                       >
+                                          {isSaving ? <RefreshCcw size={14} className="animate-spin" /> : <Save size={14} />}
+                                       </button>
+                                       <button
+                                          onClick={() => setEditingItemId(null)}
+                                          className="p-1.5 border border-zinc-300 bg-zinc-50 hover:bg-rose-50 hover:text-rose-600 text-zinc-600 transition"
+                                          title="Cancel"
+                                       >
+                                          <X size={14} />
+                                       </button>
+                                    </div>
+                                 ) : (
+                                    <div className="flex items-center justify-end gap-1">
+                                       <button
+                                          onClick={async () => {
+                                             if (!window.confirm(`Sync all previous entries for ${item.item_name} with current master rates?`)) return;
+                                             try {
+                                                setIsSaving(true);
+                                                const res = await api.post('/dangar-entry/recalculate', {
+                                                   item_id: item.id,
+                                                   financial_year: financialYear,
+                                                   company_id: companyId
+                                                });
+                                                if (res.data.success) {
+                                                   setMessage({ type: 'success', text: res.data.message });
+                                                }
+                                             } catch (e) {
+                                                setMessage({ type: 'error', text: 'Synchronization engine error' });
+                                             } finally {
+                                                setIsSaving(false);
+                                             }
+                                          }}
+                                          disabled={isSaving}
+                                          title="Recalculate earlier entries"
+                                          className="p-1.5 border border-zinc-300 bg-zinc-50 hover:bg-amber-50 hover:text-amber-600 text-zinc-600 transition"
+                                       >
+                                          <RefreshCcw size={14} className={isSaving ? 'animate-spin' : ''} />
+                                       </button>
+                                       <button
+                                          onClick={() => handleEdit(item, rateObj)}
+                                          className="p-1.5 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 transition"
+                                          title="Edit Rates"
+                                       >
+                                          <Edit3 size={14} />
+                                       </button>
+                                    </div>
+                                 )}
+                              </td>
+                           </tr>
+                        );
+                     })}
+                  </tbody>
+               </table>
             </div>
          </div>
+       </div>
 
-         {/* Create Season Modal */}
+         {/* Season Registration Modal */}
          {showSeasonModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-               <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
-                  <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg ring-4 ring-blue-500/5"><Calendar size={20} /></div>
-                        <div>
-                           <h3 className="text-lg font-bold text-slate-800">Initialize Season</h3>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Create Fiscal Parameter</p>
-                        </div>
-                     </div>
-                     <button disabled={isSaving} onClick={() => setShowSeasonModal(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+               <div className="bg-white border border-zinc-300 p-5 w-full max-w-md animate-none">
+                  <div className="flex justify-between items-center border-b border-zinc-300 pb-3 mb-4">
+                     <h2 className="text-base font-bold text-zinc-800 flex items-center gap-2">
+                        <Calendar size={18} className="text-zinc-600" />
+                        Initialize New Season
+                     </h2>
+                     <button
+                        onClick={() => setShowSeasonModal(false)}
+                        className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-700 transition"
+                     >
+                        <X size={16} />
+                     </button>
                   </div>
 
-                  <div className="px-10 py-6 bg-slate-50/50 border-b border-slate-50 flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Last Active Registry</span>
-                     </div>
-                     <div className="text-right">
-                        <p className="text-[11px] font-bold text-slate-700 leading-none mb-1">{currentSeason ? currentSeason.name : '-- No Registry Found --'}</p>
-                        <p className="text-[8px] font-medium text-slate-400 uppercase tracking-widest leading-none">{currentSeason ? `${currentSeason.season_type} | ${currentSeason.financial_year}` : 'N/A'}</p>
-                     </div>
-                  </div>
-
-                  <form onSubmit={handleCreateSeason} className="p-10 space-y-6">
-
-                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Entity Name / Label</label>
-                        <div className="relative group">
-                           <Database size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
-                           <input
-                              type="text"
-                              required
-                              value={newSeason.name}
-                              onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
-                              placeholder="e.g. Winter Epoch 26"
-                              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm"
-                           />
-                        </div>
+                  <form onSubmit={handleCreateSeason} className="space-y-4">
+                     <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase">Season Description</label>
+                        <input
+                           ref={seasonNameRef}
+                           type="text"
+                           required
+                           value={newSeason.name}
+                           onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
+                           onKeyDown={(e) => handleSeasonKeyDown(e, seasonTypeRef)}
+                           placeholder="e.g. Winter Epoch 26"
+                           className="w-full px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold text-zinc-700"
+                        />
                      </div>
 
                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Season Designation</label>
+                        <div className="flex flex-col gap-1">
+                           <label className="text-[10px] font-bold text-zinc-500 uppercase">Season Type</label>
                            <select
+                              ref={seasonTypeRef}
                               required
                               value={newSeason.season}
                               onChange={(e) => setNewSeason({ ...newSeason, season: e.target.value })}
-                              className="w-full px-5 py-3 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 rounded-lg outline-none font-bold text-slate-700 appearance-none uppercase text-xs tracking-wider"
+                              onKeyDown={(e) => handleSeasonKeyDown(e, seasonYearRef)}
+                              className="w-full px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold text-zinc-700 uppercase"
                            >
                               <option value="Winter">Winter</option>
                               <option value="Summer">Summer</option>
                            </select>
                         </div>
 
-                        <div className="space-y-1.5">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fiscal Year</label>
+                        <div className="flex flex-col gap-1">
+                           <label className="text-[10px] font-bold text-zinc-500 uppercase">Financial Year</label>
                            <input
+                              ref={seasonYearRef}
                               type="text"
                               required
                               value={newSeason.year}
                               onChange={(e) => setNewSeason({ ...newSeason, year: e.target.value })}
+                              onKeyDown={(e) => handleSeasonKeyDown(e, null)}
                               placeholder="2026-27"
-                              className="w-full px-5 py-3 bg-white border border-slate-200 focus:border-blue-500 rounded-lg outline-none transition-all font-bold text-slate-700 text-sm text-center"
+                              className="w-full px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold text-zinc-700 text-center"
                            />
                         </div>
                      </div>
 
-                     <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="w-full mt-4 flex items-center justify-center gap-3 bg-slate-900 text-white font-black uppercase tracking-[0.2em] text-[10px] py-4 rounded-lg hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:bg-slate-300"
-                     >
-                        {isSaving ? <Loader className="animate-spin" size={16} /> : <><Save size={16} /> Register Configuration</>}
-                     </button>
+                     <div className="flex justify-end gap-2 pt-2 border-t border-zinc-200 mt-4">
+                        <button
+                           type="button"
+                           onClick={() => setShowSeasonModal(false)}
+                           className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-4 py-2 select-none"
+                        >
+                           Cancel
+                        </button>
+                        <button
+                           type="submit"
+                           disabled={isSaving}
+                           className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold px-4 py-2 select-none transition flex items-center gap-1"
+                        >
+                           {isSaving ? <RefreshCcw size={13} className="animate-spin" /> : <Save size={13} />}
+                           Register
+                        </button>
+                     </div>
                   </form>
                </div>
             </div>
          )}
-
       </div>
    );
 }

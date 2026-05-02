@@ -205,11 +205,9 @@ router.get('/', async (req, res) => {
       });
     }
 
-    let targetAccount = null;
-    if (accountId && accountId !== 'all') {
-      const accRows = await query('SELECT account_name, account_code FROM accounts WHERE id = ? AND company_id = ?', [accountId, companyId]);
-      targetAccount = accRows[0];
-    }
+    const targetAccount = (accountId && accountId !== 'all')
+      ? (await query('SELECT account_name, account_code FROM accounts WHERE id = ? AND company_id = ?', [accountId, companyId]))[0]
+      : null;
     const isBrokerage = targetAccount?.account_name?.toLowerCase().includes('brokerage');
     const isLabour = targetAccount?.account_name?.toLowerCase().includes('labour');
 

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
    X, Search, AlertCircle, Trash2, Edit3,
    Calendar, FileText, ArrowRightLeft, Plus,
    ChevronRight, Calculator, CheckCircle2,
-   Database, Users
+   Database, Users, Save, Loader, ArrowLeftRight
 } from 'lucide-react';
 
 export default function JVEntryModal({ company, initialDate, editId = null, onClose, onSubmit }) {
@@ -60,6 +60,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
    const handleSave = async () => {
       try {
          if (credits.length === 0 && debits.length === 0) return;
+         setLoading(true);
 
          const payload = {
             voucher_date: voucherDate,
@@ -68,13 +69,21 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
             voucher_type: 'CONTRA/JV'
          };
 
-         await axios.post(`/api/jv`, payload, {
-            headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-         });
+         if (editId) {
+            await axios.put(`/api/jv/${editId}`, payload, {
+               headers: { 'x-company-id': company.id, 'x-user-id': 1 }
+            });
+         } else {
+            await axios.post(`/api/jv`, payload, {
+               headers: { 'x-company-id': company.id, 'x-user-id': 1 }
+            });
+         }
 
          if (onSubmit) onSubmit();
       } catch (err) {
          alert('Failed to save JV: ' + (err.response?.data?.error || err.message));
+      } finally {
+         setLoading(false);
       }
    };
 
@@ -90,203 +99,187 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
    const totalCredit = credits.reduce((sum, item) => sum + parseFloat(item.amount), 0);
    const totalDebit = debits.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 
-   const displayCredits = [...credits];
-   const displayDebits = [...debits];
-   while (displayCredits.length < 5) displayCredits.push(null);
-   while (displayDebits.length < 5) displayDebits.push(null);
-
    return (
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 font-sans animate-in fade-in duration-300">
-
-         <div className="bg-white rounded-lg w-full max-w-5xl shadow-2xl flex flex-col border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-500 relative">
-
-            {/* Light Header Shard */}
-            <div className="bg-slate-50 p-5 px-8 flex justify-between items-center border-b border-slate-100">
-               <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-indigo-600/10 rounded-lg flex items-center justify-center text-indigo-600">
-                     <ArrowRightLeft size={22} strokeWidth={3} />
-                  </div>
-                  <div>
-                     <h2 className="text-base font-bold text-slate-800 tracking-tight italic uppercase">Contra / J.V. Entry</h2>
-                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 italic">Inter-Account Logic Shard</p>
-                  </div>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+         <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => !loading && onClose()}></div>
+         
+         <div className="bg-white border border-zinc-400 rounded-none w-full max-w-5xl shadow-lg relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh] font-mono text-xs select-none">
+            
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between">
+               <div className="flex items-center gap-2">
+                  <ArrowLeftRight size={16} className="text-blue-600" />
+                  <h2 className="text-sm font-bold tracking-tight text-zinc-800 uppercase">
+                     CONTRA / JOURNAL VOUCHER (JV) ENTRY
+                  </h2>
                </div>
-               <button onClick={onClose} className="hover:bg-red-50 text-slate-400 hover:text-red-600 p-2.5 rounded-lg transition-all active:scale-95">
-                  <X size={20} strokeWidth={3} />
+               <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
+                  <X size={18} />
                </button>
             </div>
 
-            {/* Global Metadata Strip */}
-            <div className="p-4 px-8 bg-white flex items-center justify-between border-b border-slate-50">
-               <div className="flex items-center gap-4 bg-[#F8FAFC] p-2 px-5 rounded-lg border border-slate-50">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Node Date :</span>
-                  <input
-                     type="date"
-                     value={voucherDate}
-                     onChange={e => setVoucherDate(e.target.value)}
-                     className="bg-transparent border-none outline-none font-bold text-slate-700 text-xs italic"
-                  />
+            {/* Global Settings Strip */}
+            <div className="p-4 px-6 bg-zinc-50 flex items-center justify-between border-b border-zinc-200">
+               <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                     <span className="font-bold text-zinc-400 uppercase tracking-widest text-[9px]">Voucher Date :</span>
+                     <input
+                        type="date"
+                        value={voucherDate}
+                        onChange={e => setVoucherDate(e.target.value)}
+                        className="bg-white border border-zinc-300 px-3 py-1.5 focus:border-zinc-500 outline-none transition font-bold text-zinc-800 text-xs h-9"
+                     />
+                  </div>
                </div>
 
-               {totalCredit !== totalDebit && (
-                  <div className="flex items-center gap-2 text-red-500 font-black text-[9px] uppercase tracking-widest animate-pulse italic">
-                     <AlertCircle size={14} /> Fiscal Imbalance: ({(totalCredit - totalDebit).toFixed(2)})
+               {totalCredit !== totalDebit && totalCredit > 0 && (
+                  <div className="flex items-center gap-2 text-red-600 font-bold text-[9px] uppercase tracking-widest animate-pulse">
+                     <AlertCircle size={14} /> Fiscal Imbalance: ₹{(totalCredit - totalDebit).toFixed(2)}
+                  </div>
+               )}
+               {totalCredit === totalDebit && totalCredit > 0 && (
+                  <div className="flex items-center gap-2 text-emerald-600 font-bold text-[9px] uppercase tracking-widest">
+                     <CheckCircle2 size={14} /> Balances Standardized
                   </div>
                )}
             </div>
 
-            {/* Dual Processing Vector */}
-            <div className="flex h-[400px] relative">
-               {loading && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-50 flex items-center justify-center">
-                     <div className="flex flex-col items-center gap-3">
-                        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Reconstructing Matrix Nodes...</span>
-                     </div>
-                  </div>
-               )}
-               {/* Credit Vector */}
-               <div className="flex-1 flex flex-col border-r border-slate-100">
-                  <div className="bg-emerald-50/30 p-3 px-6 border-b border-emerald-50 flex justify-between items-center">
-                     <div className="flex items-center gap-2.5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] italic">Credit Stream (Jama)</span>
-                     </div>
+            {/* Matrix Vector Processing */}
+            <div className="flex flex-1 overflow-hidden h-[400px]">
+               {/* Credit Vector (Jama) */}
+               <div className="flex-1 flex flex-col border-r border-zinc-200">
+                  <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-100 flex justify-between items-center">
+                     <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        Credit Side (Jama)
+                     </span>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }}
-                        className="bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                        className="bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white px-3 py-1 text-[9px] font-bold uppercase transition"
                      >
-                        <Plus size={12} strokeWidth={4} /> Add Credit
+                        + Add Credit
                      </button>
                   </div>
 
-                  <div className="grid grid-cols-12 bg-[#F8FAFC] text-slate-400 text-[9px] font-black uppercase tracking-widest py-2 border-b border-slate-50">
-                     <div className="col-span-8 px-6">Source Particular</div>
-                     <div className="col-span-4 px-6 text-right">Value (₹)</div>
+                  <div className="flex-1 overflow-y-auto bg-white">
+                     <table className="w-full">
+                        <thead className="sticky top-0 bg-zinc-50 text-[9px] font-bold text-zinc-400 uppercase border-b border-zinc-100">
+                           <tr>
+                              <th className="px-4 py-2 text-left">Account Particulars</th>
+                              <th className="px-4 py-2 text-right w-32">Amount</th>
+                              <th className="px-4 py-2 text-center w-10"></th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-50">
+                           {credits.map((item, i) => (
+                              <tr key={i} className="hover:bg-zinc-50 group transition-colors">
+                                 <td className="px-4 py-2.5">
+                                    <p className="font-bold text-zinc-800 uppercase tracking-tight">{item.account_name}</p>
+                                    <p className="text-[9px] text-zinc-400 italic mt-0.5">{item.particulars || 'No narrative'}</p>
+                                 </td>
+                                 <td className="px-4 py-2.5 text-right font-bold text-zinc-700 font-mono italic">
+                                    ₹{parseFloat(item.amount).toFixed(2)}
+                                 </td>
+                                 <td className="px-2 py-2.5 text-center">
+                                    <button onClick={() => removeItem('credit', i)} className="text-zinc-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">
+                                       <Trash2 size={13} />
+                                    </button>
+                                 </td>
+                              </tr>
+                           ))}
+                           {credits.length === 0 && (
+                              <tr>
+                                 <td colSpan="3" className="px-4 py-12 text-center text-zinc-300 uppercase tracking-widest text-[9px] italic">
+                                    No Credit Entries Defined
+                                 </td>
+                              </tr>
+                           )}
+                        </tbody>
+                     </table>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto scroller-airy">
-                     {displayCredits.map((item, i) => (
-                        <div
-                           key={i}
-                           onClick={() => item && setSelected({ type: 'credit', index: i })}
-                           onDoubleClick={() => { if (item) { setEditIndex(i); setActiveSubModal('credit'); } }}
-                           className={`grid grid-cols-12 transition-all min-h-[4rem] items-center border-b border-slate-50 group cursor-pointer ${selected?.type === 'credit' && selected?.index === i
-                              ? 'bg-slate-900 text-white'
-                              : 'hover:bg-slate-50'
-                              }`}
-                        >
-                           <div className="col-span-8 px-6 flex flex-col gap-1">
-                              <div className={`font-black uppercase text-xs tracking-tight italic ${selected?.type === 'credit' && selected?.index === i ? 'text-white' : 'text-slate-800'}`}>
-                                 {item?.account_name || ''}
-                              </div>
-                              {item && (
-                                 <div className={`text-[9px] font-bold italic truncate flex items-center gap-2 ${selected?.type === 'credit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
-                                    <ChevronRight size={10} className="text-emerald-500" /> {item?.particulars || 'No narrative provided'}
-                                 </div>
-                              )}
-                           </div>
-                           <div className="col-span-4 px-6 flex justify-between items-center group/item">
-                              <span className={`font-black font-mono text-sm tracking-tighter ${selected?.type === 'credit' && selected?.index === i ? 'text-white' : 'text-slate-700'}`}>
-                                 {item ? parseFloat(item.amount).toFixed(2) : ''}
-                              </span>
-                              {item && (
-                                 <button
-                                    onClick={(e) => { e.stopPropagation(); removeItem('credit', i); }}
-                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'credit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
-                                 >
-                                    <Trash2 size={14} />
-                                 </button>
-                              )}
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-
-                  {/* Sector Footer */}
-                  <div className="p-4 px-8 bg-slate-50/50 flex justify-between items-center border-t border-slate-100">
-                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic tracking-[0.3em]">Sector Yield Total</span>
-                     <span className="font-black font-mono text-lg text-emerald-600 tracking-tighter italic">₹ {totalCredit.toFixed(2)}</span>
+                  <div className="p-3 px-5 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
+                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Credit Total</span>
+                     <span className="font-bold font-mono text-emerald-600 text-sm italic">₹{totalCredit.toFixed(2)}</span>
                   </div>
                </div>
 
-               {/* Debit Vector */}
+               {/* Debit Vector (Udhar) */}
                <div className="flex-1 flex flex-col">
-                  <div className="bg-blue-50/30 p-3 px-6 border-b border-blue-50 flex justify-between items-center">
-                     <div className="flex items-center gap-2.5">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"></div>
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] italic">Debit Stream (Udhar)</span>
-                     </div>
+                  <div className="bg-blue-50 px-4 py-2.5 border-b border-blue-100 flex justify-between items-center">
+                     <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                        Debit Side (Udhar)
+                     </span>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }}
-                        className="bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                        className="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1 text-[9px] font-bold uppercase transition"
                      >
-                        <Plus size={12} strokeWidth={4} /> Add Debit
+                        + Add Debit
                      </button>
                   </div>
 
-                  <div className="grid grid-cols-12 bg-[#F8FAFC] text-slate-400 text-[9px] font-black uppercase tracking-widest py-2 border-b border-slate-50">
-                     <div className="col-span-8 px-6">Destination Particular</div>
-                     <div className="col-span-4 px-6 text-right">Value (₹)</div>
+                  <div className="flex-1 overflow-y-auto bg-white">
+                     <table className="w-full">
+                        <thead className="sticky top-0 bg-zinc-50 text-[9px] font-bold text-zinc-400 uppercase border-b border-zinc-100">
+                           <tr>
+                              <th className="px-4 py-2 text-left">Account Particulars</th>
+                              <th className="px-4 py-2 text-right w-32">Amount</th>
+                              <th className="px-4 py-2 text-center w-10"></th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-50">
+                           {debits.map((item, i) => (
+                              <tr key={i} className="hover:bg-zinc-50 group transition-colors">
+                                 <td className="px-4 py-2.5">
+                                    <p className="font-bold text-zinc-800 uppercase tracking-tight">{item.account_name}</p>
+                                    <p className="text-[9px] text-zinc-400 italic mt-0.5">{item.particulars || 'No narrative'}</p>
+                                 </td>
+                                 <td className="px-4 py-2.5 text-right font-bold text-zinc-700 font-mono italic">
+                                    ₹{parseFloat(item.amount).toFixed(2)}
+                                 </td>
+                                 <td className="px-2 py-2.5 text-center">
+                                    <button onClick={() => removeItem('debit', i)} className="text-zinc-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">
+                                       <Trash2 size={13} />
+                                    </button>
+                                 </td>
+                              </tr>
+                           ))}
+                           {debits.length === 0 && (
+                              <tr>
+                                 <td colSpan="3" className="px-4 py-12 text-center text-zinc-300 uppercase tracking-widest text-[9px] italic">
+                                    No Debit Entries Defined
+                                 </td>
+                              </tr>
+                           )}
+                        </tbody>
+                     </table>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto scroller-airy">
-                     {displayDebits.map((item, i) => (
-                        <div
-                           key={i}
-                           onClick={() => item && setSelected({ type: 'debit', index: i })}
-                           onDoubleClick={() => { if (item) { setEditIndex(i); setActiveSubModal('debit'); } }}
-                           className={`grid grid-cols-12 transition-all min-h-[4rem] items-center border-b border-slate-50 group cursor-pointer ${selected?.type === 'debit' && selected?.index === i
-                              ? 'bg-slate-900 text-white'
-                              : 'hover:bg-slate-50'
-                              }`}
-                        >
-                           <div className="col-span-8 px-6 flex flex-col gap-1">
-                              <div className={`font-black uppercase text-xs tracking-tight italic ${selected?.type === 'debit' && selected?.index === i ? 'text-white' : 'text-slate-800'}`}>
-                                 {item?.account_name || ''}
-                              </div>
-                              {item && (
-                                 <div className={`text-[9px] font-bold italic truncate flex items-center gap-2 ${selected?.type === 'debit' && selected?.index === i ? 'text-slate-400' : 'text-slate-400'}`}>
-                                    <ChevronRight size={10} className="text-blue-500" /> {item?.particulars || 'No narrative provided'}
-                                 </div>
-                              )}
-                           </div>
-                           <div className="col-span-4 px-6 flex justify-between items-center group/item">
-                              <span className={`font-black font-mono text-sm tracking-tighter ${selected?.type === 'debit' && selected?.index === i ? 'text-white' : 'text-slate-700'}`}>
-                                 {item ? parseFloat(item.amount).toFixed(2) : ''}
-                              </span>
-                              {item && (
-                                 <button
-                                    onClick={(e) => { e.stopPropagation(); removeItem('debit', i); }}
-                                    className={`p-1.5 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${selected?.type === 'debit' && selected?.index === i ? 'text-red-400 hover:bg-red-400/10' : 'text-red-600 hover:bg-red-50'}`}
-                                 >
-                                    <Trash2 size={14} />
-                                 </button>
-                              )}
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-
-                  {/* Sector Footer */}
-                  <div className="p-4 px-8 bg-slate-50/50 flex justify-between items-center border-t border-slate-100">
-                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic tracking-[0.3em]">Sector Yield Total</span>
-                     <span className="font-black font-mono text-lg text-blue-600 tracking-tighter italic">₹ {totalDebit.toFixed(2)}</span>
+                  <div className="p-3 px-5 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
+                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Debit Total</span>
+                     <span className="font-bold font-mono text-blue-600 text-sm italic">₹{totalDebit.toFixed(2)}</span>
                   </div>
                </div>
             </div>
 
-            {/* Terminal Actions */}
-            <div className="bg-slate-50 border-t border-slate-100 p-6 px-10 flex justify-end gap-5">
-               <button onClick={onClose} className="px-8 py-3.5 bg-white border border-slate-200 text-slate-400 rounded-lg font-black uppercase text-[10px] tracking-widest hover:text-slate-600 shadow-sm transition-all active:scale-95">Cancel Operation</button>
-               <button
-                  onClick={handleSave}
-                  disabled={totalCredit === 0 || totalCredit !== totalDebit}
-                  className="bg-indigo-600 text-white px-10 py-3.5 rounded-lg font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-3"
-               >
-                  {totalCredit > 0 && totalCredit === totalDebit && <CheckCircle2 size={16} strokeWidth={3} />}
-                  Commit Fiscal Voucher
-               </button>
+            {/* Action Bar */}
+            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-100 flex items-center justify-between shadow-inner">
+               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+                  * Fiscal Balances must be standardized (Credit = Debit) for Commit.
+               </p>
+               <div className="flex gap-3">
+                  <button onClick={onClose} className="px-5 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px] tracking-widest shadow-sm">
+                     Cancel
+                  </button>
+                  <button 
+                     onClick={handleSave} 
+                     disabled={loading || totalCredit === 0 || totalCredit !== totalDebit}
+                     className="px-8 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 disabled:grayscale disabled:opacity-50 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm"
+                  >
+                     {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> Commit Voucher</>}
+                  </button>
+               </div>
             </div>
 
             {/* Sub Shard Overlay */}
@@ -321,25 +314,15 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                   }}
                />
             )}
-
          </div>
-
-         <style dangerouslySetInnerHTML={{
-            __html: `
-            .scroller-airy::-webkit-scrollbar { width: 4px; }
-            .scroller-airy::-webkit-scrollbar-track { background: transparent; }
-            .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-         `}} />
       </div>
    );
 }
 
-// Compact Sub Entry Modal with Identity Discovery Engine
 function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, company }) {
    const isCredit = type === 'credit';
    const themeColor = isCredit ? 'emerald' : 'blue';
-   const title = initialData ? 'Modify Node' : (isCredit ? 'Jama Allocation' : 'Udhar Allocation');
-
+   
    const [accountId, setAccountId] = useState(initialData?.account_id || '');
    const [selectedAccount, setSelectedAccount] = useState(null);
    const [searchCode, setSearchCode] = useState(initialData?.account_id ? String(initialData.account_id) : '');
@@ -357,9 +340,16 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
    const [showDropdown, setShowDropdown] = useState(false);
    const [selectedIndex, setSelectedIndex] = useState(0);
-   const dropdownRef = React.useRef(null);
-   const codeInputRef = React.useRef(null);
-   const nameInputRef = React.useRef(null);
+
+   // Traversal Refs
+   const codeRef = useRef(null);
+   const nameRef = useRef(null);
+   const memberInputRef = useRef(null);
+   const amountRef = useRef(null);
+   const refNoRef = useRef(null);
+   const partRef = useRef(null);
+
+   const focusNext = (ref) => ref?.current?.focus();
 
    useEffect(() => {
       if (initialData?.account_id) {
@@ -388,9 +378,13 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
       setSearchCode(String(acc.id));
       setSearchText(acc.account_name);
       setShowDropdown(false);
+      // Auto focus next logic
+      setTimeout(() => {
+         if (acc.is_subledger === 1) focusNext(memberInputRef);
+         else focusNext(amountRef);
+      }, 50);
    };
 
-   // Auto-fetch by code logic
    useEffect(() => {
       if (searchCode && !accountId) {
          const match = accounts.find(a => String(a.id) === searchCode || (a.phone && String(a.phone) === searchCode));
@@ -409,6 +403,9 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
          if (showDropdown && filteredAccounts.length > 0) {
             e.preventDefault();
             handleAccountSelect(filteredAccounts[selectedIndex]);
+         } else if (accountId) {
+            if (selectedAccount?.is_subledger === 1) focusNext(memberInputRef);
+            else focusNext(amountRef);
          }
       } else if (e.key === 'Escape') {
          setShowDropdown(false);
@@ -429,161 +426,156 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
    };
 
    return (
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
-         <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-500">
-            <div className={`bg-${themeColor}-600 p-5 px-7 flex justify-between items-center`}>
-               <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center text-white">
-                     <Database size={18} strokeWidth={3} />
-                  </div>
-                  <span className="text-[11px] font-black uppercase text-white tracking-[0.2em] italic">{title}</span>
+      <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
+         <div className="bg-white border border-zinc-400 rounded-none w-full max-w-lg shadow-2xl overflow-hidden flex flex-col font-mono text-xs">
+            
+            <div className={`px-5 py-3.5 ${isCredit ? 'bg-emerald-50' : 'bg-blue-50'} border-b border-zinc-300 flex items-center justify-between`}>
+               <div className="flex items-center gap-2">
+                  <Database size={16} className={isCredit ? 'text-emerald-600' : 'text-blue-600'} />
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${isCredit ? 'text-emerald-800' : 'text-blue-800'}`}>
+                     {initialData ? 'MODIFY' : 'NEW'} {isCredit ? 'CREDIT' : 'DEBIT'} ALLOCATION
+                  </span>
                </div>
-               <button onClick={onClose} className="bg-white/10 hover:bg-white/20 text-white rounded-lg p-2 transition-all"><X size={16} strokeWidth={3} /></button>
+               <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
+                  <X size={18} />
+               </button>
             </div>
 
-            <div className="p-7 space-y-5 bg-white relative">
-               <div className="flex items-center justify-between bg-[#F8FAFC] p-4 border border-slate-50 rounded-lg">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Voucher Timeline :</span>
-                  <span className="font-mono font-black text-slate-800 text-[10px] tracking-widest">{date}</span>
-               </div>
-
-               {/* Account Discovery */}
-               <div className="relative group">
-                  <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-lg border border-slate-50 group-focus-within:border-indigo-100 transition-all">
-                     <div className="p-2 bg-white rounded-lg shadow-sm text-slate-400 group-focus-within:text-indigo-500"><Search size={14} /></div>
-                     <div className="flex-1 grid grid-cols-12 gap-3" ref={dropdownRef}>
-                        <div className="col-span-3 border-r border-slate-100 pr-3">
-                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic text-center">Node ID</p>
-                           <input
-                              ref={codeInputRef}
-                              type="text"
-                              placeholder="CODE"
-                              value={searchCode}
-                              onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); if (accountId) { setAccountId(''); setSelectedAccount(null); } }}
-                              onFocus={() => setShowDropdown(true)}
-                              onKeyDown={handleSearchKeyDown}
-                              className="w-full bg-transparent border-none outline-none font-black text-slate-800 text-xs tracking-widest text-center"
-                           />
-                        </div>
-                        <div className="col-span-9">
-                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 italic">Ledger Account</p>
-                           <input
-                              ref={nameInputRef}
-                              type="text"
-                              placeholder="START TYPING..."
-                              value={searchText}
-                              onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); if (accountId) { setAccountId(''); setSelectedAccount(null); } }}
-                              onFocus={() => setShowDropdown(true)}
-                              onKeyDown={handleSearchKeyDown}
-                              className="w-full bg-transparent border-none outline-none font-bold text-slate-800 text-xs italic"
-                           />
-                        </div>
-                     </div>
-                  </div>
-
-                  {showDropdown && (
-                     <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 shadow-2xl z-[1300] max-h-48 overflow-y-auto rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="bg-slate-900 text-white p-2.5 px-5 text-[7px] font-black uppercase tracking-[0.4em] flex justify-between items-center sticky top-0 italic">
-                           <span>Identity Cluster Feed</span>
-                           <X size={10} className="cursor-pointer" onClick={() => setShowDropdown(false)} />
-                        </div>
-                        {filteredAccounts.length === 0 ? (
-                           <div className="p-8 text-center text-slate-300 text-[8px] font-black uppercase tracking-widest italic">Identity Node Null</div>
-                        ) : (
-                           filteredAccounts.map((acc, idx) => (
-                              <div
-                                 key={acc.id}
-                                 onClick={() => handleAccountSelect(acc)}
-                                 className={`px-5 py-3 border-b border-slate-50 flex justify-between items-center cursor-pointer transition-all ${selectedIndex === idx ? `bg-${themeColor}-50` : 'hover:bg-slate-50'}`}
-                              >
-                                 <p className={`font-black text-[10px] uppercase italic tracking-tight ${selectedIndex === idx ? `text-${themeColor}-600` : 'text-slate-800'}`}>{acc.account_name}</p>
-                                 <div className={`px-2.5 py-1 rounded-md text-[7px] font-mono font-bold ${selectedIndex === idx ? `bg-${themeColor}-600 text-white` : 'bg-slate-50 text-slate-400'}`}>#{acc.id}</div>
-                              </div>
-                           ))
+            <div className="p-6 space-y-5 bg-zinc-50">
+               {/* Account Picker */}
+               <div className="relative space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Select Target Account *</label>
+                  <div className="flex gap-2">
+                     <input
+                        ref={codeRef}
+                        type="text"
+                        placeholder="CODE"
+                        value={searchCode}
+                        onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); }}
+                        onFocus={() => setShowDropdown(true)}
+                        onKeyDown={handleSearchKeyDown}
+                        className="w-20 text-center border border-zinc-300 bg-white px-2 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase h-9"
+                     />
+                     <div className="flex-1 relative">
+                        <input
+                           ref={nameRef}
+                           type="text"
+                           placeholder="SEARCH ACCOUNT NAME..."
+                           value={searchText}
+                           onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); }}
+                           onFocus={() => setShowDropdown(true)}
+                           onKeyDown={handleSearchKeyDown}
+                           className="w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9 uppercase"
+                        />
+                        {showDropdown && (
+                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-[1300] max-h-48 overflow-y-auto divide-y divide-zinc-100">
+                              {filteredAccounts.map((acc, idx) => (
+                                 <div
+                                    key={acc.id}
+                                    onClick={() => handleAccountSelect(acc)}
+                                    className={`px-4 py-2.5 flex justify-between items-center cursor-pointer transition-colors ${selectedIndex === idx ? `bg-blue-600 text-white` : 'hover:bg-zinc-50 text-zinc-800'}`}
+                                 >
+                                    <span className="text-[11px] font-bold uppercase">{acc.account_name}</span>
+                                    <span className={`text-[9px] font-bold ${selectedIndex === idx ? 'text-blue-100' : 'text-zinc-400'}`}>#{acc.id}</span>
+                                 </div>
+                              ))}
+                           </div>
                         )}
                      </div>
-                  )}
+                  </div>
                </div>
 
-               {/* Member Selection - Dynamic Shard */}
+               {/* Subledger Node */}
                {selectedAccount?.is_subledger === 1 && (
-                  <div className="relative animate-in slide-in-from-left duration-300">
-                     <div className="flex items-center gap-4 bg-indigo-50/30 p-4 rounded-lg border border-indigo-100 transition-all shadow-sm">
-                        <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500"><Users size={14} /></div>
-                        <div className="flex-1">
-                           <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-0.5 italic">Member Assignment (Subledger Required)</p>
-                           <input
-                              type="text"
-                              placeholder="SEARCH SABHASAD..."
-                              value={memberSearch}
-                              onChange={(e) => { setMemberSearch(e.target.value); setShowMemberDropdown(true); if (memberId) setMemberId(''); }}
-                              onFocus={() => setShowMemberDropdown(true)}
-                              className="w-full bg-transparent border-none outline-none font-black text-indigo-900 text-xs italic tracking-tight"
-                           />
-                        </div>
-                        {memberId && <CheckCircle2 size={16} className="text-emerald-500" strokeWidth={3} />}
+                  <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
+                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                        <Users size={12} className="text-blue-600" /> Member Node Assignment *
+                     </label>
+                     <div className="relative">
+                        <input
+                           ref={memberInputRef}
+                           type="text"
+                           placeholder="SEARCH SABHASAD / MEMBER..."
+                           value={memberSearch}
+                           onChange={(e) => { setMemberSearch(e.target.value); setShowMemberDropdown(true); }}
+                           onFocus={() => setShowMemberDropdown(true)}
+                           onKeyDown={e => e.key === 'Enter' && focusNext(amountRef)}
+                           className="w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9 uppercase"
+                        />
+                        {showMemberDropdown && memberSearch.length > 0 && (
+                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-[1300] max-h-40 overflow-y-auto divide-y divide-zinc-100">
+                              {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase())).map(m => (
+                                 <div
+                                    key={m.id}
+                                    onClick={() => {
+                                       setMemberId(m.id);
+                                       setMemberName(m.member_name);
+                                       setMemberSearch(m.member_name);
+                                       setShowMemberDropdown(false);
+                                       focusNext(amountRef);
+                                    }}
+                                    className="px-4 py-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center group transition-colors"
+                                 >
+                                    <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-tight">{m.member_name}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 font-mono">#{m.member_code}</span>
+                                 </div>
+                              ))}
+                           </div>
+                        )}
                      </div>
-
-                     {showMemberDropdown && memberSearch.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-indigo-100 shadow-2xl z-[1300] max-h-40 overflow-y-auto rounded-lg overflow-hidden divide-y divide-indigo-50">
-                           {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase()) || m.member_code.toString().includes(memberSearch)).map(m => (
-                              <div
-                                 key={m.id}
-                                 onClick={() => {
-                                    setMemberId(m.id);
-                                    setMemberName(m.member_name);
-                                    setMemberSearch(m.member_name);
-                                    setShowMemberDropdown(false);
-                                 }}
-                                 className="px-4 py-2 hover:bg-indigo-50 cursor-pointer flex justify-between items-center group transition-colors"
-                              >
-                                 <span className="text-[10px] font-bold text-slate-700 italic">{m.member_name}</span>
-                                 <span className="text-[8px] font-black bg-indigo-100 px-1.5 py-0.5 rounded text-indigo-600 font-mono">#{m.member_code}</span>
-                              </div>
-                           ))}
-                        </div>
-                     )}
                   </div>
                )}
 
                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Value (₹)</span>
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Financial Value (₹) *</label>
                      <input
+                        ref={amountRef}
                         type="number"
+                        placeholder="0.00"
+                        onKeyDown={e => e.key === 'Enter' && focusNext(refNoRef)}
                         value={amount}
                         onChange={e => setAmount(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-lg outline-none font-black text-indigo-600 focus:border-indigo-100 text-lg font-mono tracking-tighter shadow-sm"
-                        placeholder="0.00"
+                        className="w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-blue-600 text-lg font-mono tracking-tighter h-11"
                      />
                   </div>
-                  <div className="space-y-1.5">
-                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Reference Node</span>
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ref Node / Chq #</label>
                      <input
+                        ref={refNoRef}
                         type="text"
+                        placeholder="OPTIONAL"
+                        onKeyDown={e => e.key === 'Enter' && focusNext(partRef)}
                         value={refNo}
                         onChange={e => setRefNo(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-50 h-11 px-5 rounded-lg outline-none font-black text-slate-700 focus:border-indigo-100 text-[10px] shadow-sm tracking-widest uppercase italic"
-                        placeholder="REF_ID"
+                        className="w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 text-xs h-11 uppercase"
                      />
                   </div>
                </div>
 
-               <div className="space-y-1.5">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Fiscal Narrative</span>
+               <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fiscal Narrative / Particulars</label>
                   <textarea
+                     ref={partRef}
+                     placeholder="AUTO-GENERATED IF BLANK..."
                      value={particulars}
                      onChange={e => setParticulars(e.target.value)}
-                     className="w-full bg-[#F8FAFC] border border-slate-50 px-5 py-3 rounded-lg outline-none uppercase font-bold text-slate-600 h-16 resize-none focus:border-indigo-100 shadow-sm italic text-[10px]"
-                     placeholder="AUTOGEN_IF_EMPTY..."
+                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
+                     className="w-full border border-zinc-300 bg-white px-3 py-2 focus:border-zinc-600 outline-none transition font-bold text-zinc-600 text-[10px] h-16 resize-none uppercase italic"
                   />
                </div>
             </div>
 
-            <div className="bg-[#F8FAFC] p-6 px-7 flex justify-end gap-3 border-t border-slate-50 shadow-inner">
-               <button onClick={onClose} className="px-6 py-3 text-[9px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">Cancel</button>
-               <button onClick={handleSubmit} className={`bg-${themeColor}-600 text-white px-8 py-3 text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-${themeColor}-100 hover:bg-${themeColor}-700 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale`} disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}>
-                  {initialData ? 'Update Node' : 'Initialize Node'}
+            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-100 flex items-center justify-end gap-3 shadow-inner">
+               <button onClick={onClose} className="px-5 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px] tracking-widest">
+                  Cancel
+               </button>
+               <button 
+                  onClick={handleSubmit} 
+                  disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}
+                  className={`px-8 py-2 ${isCredit ? 'bg-emerald-600 border-emerald-500 hover:bg-emerald-700' : 'bg-blue-600 border-blue-500 hover:bg-blue-700'} text-white font-bold transition rounded-none uppercase text-[10px] tracking-widest shadow-sm disabled:grayscale disabled:opacity-50`}
+               >
+                  {initialData ? 'Apply Modification' : 'Initialize Node'}
                </button>
             </div>
          </div>

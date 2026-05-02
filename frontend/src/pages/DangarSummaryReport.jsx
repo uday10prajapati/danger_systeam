@@ -1,46 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import {
-   ArrowLeft,
-   TrendingUp, Box, Database, Calculator, Calendar, X, RefreshCcw
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Database, Calendar, RefreshCcw, X, CreditCard, Box, Calculator, TrendingUp, Printer, FileText, MapPin } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
-import PageHeader from '../components/PageHeader';
-import TableHeading from '../components/TableHeading';
-import * as XLSX from 'xlsx';
+import Toast from '../components/Toast';
+import Loading from '../components/Loading';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+const fmt = (n, dec = 2) =>
+   parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+const clsConfig = {
+   '1st': { dot: 'bg-emerald-400', text: 'text-emerald-600', label: '1st' },
+   '2nd': { dot: 'bg-amber-400', text: 'text-amber-600', label: '2nd' },
+   '3rd': { dot: 'bg-rose-400', text: 'text-rose-600', label: '3rd' },
+};
 
 const DangarSummaryReport = () => {
    const navigate = useNavigate();
    const [loading, setLoading] = useState(false);
-   const [summaryData, setSummaryData] = useState({ dangarSummary: [], fixedAccounts: [] });
+   const [message, setMessage] = useState(null);
+   const [data, setData] = useState({
+      dangarSummary: [], villageSummary: [], fixedAccounts: [], paymentPerAccount: [],
+      grandTotals: {}, totalInterest: 0, activeMembers: 0, memberPaymentSummary: {},
+   });
    const [dateRange, setDateRange] = useState({
       startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0]
+      endDate: new Date().toISOString().split('T')[0],
    });
 
-   useEffect(() => {
-      fetchSummary();
-   }, [dateRange.startDate, dateRange.endDate]);
+   useEffect(() => { fetchSummary(); }, [dateRange.startDate, dateRange.endDate]);
 
    const fetchSummary = async () => {
       try {
          setLoading(true);
-         const companyStr = localStorage.getItem('company');
-         const userStr = localStorage.getItem('user');
-         const company = JSON.parse(companyStr || '{}');
-         const user = JSON.parse(userStr || '{}');
+         const company = JSON.parse(localStorage.getItem('company') || '{}');
+         const user = JSON.parse(localStorage.getItem('user') || '{}');
          const companyId = company.id || user.company_id;
-
          const res = await api.get('/dangar-entry/summary-report', {
-            params: {
-               companyId,
-               startDate: dateRange.startDate,
-               endDate: dateRange.endDate
-            }
+            params: { companyId, startDate: dateRange.startDate, endDate: dateRange.endDate },
          });
-         if (res.data.success) {
-            setSummaryData(res.data.data);
-         }
+         if (res.data.success) setData(res.data.data);
       } catch (err) {
          console.error('Failed to load summary:', err);
       } finally {
@@ -48,105 +48,396 @@ const DangarSummaryReport = () => {
       }
    };
 
+   const addGujaratiFont = async (doc) => {
+      try {
+         const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
+         const blob = await res.blob();
+         return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+               const base64 = reader.result.split(',')[1];
+               doc.addFileToVFS('NotoSansGujarati.ttf', base64);
+               doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
+               resolve();
+            };
+            reader.readAsDataURL(blob);
+         });
+      } catch (e) {
+         console.warn('Could not load Gujarati font', e);
+      }
+   };
 
+   const handleExportPDF = async () => {
+      const company = JSON.parse(localStorage.getItem('company') || '{}');
+      const cName = company.company_name || company.name || 'Company';
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      await addGujaratiFont(doc);
+
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+      const M = 32;
+      const navy = [15, 23, 42], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
+      const rose = [225, 29, 72], green = [5, 150, 105];
+
+      const hdr = () => {
+         doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
+         doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+         doc.text(cName.toUpperCase(), M, 17);
+         doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+         doc.text('DANGAR PURCHASE SUMMARY & AUDIT', W / 2, 17, { align: 'center' });
+         doc.setFontSize(7); doc.setTextColor(239, 68, 68);
+         doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+      };
+
+      const ftr = (pg, tot) => {
+         doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
+         doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+         doc.text(cName + ' - Dangar Audit', M, H - 9);
+         doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
+         doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
+      };
+
+      hdr();
+      let y = 45;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
+      doc.text('Dangar Purchase Summary', M, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+      doc.text('Period: ' + dateRange.startDate + ' to ' + dateRange.endDate + '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
+      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
+      y += 32;
+
+      // Section 1: Variety Table
+      autoTable(doc, {
+         startY: y,
+         head: [['Item', 'Class', 'Entries', 'KG', 'Quintal', 'Avg Rate', 'Deduction', 'Amount']],
+         body: [
+            ...dangarSummary.map(r => [
+               r.item_name || '-',
+               r.quality_class || '1st',
+               r.entry_count,
+               fmt(r.total_kg, 0),
+               fmt(r.total_quintal),
+               'Rs.' + fmt(r.avg_rate),
+               'Rs.' + fmt(r.total_deduction),
+               'Rs.' + fmt(r.total_amount)
+            ]),
+            ['TOTAL', '', grandEntryCount, fmt(grandKg, 0), fmt(grandQuintal), '-', 'Rs.' + fmt(grandDeduction), 'Rs.' + fmt(grandRateAmount)]
+         ],
+         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
+         footStyles: { font: 'helvetica', fillColor: [30, 41, 59], textColor: white },
+         alternateRowStyles: { fillColor: stripe },
+         theme: 'grid',
+         margin: { left: M, right: M },
+         didParseCell: (d) => {
+            if (d.row.index === dangarSummary.length) {
+               d.cell.styles.fontStyle = 'bold';
+               d.cell.styles.fillColor = [241, 245, 249];
+            }
+         }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+
+      // Section 2: Account Payment activity
+      if (y > H - 120) { doc.addPage(); hdr(); y = 45; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
+      doc.text('Payment Activity by Account', M, y);
+      y += 12;
+
+      autoTable(doc, {
+         startY: y,
+         head: [['Account Name', 'Code', 'Type', 'Txns', 'Credited', 'Debited', 'Net']],
+         body: paymentPerAccount.map(a => {
+            const net = parseFloat(a.net_paid || 0);
+            return [
+               a.account_name || '-',
+               a.account_code || '-',
+               a.account_type || '-',
+               a.txn_count || 0,
+               'Rs.' + fmt(a.total_credited || 0),
+               'Rs.' + fmt(a.total_debited || 0),
+               (net >= 0 ? '+' : '-') + 'Rs.' + fmt(Math.abs(net))
+            ];
+         }),
+         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
+         alternateRowStyles: { fillColor: stripe },
+         theme: 'grid',
+         margin: { left: M, right: M }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+
+      // Section 3: Village Summary
+      if (y > H - 120) { doc.addPage(); hdr(); y = 45; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
+      doc.text('Procurement by Village', M, y);
+      y += 12;
+
+      autoTable(doc, {
+         startY: y,
+         head: [['Village', 'Entries', 'KG', 'Quintal', 'Deduction', 'Amount']],
+         body: villageSummary.map(r => [
+            r.village_name || '-',
+            r.entry_count,
+            fmt(r.total_kg, 0),
+            fmt(r.total_quintal),
+            'Rs.' + fmt(r.total_deduction),
+            'Rs.' + fmt(r.total_amount)
+         ]),
+         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
+         alternateRowStyles: { fillColor: stripe },
+         theme: 'grid',
+         margin: { left: M, right: M }
+      });
+
+      const tot = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
+      doc.save('Dangar_Summary_' + dateRange.startDate + '_to_' + dateRange.endDate + '.pdf');
+   };
+
+   const { dangarSummary = [], villageSummary = [], fixedAccounts = [], paymentPerAccount = [], grandTotals = {}, totalInterest = 0, activeMembers = 0, memberPaymentSummary = {} } = data;
+
+   const grandRateAmount = parseFloat(grandTotals.grand_rate_amount || 0);
+   const grandDeduction = parseFloat(grandTotals.grand_total_deduction || 0);
+   const grandKg = parseFloat(grandTotals.grand_total_kg || 0);
+   const grandQuintal = parseFloat(grandTotals.grand_total_quintal || 0);
+   const grandEntryCount = parseInt(grandTotals.grand_entry_count || 0);
+   const totalMemberCredit = parseFloat(memberPaymentSummary.total_member_credit || 0);
+   const totalMemberDebit = parseFloat(memberPaymentSummary.total_member_debit || 0);
+   const netPayable = totalMemberCredit - totalMemberDebit;
+   const totalKapatBal = fixedAccounts.reduce((s, a) => s + parseFloat(a.total_balance || 0), 0);
+
+   const kpis = [
+      { label: 'Procurement', value: `₹${fmt(grandRateAmount)}`, sub: `${grandEntryCount} entries` },
+      { label: 'Weight', value: `${fmt(grandKg, 0)} KG`, sub: `${fmt(grandQuintal)} Qtl` },
+      { label: 'Members', value: activeMembers, sub: 'active suppliers' },
+      { label: 'Member Payable', value: `₹${fmt(totalMemberCredit)}`, sub: 'total credited' },
+      { label: 'Deductions', value: `₹${fmt(grandDeduction)}`, sub: 'kapat + fund' },
+      { label: 'Interest', value: `₹${fmt(totalInterest)}`, sub: 'accumulated' },
+      { label: 'Net Payable', value: `₹${fmt(netPayable)}`, sub: 'credit – debit' },
+   ];
+
+   if (loading) {
+      return <Loading />;
+   }
 
    return (
-      <div className="min-h-screen bg-slate-50 pb-12 animate-in fade-in duration-700">
-         <div className="max-w-[1600px] mx-auto px-8">
+      <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+         <Toast message={message} onClose={() => setMessage(null)} />
 
-            <PageHeader
-               eyebrow="Procurement Audit / Variety Analytics"
-               eyebrowIcon={<Database size={12} />}
-               title="Dangar Purchase Summary"
-               subtitle="Consolidated view of dangar varieties and account deductions"
-            >
-               <div className="flex items-center gap-3 no-print">
-                  <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
-                     <Calendar size={14} className="ml-2 text-slate-400" />
-                     <input
-                        type="date"
-                        value={dateRange.startDate}
-                        onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                        className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-tighter w-24"
+         <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
+               <div>
+                  <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+                     <Database size={20} className="text-zinc-600" />
+                     Dangar Purchase Summary
+                  </h1>
+                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Procurement Audit</p>
+               </div>
+
+               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto select-none no-print">
+                  <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500">
+                     <Calendar size={14} className="text-zinc-400" />
+                     <input type="date" value={dateRange.startDate}
+                        onChange={e => setDateRange({ ...dateRange, startDate: e.target.value })}
+                        className="bg-transparent border-none outline-none text-xs text-zinc-700 w-[105px] font-bold"
                      />
-                     <span className="text-slate-300">/</span>
-                     <input
-                        type="date"
-                        value={dateRange.endDate}
-                        onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                        className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-tighter w-24"
+                     <span className="text-zinc-300 text-xs select-none">—</span>
+                     <input type="date" value={dateRange.endDate}
+                        onChange={e => setDateRange({ ...dateRange, endDate: e.target.value })}
+                        className="bg-transparent border-none outline-none text-xs text-zinc-700 w-[105px] font-bold"
                      />
                   </div>
-
                   <button
-                     onClick={fetchSummary}
-                     className="p-3 bg-white text-slate-400 hover:text-blue-600 rounded-lg border border-slate-100 shadow-sm transition-all active:scale-95"
+                     onClick={handleExportPDF}
+                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
                   >
-                     <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+                     <Printer size={14} /> PDF
                   </button>
-
-                  <button
-                     onClick={() => navigate(-1)}
-                     className="p-3 bg-white text-slate-400 hover:text-rose-600 rounded-lg border border-slate-100 shadow-sm transition-all"
-                  >
-                     <X size={20} />
+                  <button onClick={fetchSummary} className="p-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 transition select-none">
+                     <RefreshCcw size={15} className={`${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button onClick={() => navigate(-1)} className="p-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 transition select-none">
+                     <X size={15} />
                   </button>
                </div>
-            </PageHeader>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-               {/* Purchase Summary Table */}
-               <div className="lg:col-span-2 space-y-4">
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                     <TableHeading
-                        icon={<Box size={18} />}
-                        iconColor="blue"
-                        title="Variety & Class Breakdown"
-                        subtitle="Aggregated volume and average rates per dangar variety"
-                     />
-                     <div className="overflow-x-auto scroller-airy">
-                        <table className="w-full text-left">
+            {/* KPI Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-4 mb-4 select-none">
+               {kpis.map((k, i) => (
+                  <div key={i} className="border border-zinc-300 px-4 py-3 flex flex-col gap-0.5 bg-zinc-50">
+                     <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold font-mono">{k.label}</p>
+                     <p className="text-lg font-bold text-zinc-800 leading-tight font-mono">{k.value}</p>
+                     <p className="text-[10px] text-zinc-400 font-mono mt-0.5">{k.sub}</p>
+                  </div>
+               ))}
+            </div>
+
+            {/* Variety & Class Breakdown Table */}
+            <section className="mb-4">
+               <div className="border border-zinc-300 bg-zinc-50 flex flex-col">
+                  <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+                     <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                           Variety & Class Breakdown
+                        </span>
+                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
+                           {dangarSummary.length} VARIETIES
+                        </span>
+                     </div>
+                  </div>
+                  <div className="overflow-x-auto bg-white select-none">
+                     <table className="w-full text-left">
+                        <thead>
+                           <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-500 uppercase tracking-wider select-none">
+                              {['Item', 'Class', 'Entries', 'KG', 'Quintal', 'Avg Rate', 'Deduction', 'Amount'].map(h => (
+                                 <th key={h} className={`px-4 py-3 ${h === 'Item' || h === 'Class' ? '' : 'text-right'}`}>{h}</th>
+                              ))}
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-200 text-xs font-mono">
+                           {dangarSummary.length === 0 ? (
+                              <tr><td colSpan="8" className="py-8 text-center text-zinc-400">No entries recorded in selected range</td></tr>
+                           ) : (
+                              <>
+                                 {dangarSummary.map((row, i) => {
+                                    const cls = row.quality_class || '1st';
+                                    const c = clsConfig[cls] || clsConfig['1st'];
+                                    return (
+                                       <tr key={i} className="hover:bg-zinc-50 transition">
+                                          <td className="px-4 py-3 text-sm font-bold text-zinc-700 uppercase">{row.item_name || '—'}</td>
+                                          <td className="px-4 py-3">
+                                             <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase ${c.text}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`}></span>
+                                                {c.label}
+                                                {row.item_name_gu && <span className="text-zinc-400 font-normal ml-1 font-sans">{row.item_name_gu}</span>}
+                                             </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-right text-zinc-400">{row.entry_count}</td>
+                                          <td className="px-4 py-3 text-right text-zinc-500">{fmt(row.total_kg, 0)}</td>
+                                          <td className="px-4 py-3 text-right text-zinc-700 font-bold">{fmt(row.total_quintal)}</td>
+                                          <td className="px-4 py-3 text-right text-zinc-600">₹{fmt(row.avg_rate)}</td>
+                                          <td className="px-4 py-3 text-right text-rose-500 font-bold">₹{fmt(row.total_deduction)}</td>
+                                          <td className="px-4 py-3 text-right text-zinc-800 font-bold">₹{fmt(row.total_amount)}</td>
+                                       </tr>
+                                    );
+                                 })}
+                                 <tr className="bg-zinc-100 font-bold border-t border-zinc-300">
+                                    <td className="px-4 py-3 text-zinc-700 uppercase" colSpan="2">TOTAL</td>
+                                    <td className="px-4 py-3 text-right text-zinc-700">{grandEntryCount}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-700">{fmt(grandKg, 0)}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-800">{fmt(grandQuintal)}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-300">—</td>
+                                    <td className="px-4 py-3 text-right text-rose-600">₹{fmt(grandDeduction)}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-800">₹{fmt(grandRateAmount)}</td>
+                                 </tr>
+                              </>
+                           )}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </section>
+
+            {/* Procurement by Village */}
+            <section className="mb-4">
+               <div className="border border-zinc-300 bg-zinc-50 flex flex-col">
+                  <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+                     <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                           Procurement by Village
+                        </span>
+                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
+                           {villageSummary.length} REGIONS
+                        </span>
+                     </div>
+                  </div>
+                  <div className="overflow-x-auto bg-white select-none">
+                     <table className="w-full text-left">
+                        <thead>
+                           <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-500 uppercase tracking-wider select-none">
+                              {['Village', 'Entries', 'KG', 'Quintal', 'Deduction', 'Amount'].map(h => (
+                                 <th key={h} className={`px-4 py-3 ${h === 'Village' ? '' : 'text-right'}`}>{h}</th>
+                              ))}
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-200 text-xs font-mono">
+                           {villageSummary.length === 0 ? (
+                              <tr><td colSpan="6" className="py-8 text-center text-zinc-400">No village records present</td></tr>
+                           ) : (
+                              villageSummary.map((row, i) => (
+                                 <tr key={i} className="hover:bg-zinc-50 transition">
+                                    <td className="px-4 py-3 text-sm font-bold text-zinc-700 uppercase font-sans">
+                                       {row.village_name || '—'}
+                                       {row.village_name_gu && <span className="text-zinc-400 font-normal ml-2 font-sans">{row.village_name_gu}</span>}
+                                    </td>
+                                    <td className="px-4 py-3 text-right text-zinc-400">{row.entry_count}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-500">{fmt(row.total_kg, 0)}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-700 font-bold">{fmt(row.total_quintal)}</td>
+                                    <td className="px-4 py-3 text-right text-rose-500 font-bold">₹{fmt(row.total_deduction)}</td>
+                                    <td className="px-4 py-3 text-right text-zinc-800 font-bold">₹{fmt(row.total_amount)}</td>
+                                 </tr>
+                              ))
+                           )}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </section>
+
+            {/* Account Matrix & Summaries */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 select-none">
+               <div className="xl:col-span-2">
+                  <div className="border border-zinc-300 bg-zinc-50 flex flex-col h-full">
+                     <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                           <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                              Payment Activity by Account
+                           </span>
+                           <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
+                              {paymentPerAccount.length} ACCOUNTS
+                           </span>
+                        </div>
+                     </div>
+                     <div className="overflow-x-auto bg-white select-none">
+                        <table className="w-full text-left h-full">
                            <thead>
-                              <tr className="bg-[#F8FAFC] border-b border-slate-100">
-                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Name / Class</th>
-                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total KG</th>
-                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Quintal</th>
-                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Avg Rate</th>
-                                 <th className="px-10 py-6 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Total Amount</th>
+                              <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-500 uppercase tracking-wider select-none">
+                                 {['Account', 'Type', 'Txns', 'Credited', 'Debited', 'Net'].map(h => (
+                                    <th key={h} className={`px-4 py-3 ${h === 'Account' || h === 'Type' ? '' : 'text-right'}`}>{h}</th>
+                                 ))}
                               </tr>
                            </thead>
-                           <tbody className="divide-y divide-slate-50">
-                              {loading ? (
-                                 <tr>
-                                    <td colSpan="5" className="py-24 text-center text-slate-300 font-bold uppercase tracking-widest text-xs italic">
-                                       Synchronizing Procurement Data...
-                                    </td>
-                                 </tr>
-                              ) : summaryData.dangarSummary.length === 0 ? (
-                                 <tr>
-                                    <td colSpan="5" className="py-24 text-center text-slate-300 font-bold uppercase tracking-widest text-xs italic">
-                                       No transaction nodes detected in temporal range
-                                    </td>
-                                 </tr>
+                           <tbody className="divide-y divide-zinc-200 text-xs font-mono">
+                              {paymentPerAccount.length === 0 ? (
+                                 <tr><td colSpan="6" className="py-8 text-center text-zinc-400">No active accounts</td></tr>
                               ) : (
-                                 summaryData.dangarSummary.map((row, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
-                                       <td className="px-10 py-5">
-                                          <div className="flex flex-col">
-                                             <span className="text-sm font-black text-slate-800 uppercase italic tracking-tight group-hover:text-blue-600 transition-colors">{row.item_name}</span>
-                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{row.quality_class || 'Standard'} Class</span>
-                                                <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                                                <span className="text-[10px] font-bold text-blue-500 italic">{row.item_name_gu}</span>
-                                             </div>
-                                          </div>
-                                       </td>
-                                       <td className="px-10 py-5 text-right font-mono font-bold text-slate-400 text-xs italic">{parseFloat(row.total_kg || 0).toLocaleString()}</td>
-                                       <td className="px-10 py-5 text-right font-mono font-black text-slate-800 text-sm">{parseFloat(row.total_quintal || 0).toLocaleString()}</td>
-                                       <td className="px-10 py-5 text-right font-mono font-black text-emerald-600 text-sm">₹{parseFloat(row.avg_rate || 0).toFixed(2)}</td>
-                                       <td className="px-10 py-5 text-right font-mono font-black text-slate-900 text-sm">₹{parseFloat(row.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                    </tr>
-                                 ))
+                                 paymentPerAccount.map((acc, i) => {
+                                    const net = parseFloat(acc.net_paid || 0);
+                                    return (
+                                       <tr key={i} className="hover:bg-zinc-50 transition select-none">
+                                          <td className="px-4 py-3 font-sans font-bold">
+                                             <Link to="/account-ledger" state={{ selectedAccount: { id: acc.account_id, account_name: acc.account_name } }} className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">{acc.account_name}</Link>
+                                             <p className="text-[9px] text-zinc-400 mt-0.5 tracking-wider font-mono">{acc.account_code}</p>
+                                          </td>
+                                          <td className="px-4 py-3 font-sans text-zinc-500">{acc.account_type || '—'}</td>
+                                          <td className="px-4 py-3 text-right text-zinc-400">{acc.txn_count}</td>
+                                          <td className="px-4 py-3 text-right text-zinc-600 font-bold">
+                                             {parseFloat(acc.total_credited || 0) > 0 ? `₹${fmt(acc.total_credited)}` : '—'}
+                                          </td>
+                                          <td className="px-4 py-3 text-right text-zinc-600 font-bold">
+                                             {parseFloat(acc.total_debited || 0) > 0 ? `₹${fmt(acc.total_debited)}` : '—'}
+                                          </td>
+                                          <td className={`px-4 py-3 text-right font-bold font-sans text-sm ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                             {net >= 0 ? '+' : '-'}₹{fmt(Math.abs(net))}
+                                          </td>
+                                       </tr>
+                                    );
+                                 })
                               )}
                            </tbody>
                         </table>
@@ -154,70 +445,38 @@ const DangarSummaryReport = () => {
                   </div>
                </div>
 
-               {/* Account Balances (Kapat Vigat) */}
-               <div className="space-y-4">
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                     <TableHeading
-                        icon={<Calculator size={18} />}
-                        iconColor="rose"
-                        title="Kapat Vigat"
-                        subtitle="Consolidated account balances for deductions"
-                     />
-                     <div className="p-4 space-y-2">
-                        {summaryData.fixedAccounts.map((acc, i) => (
-                           <div key={i} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-lg border border-slate-100 hover:border-slate-200 transition-all group">
-                              <div>
-                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-slate-400">{acc.account_code}</p>
-                                 <p className="text-xs font-black text-slate-700 uppercase italic tracking-tight">{acc.account_name}</p>
-                              </div>
-                              <p className={`text-sm font-black font-mono italic ${acc.total_balance < 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                 ₹{Math.abs(acc.total_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                 <span className="text-[10px] ml-1.5 opacity-60">{acc.total_balance < 0 ? 'C' : 'D'}</span>
-                              </p>
+               <div className="space-y-6">
+                  {/* Financial Summary */}
+                  <div className="border border-zinc-300 bg-zinc-50 flex flex-col select-none">
+                     <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center gap-2">
+                        <TrendingUp size={16} className="text-zinc-600" />
+                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                           Financial Summary
+                        </span>
+                     </div>
+                     <div className="bg-white divide-y divide-zinc-200 font-mono text-xs select-none">
+                        {[
+                           { label: 'Gross Procurement', value: `₹${fmt(grandRateAmount)}`, color: 'text-zinc-800' },
+                           { label: 'Kapat Deductions', value: `− ₹${fmt(grandDeduction)}`, color: 'text-rose-600 font-bold' },
+                           { label: 'Interest', value: `− ₹${fmt(totalInterest)}`, color: 'text-rose-600 font-bold' },
+                           { label: 'Account Kapat Bal.', value: `₹${fmt(Math.abs(totalKapatBal))}`, color: totalKapatBal < 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold' },
+                        ].map((r, i) => (
+                           <div key={i} className="flex items-center justify-between px-4 py-3 select-none">
+                              <span className="font-sans text-zinc-500 font-bold">{r.label}</span>
+                              <span className={`font-mono text-xs ${r.color}`}>{r.value}</span>
                            </div>
                         ))}
-                        {summaryData.fixedAccounts.length === 0 && (
-                           <div className="py-12 text-center text-slate-300 text-[10px] font-black uppercase tracking-widest italic">No deduction nodes active</div>
-                        )}
-                     </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-all">
-                     <TrendingUp className="absolute -right-6 -bottom-6 text-slate-50 group-hover:text-blue-50 transition-colors" size={160} strokeWidth={1} />
-                     <div className="relative z-10">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 italic">Procurement Aggregate</p>
-                        <h2 className="text-4xl font-black tracking-tighter text-slate-800">
-                           ₹{summaryData.dangarSummary.reduce((s, r) => s + parseFloat(r.total_amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </h2>
-                        <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-end">
-                           <div>
-                              <p className="text-[9px] font-black uppercase text-slate-300 tracking-[0.2em] mb-1">Total Procurement Volume</p>
-                              <p className="text-lg font-black text-slate-700 italic tracking-tight">
-                                 {summaryData.dangarSummary.reduce((s, r) => s + parseFloat(r.total_quintal || 0), 0).toLocaleString()}
-                                 <span className="text-xs ml-1.5 text-slate-400">QTL</span>
-                              </p>
-                           </div>
-                           <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                              <Box size={24} />
-                           </div>
+                        <div className="flex items-center justify-between px-4 py-3 bg-zinc-50 border-t border-zinc-300 font-sans select-none">
+                           <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Net Payable</span>
+                           <span className={`text-base font-bold font-mono ${netPayable >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}`}>
+                              ₹{fmt(netPayable)}
+                           </span>
                         </div>
                      </div>
                   </div>
                </div>
             </div>
          </div>
-         <style>{`
-            @media print {
-               .no-print { display: none !important; }
-               body { background: white !important; margin: 0 !important; }
-               .min-h-screen { min-height: 0 !important; padding: 0 !important; }
-               .shadow-sm, .shadow-xl { box-shadow: none !important; }
-               .border, .border-b { border-color: #f1f5f9 !important; }
-               .max-w-[1600px] { max-width: 100% !important; padding: 0 40px !important; }
-               .grid { display: block !important; }
-               .lg\\:col-span-2, .space-y-4 { margin-bottom: 20px !important; }
-            }
-         `}</style>
       </div>
    );
 };
