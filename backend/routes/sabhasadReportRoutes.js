@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Company ID is required' });
     }
 
-    let { startDate, endDate, accountId, memberId, hideZeroBalance } = req.query;
+    let { startDate, endDate, accountId, memberId, hideZeroBalance, village, bankName, season, itemId } = req.query;
 
     if (!endDate) {
       endDate = new Date().toISOString().split('T')[0];
@@ -45,6 +45,25 @@ router.get('/', async (req, res) => {
       conditions += ' AND m.id = ?';
       params.push(memberId);
     }
+
+    if (village) {
+      conditions += ' AND m.village_name = ?';
+      params.push(village);
+    }
+
+    if (bankName) {
+      conditions += ' AND m.bank_name = ?';
+      params.push(bankName);
+    }
+
+    // Special Season Filtering Logic
+    let seasonMemberFilter = '';
+    if (season) {
+        // Find members who have entries in this season to narrow down the report
+        seasonMemberFilter = ` AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)`;
+        params.push(season, season);
+    }
+    conditions += seasonMemberFilter;
 
     // Query to get all members and their specific ledger metrics
     const sql = `
@@ -132,75 +151,279 @@ router.get('/', async (req, res) => {
     // Main query WHERE conditions
     queryParams.push(...params);
 
-    // Special Handling: If Dangar System (DS0001) is selected, provide detailed entry rows instead of summaries
-    const dangarAcc = await query('SELECT id FROM accounts WHERE account_code = \'DS0001\' AND company_id = ?', [companyId]);
-    const dangarSystemId = dangarAcc[0]?.id;
+    let selectedAcc = null;
+    if (accountId && accountId !== 'all') {
+      const accs = await query("SELECT * FROM accounts WHERE id = ? AND company_id = ?", [accountId, companyId]);
+      if (accs.length > 0) selectedAcc = accs[0];
+    }
 
-    if (accountId && parseInt(accountId) === dangarSystemId) {
-      const dangarSql = `
+    const dangarAcc = await query("SELECT id FROM accounts WHERE (account_code = 'DS0001' OR account_name ILIKE '%DANGAR SYSTEM%') AND company_id = ?", [companyId]);
+    const isDangar = dangarAcc.some(a => String(a.id) === String(accountId));
+
+    const purchaseAcc = await query("SELECT id FROM accounts WHERE (account_name ILIKE '%PURCHES%' OR account_name ILIKE '%PURCHASE%') AND company_id = ?", [companyId]);
+    const isPurchase = purchaseAcc.some(a => String(a.id) === String(accountId));
+
+    const saleAcc = await query("SELECT id FROM accounts WHERE account_name ILIKE '%SALE%' AND company_id = ?", [companyId]);
+    const isSale = saleAcc.some(a => String(a.id) === String(accountId));
+
+    const bardanSysAcc = await query("SELECT id FROM accounts WHERE account_name ILIKE '%Bardan System%' AND company_id = ?", [companyId]);
+    const isBardan = bardanSysAcc.some(a => String(a.id) === String(accountId));
+
+    const isInterest = selectedAcc?.account_code === 'IK0001' || selectedAcc?.account_name?.toLowerCase().includes('interest khate');
+
+    if (accountId && isBardan) {
+      const bardanSql = `
         SELECT 
           m.member_code,
           m.member_name,
-          de.entry_date,
-          GROUP_CONCAT(DISTINCT de.book_type SEPARATOR ', ') as book_type,
-          GROUP_CONCAT(DISTINCT de.quality_class SEPARATOR ', ') as quality_class,
-          MAX(de.rate) as rate, -- Show the primary rate
-          SUM(de.net_quintal) as net_quintal,
-          SUM(de.amount) as amount,
-          GROUP_CONCAT(DISTINCT im.item_name SEPARATOR ', ') as item_name,
-          'Dangar System' as account_name
-        FROM dangar_entry de
-        JOIN member_master m ON de.member_id = m.id
-        LEFT JOIN item_master im ON de.item_id = im.id
-        WHERE de.company_id = ? AND de.entry_date BETWEEN ? AND ?
-        ${memberId && memberId !== 'all' ? ' AND de.member_id = ?' : ''}
-        GROUP BY de.member_id, de.entry_date, m.member_code, m.member_name, m.id
-        ORDER BY de.entry_date DESC, m.member_name ASC
+          al.member_id,
+          al.transaction_date as entry_date,
+          CASE 
+            WHEN al.reference_type = 'bardan_entry' THEN 'BARDAN taken'
+            WHEN al.reference_type = 'jama_bardan_entry' AND LOWER(al.description) LIKE '%settlement%' THEN 'Dangar Settlement'
+            WHEN al.reference_type = 'jama_bardan_entry' THEN 'Bardan Settlement'
+            WHEN al.reference_type = 'SALE_DEDUCTION' AND (LOWER(al.description) LIKE 'brokerage on%' OR LOWER(al.description) LIKE 'brokrej on%') THEN 'Brokerage on Bardan'
+            WHEN al.reference_type = 'dangar_entry_fund' OR LOWER(al.description) LIKE 'godown fund%' THEN 'Dangar Godown Fund'
+            WHEN al.interest_account_id = ? THEN 'Interest Amount'
+            WHEN al.reference_type = 'SALE_DEDUCTION' AND LOWER(al.description) LIKE 'labour on%' THEN 'Labour Charge'
+            ELSE al.description 
+          END as description,
+          al.reference_no,
+          al.reference_type,
+          COALESCE(al.debit, 0) as debit,
+          COALESCE(al.credit, 0) as credit,
+          'Bardan System' as account_name
+        FROM account_ledger al
+        LEFT JOIN member_master m ON al.member_id = m.id
+        WHERE al.company_id = ? AND al.account_id = ?
+        AND al.transaction_date BETWEEN ? AND ?
+        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ORDER BY al.transaction_date ASC, al.id ASC
       `;
-      const dangarParams = [companyId, startDate, endDate];
-      if (memberId && memberId !== 'all') dangarParams.push(memberId);
+      const bParams = [companyId, accountId, startDate, endDate];
+      if (memberId && memberId !== 'all') bParams.push(memberId);
 
-      const dRows = await query(dangarSql, dangarParams);
+      const bRows = await query(bardanSql, bParams);
+      
+      let runningQty = 0;
+      const rowsWithQty = bRows.map(row => {
+        runningQty += (parseFloat(row.debit) - parseFloat(row.credit));
+        return { ...row, balance: runningQty };
+      });
+
       return res.json({
         success: true,
-        data: dRows,
-        totals: dRows.reduce((acc, r) => ({
-          amount: acc.amount + parseFloat(r.amount || 0),
-          qty: acc.qty + parseFloat(r.net_quintal || 0)
-        }), { amount: 0, qty: 0 })
+        isBardan: true,
+        data: rowsWithQty,
+        totals: {
+          debit: rowsWithQty.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
+          credit: rowsWithQty.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
+          balance: runningQty
+        }
       });
     }
 
-    // Special Handling: If Interest Khate (IK0001) is selected
-    const interestAcc = await query('SELECT id FROM accounts WHERE account_code = \'IK0001\' AND company_id = ?', [companyId]);
-    const interestSystemId = interestAcc[0]?.id;
 
-    if (accountId && parseInt(accountId) === interestSystemId) {
-      const interestSql = `
+    if (accountId && isSale) {
+      const saleSql = `
         SELECT 
           m.member_code,
           m.member_name,
-          al.transaction_date,
-          al.interest_percent,
-          al.interest_amount,
+          al.member_id,
+          al.transaction_date as entry_date,
           al.description,
-          CAST(? AS DATE) - (SELECT MIN(transaction_date) FROM account_ledger WHERE member_id = al.member_id AND (debit > 0 OR debit_amount > 0) AND company_id = ?) as days
+          al.reference_no,
+          COALESCE(al.debit, al.debit_amount, 0) as debit,
+          COALESCE(al.credit, al.credit_amount, 0) as credit,
+          'Sale Account' as account_name,
+          s.payment_type
         FROM account_ledger al
-        JOIN member_master m ON al.member_id = m.id
-        WHERE al.company_id = ? AND (al.account_id = ? OR al.interest_account_id = ?)
-        AND DATE(al.transaction_date) BETWEEN ? AND ?
+        LEFT JOIN member_master m ON al.member_id = m.id
+        LEFT JOIN sales s ON (('SALE-' || CAST(s.id AS TEXT)) = al.reference_no OR s.invoice_no = al.reference_no)
+        WHERE al.company_id = ? AND al.account_id = ?
+        AND al.transaction_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
-        ORDER BY al.transaction_date DESC
+        ORDER BY al.transaction_date ASC, al.id ASC
       `;
-      const iParams = [endDate, companyId, companyId, interestSystemId, interestSystemId, startDate, endDate];
-      if (memberId && memberId !== 'all') iParams.push(memberId);
+      const sParams = [companyId, accountId, startDate, endDate];
+      if (memberId && memberId !== 'all') sParams.push(memberId);
 
-      const iRows = await query(interestSql, iParams);
+      const sRows = await query(saleSql, sParams);
+      
+      let runningBalance = 0;
+      const rowsWithBalance = sRows.map(row => {
+        runningBalance += (parseFloat(row.credit) - parseFloat(row.debit));
+        return { ...row, balance: runningBalance };
+      });
+
       return res.json({
         success: true,
-        data: iRows,
+        isSale: true,
+        data: rowsWithBalance,
         totals: {
-          interest_amount: iRows.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0)
+          debit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
+          credit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
+          balance: runningBalance
+        }
+      });
+    }
+
+
+
+    if (accountId && isPurchase) {
+      const purchaseSql = `
+        SELECT 
+          m.member_code,
+          m.member_name,
+          al.member_id,
+          al.transaction_date as entry_date,
+          al.description,
+          COALESCE(al.debit, al.debit_amount, 0) as debit,
+          COALESCE(al.credit, al.credit_amount, 0) as credit,
+          'Purchase Account' as account_name
+        FROM account_ledger al
+        LEFT JOIN member_master m ON al.member_id = m.id
+        WHERE al.company_id = ? AND al.account_id = ?
+        AND al.transaction_date BETWEEN ? AND ?
+        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ORDER BY al.transaction_date ASC, al.id ASC
+      `;
+      const pParams = [companyId, accountId, startDate, endDate];
+      if (memberId && memberId !== 'all') pParams.push(memberId);
+
+      const pRows = await query(purchaseSql, pParams);
+      
+      // Calculate running balance
+      let runningBalance = 0;
+      const rowsWithBalance = pRows.map(row => {
+        runningBalance += (parseFloat(row.debit) - parseFloat(row.credit));
+        return { ...row, balance: runningBalance };
+      });
+
+      return res.json({
+        success: true,
+        isPurchase: true,
+        data: rowsWithBalance,
+        totals: {
+          debit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
+          credit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
+          balance: runningBalance
+        }
+      });
+    }
+
+
+
+    const isTransactional = !!accountId && accountId !== 'all';
+    const isCashAccount = (selectedAcc?.account_name || '')?.toLowerCase().includes('cash account');
+
+    if (isTransactional && !isSale && !isBardan) {
+      const transactionalSql = `
+        SELECT 
+          m.member_code,
+          m.member_name,
+          al.member_id,
+          al.transaction_date as entry_date,
+          CASE 
+            WHEN al.interest_account_id = ? THEN 'Interest Amount'
+            WHEN (al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') THEN 'Dangar Sale'
+            WHEN al.reference_type = 'bardan_entry' THEN 'BARDAN taken'
+            WHEN al.reference_type = 'jama_bardan_entry' AND LOWER(al.description) LIKE '%settlement%' THEN 'Dangar Settlement'
+            WHEN al.reference_type = 'jama_bardan_entry' THEN 'Bardan Settlement'
+            WHEN al.reference_type = 'SALE_DEDUCTION' AND (LOWER(al.description) LIKE 'brokerage on%' OR LOWER(al.description) LIKE 'brokrej on%') THEN 'Brokerage on Bardan'
+            WHEN al.reference_type = 'dangar_entry_fund' OR LOWER(al.description) LIKE 'godown fund%' THEN 'Dangar Godown Fund'
+            WHEN al.reference_type = 'SALE_DEDUCTION' AND LOWER(al.description) LIKE 'labour on%' THEN 'Labour Charge'
+            ELSE al.description 
+          END as description,
+          al.reference_no,
+          al.reference_type,
+          COALESCE(CASE 
+            WHEN al.interest_account_id = ? THEN al.interest_amount 
+            WHEN (${isDangar ? 'TRUE' : 'FALSE'} OR ${isBardan ? 'TRUE' : 'FALSE'}) AND al.account_id IS NULL AND (al.reference_type ILIKE '%dangar%' OR al.reference_type ILIKE '%bardan%') THEN al.credit
+            ELSE al.debit 
+          END, 0) as debit,
+          COALESCE(CASE 
+            WHEN al.interest_account_id = ? THEN 0 
+            WHEN (${isDangar ? 'TRUE' : 'FALSE'} OR ${isBardan ? 'TRUE' : 'FALSE'}) AND al.account_id IS NULL AND (al.reference_type ILIKE '%dangar%' OR al.reference_type ILIKE '%bardan%') THEN al.debit
+            ELSE al.credit 
+          END, 0) as credit,
+          COALESCE(a.account_name, CASE WHEN al.reference_type ILIKE '%dangar%' THEN 'Dangar System' WHEN al.reference_type ILIKE '%bardan%' THEN 'Bardan System' ELSE 'Cash Account' END) as account_name,
+          al.interest_percent,
+          al.interest_amount as raw_interest_amount,
+          al.interest_account_id
+        FROM account_ledger al
+        LEFT JOIN member_master m ON al.member_id = m.id
+        LEFT JOIN accounts a ON al.account_id = a.id
+        WHERE al.company_id = ? 
+        AND (
+          al.account_id = ? 
+          OR (al.interest_account_id = ?)
+          OR (${isCashAccount ? 'TRUE' : 'FALSE'} AND al.account_id IS NULL AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book'))
+          OR (${isDangar ? 'TRUE' : 'FALSE'} AND al.account_id IS NULL AND (al.reference_type ILIKE '%dangar%'))
+          OR (${isBardan ? 'TRUE' : 'FALSE'} AND al.account_id IS NULL AND (al.reference_type ILIKE '%bardan%'))
+        )
+        AND al.transaction_date BETWEEN ? AND ?
+        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ORDER BY al.transaction_date ASC, al.id ASC
+      `;
+
+      const opRes = await query(`
+        SELECT COALESCE(
+          SUM(CASE 
+            WHEN interest_account_id = ? THEN interest_amount 
+            WHEN (${isDangar ? 'TRUE' : 'FALSE'} OR ${isBardan ? 'TRUE' : 'FALSE'}) AND account_id IS NULL AND (reference_type ILIKE '%dangar%' OR reference_type ILIKE '%bardan%') THEN credit
+            ELSE ${isCashAccount ? 'credit' : 'debit'} 
+          END) - 
+          SUM(CASE 
+            WHEN interest_account_id = ? THEN 0 
+            WHEN (${isDangar ? 'TRUE' : 'FALSE'} OR ${isBardan ? 'TRUE' : 'FALSE'}) AND account_id IS NULL AND (reference_type ILIKE '%dangar%' OR reference_type ILIKE '%bardan%') THEN debit
+            ELSE ${isCashAccount ? 'debit' : 'credit'} 
+          END), 
+          0
+        ) as op_bal
+        FROM account_ledger
+        WHERE company_id = ? 
+        AND (
+          account_id = ? 
+          OR (interest_account_id = ?)
+          OR (${isCashAccount ? 'TRUE' : 'FALSE'} AND account_id IS NULL AND (transaction_type = 'cash_book' OR reference_type = 'cash_book'))
+          OR (${isDangar ? 'TRUE' : 'FALSE'} AND account_id IS NULL AND (reference_type ILIKE '%dangar%'))
+          OR (${isBardan ? 'TRUE' : 'FALSE'} AND account_id IS NULL AND (reference_type ILIKE '%bardan%'))
+        )
+        AND transaction_date < ?
+        ${memberId && memberId !== 'all' ? ' AND member_id = ?' : ''}
+      `, [accountId, accountId, companyId, accountId, accountId, startDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
+      
+      const initialBal = parseFloat(opRes[0].op_bal || 0);
+
+      const tRows = await query(transactionalSql, [accountId, accountId, accountId, companyId, accountId, accountId, startDate, endDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
+      
+      
+      let runningBal = initialBal;
+      const rowsWithBal = tRows.map(row => {
+        if (isCashAccount) {
+          // Cash Book Logic: Credit = In (+), Debit = Out (-)
+          runningBal += (parseFloat(row.credit) - parseFloat(row.debit));
+        } else {
+          // Standard Ledger Logic: Debit (+) - Credit (-)
+          runningBal += (parseFloat(row.debit) - parseFloat(row.credit));
+        }
+        return { ...row, balance: runningBal };
+      });
+
+      const totalDebit = rowsWithBal.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0);
+      const totalCredit = rowsWithBal.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0);
+
+      return res.json({
+        success: true,
+        isTransactional: true,
+        data: rowsWithBal,
+        totals: {
+          opening_balance: initialBal,
+          debit: totalDebit,
+          credit: totalCredit,
+          balance: runningBal,
+          closing_balance: runningBal
         }
       });
     }

@@ -54,7 +54,7 @@ export default function Rojmel() {
          fetchRojmel();
          fetchNavDates();
       }
-   }, [date, company]);
+   }, [date, company, showSubledger, printItemDetails]);
 
    const fetchNavDates = async () => {
       try {
@@ -78,7 +78,11 @@ export default function Rojmel() {
       setLoading(true);
       try {
          const response = await axios.get('/api/rojmel', {
-            params: { date },
+            params: { 
+               date, 
+               showSubledger: showSubledger ? 1 : 0,
+               itemDetails: printItemDetails ? 1 : 0
+            },
             headers: { 'x-company-id': company.id }
          });
 
@@ -488,9 +492,21 @@ export default function Rojmel() {
                               className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-zinc-50 font-bold' : 'hover:bg-zinc-50/50'}`}
                               onDoubleClick={() => handleEditEntry(row, 'jama')}
                            >
-                              <div className="col-span-6 px-4 py-2 uppercase truncate">{row.details}</div>
-                              <div className="col-span-3 px-4 py-2 text-right text-zinc-400 italic">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
-                              <div className={`col-span-3 px-4 py-2 text-right font-bold ${isHighNode ? 'text-zinc-900' : 'text-emerald-700'}`}>
+                              <div className="col-span-6 px-4 py-2 uppercase truncate">
+                                 <div className="font-bold text-zinc-800">{row.details}</div>
+                                 {showSubledger && row.sub_details && (
+                                    <div className="text-[10px] text-zinc-700 font-bold mt-0.5 leading-tight uppercase">
+                                       {row.sub_details}
+                                    </div>
+                                 )}
+                                 {printItemDetails && row.notes && (
+                                    <div className="text-[9px] text-zinc-600 font-bold mt-0.5 leading-tight italic">
+                                       {row.notes}
+                                    </div>
+                                 )}
+                              </div>
+                              <div className="col-span-3 px-4 py-2 text-right text-zinc-700 font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
+                              <div className={`col-span-3 px-4 py-2 text-right font-black ${isHighNode ? 'text-zinc-900' : 'text-emerald-700'}`}>
                                  {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
                               </div>
                            </div>
@@ -508,9 +524,21 @@ export default function Rojmel() {
                               className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-zinc-50 font-bold' : 'hover:bg-zinc-50/50'}`}
                               onDoubleClick={() => handleEditEntry(row, 'udhar')}
                            >
-                              <div className="col-span-6 px-4 py-2 uppercase truncate">{row.details}</div>
-                              <div className="col-span-3 px-4 py-2 text-right text-zinc-400 italic">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
-                              <div className={`col-span-3 px-4 py-2 text-right font-bold ${isHighNode ? 'text-zinc-900' : 'text-blue-700'}`}>
+                              <div className="col-span-6 px-4 py-2 uppercase truncate">
+                                 <div className="font-bold text-zinc-800">{row.details}</div>
+                                 {showSubledger && row.sub_details && (
+                                    <div className="text-[10px] text-zinc-700 font-bold mt-0.5 leading-tight uppercase">
+                                       {row.sub_details}
+                                    </div>
+                                 )}
+                                 {printItemDetails && row.notes && (
+                                    <div className="text-[9px] text-zinc-600 font-bold mt-0.5 leading-tight italic">
+                                       {row.notes}
+                                    </div>
+                                 )}
+                              </div>
+                              <div className="col-span-3 px-4 py-2 text-right text-zinc-700 font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
+                              <div className={`col-span-3 px-4 py-2 text-right font-black ${isHighNode ? 'text-zinc-900' : 'text-blue-700'}`}>
                                  {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
                               </div>
                            </div>

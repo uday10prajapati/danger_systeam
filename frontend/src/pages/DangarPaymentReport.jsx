@@ -29,7 +29,9 @@ const DangarPaymentReport = () => {
     endDate: new Date().toISOString().split('T')[0],
     memberId: '',
     itemId: '',
-    bankName: ''
+    bankName: '',
+    season: '',
+    qualityClass: ''
   });
   const [banks, setBanks] = useState([]);
   const [summary, setSummary] = useState({
@@ -101,6 +103,12 @@ const DangarPaymentReport = () => {
         if (filters.bankName) {
           rows = rows.filter(r => String(r.bank_name).toLowerCase().includes(filters.bankName.toLowerCase()));
         }
+        if (filters.qualityClass) {
+          rows = rows.filter(r => r.quality_class === filters.qualityClass);
+        }
+        if (filters.season) {
+          rows = rows.filter(r => r.entries.some(e => e.season === filters.season));
+        }
 
         setData(rows);
         const s = rows.reduce((acc, r) => ({
@@ -161,6 +169,10 @@ const DangarPaymentReport = () => {
       doc.text('DANGAR PAYMENT REPORT', W / 2, 17, { align: 'center' });
       doc.setFontSize(7); doc.setTextColor(239, 68, 68);
       doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+      if (filters.season) {
+        doc.setFontSize(7); doc.setTextColor(...white);
+        doc.text(`SEASON: ${filters.season}`, M, 35);
+      }
     };
 
     const ftr = (pg, tot) => {
@@ -192,6 +204,7 @@ const DangarPaymentReport = () => {
       i + 1,
       r.member_code,
       r.member_name,
+      r.quality_class,
       r.full_ac_number || '-',
       parseFloat(r.total_quintal || 0).toFixed(2),
       parseFloat(r.rate_per_kg || 0).toFixed(2),
@@ -204,7 +217,7 @@ const DangarPaymentReport = () => {
 
     autoTable(doc, {
       startY: y,
-      head: [['Sr.', 'Code', 'Member Name', 'Account No.', 'Total Qt', 'Rate/Qt', 'Rate Amt', 'Interest', 'Godown Fund', 'Bag Penalty', 'Final Amt']],
+      head: [['Sr.', 'Code', 'Member Name', 'Class', 'Account No.', 'Total Qt', 'Rate/Qt', 'Rate Amt', 'Interest', 'Godown Fund', 'Bag Penalty', 'Final Amt']],
       body: tableRows,
       styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
       headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
@@ -397,6 +410,31 @@ const DangarPaymentReport = () => {
                 </select>
               </div>
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Season</label>
+              <select
+                className="w-full px-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none font-bold text-sm text-zinc-700 appearance-none uppercase"
+                value={filters.season}
+                onChange={(e) => setFilters({ ...filters, season: e.target.value })}
+              >
+                <option value="">ALL SEASONS</option>
+                <option value="2026-27">2026-27</option>
+                <option value="2025-26">2025-26</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Class</label>
+              <select
+                className="w-full px-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none font-bold text-sm text-zinc-700 appearance-none uppercase"
+                value={filters.qualityClass}
+                onChange={(e) => setFilters({ ...filters, qualityClass: e.target.value })}
+              >
+                <option value="">ALL CLASSES</option>
+                <option value="1st">1st Class</option>
+                <option value="2nd">2nd Class</option>
+                <option value="3rd">3rd Class</option>
+              </select>
+            </div>
             <button
               onClick={fetchReport}
               disabled={loading}
@@ -459,6 +497,7 @@ const DangarPaymentReport = () => {
                 <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-wider select-none font-sans">
                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 w-12 text-center select-none">#</th>
                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 select-none">Member Name</th>
+                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 select-none">Class</th>
                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none">Quintal (Qt)</th>
                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-zinc-800">Rate Amt</th>
                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-rose-600">Advance</th>
@@ -490,28 +529,38 @@ const DangarPaymentReport = () => {
                     return !term ||
                       String(row.member_name).toLowerCase().includes(term) ||
                       String(row.member_code).toLowerCase().includes(term);
-                  }).map((row, i) => (
-                    <tr key={row.member_id} className="hover:bg-zinc-50/60 transition-all select-none">
-                      <td className="px-4 py-3 border-r border-zinc-200 text-xs font-bold text-zinc-400 text-center select-none">{i + 1}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 select-none">
-                        <p className="text-sm font-bold text-slate-800 uppercase tracking-tight font-sans italic">{row.member_name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">CODE: {row.member_code} • {row.entry_count} Entries</p>
-                      </td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-slate-600 text-sm font-mono select-none">{row.total_quintal}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.rate_amount}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.member_advance}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-blue-600 text-sm font-mono select-none">₹{row.total_interest}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.godown_fund}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right select-none">
-                        <p className="text-sm font-bold text-amber-600 font-mono">₹{row.bardan_penalty}</p>
-                        <p className="text-[9px] font-bold text-slate-400 font-sans uppercase tracking-wider">{row.bardan_remaining} BAGS</p>
-                      </td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.total_deductions}</td>
-                      <td className="px-4 py-3 text-right select-none">
-                        <span className="text-base font-black text-emerald-600 tracking-tighter bg-emerald-50/50 px-3 py-1 border border-emerald-200/60 font-mono select-none">₹{row.final_amount}</span>
-                      </td>
-                    </tr>
-                  ))
+                  }).map((row, i, arr) => {
+                    const isFirstOfMember = i === 0 || arr[i - 1].member_id !== row.member_id;
+                    return (
+                      <tr key={`${row.member_id}-${row.quality_class}`} className="hover:bg-zinc-50/60 transition-all select-none border-b border-zinc-100">
+                        <td className="px-4 py-3 border-r border-zinc-200 text-xs font-bold text-zinc-400 text-center select-none">{i + 1}</td>
+                        <td className={`px-4 py-3 border-r border-zinc-200 select-none ${!isFirstOfMember ? 'opacity-20' : ''}`}>
+                          {isFirstOfMember && (
+                            <>
+                              <p className="text-sm font-bold text-slate-800 uppercase tracking-tight font-sans italic">{row.member_name}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">CODE: {row.member_code}</p>
+                            </>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 border-r border-zinc-200 select-none font-bold text-zinc-600 uppercase text-center">
+                          {row.quality_class}
+                        </td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-slate-600 text-sm font-mono select-none">{row.total_quintal}</td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.rate_amount}</td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.member_advance}</td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-blue-600 text-sm font-mono select-none">₹{row.total_interest}</td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.godown_fund}</td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right select-none">
+                          <p className="text-sm font-bold text-amber-600 font-mono">₹{row.bardan_penalty}</p>
+                          {isFirstOfMember && <p className="text-[9px] font-bold text-slate-400 font-sans uppercase tracking-wider">{row.bardan_remaining} BAGS</p>}
+                        </td>
+                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.total_deductions}</td>
+                        <td className="px-4 py-3 text-right select-none">
+                          <span className="text-base font-black text-emerald-600 tracking-tighter bg-emerald-50/50 px-3 py-1 border border-emerald-200/60 font-mono select-none">₹{row.final_amount}</span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -663,12 +712,12 @@ const DangarPaymentReport = () => {
           <div className="border-2 border-black h-full flex flex-col relative p-2">
             <div className="text-center border-b border-black pb-2 mb-2">
               <h1 className="text-lg font-bold">શાખાઓ નાગરિક બેંક લિ. - પદ્ધતિ અનુસાર પત્રક</h1>
-              <h2 className="text-sm font-semibold mt-1">ચોમાસું ડાંગર - ૨૦૨૬-૨૭ ની પતાવટની પાવતી</h2>
+              <h2 className="text-sm font-semibold mt-1">{bill.entries?.[0]?.season || 'ચોમાસું'} ડાંગર - ૨૦૨૬-૨૭ ની પતાવટની પાવતી</h2>
             </div>
             <div className="grid grid-cols-12 text-[11px] border-b border-black pb-2 mb-2">
               <div className="col-span-7 space-y-1">
                 <p><b>સભાસદનું નામ :</b> {bill.member_name}</p>
-                <p><b>નાનીનિગમ</b></p>
+                <p><b>ક્લાસ :</b> {bill.quality_class}</p>
               </div>
               <div className="col-span-5 border-l border-black pl-4">
                 <p><b>કોડ નંબર :</b> {bill.member_code}</p>

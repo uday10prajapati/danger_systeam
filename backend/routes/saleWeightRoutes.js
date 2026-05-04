@@ -155,7 +155,7 @@ router.post('/weight-based', async (req, res) => {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
                  VALUES (?, ?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, brokerageAcc.id, memberId, invoice_date, saleId, invoice_no, brokerage_amount, `Brokerage on Inv #${invoice_no}`, financialYear, userId]
+                [companyId, brokerageAcc.id, memberId, invoice_date, saleId, invoice_no, brokerage_amount, `Brokerage on Bardan`, financialYear, userId]
             );
         }
     }
@@ -166,7 +166,7 @@ router.post('/weight-based', async (req, res) => {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, debit, description, financial_year, created_by, transaction_type)
                  VALUES (?, ?, ?, ?, ?, 'SALE_DEDUCTION', ?, ?, ?, ?, ?, 'cash_book')`,
-                [companyId, labourAcc.id, memberId, invoice_date, saleId, invoice_no, labour_charge, `Labour on Inv #${invoice_no}`, financialYear, userId]
+                [companyId, labourAcc.id, memberId, invoice_date, saleId, invoice_no, labour_charge, `Labour Charge`, financialYear, userId]
             );
         }
     }

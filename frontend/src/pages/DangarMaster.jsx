@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Database, Search, Filter, Download, Plus,
   Eye, RefreshCcw, Layout, FileText, Printer,
-  Calendar, User, Box, Shield,
+  Calendar, User, Box, Shield, MapPin,
   CheckCircle, Loader, Info, Edit3
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -20,6 +20,8 @@ export default function DangarMaster() {
   const [company, setCompany] = useState(null);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [season, setSeason] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('all');
+  const [selectedClass, setSelectedClass] = useState('all');
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
@@ -124,17 +126,19 @@ export default function DangarMaster() {
 
     autoTable(doc, {
       startY: y,
-      head: [['Date', 'SR #', 'Member', 'Item', 'Net Quintal', 'Rate (Qt)', 'Amount']],
+      head: [['Date', 'SR #', 'Member', 'Village', 'Item', 'Class', 'Net Quintal', 'Rate (Qt)', 'Amount']],
       body: filteredEntries.map(r => [
         new Date(r.entry_date).toLocaleDateString('en-GB'),
         '#' + r.sr_no,
         r.member_name + (r.member_code ? ' [' + r.member_code + ']' : ''),
+        r.village_name || '-',
         r.item_name,
+        r.quality_class || '1st',
         parseFloat(r.net_quintal).toFixed(2) + ' Qt',
         parseFloat(r.rate).toFixed(2),
         parseFloat(r.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })
       ]),
-      foot: [['', '', '', 'TOTALS', totalQtl.toFixed(2) + ' Qt', '', totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })]],
+      foot: [['', '', '', '', '', 'TOTALS', totalQtl.toFixed(2) + ' Qt', '', totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })]],
       styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
       headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
       footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
@@ -188,13 +192,23 @@ export default function DangarMaster() {
     window.location.hash = '#/dangar-entry';
   };
 
-  const filteredEntries = entries.filter(e =>
-    e.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.member_code?.toString().includes(searchQuery) ||
-    e.sr_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.vehicle_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.item_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEntries = entries.filter(e => {
+    const matchesSearch = 
+      e.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.member_code?.toString().includes(searchQuery) ||
+      e.sr_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.vehicle_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.item_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.village_name?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesVillage = selectedVillage === 'all' || e.village_name === selectedVillage;
+    const matchesClass = selectedClass === 'all' || e.quality_class === selectedClass;
+
+    return matchesSearch && matchesVillage && matchesClass;
+  });
+
+  const villages = ['all', ...new Set(entries.map(e => e.village_name).filter(Boolean))].sort();
+  const classes = ['all', ...new Set(entries.map(e => e.quality_class).filter(Boolean))].sort();
 
   if (loading || !company) {
     return <Loading />;
@@ -263,30 +277,57 @@ export default function DangarMaster() {
           </div>
           <button onClick={() => fetchEntries(company?.id)} className="px-3 py-1.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold text-xs uppercase transition rounded-none">Verify Registry</button>
 
-          <div className="flex items-center gap-1 bg-zinc-200 border border-zinc-300 p-0.5">
-            {['', 'Winter', 'Summer'].map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setSeason(s);
-                  const params = { companyId: company?.id };
-                  if (dateRange.start && dateRange.end) {
-                    params.startDate = dateRange.start;
-                    params.endDate = dateRange.end;
-                  }
-                  if (s) params.season = s;
-                  api.get('/dangar-entry', { params }).then(res => {
-                    if (res.data.success) setEntries(res.data.data);
-                  });
-                }}
-                className={`px-3 py-1 text-[10px] font-bold uppercase transition select-none ${season === s
-                  ? 'bg-white text-zinc-800 font-mono font-bold border border-zinc-300'
-                  : 'text-zinc-500 hover:text-zinc-700'
-                  }`}
-              >
-                {s || 'All Seasons'}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 border border-zinc-300 bg-white px-2 py-1">
+            <Filter size={13} className="text-zinc-400" />
+            <select 
+              value={season} 
+              onChange={e => {
+                const s = e.target.value;
+                setSeason(s);
+                const params = { companyId: company?.id };
+                if (dateRange.start && dateRange.end) {
+                  params.startDate = dateRange.start;
+                  params.endDate = dateRange.end;
+                }
+                if (s) params.season = s;
+                api.get('/dangar-entry', { params }).then(res => {
+                  if (res.data.success) setEntries(res.data.data);
+                });
+              }}
+              className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 uppercase font-mono cursor-pointer"
+            >
+              <option value="">ALL SEASONS</option>
+              <option value="winter">WINTER</option>
+              <option value="summer">SUMMER</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 border border-zinc-300 bg-white px-2 py-1">
+            <MapPin size={13} className="text-zinc-400" />
+            <select 
+              value={selectedVillage} 
+              onChange={e => setSelectedVillage(e.target.value)}
+              className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 uppercase font-mono cursor-pointer"
+            >
+              <option value="all">ALL VILLAGES</option>
+              {villages.filter(v => v !== 'all').map(v => (
+                <option key={v} value={v}>{v.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 border border-zinc-300 bg-white px-2 py-1">
+            <Shield size={13} className="text-zinc-400" />
+            <select 
+              value={selectedClass} 
+              onChange={e => setSelectedClass(e.target.value)}
+              className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 uppercase font-mono cursor-pointer"
+            >
+              <option value="all">ALL CLASSES</option>
+              {classes.filter(c => c !== 'all').map(c => (
+                <option key={c} value={c}>{c.toUpperCase()}</option>
+              ))}
+            </select>
           </div>
 
           <div className="ml-auto flex items-center gap-4">
@@ -345,6 +386,7 @@ export default function DangarMaster() {
                     <th className="px-4 py-2 border-r border-zinc-200">Member</th>
                     <th className="px-4 py-2 border-r border-zinc-200">Ref. SR</th>
                     <th className="px-4 py-2 border-r border-zinc-200">Item</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-center">Class</th>
                     <th className="px-4 py-2 border-r border-zinc-200 text-right">Net Volume</th>
                     <th className="px-4 py-2 border-r border-zinc-200 text-right">Rate</th>
                     <th className="px-4 py-2 border-r border-zinc-200 text-right">Amount</th>
@@ -366,6 +408,9 @@ export default function DangarMaster() {
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200 uppercase font-bold text-zinc-700">
                         {row.item_name}
+                      </td>
+                      <td className="px-4 py-2 border-r border-zinc-200 text-center font-bold text-zinc-600">
+                        {row.quality_class || '1st'}
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800">
                         {parseFloat(row.net_quintal).toFixed(2)} Qt

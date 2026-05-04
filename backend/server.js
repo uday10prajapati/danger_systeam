@@ -48,9 +48,36 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
+// Context Resolver Middleware
+app.use(async (req, res, next) => {
+  try {
+    // 1. Resolve Company ID if missing
+    if (!req.headers['x-company-id']) {
+      const company = await queryOne('SELECT id FROM company LIMIT 1');
+      if (company) {
+        req.headers['x-company-id'] = String(company.id);
+      }
+    }
+
+    // 2. Resolve Financial Year if missing
+    if (!req.headers['x-financial-year']) {
+      const year = await queryOne('SELECT year_label FROM financial_years WHERE is_active = 1 ORDER BY id DESC LIMIT 1');
+      if (year) {
+        req.headers['x-financial-year'] = year.year_label;
+      } else {
+        req.headers['x-financial-year'] = '2026-27'; // System fallback
+      }
+    }
+    next();
+  } catch (err) {
+    console.error('Context resolution failed:', err);
+    next();
+  }
+});
+
 // Log all requests for debugging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} | CID: ${req.headers['x-company-id']} | FY: ${req.headers['x-financial-year']}`);
   next();
 });
 

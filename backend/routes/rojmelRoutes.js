@@ -44,7 +44,7 @@ router.get('/nav-dates', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const companyId = req.header('x-company-id');
-    const { date } = req.query;
+    const { date, showSubledger, itemDetails } = req.query;
 
     if (!companyId || !date) return res.status(400).json({ success: false, error: 'Company ID and date required' });
 
@@ -66,22 +66,47 @@ router.get('/', async (req, res) => {
 
     // 2. Fetch Ledger entries (Cash perspective)
     // GROUP BY reference_no to show "Mix Entry" for batch payments
-    const txSql = `
-      SELECT 
-        MIN(id) as id, 
-        reference_no, 
-        MAX(reference_type) as reference_type, 
-        MAX(description) as description, 
-        MAX(notes) as notes, 
-        SUM(COALESCE(credit, credit_amount, 0)) as cash_in, 
-        SUM(COALESCE(debit, debit_amount, 0)) as cash_out 
-      FROM account_ledger 
-      WHERE company_id = ? AND transaction_date = ? 
-      AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
-      GROUP BY reference_no
-      ORDER BY id ASC
-    `;
-    const transactions = await query(txSql, [companyId, date]);
+    let txSql = '';
+    let txParams = [companyId, date];
+
+    if (showSubledger === '1') {
+      // Subledger View: Show individual entries with account names
+      txSql = `
+        SELECT 
+          al.id, 
+          al.reference_no, 
+          al.reference_type, 
+          al.description as description, 
+          acc.account_name as sub_details, 
+          al.notes, 
+          COALESCE(al.credit, al.credit_amount, 0) as cash_in, 
+          COALESCE(al.debit, al.debit_amount, 0) as cash_out 
+        FROM account_ledger al
+        LEFT JOIN accounts acc ON al.account_id = acc.id
+        WHERE al.company_id = ? AND al.transaction_date = ? 
+        AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book')
+        ORDER BY al.id ASC
+      `;
+    } else {
+      // Grouped View: Show consolidated entries per reference number
+      txSql = `
+        SELECT 
+          MIN(id) as id, 
+          reference_no, 
+          MAX(reference_type) as reference_type, 
+          MAX(description) as description, 
+          NULL as sub_details,
+          MAX(notes) as notes, 
+          SUM(COALESCE(credit, credit_amount, 0)) as cash_in, 
+          SUM(COALESCE(debit, debit_amount, 0)) as cash_out 
+        FROM account_ledger 
+        WHERE company_id = ? AND transaction_date = ? 
+        AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
+        GROUP BY reference_no
+        ORDER BY id ASC
+      `;
+    }
+    const transactions = await query(txSql, txParams);
 
     // 3. Fetch Non-Cash JV Items (Adjustments that don't hit cash_book)
     const jvSql = `
@@ -129,10 +154,26 @@ router.get('/', async (req, res) => {
         }
       } else {
         if (cIn > 0) {
-          jamaList.push({ id: tx.id, details: tx.description, notes: tx.notes, amount: cIn, isJV: tx.reference_type?.toUpperCase().includes('JV'), isContra: tx.reference_type?.toUpperCase().includes('CONTRA') });
+          jamaList.push({ 
+            id: tx.id, 
+            details: tx.description, 
+            sub_details: tx.sub_details,
+            notes: tx.notes, 
+            amount: cIn, 
+            isJV: tx.reference_type?.toUpperCase().includes('JV'), 
+            isContra: tx.reference_type?.toUpperCase().includes('CONTRA') 
+          });
         }
         if (cOut > 0) {
-          udharList.push({ id: tx.id, details: tx.description, notes: tx.notes, amount: cOut, isJV: tx.reference_type?.toUpperCase().includes('JV'), isContra: tx.reference_type?.toUpperCase().includes('CONTRA') });
+          udharList.push({ 
+            id: tx.id, 
+            details: tx.description, 
+            sub_details: tx.sub_details,
+            notes: tx.notes, 
+            amount: cOut, 
+            isJV: tx.reference_type?.toUpperCase().includes('JV'), 
+            isContra: tx.reference_type?.toUpperCase().includes('CONTRA') 
+          });
         }
       }
     });

@@ -543,6 +543,7 @@ export async function initializeDatabase() {
           remark TEXT,
           vehicle_no VARCHAR(100),
           quality_class VARCHAR(50) DEFAULT '1st',
+          season VARCHAR(20),
           total_kg DECIMAL(15, 2) DEFAULT 0,
           bardan INT DEFAULT 0,
           gun DECIMAL(15, 2) DEFAULT 0,
@@ -1316,15 +1317,25 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
         ELSE COALESCE(al.credit, 0) 
       END as company_credit,
       CASE 
-        WHEN ${targetAccountId} = 8 THEN 
-          'Principal: ₹' || CAST(COALESCE(al.debit, 0) AS TEXT) || ' | Days: ' || CAST(COALESCE(al.interest_a_per, '') AS TEXT) || ' | Int: ₹' || CAST(COALESCE(al.interest_amount, 0) AS TEXT)
+        WHEN ${targetAccountId} = 8 THEN 'Interest Amount'
         WHEN al.transaction_type = 'cash_book' AND al.reference_type = 'cash_book' THEN
           CASE 
             WHEN al.credit > 0 THEN 'Cash IN - ' || (SELECT account_name FROM accounts WHERE id = (CASE WHEN ${targetAccountId} = -1 THEN al.account_id ELSE ${targetAccountId} END) LIMIT 1)
             WHEN al.debit > 0 THEN 'Cash OUT - ' || (SELECT account_name FROM accounts WHERE id = (CASE WHEN ${targetAccountId} = -1 THEN al.account_id ELSE ${targetAccountId} END) LIMIT 1)
             ELSE COALESCE(al.description, al.notes, '')
           END
-        ELSE COALESCE(al.description, al.notes, '')
+        ELSE 
+          CASE 
+            WHEN (al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') THEN 'Dangar Sale'
+            WHEN al.reference_type = 'bardan_entry' THEN 'BARDAN taken'
+            WHEN al.reference_type = 'jama_bardan_entry' AND LOWER(al.description) LIKE '%settlement%' THEN 'Dangar Settlement'
+            WHEN al.reference_type = 'jama_bardan_entry' THEN 'Bardan Settlement'
+            WHEN al.reference_type = 'SALE_DEDUCTION' AND (LOWER(al.description) LIKE 'brokerage on%' OR LOWER(al.description) LIKE 'brokrej on%') THEN 'Brokerage on Bardan'
+            WHEN al.reference_type = 'dangar_entry_fund' OR LOWER(al.description) LIKE 'godown fund%' THEN 'Dangar Godown Fund'
+            WHEN al.interest_account_id = ${targetAccountId} THEN 'Interest Amount'
+            WHEN al.reference_type = 'SALE_DEDUCTION' AND LOWER(al.description) LIKE 'labour on%' THEN 'Labour Charge'
+            ELSE COALESCE(al.description, al.notes, '')
+          END
       END as description,
       CASE 
         WHEN ${targetAccountId} = 8 THEN NULL 

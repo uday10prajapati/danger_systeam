@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     }
 
     let sql = `
-      SELECT de.*, mm.member_name, mm.member_code, im.item_name 
+      SELECT de.*, mm.member_name, mm.member_code, mm.village_name, mm.nominal_member, im.item_name 
       FROM dangar_entry de
       LEFT JOIN member_master mm ON de.member_id = mm.id
       LEFT JOIN item_master im ON de.item_id = im.id
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
     const params = [companyId];
 
     if (season) {
-      sql += ` AND de.book_type = ?`;
+      sql += ` AND de.season = ?`;
       params.push(season);
     }
 
@@ -39,6 +39,22 @@ router.get('/', async (req, res) => {
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('Fetch dangar entries error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET unique seasons
+router.get('/seasons', async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.query.companyId;
+    if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
+    const rows = await query(`
+      SELECT DISTINCT season FROM dangar_entry WHERE company_id = ? AND season IS NOT NULL AND season != ''
+      UNION
+      SELECT DISTINCT book_type FROM dangar_entry WHERE company_id = ? AND book_type IS NOT NULL AND book_type != ''
+    `, [companyId, companyId]);
+    res.json({ success: true, data: rows.map(r => r.season) });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -60,6 +76,7 @@ router.get('/payment-report', async (req, res) => {
     const ledgerRows = await query(`
       SELECT
         mm.id             AS member_id,
+        de.quality_class,
         mm.member_code,
         mm.member_name,
         mm.full_ac_number,
@@ -71,11 +88,12 @@ router.get('/payment-report', async (req, res) => {
         COUNT(al.id)   AS entry_count
       FROM account_ledger al
       JOIN member_master mm ON al.member_id = mm.id
+      LEFT JOIN dangar_entry de ON al.reference_id = de.id AND al.reference_type = 'dangar_entry'
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, mm.member_code, mm.member_name, mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code
-      ORDER BY mm.member_code ASC
+      GROUP BY mm.id, de.quality_class, mm.member_code, mm.member_name, mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code
+      ORDER BY mm.member_code ASC, de.quality_class ASC
     `, [companyId, ...dateParams]);
 
     // 1b. Individual kapat (deduction) entries per member — for sub-rows
@@ -114,6 +132,7 @@ router.get('/payment-report', async (req, res) => {
         de.member_id,
         de.sr_no,
         de.entry_date,
+        de.quality_class,
         de.total_kg,
         de.net_quintal,
         de.rate,
@@ -168,117 +187,121 @@ router.get('/payment-report', async (req, res) => {
       dangarMap[d.member_id].push(d);
     });
 
-    // Build final report rows
+    const memberDeductionsAssigned = new Set();
     const report = [];
-    for (const row of ledgerRows) {
 
-      const entries        = dangarMap[row.member_id] || [];
+    for (const row of ledgerRows) {
+      // Filter entries by class (matching the grouping)
+      const allMemberEntries = dangarMap[row.member_id] || [];
+      const entries = allMemberEntries.filter(e => 
+        (e.quality_class === row.quality_class) || 
+        (!e.quality_class && !row.quality_class) ||
+        (e.quality_class === '1st' && !row.quality_class) // Fallback for legacy
+      );
+
+      // Skip row if no matching dangar entries for this class (unless it's a pure ledger adjustment)
+      if (entries.length === 0 && row.total_credit === 0 && row.total_debit === 0) continue;
+
       const totalKg        = entries.reduce((s, e) => s + parseFloat(e.total_kg          || 0), 0);
       const totalQuintal   = entries.reduce((s, e) => s + parseFloat(e.net_quintal       || 0), 0);
       const rateAmount     = entries.reduce((s, e) => s + parseFloat(e.rate_amount       || 0), 0);
       const weightedRate   = entries.length > 0
         ? entries.reduce((s, e) => s + parseFloat(e.rate || 0), 0) / entries.length
         : 0;
+      
       const dangarNameGu   = entries.length > 0 ? (entries[0].item_name_gu || entries[0].item_name || 'ગુર્જરી ચાઈનાકટ વગે-૧') : '---';
 
       const bardanIssued    = parseFloat(bardanIssuedMap[row.member_code]   || 0);
       const bardanReturned  = parseFloat(bardanReturnedMap[row.member_code] || 0);
-      let bardanPhysicalRemaining = Math.max(0, bardanIssued - bardanReturned);
-      const totalKapat  = (kapatMap[row.member_id] || []).reduce((s, k) => s + parseFloat(k.amount || 0), 0);
       
-      // Calculate REAL-TIME breakdown for this member
       let pendingInterest = 0;
-      let memberAdvance = 0; // Specifically from L0001 Member Adv Ac
-      let godownFund = 0;    // Specifically from GF0001 Dangar Godown Fund
+      let memberAdvance = 0;
+      let godownFund = 0;
+      let bardanPhysicalRemaining = 0;
+      let bardanPenaltyBalance = 0;
+      let otherUdhar = 0;
+      let otherDeductionsList = [];
       let bardanSelfJama = 0;
-      let bardanPenaltyBalance = bardanPhysicalRemaining;
-      let otherUdhar = 0;    // Any other outstanding balance
-      let otherDeductionsList = []; // Breakdown of other udhar by account name
-      
-      try {
-         // Resolve Member Adv Ac ID
-         const advAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'L0001' AND company_id = ?", [companyId]);
-         const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
-         const bardanAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = ?", [companyId]);
-         const advAcId = advAc?.id;
-         const godownAcId = godownAc?.id;
-         const bardanAcId = bardanAc?.id;
 
-         const memberBardan = await queryOne('SELECT bardan_opening FROM member_master WHERE id = ?', [row.member_id]);
-         const bardanOpening = parseFloat(memberBardan?.bardan_opening || 0);
+      const shouldAssignMemberDeductions = !memberDeductionsAssigned.has(row.member_id);
+      let totalKapat = 0;
 
-         // Initial penalty balance starts with opening
-         bardanPenaltyBalance = bardanOpening;
-
-         const memberLedger = await query(`
-            SELECT account_id, debit, credit, transaction_date, interest_percent, interest_amount, reference_type, description 
-            FROM account_ledger 
-            WHERE member_id = ? AND company_id = ?
-         `, [row.member_id, companyId]);
-
-          for (const entry of memberLedger) {
-             const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
-             const desc = (entry.description || '').toLowerCase();
-             const isSelf = desc.includes('[self]');
-             
-             // 1. System Account Identification
-             const isAdvance = advAcId && entry.account_id === advAcId;
-             const isGodownFund = (godownAcId && entry.account_id === godownAcId) || entry.reference_type === 'dangar_entry_fund' || desc.includes('godown fund');
-             const isBardan = bardanAcId && entry.account_id === bardanAcId;
-
-             if (isGodownFund) {
-                godownFund += bal;
-             } else if (isAdvance) {
-                memberAdvance += bal;
-             } else if (isBardan) {
-                // Bag Penalty Logic: Exclude [SELF] returns from penalty calculation
-                const penaltyCredit = isSelf ? 0 : parseFloat(entry.credit || 0);
-                bardanPenaltyBalance += parseFloat(entry.debit || 0) - penaltyCredit;
-                // Physical balance still tracks everything
-                if (isSelf) bardanSelfJama += parseFloat(entry.credit || 0);
-             } else if (Math.abs(bal) > 0.01) {
-                // Other deductions logic (Consolidated by Account Name)
-                const accRow = await queryOne('SELECT account_name FROM accounts WHERE id = ?', [entry.account_id]);
-                const accName = accRow?.account_name || 'Uncategorized';
-                
-                const existing = otherDeductionsList.find(d => d.account_name === accName);
-                if (existing) {
-                   existing.amount += bal;
-                } else {
-                   otherDeductionsList.push({ account_name: accName, amount: bal });
-                }
-                otherUdhar += bal;
-             }
-
-             // Interest Calculation: Prioritize stored interest_amount, fallback to real-time
-             if (parseFloat(entry.interest_amount || 0) > 0) {
-                pendingInterest += parseFloat(entry.interest_amount);
-             } else if (parseFloat(entry.interest_percent || 0) > 0 && bal > 0.01) {
-                const start = new Date(entry.transaction_date);
-                const end = endDate ? new Date(endDate) : new Date();
-                const diff = end - start;
-                const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
-                pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * (days / 30.0));
-             }
+      if (shouldAssignMemberDeductions) {
+          memberDeductionsAssigned.add(row.member_id);
+          totalKapat = (kapatMap[row.member_id] || []).reduce((s, k) => s + parseFloat(k.amount || 0), 0);
+          try {
+             // System Accounts
+             const advAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'L0001' AND company_id = ?", [companyId]);
+             const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
+             const bardanAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'BS0001' AND company_id = ?", [companyId]);
+             const advAcId = advAc?.id;
+             const godownAcId = godownAc?.id;
+             const bardanAcId = bardanAc?.id;
+    
+             const memberBardan = await queryOne('SELECT bardan_opening FROM member_master WHERE id = ?', [row.member_id]);
+             const bardanOpening = parseFloat(memberBardan?.bardan_opening || 0);
+             bardanPenaltyBalance = bardanOpening;
+    
+             const memberLedger = await query(`
+                SELECT account_id, debit, credit, transaction_date, interest_percent, interest_amount, reference_type, description 
+                FROM account_ledger 
+                WHERE member_id = ? AND company_id = ?
+             `, [row.member_id, companyId]);
+    
+              for (const entry of memberLedger) {
+                 const bal = parseFloat(entry.debit || 0) - parseFloat(entry.credit || 0);
+                 const desc = (entry.description || '').toLowerCase();
+                 const isSelf = desc.includes('[self]');
+                 
+                 const isAdvance = advAcId && entry.account_id === advAcId;
+                 const isGodownFund = (godownAcId && entry.account_id === godownAcId) || entry.reference_type === 'dangar_entry_fund' || desc.includes('godown fund');
+                 const isBardan = bardanAcId && entry.account_id === bardanAcId;
+    
+                 if (isGodownFund) {
+                    godownFund += bal;
+                 } else if (isAdvance) {
+                    memberAdvance += bal;
+                 } else if (isBardan) {
+                    const penaltyCredit = isSelf ? 0 : parseFloat(entry.credit || 0);
+                    bardanPenaltyBalance += parseFloat(entry.debit || 0) - penaltyCredit;
+                    if (isSelf) bardanSelfJama += parseFloat(entry.credit || 0);
+                 } else if (Math.abs(bal) > 0.01) {
+                    const accRow = await queryOne('SELECT account_name FROM accounts WHERE id = ?', [entry.account_id]);
+                    const accName = accRow?.account_name || 'Uncategorized';
+                    const existing = otherDeductionsList.find(d => d.account_name === accName);
+                    if (existing) existing.amount += bal;
+                    else otherDeductionsList.push({ account_name: accName, amount: bal });
+                    otherUdhar += bal;
+                 }
+    
+                 if (parseFloat(entry.interest_amount || 0) > 0) {
+                    pendingInterest += parseFloat(entry.interest_amount);
+                 } else if (parseFloat(entry.interest_percent || 0) > 0 && bal > 0.01) {
+                    const start = new Date(entry.transaction_date);
+                    const end = endDate ? new Date(endDate) : new Date();
+                    const diff = end - start;
+                    const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
+                    pendingInterest += (bal * (parseFloat(entry.interest_percent) / 100) * (days / 30.0));
+                 }
+              }
+              
+              const memberBardanData = await queryOne('SELECT bardan_opening FROM member_master WHERE id = ?', [row.member_id]);
+              const bOpening = parseFloat(memberBardanData?.bardan_opening || 0);
+              bardanPhysicalRemaining = Math.max(0, bOpening + bardanIssued - bardanReturned);
+              bardanPenaltyBalance = Math.max(0, bardanPenaltyBalance);
+    
+          } catch (err) {
+             console.error('Report Breakdown calculation failed', err);
           }
-          
-          // Ensure physical remaining is calculated correctly
-          bardanPhysicalRemaining = Math.max(0, bardanOpening + bardanIssued - bardanReturned);
-          bardanPenaltyBalance = Math.max(0, bardanPenaltyBalance);
-
-      } catch (err) {
-         console.error('Report Breakdown calculation failed', err);
-      }
-
-      // FALLBACK: If godownFund is still 0 but we have totalKg, calculate it (1 RS per 20 KG = 0.05 RS per KG)
-      if (parseFloat(godownFund) === 0 && parseFloat(totalKg) > 0) {
-         godownFund = parseFloat(totalKg) * 0.05;
+      } else {
+          // Proportionally calculate godown fund if it's entry-linked
+          if (parseFloat(totalKg) > 0) {
+              godownFund = parseFloat(totalKg) * 0.05;
+          }
       }
 
       const bardanRemaining = Math.max(0, bardanPenaltyBalance);
       const bardanPenalty = bardanRemaining * pricePerBardan;
-
-      // Final Amount = Rate Amount - (Specified Deductions: Advance + Interest + Penalty + Godown Fund)
       const totalDeductions = memberAdvance + pendingInterest + bardanPenalty + godownFund;
       const finalAmount = rateAmount - totalDeductions;
 
@@ -286,11 +309,12 @@ router.get('/payment-report', async (req, res) => {
         member_id:        row.member_id,
         member_code:      row.member_code,
         member_name:      row.member_name,
+        quality_class:    row.quality_class || '1st',
         full_ac_number:   row.full_ac_number || '',
         bank_name:        row.bank_name || '',
         branch_name:      row.branch_name || '',
         ifsc_code:        row.ifsc_code || '',
-        entry_count:      row.entry_count,
+        entry_count:      entries.length,
         total_kg:         totalKg.toFixed(2),
         total_quintal:    totalQuintal.toFixed(2),
         rate_per_kg:      weightedRate.toFixed(2),
@@ -303,8 +327,8 @@ router.get('/payment-report', async (req, res) => {
         total_kapat:      totalKapat.toFixed(2),
         total_deductions: totalDeductions.toFixed(2),
         final_amount:     finalAmount.toFixed(2),
-        bardan_issued:    bardanIssued,
-        bardan_returned:  bardanReturned,
+        bardan_issued:    shouldAssignMemberDeductions ? bardanIssued : 0,
+        bardan_returned:  shouldAssignMemberDeductions ? bardanReturned : 0,
         bardan_physical_remaining: bardanPhysicalRemaining,
         bardan_remaining: bardanRemaining,
         bardan_penalty:   bardanPenalty.toFixed(2),
@@ -510,7 +534,7 @@ router.post('/', async (req, res) => {
       bookType, date, member_id, item_id, remark, vehicleNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
       rate, amount, total_deduction, created_by, weights, deductions = [], remaining_bardan_bags, returned_bags,
-      quality_class, weight_unit
+      quality_class, weight_unit, season
     } = req.body;
 
     // 1. Precise SR No Generation (Protocol D00001)
@@ -528,13 +552,13 @@ router.post('/', async (req, res) => {
         company_id, financial_year, book_type, sr_no, entry_date, 
         member_id, account_id, item_id, remark, vehicle_no, quality_class,
         total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-        rate, amount, total_deduction, weight_unit, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        rate, amount, total_deduction, weight_unit, created_by, season
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       companyId, currentFinancialYear, bookType, srNo, date,
       member_id, dangarAccountId, item_id, remark, vehicleNo, quality_class || '1st',
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', created_by || 1
+      rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', created_by || 1, season
     ]);
 
     const entryId = result.insertId || result.lastID;
@@ -577,11 +601,11 @@ router.post('/', async (req, res) => {
         // A. DEBIT THE SYSTEM ACCOUNT (Stock Increase)
         await execute(`
           INSERT INTO account_ledger (
-            company_id, account_id, transaction_date, transaction_type, reference_type, 
+            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
             reference_id, reference_no, description, debit, financial_year
-          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
         `, [
-          companyId, targetLedgerAccId, date, entryId, srNo, ledgerDesc, 
+          companyId, targetLedgerAccId, member_id, date, entryId, srNo, ledgerDesc, 
           amountVal, currentFinancialYear
         ]);
 
@@ -617,7 +641,7 @@ router.post('/', async (req, res) => {
        const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
        const godownAccountId = godownAc?.id;
        if (godownAccountId) {
-          const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
+          const fundDesc = `Dangar Godown Fund`;
           // A. DEBIT THE MEMBER (Reduction in Payable)
           await execute(`
              INSERT INTO account_ledger (
@@ -632,11 +656,11 @@ router.post('/', async (req, res) => {
           // B. CREDIT THE GODOWN FUND ACCOUNT
           await execute(`
              INSERT INTO account_ledger (
-                company_id, account_id, transaction_date, transaction_type, reference_type, 
+                company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
                 reference_id, reference_no, description, credit, financial_year
-             ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
+             ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
           `, [
-             companyId, godownAccountId, date, entryId, srNo, fundDesc, 
+             companyId, godownAccountId, member_id, date, entryId, srNo, fundDesc, 
              godownFundAmount, currentFinancialYear
           ]);
           console.log(`✅ Godown Fund Settle: ${godownFundAmount}`);
@@ -703,7 +727,7 @@ router.put('/:id', async (req, res) => {
       bookType, date, member_id, item_id, remark, vehicleNo, srNo,
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
       rate, amount, total_deduction, weights, deductions = [], returned_bags,
-      quality_class, weight_unit
+      quality_class, weight_unit, season
     } = req.body;
 
     // 1. Update Header State
@@ -713,12 +737,12 @@ router.put('/:id', async (req, res) => {
         remark = ?, vehicle_no = ?, quality_class = ?,
         total_kg = ?, bardan = ?, gun = ?, gross_quintal = ?, 
         less_bardan = ?, net_quintal = ?, rate = ?, amount = ?, 
-        total_deduction = ?, weight_unit = ?, updated_at = CURRENT_TIMESTAMP
+        total_deduction = ?, weight_unit = ?, season = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND company_id = ?
     `, [
       bookType, date, member_id, item_id, remark, vehicleNo, quality_class || '1st',
       total_kg, bardan, gun, gross_quintal, less_bardan, net_quintal,
-      rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', id, companyId
+      rate || 0, amount || 0, total_deduction || 0, weight_unit || 'kg', season, id, companyId
     ]);
 
     // 2. Refresh Weight Matrix (Delete and Re-insert)
@@ -879,8 +903,8 @@ router.post('/recalculate', async (req, res) => {
 
       // 3. Update Ledger - Purchase Account Side (Debit)
       await execute(
-        "UPDATE account_ledger SET debit = ?, description = ? WHERE reference_type = 'dangar_entry' AND reference_id = ? AND account_id IS NOT NULL AND company_id = ?",
-        [newAmount, newDesc, entry.id, company_id]
+        "UPDATE account_ledger SET debit = ?, description = ?, member_id = ? WHERE reference_type = 'dangar_entry' AND reference_id = ? AND account_id IS NOT NULL AND company_id = ?",
+        [newAmount, newDesc, entry.member_id, entry.id, company_id]
       );
     }
 

@@ -75,6 +75,7 @@ router.get('/account/:accountId', async (req, res) => {
       `SELECT 
          transaction_date,
          reference_no,
+         reference_type,
          description,
          COALESCE(debit,  debit_amount,  0) AS debit,
          COALESCE(credit, credit_amount, 0) AS credit
@@ -95,10 +96,16 @@ router.get('/account/:accountId', async (req, res) => {
       totalDebitRange  += d;
       totalCreditRange += c;
       currentBalance    = currentBalance + d - c;
+
+      let finalDesc = tx.description;
+      if (tx.reference_type === 'SALE' || tx.reference_type === 'dangar_sale') {
+        finalDesc = 'Dangar Sale';
+      }
+
       return {
         transaction_date: tx.transaction_date,
         reference_no:     tx.reference_no,
-        description:      tx.description,
+        description:      finalDesc,
         debit:            d > 0 ? d.toFixed(2) : '',
         credit:           c > 0 ? c.toFixed(2) : '',
         running_balance:  currentBalance

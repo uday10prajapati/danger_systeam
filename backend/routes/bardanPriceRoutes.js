@@ -6,7 +6,14 @@ const router = express.Router();
 // GET bardan price (company-scoped)
 router.get('/', async (req, res) => {
   try {
-    const company_id = req.headers['x-company-id'];
+    let company_id = req.headers['x-company-id'];
+    
+    // Fallback: If no company_id provided, use the first one from the system
+    if (!company_id) {
+      const firstComp = await queryOne('SELECT id FROM company LIMIT 1');
+      company_id = firstComp?.id;
+    }
+
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
 
     const row = await queryOne(
@@ -22,8 +29,13 @@ router.get('/', async (req, res) => {
 // POST set/update bardan price
 router.post('/', async (req, res) => {
   try {
-    const company_id = req.headers['x-company-id'];
+    let company_id = req.headers['x-company-id'];
     const { price_per_bardan } = req.body;
+
+    if (!company_id) {
+      const firstComp = await queryOne('SELECT id FROM company LIMIT 1');
+      company_id = firstComp?.id;
+    }
 
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
     if (!price_per_bardan || isNaN(price_per_bardan)) {

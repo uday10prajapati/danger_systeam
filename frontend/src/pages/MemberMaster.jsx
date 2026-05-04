@@ -18,6 +18,8 @@ import Loading from '../components/Loading'
 export default function MemberMaster() {
   const [members, setMembers] = useState([])
   const [statusFilter, setStatusFilter] = useState('all')
+  const [villageFilter, setVillageFilter] = useState('all')
+  const [bankFilter, setBankFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
@@ -69,10 +71,18 @@ export default function MemberMaster() {
       m.phone?.includes(searchQuery) ||
       m.village_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (statusFilter === 'active') return matchesSearch && m.is_active === 1;
-    if (statusFilter === 'inactive') return matchesSearch && m.is_active === 0;
-    return matchesSearch;
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && m.is_active === 1) || 
+      (statusFilter === 'inactive' && m.is_active === 0);
+
+    const matchesVillage = villageFilter === 'all' || m.village_name === villageFilter;
+    const matchesBank = bankFilter === 'all' || m.bank_name === bankFilter;
+
+    return matchesSearch && matchesStatus && matchesVillage && matchesBank;
   })
+
+  const uniqueVillages = [...new Set((members || []).map(m => m.village_name).filter(Boolean))].sort();
+  const uniqueBanks = [...new Set((members || []).map(m => m.bank_name).filter(Boolean))].sort();
 
   const handleStatusToggle = async (member) => {
     try {
@@ -174,13 +184,11 @@ export default function MemberMaster() {
     const dark = [30, 41, 59], stripe = [241, 245, 249];
 
     const hdr = () => {
-      doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-      doc.text(cName.toUpperCase(), M, 17);
-      doc.setFontSize(7); doc.setTextColor(191, 219, 254);
-      doc.text('SABHASAD MASTER REGISTRY', W / 2, 17, { align: 'center' });
-      doc.setFontSize(7); doc.setTextColor(239, 68, 68);
-      doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+      doc.setFillColor(...navy); doc.rect(0, 0, W, 40, 'F');
+      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...white);
+      doc.text(cName.toUpperCase(), M, 25);
+      doc.setFontSize(8); doc.setTextColor(191, 219, 254);
+      doc.text('SABHASAD MASTER REGISTRY', W - M, 25, { align: 'right' });
     };
 
     const ftr = (pg, tot) => {
@@ -193,7 +201,7 @@ export default function MemberMaster() {
     };
 
     hdr();
-    let y = 60;
+    let y = 70;
 
     doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...navy);
     doc.text('Sabhasad Master Registry', M, y);
@@ -313,7 +321,7 @@ export default function MemberMaster() {
                   className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
                 />
               </div>
-              <div className="flex items-center p-0.5 bg-zinc-200 border border-zinc-300">
+               <div className="flex items-center p-0.5 bg-zinc-200 border border-zinc-300">
                 {['all', 'active', 'inactive'].map((filt) => (
                   <button
                     key={filt}
@@ -324,6 +332,28 @@ export default function MemberMaster() {
                   </button>
                 ))}
               </div>
+
+              <select
+                value={villageFilter}
+                onChange={(e) => setVillageFilter(e.target.value)}
+                className="bg-white border border-zinc-300 px-2 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-zinc-500 min-w-[120px]"
+              >
+                <option value="all">ALL VILLAGES</option>
+                {uniqueVillages.map(v => (
+                  <option key={v} value={v}>{v.toUpperCase()}</option>
+                ))}
+              </select>
+
+              <select
+                value={bankFilter}
+                onChange={(e) => setBankFilter(e.target.value)}
+                className="bg-white border border-zinc-300 px-2 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-zinc-500 min-w-[120px]"
+              >
+                <option value="all">ALL BANKS</option>
+                {uniqueBanks.map(b => (
+                  <option key={b} value={b}>{b.toUpperCase()}</option>
+                ))}
+              </select>
               <button
                 onClick={loadMembers}
                 className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"

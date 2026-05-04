@@ -160,9 +160,9 @@ router.post('/with-gst', async (req, res) => {
         // DEBIT Customer
         await connection.query(
           `INSERT INTO account_ledger 
-            (account_id, company_id, transaction_date, transaction_type, reference_no, debit, credit, created_by)
-            VALUES (?, ?, ?, 'SALE', ?, ?, 0, ?)`,
-          [accountIdForLedger, companyId, invoice_date, `SALE-${saleId}`, finalNetAmount, userId]
+            (account_id, member_id, company_id, transaction_date, transaction_type, reference_no, debit, credit, created_by)
+            VALUES (?, ?, ?, ?, 'SALE', ?, ?, 0, ?)`,
+          [accountIdForLedger, member_id || null, companyId, invoice_date, `SALE-${saleId}`, finalNetAmount, userId]
         );
 
         // CREDIT Sales
@@ -185,9 +185,9 @@ router.post('/with-gst', async (req, res) => {
 
         await connection.query(
           `INSERT INTO account_ledger 
-            (account_id, company_id, transaction_date, transaction_type, reference_no, debit, credit, created_by)
-            VALUES (?, ?, ?, 'SALE', ?, 0, ?, ?)`,
-          [salesAccountId, companyId, invoice_date, `SALE-${saleId}`, finalNetAmount, userId]
+            (account_id, member_id, company_id, transaction_date, transaction_type, reference_no, debit, credit, created_by)
+            VALUES (?, ?, ?, ?, 'SALE', ?, 0, ?, ?)`,
+          [salesAccountId, member_id || null, companyId, invoice_date, `SALE-${saleId}`, finalNetAmount, userId]
         );
       }
 

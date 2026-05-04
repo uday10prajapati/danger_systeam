@@ -223,7 +223,7 @@ function Navbar({ backendStatus }) {
               {showProfile && (
                 <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-400 rounded-none shadow-md py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right font-mono">
                   <div className="px-3 py-1 mb-1 border-b border-zinc-200">
-                    <p className="text-xs font-bold text-zinc-800">{currentUser.username.toUpperCase()}</p>
+                    <p className="text-xs font-bold text-zinc-800">{(currentUser.username || 'ADMIN').toUpperCase()}</p>
                     <p className="text-[9px] text-zinc-400 mt-0.5 uppercase tracking-tight">{currentUser.role || 'ADMIN'}</p>
                   </div>
                   <button onClick={() => { localStorage.removeItem('user'); navigate('/login') }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-700 hover:bg-red-50 transition font-bold text-xs uppercase select-none">
