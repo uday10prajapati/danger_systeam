@@ -261,7 +261,7 @@ router.post('/execute-batch', async (req, res) => {
     const companyId = req.headers['x-company-id'];
 
     const kapatAccs = await query(
-      "SELECT id, account_name FROM accounts WHERE (account_name LIKE '%Kapat%' OR account_name LIKE '%Deduction%') AND company_id = ? LIMIT 1", 
+      "SELECT id, account_name FROM accounts WHERE (account_name LIKE '%Kapat%' OR account_name LIKE '%Deduction%' OR account_name LIKE '%Adv%') AND company_id = ? LIMIT 1", 
       [companyId]
     );
     const fallbackRule = kapatAccs.length > 0 ? { ledger_account_id: kapatAccs[0].id, name: kapatAccs[0].account_name } : null;
@@ -279,7 +279,7 @@ router.post('/execute-batch', async (req, res) => {
     if (!targets.length) return res.status(400).json({ success: false, error: 'No valid targets selected' });
 
     // Resolve Interest Account
-    const ikAccRes = await query('SELECT id FROM accounts WHERE account_code = "IK0001" AND company_id = ?', [companyId]);
+    const ikAccRes = await query('SELECT id FROM accounts WHERE account_code = \'IK0001\' AND company_id = ?', [companyId]);
     const interestAccountId = ikAccRes.length > 0 ? ikAccRes[0].id : null;
 
     let successCount = 0;
@@ -294,7 +294,9 @@ router.post('/execute-batch', async (req, res) => {
 
        // Verify we have a ledger account for this entry
        let finalAccountId = null;
-       if (target.type === 'account') {
+       if (target.target_account_id) {
+         finalAccountId = target.target_account_id;
+       } else if (target.type === 'account') {
          finalAccountId = target.id;
        } else if (target.type === 'member') {
          finalAccountId = fallbackRule?.ledger_account_id;
@@ -398,12 +400,12 @@ router.post('/execute-batch', async (req, res) => {
                      ) VALUES (?, ?, ?, 'J', ?, 'S', ?, ?, ?, ?, ?, ?)
                    `, [
                      companyId, req.headers['x-financial-year'] || '2026-27', date, referenceNo, 
-                     code, member.member_name, bagsToClear, `Bardan Penalty Paid via Kapat`,
-                     target.id, (await query('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]))[0]?.id || null
+                     code, member.member_name, bagsToClear, 'Bardan Penalty Paid via Kapat',
+                     target.id, (await query('SELECT id FROM accounts WHERE account_code = \'BS0001\' AND company_id = ?', [companyId]))[0]?.id || null
                    ]);
 
                    // 2. Record in Unified Ledger for Reporting
-                   const bsAcc = await query('SELECT id FROM accounts WHERE account_code = "BS0001" AND company_id = ?', [companyId]);
+                   const bsAcc = await query('SELECT id FROM accounts WHERE account_code = \'BS0001\' AND company_id = ?', [companyId]);
                    if (bsAcc.length > 0) {
                        await query(`
                            INSERT INTO account_ledger (

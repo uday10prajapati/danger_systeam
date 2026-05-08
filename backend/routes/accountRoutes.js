@@ -128,7 +128,7 @@ router.post('/', async (req, res) => {
     const result = await execute(
       `INSERT INTO accounts (company_id, account_code, p_code, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, is_subledger)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company_id, account_code || null, p_code || null, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? 1 : 0]
+      [company_id, account_code || null, p_code || null, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? true : false]
     );
 
     // If it's a cash account, inject the opening balance directly into Cashbook
@@ -211,11 +211,11 @@ router.get('/company/:company_id', async (req, res) => {
       const op = parseFloat(acc.opening_balance || 0);
       const cr = parseFloat(acc.total_credit || 0);
       const dr = parseFloat(acc.total_debit || 0);
-      const closingBal = op + cr - dr;
+      const closingBal = op + dr - cr;
       
       let balance_type = 'zero';
-      if (closingBal > 0) balance_type = 'credit';
-      else if (closingBal < 0) balance_type = 'debit';
+      if (closingBal > 0) balance_type = 'debit';
+      else if (closingBal < 0) balance_type = 'credit';
       
       return {
         ...acc,
@@ -335,33 +335,27 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    // Update account
-    await execute(
-      `UPDATE accounts 
-       SET account_code = COALESCE(?, account_code),
-           p_code = COALESCE(?, p_code),
-           account_name = COALESCE(?, account_name),
-           phone = COALESCE(?, phone),
-           email = COALESCE(?, email),
-           gst_no = CASE WHEN ? IS NOT NULL THEN ? ELSE gst_no END,
-           tin_no = CASE WHEN ? IS NOT NULL THEN ? ELSE tin_no END,
-           opening_balance = COALESCE(?, opening_balance),
-           is_subledger = CASE WHEN ? IS NOT NULL THEN ? ELSE is_subledger END,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        account_code || null, 
-        p_code || null,
-        account_name || null, 
-        phone || null, 
-        email || null, 
-        gst_no !== undefined ? 1 : null, gst_no || null, 
-        tin_no !== undefined ? 1 : null, tin_no || null, 
-        final_opening_balance !== undefined ? final_opening_balance : null, 
-        is_subledger !== undefined ? 1 : null, is_subledger ? 1 : 0, 
-        id
-      ]
-    );
+    // Build dynamic UPDATE query
+    let updateFields = [];
+    let queryParams = [];
+
+    if (account_code !== undefined) { updateFields.push('account_code = ?'); queryParams.push(account_code || null); }
+    if (p_code !== undefined) { updateFields.push('p_code = ?'); queryParams.push(p_code || null); }
+    if (account_name !== undefined) { updateFields.push('account_name = ?'); queryParams.push(account_name || null); }
+    if (phone !== undefined) { updateFields.push('phone = ?'); queryParams.push(phone || null); }
+    if (email !== undefined) { updateFields.push('email = ?'); queryParams.push(email || null); }
+    if (gst_no !== undefined) { updateFields.push('gst_no = ?'); queryParams.push(gst_no || null); }
+    if (tin_no !== undefined) { updateFields.push('tin_no = ?'); queryParams.push(tin_no || null); }
+    if (final_opening_balance !== undefined) { updateFields.push('opening_balance = ?'); queryParams.push(final_opening_balance); }
+    if (is_subledger !== undefined) { updateFields.push('is_subledger = ?'); queryParams.push(is_subledger ? true : false); }
+    
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+
+    if (updateFields.length > 0) {
+      const sql = `UPDATE accounts SET ${updateFields.join(', ')} WHERE id = ?`;
+      queryParams.push(id);
+      await execute(sql, queryParams);
+    }
 
     const updatedAccount = await queryOne(
       'SELECT id, account_code, p_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, created_at, updated_at FROM accounts WHERE id = ?',
@@ -374,8 +368,9 @@ router.put('/:id', async (req, res) => {
       data: updatedAccount
     });
   } catch (error) {
-    console.error('Update account error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to update account' });
+    console.error('Update account error:', error);
+    console.error('Request Body:', req.body);
+    res.status(500).json({ success: false, error: error.message || 'Failed to update account' });
   }
 });
 

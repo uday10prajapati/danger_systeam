@@ -7,7 +7,7 @@ import {
   User, Layout, ChevronDown, CheckCircle2,
   X, Filter, Hash
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 import { useTranslation } from 'react-i18next';
 
 export default function LedgerReport() {
@@ -41,7 +41,7 @@ export default function LedgerReport() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
       }
@@ -58,9 +58,7 @@ export default function LedgerReport() {
 
   const fetchAccounts = async () => {
     try {
-      const accRes = await axios.get(`/api/accounts/company/${company.id}`, {
-        headers: { 'x-company-id': company.id }
-      });
+      const accRes = await api.get(`/accounts/company/${company.id}`);
       if (accRes.data.success) {
         setAccounts(accRes.data.data);
         if (accRes.data.data.length > 0) {
@@ -107,12 +105,11 @@ export default function LedgerReport() {
 
     setLoading(true);
     try {
-      const response = await axios.get(`/api/ledger-report/account/${accountId}`, {
+      const response = await api.get(`/ledger-report/account/${accountId}`, {
         params: {
           startDate: dateRange.startDate,
           endDate: dateRange.endDate
-        },
-        headers: { 'x-company-id': company.id }
+        }
       });
 
       if (response.data.success) {

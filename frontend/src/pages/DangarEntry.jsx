@@ -49,6 +49,12 @@ const DangarEntry = () => {
   const [items, setItems] = useState([]);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [historyFilters, setHistoryFilters] = useState({
+    startDate: '',
+    endDate: '',
+    fromMember: '',
+    toMember: ''
+  });
   const [company, setCompany] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [bardanBalance, setBardanBalance] = useState(0);
@@ -550,13 +556,26 @@ const DangarEntry = () => {
 
   const handleHistoryPrint = () => {
     const cName = company?.company_name || 'Company';
-    const totalQt = history.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
-    const rows = history.map((row, i) => `
+    const filteredHistory = history.filter(row => {
+      const rowDate = new Date(row.entry_date).toISOString().split('T')[0];
+      const matchesDate = (!historyFilters.startDate || rowDate >= historyFilters.startDate) &&
+                         (!historyFilters.endDate || rowDate <= historyFilters.endDate);
+      const memberCode = parseInt(row.member_code);
+      const fromCode = parseInt(historyFilters.fromMember) || 0;
+      const toCode = parseInt(historyFilters.toMember) || 999999;
+      const matchesMember = (!historyFilters.fromMember || memberCode >= fromCode) &&
+                           (!historyFilters.toMember || memberCode <= toCode);
+      return matchesDate && matchesMember;
+    });
+
+    const totalQt = filteredHistory.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
+    const rows = filteredHistory.map((row, i) => `
       <tr style="background:${i%2===0?'#fff':'#f1f5f9'}">
         <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
         <td>#${row.sr_no}<br/><span style="font-size:9px;color:#94a3b8">${row.book_type}</span></td>
         <td><strong>${row.member_name}</strong><br/><span style="font-size:9px;color:#94a3b8">CODE: ${row.member_code}</span></td>
         <td>${row.item_name || '-'}</td>
+        <td>${row.quality_class || '1st'}</td>
         <td>${row.vehicle_no || '-'}</td>
         <td style="text-align:right">${parseFloat(row.net_quintal||0).toFixed(2)} Qt</td>
       </tr>`);
@@ -577,12 +596,13 @@ const DangarEntry = () => {
       </style></head><body>
       <div class='logo-bar'><h1>${cName}</h1><span>Dangar Transaction History &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
       <h2>Transaction History</h2>
-      <p class='sub'>Dangar &middot; Tuver &middot; Divela Manifest &nbsp;|&nbsp; Records: ${history.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
+      <p class='sub'>Dangar &middot; Tuver &middot; Divela Manifest &nbsp;|&nbsp; Records: ${filteredHistory.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
+      ${historyFilters.startDate || historyFilters.fromMember ? `<p class='sub'>Filters: ${historyFilters.startDate||'--'} to ${historyFilters.endDate||'--'} | Member: ${historyFilters.fromMember||'--'} to ${historyFilters.toMember||'--'}</p>` : ''}
       <hr/>
       <table>
-        <thead><tr><th>Date</th><th>Reference</th><th>Member</th><th>Item</th><th>Vehicle</th><th style='text-align:right'>Net Quintal</th></tr></thead>
+        <thead><tr><th>Date</th><th>Reference</th><th>Member</th><th>Item</th><th>Class</th><th>Vehicle</th><th style='text-align:right'>Net Quintal</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
-        <tfoot><tr><td colspan='5'>TOTALS &mdash; ${history.length} Records</td><td style='text-align:right'>${totalQt.toFixed(2)} Qt</td></tr></tfoot>
+        <tfoot><tr><td colspan='6'>TOTALS &mdash; ${filteredHistory.length} Records</td><td style='text-align:right'>${totalQt.toFixed(2)} Qt</td></tr></tfoot>
       </table></body></html>`);
     win.document.close(); win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
@@ -637,21 +657,34 @@ const DangarEntry = () => {
     doc.setDrawColor(226,232,240); doc.setLineWidth(0.4); doc.line(M, y+18, W-M, y+18);
     y += 28;
 
-    const totalQt = history.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
-    const bodyRows = history.map(row => [
+    const filteredHistory = history.filter(row => {
+      const rowDate = new Date(row.entry_date).toISOString().split('T')[0];
+      const matchesDate = (!historyFilters.startDate || rowDate >= historyFilters.startDate) &&
+                         (!historyFilters.endDate || rowDate <= historyFilters.endDate);
+      const memberCode = parseInt(row.member_code);
+      const fromCode = parseInt(historyFilters.fromMember) || 0;
+      const toCode = parseInt(historyFilters.toMember) || 999999;
+      const matchesMember = (!historyFilters.fromMember || memberCode >= fromCode) &&
+                           (!historyFilters.toMember || memberCode <= toCode);
+      return matchesDate && matchesMember;
+    });
+
+    const totalQt = filteredHistory.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
+    const bodyRows = filteredHistory.map(row => [
         new Date(row.entry_date).toLocaleDateString('en-GB'),
         '#' + row.sr_no + ' (' + row.book_type + ')',
         row.member_name,
         row.item_name || '-',
+        row.quality_class || '1st',
         row.vehicle_no || '-',
         parseFloat(row.net_quintal||0).toFixed(2)
     ]);
 
     autoTable(doc, {
        startY: y,
-       head: [['Date', 'Reference', 'Member', 'Item', 'Vehicle', 'Net Quintal']],
+       head: [['Date', 'Reference', 'Member', 'Item', 'Class', 'Vehicle', 'Net Quintal']],
        body: bodyRows,
-       foot: [['', '', '', '', 'TOTAL', totalQt.toFixed(2)]],
+       foot: [['', '', '', '', '', 'TOTAL', totalQt.toFixed(2)]],
        styles: { font: 'helvetica', fontSize:8, cellPadding:[4,5], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
        headStyles: { font: 'helvetica', fillColor:navy, textColor:white, fontStyle: 'normal' },
        footStyles: { font: 'helvetica', fillColor:[30,41,59], textColor:white },
@@ -710,6 +743,21 @@ const DangarEntry = () => {
       document.getElementById(`wgt-input-${idx - 1}`)?.focus();
     }
   };
+  
+  const filteredHistory = history.filter(row => {
+    const rowDate = new Date(row.entry_date).toISOString().split('T')[0];
+    const matchesDate = (!historyFilters.startDate || rowDate >= historyFilters.startDate) &&
+                       (!historyFilters.endDate || rowDate <= historyFilters.endDate);
+    
+    const memberCode = parseInt(row.member_code);
+    const fromCode = parseInt(historyFilters.fromMember) || 0;
+    const toCode = parseInt(historyFilters.toMember) || 999999;
+    
+    const matchesMember = (!historyFilters.fromMember || memberCode >= fromCode) &&
+                         (!historyFilters.toMember || memberCode <= toCode);
+    
+    return matchesDate && matchesMember;
+  });
 
   if (showHistory) {
     return (
@@ -746,6 +794,57 @@ const DangarEntry = () => {
             </div>
           </div>
 
+          <div className="bg-zinc-50 border border-zinc-300 p-4 flex flex-wrap items-center gap-4 select-none">
+            <div className="flex items-center gap-2">
+              <Calendar className="text-zinc-500" size={15} />
+              <span className="text-[10px] font-bold font-mono text-zinc-500 uppercase">Period Filter:</span>
+            </div>
+            <div className="flex items-center gap-1 border border-zinc-300 bg-white p-1">
+              <input 
+                type="date" 
+                value={historyFilters.startDate} 
+                onChange={e => setHistoryFilters(prev => ({ ...prev, startDate: e.target.value }))} 
+                className="bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono" 
+              />
+              <span className="text-zinc-400 font-bold">/</span>
+              <input 
+                type="date" 
+                value={historyFilters.endDate} 
+                onChange={e => setHistoryFilters(prev => ({ ...prev, endDate: e.target.value }))} 
+                className="bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono" 
+              />
+            </div>
+
+            <div className="flex items-center gap-2 ml-4">
+              <User className="text-zinc-500" size={15} />
+              <span className="text-[10px] font-bold font-mono text-zinc-500 uppercase">Member Range:</span>
+            </div>
+            <div className="flex items-center gap-1 border border-zinc-300 bg-white p-1">
+              <input 
+                type="text" 
+                placeholder="From"
+                value={historyFilters.fromMember} 
+                onChange={e => setHistoryFilters(prev => ({ ...prev, fromMember: e.target.value }))} 
+                className="w-16 bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono px-1" 
+              />
+              <span className="text-zinc-400 font-bold">to</span>
+              <input 
+                type="text" 
+                placeholder="To"
+                value={historyFilters.toMember} 
+                onChange={e => setHistoryFilters(prev => ({ ...prev, toMember: e.target.value }))} 
+                className="w-16 bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono px-1" 
+              />
+            </div>
+
+            <button 
+              onClick={() => setHistoryFilters({ startDate: '', endDate: '', fromMember: '', toMember: '' })} 
+              className="px-3 py-1.5 bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold text-[10px] uppercase transition rounded-none ml-auto"
+            >
+              Clear Filters
+            </button>
+          </div>
+
           <div className="border border-zinc-300 bg-white">
             <table className="w-full text-left font-mono text-xs select-none border-collapse">
               <thead>
@@ -753,13 +852,14 @@ const DangarEntry = () => {
                   <th className="px-4 py-3 border-r border-zinc-200">Date</th>
                   <th className="px-4 py-3 border-r border-zinc-200">Reference</th>
                   <th className="px-4 py-3 border-r border-zinc-200">Member</th>
+                  <th className="px-4 py-3 border-r border-zinc-200 text-center">Class</th>
                   <th className="px-4 py-3 border-r border-zinc-200 text-right">Net Man</th>
                   <th className="px-4 py-3 border-r border-zinc-200 text-right">Net Quintal</th>
                   <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 bg-white">
-                {history.map((row) => (
+                {filteredHistory.map((row) => (
                   <tr key={row.id} className="hover:bg-zinc-50/60 transition-colors">
                     <td className="px-4 py-3 border-r border-zinc-200 font-bold">
                       {new Date(row.entry_date).toLocaleDateString('en-GB')}
@@ -771,6 +871,11 @@ const DangarEntry = () => {
                     <td className="px-4 py-3 border-r border-zinc-200">
                       <p className="font-sans font-bold tracking-tight text-zinc-800 uppercase italic leading-none">{row.member_name}</p>
                       <p className="text-[10px] text-zinc-400 mt-1 uppercase font-bold font-mono">CODE: {row.member_code}</p>
+                    </td>
+                    <td className="px-4 py-3 border-r border-zinc-200 text-center">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold border ${row.quality_class === '1st' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : row.quality_class === '2nd' ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
+                        {row.quality_class || '1st'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-amber-600">
                       {(parseFloat(row.net_quintal) * 5).toFixed(2)}

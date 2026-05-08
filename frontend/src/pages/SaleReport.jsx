@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import {
   Search, RefreshCcw as SyncIcon, Download, Hash, User,
   ExternalLink, ShoppingCart, CreditCard, Banknote,
@@ -63,7 +63,7 @@ export default function SaleReport() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       setCompany(response.data.success ? response.data.data : null);
     } catch (error) {
       console.error('Failed to load company', error);
@@ -74,11 +74,10 @@ export default function SaleReport() {
     if (!company?.id) return;
     try {
       setLoading(true);
-      const salesRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/sales`, {
-        params: { startDate, endDate },
-        headers: { 'x-company-id': company.id }
+      const salesRes = await api.get('/sales', {
+        params: { startDate, endDate }
       });
-      const itemRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/items/company/${company.id}`);
+      const itemRes = await api.get(`/items/company/${company.id}`);
       if (salesRes.data.success) setData(salesRes.data.data);
       if (itemRes.data.success) setItemData(itemRes.data.data.filter(i => parseFloat(i.outward) > 0));
     } catch (error) {

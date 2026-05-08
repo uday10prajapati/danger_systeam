@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../api';
 import {
    X, Search, AlertCircle, Trash2, Edit3,
    Calendar, FileText, ArrowRightLeft, Plus,
@@ -30,9 +30,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
    const fetchJV = async () => {
       try {
          setLoading(true);
-         const res = await axios.get(`/api/jv/${editId}`, {
-            headers: { 'x-company-id': company?.id }
-         });
+         const res = await api.get(`/jv/${editId}`);
          if (res.data.success) {
             const { voucher_date, credits, debits } = res.data.data;
             setVoucherDate(voucher_date.split('T')[0]);
@@ -48,9 +46,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
    const fetchAccounts = async () => {
       try {
-         const res = await axios.get(`/api/accounts/company/${company?.id}`, {
-            headers: { 'x-company-id': company?.id }
-         });
+         const res = await api.get(`/accounts/company/${company?.id}`);
          if (res.data.success) {
             setAccounts(res.data.data);
          }
@@ -70,13 +66,9 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
          };
 
          if (editId) {
-            await axios.put(`/api/jv/${editId}`, payload, {
-               headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-            });
+            await api.put(`/jv/${editId}`, payload);
          } else {
-            await axios.post(`/api/jv`, payload, {
-               headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-            });
+            await api.post(`/jv`, payload);
          }
 
          if (onSubmit) onSubmit();
@@ -361,7 +353,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
    const fetchMembers = async () => {
       try {
-         const res = await axios.get(`/api/members/company/${company?.id}`);
+         const res = await api.get(`/members/company/${company?.id}`);
          if (res.data.success) setMembers(res.data.data);
       } catch (err) { }
    };

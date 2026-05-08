@@ -5,14 +5,12 @@ import {
   TrendingUp, TrendingDown, ShieldCheck,
   Printer, X, Hash, User, Activity, Clock
 } from 'lucide-react';
-import axios from 'axios';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import Loading from '../components/Loading';
 import Toast from '../components/Toast';
+import api from '../api';
 
 export default function SabhasadLedgerSummary() {
   const { t } = useTranslation();
@@ -83,7 +81,7 @@ export default function SabhasadLedgerSummary() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
       }
@@ -101,9 +99,7 @@ export default function SabhasadLedgerSummary() {
 
   const fetchBardanPrice = async () => {
     try {
-      const response = await axios.get('/api/bardan-price', {
-        headers: { 'x-company-id': company.id }
-      });
+      const response = await api.get('/bardan-price');
       if (response.data.success && response.data.data) {
         setBardanPrice(parseFloat(response.data.data.price_per_bardan || 0));
       }
@@ -114,9 +110,14 @@ export default function SabhasadLedgerSummary() {
 
   const fetchDropdownData = async () => {
     try {
-      const accRes = await axios.get(`/api/accounts/company/${company.id}`, {
-        headers: { 'x-company-id': company.id }
-      });
+      const [accRes, memRes, bankRes, seasonRes, itemRes] = await Promise.all([
+        api.get(`/accounts/company/${company.id}`),
+        api.get(`/members/company/${company.id}`),
+        api.get('/banks'),
+        api.get('/dangar-entry/seasons'),
+        api.get('/items')
+      ]);
+
       if (accRes.data.success) {
         const filteredAccounts = accRes.data.data.filter(a =>
           !a.account_name.toLowerCase().includes('brokerage') &&
@@ -126,22 +127,16 @@ export default function SabhasadLedgerSummary() {
         setAccounts(filteredAccounts);
       }
 
-      const memRes = await axios.get(`/api/members/company/${company.id}`, {
-        headers: { 'x-company-id': company.id }
-      });
       if (memRes.data.success) {
         setMembers(memRes.data.data);
       }
 
-      const bankRes = await axios.get('/api/banks', { headers: { 'x-company-id': company.id } });
       if (bankRes.data.success) setBanks(bankRes.data.data);
 
-      const seasonRes = await axios.get('/api/dangar-entry/seasons', { headers: { 'x-company-id': company.id } });
       if (seasonRes.data.success) {
         setSeasons(seasonRes.data.data.filter(s => s.toUpperCase() !== 'DANGAR'));
       }
 
-      const itemRes = await axios.get('/api/items', { headers: { 'x-company-id': company.id } });
       if (itemRes.data.success) setItems(itemRes.data.data);
 
       fetchReportData();
@@ -157,7 +152,7 @@ export default function SabhasadLedgerSummary() {
 
     setSyncing(true);
     try {
-      const response = await axios.get(`/api/sabhasad-ledger-summary`, {
+      const response = await api.get(`/sabhasad-ledger-summary`, {
         params: {
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
@@ -168,8 +163,7 @@ export default function SabhasadLedgerSummary() {
           bankName,
           season,
           itemId: accountId === 'all' || isDangar ? itemId : ''
-        },
-        headers: { 'x-company-id': company.id }
+        }
       });
 
       if (response.data.success) {
@@ -188,14 +182,13 @@ export default function SabhasadLedgerSummary() {
     setShowAuditModal(true);
     setAuditLoading(true);
     try {
-      const response = await axios.get(`/api/account-ledger`, {
+      const response = await api.get(`/account-ledger`, {
         params: {
           memberId: mem.member_id,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
           accountId: accountId !== 'all' ? accountId : undefined
-        },
-        headers: { 'x-company-id': company.id }
+        }
       });
       if (response.data.success) {
         setAuditTransactions(response.data.data);
@@ -860,6 +853,7 @@ export default function SabhasadLedgerSummary() {
                     <>
                       <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
                       <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[250px]">Description / Member</th>
+                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Opening</th>
                       <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{isBardan || isTransactional ? 'Debit (+)' : (isSale ? 'Credit Sale' : 'Debit (+)')}</th>
                       <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{isBardan || isTransactional ? 'Credit (-)' : (isSale ? 'Cash Sale' : 'Credit (-)')}</th>
                       {isBardan && <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Self Jama</th>}
@@ -872,6 +866,7 @@ export default function SabhasadLedgerSummary() {
                       <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[200px]">Member Name</th>
                       {isDangar ? (
                         <>
+                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Opening</th>
                           <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
                           <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Purches Rate</th>
                           <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Item Name</th>
@@ -943,7 +938,7 @@ export default function SabhasadLedgerSummary() {
                               else { displayDebit = amount; displayCredit = 0; }
                             }
 
-                            if (isBardan || isTransactional) {
+                             if (isBardan || isTransactional) {
                                return <>
                                  <td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
                                  <td className="px-4 py-2 text-[10px] border-r border-zinc-100">
@@ -959,6 +954,9 @@ export default function SabhasadLedgerSummary() {
                                      </>
                                    )}
                                  </td>
+                                 <td className="px-4 py-2 text-[10px] text-right font-bold text-zinc-500 border-r border-zinc-100 font-mono">
+                                   {idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}
+                                 </td>
                                  <td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">{displayDebit > 0 ? `₹${displayDebit.toLocaleString('en-IN')}` : '-'}</td>
                                  <td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">{displayCredit > 0 ? `₹${displayCredit.toLocaleString('en-IN')}` : '-'}</td>
                                  {isBardan && <td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">-</td>}
@@ -971,9 +969,9 @@ export default function SabhasadLedgerSummary() {
 
                             const isCR = isSale ? parseFloat(row.balance || 0) >= 0 : parseFloat(row.balance || 0) < 0;
                             const balLabel = isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR');
-                            return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-blue-600 font-bold border-r border-zinc-100 font-mono">{row.member_code || '-'}</td><td className="px-4 py-2 text-[10px] font-bold text-zinc-800 uppercase border-r border-zinc-100">{row.member_name || '-'}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.description}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{displayDebit.toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">₹{displayCredit.toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${isCR ? (isSale ? 'text-emerald-600' : 'text-rose-600') : (isSale ? 'text-rose-600' : 'text-zinc-800')}`}>₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {balLabel}</td></>;
+                            return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-blue-600 font-bold border-r border-zinc-100 font-mono">{row.member_code || '-'}</td><td className="px-4 py-2 text-[10px] font-bold text-zinc-800 uppercase border-r border-zinc-100">{row.member_name || '-'}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.description}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-zinc-500 border-r border-zinc-100 font-mono">{idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{displayDebit.toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">₹{displayCredit.toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${isCR ? (isSale ? 'text-emerald-600' : 'text-rose-600') : (isSale ? 'text-rose-600' : 'text-zinc-800')}`}>₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {balLabel}</td></>;
                           }
-                          if (isDangar) return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.item_name || 'Item'}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.quality_class || '1st'}</td><td className="px-4 py-2 text-[10px] text-amber-600 uppercase border-r border-zinc-100">{row.book_type || 'Season'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-indigo-600 border-r border-zinc-100 font-mono">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[9px] opacity-50 font-sans ml-1">Qt</span></td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
+                          if (isDangar) return <><td className="px-4 py-2 text-[10px] text-right font-bold text-zinc-500 border-r border-zinc-100 font-mono">{idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.item_name || 'Item'}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.quality_class || '1st'}</td><td className="px-4 py-2 text-[10px] text-amber-600 uppercase border-r border-zinc-100">{row.book_type || 'Season'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-indigo-600 border-r border-zinc-100 font-mono">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[9px] opacity-50 font-sans ml-1">Qt</span></td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
                           if (isInterest) return <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td><td className="px-4 py-2 text-[10px] text-zinc-500 border-r border-zinc-100 font-mono">{row.days || 0} Days</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.description || 'Interest'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td></>;
                           if (isBrokerage || isLabour) return <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-blue-500 italic border-r border-zinc-100 font-mono">{row.invoice_no}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.description}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
                           return <><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.account_name}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>{!hideBardan && <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.bardan_balance || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>{Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">{parseFloat(row.bardan_self_jama || 0).toLocaleString()}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td></>}</>;
@@ -1000,7 +998,8 @@ export default function SabhasadLedgerSummary() {
                           }
 
                           return <>
-                            <td colSpan="4" className="px-4 py-2 text-right uppercase">Registry Totals:</td>
+                            <td colSpan="3" className="px-4 py-2 text-right uppercase">Registry Totals:</td>
+                            <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}</td>
                             <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{displayTotalDebit.toLocaleString('en-IN')}</td>
                             <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{displayTotalCredit.toLocaleString('en-IN')}</td>
                             {isBardan && <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">-</td>}
@@ -1009,16 +1008,16 @@ export default function SabhasadLedgerSummary() {
                           </>;
                         }
                         if (isDangar) return <>
-                          <td colSpan="8" className="px-4 py-2 text-right">SUMMARY TOTALS</td>
+                          <td colSpan="9" className="px-4 py-2 text-right">SUMMARY TOTALS</td>
                           <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">{data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[8px] opacity-70 ml-1">Qt</span></td>
                           <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
                         </>;
                         if (isInterest) return <>
-                          <td colSpan="7" className="px-4 py-2 text-right">TOTAL ACCRUAL POOL</td>
+                          <td colSpan="8" className="px-4 py-2 text-right">TOTAL ACCRUAL POOL</td>
                           <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}</td>
                         </>;
                         if (isBrokerage || isLabour) return <>
-                          <td colSpan="6" className="px-4 py-2 text-right uppercase">Total {isBrokerage ? 'Brokerage' : 'Labour'} Accumulation</td>
+                          <td colSpan="7" className="px-4 py-2 text-right uppercase">Total {isBrokerage ? 'Brokerage' : 'Labour'} Accumulation</td>
                           <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
                         </>;
                         return <>

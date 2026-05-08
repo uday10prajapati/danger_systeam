@@ -76,13 +76,14 @@ router.get('/payment-report', async (req, res) => {
     const ledgerRows = await query(`
       SELECT
         mm.id             AS member_id,
-        de.quality_class,
+        COALESCE(de.quality_class, '1st') AS quality_class,
         mm.member_code,
-        mm.member_name,
+        COALESCE(mm.member_name, mm.eng_name, '') AS member_name,
         mm.full_ac_number,
         mm.bank_name,
         mm.branch_name,
         mm.ifsc_code,
+        mm.village_name,
         SUM(al.credit) AS total_credit,
         SUM(al.debit)  AS total_debit,
         COUNT(al.id)   AS entry_count
@@ -92,8 +93,8 @@ router.get('/payment-report', async (req, res) => {
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, de.quality_class, mm.member_code, mm.member_name, mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code
-      ORDER BY mm.member_code ASC, de.quality_class ASC
+      GROUP BY mm.id, COALESCE(de.quality_class, '1st'), mm.member_code, COALESCE(mm.member_name, mm.eng_name, ''), mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code, mm.village_name
+      ORDER BY mm.member_code ASC, COALESCE(de.quality_class, '1st') ASC
     `, [companyId, ...dateParams]);
 
     // 1b. Individual kapat (deduction) entries per member — for sub-rows
@@ -140,7 +141,9 @@ router.get('/payment-report', async (req, res) => {
         de.total_deduction AS deduction_amount,
         (de.amount - de.total_deduction) AS net_amount,
         im.item_name_gu,
-        im.item_name
+        im.item_name,
+        de.season,
+        de.financial_year
       FROM dangar_entry de
       LEFT JOIN item_master im ON de.item_id = im.id
       WHERE de.company_id = ?
@@ -193,11 +196,10 @@ router.get('/payment-report', async (req, res) => {
     for (const row of ledgerRows) {
       // Filter entries by class (matching the grouping)
       const allMemberEntries = dangarMap[row.member_id] || [];
-      const entries = allMemberEntries.filter(e => 
-        (e.quality_class === row.quality_class) || 
-        (!e.quality_class && !row.quality_class) ||
-        (e.quality_class === '1st' && !row.quality_class) // Fallback for legacy
-      );
+      const entries = allMemberEntries.filter(e => {
+        const eClass = e.quality_class || '1st';
+        return eClass === row.quality_class;
+      });
 
       // Skip row if no matching dangar entries for this class (unless it's a pure ledger adjustment)
       if (entries.length === 0 && row.total_credit === 0 && row.total_debit === 0) continue;
@@ -216,7 +218,7 @@ router.get('/payment-report', async (req, res) => {
       
       let pendingInterest = 0;
       let memberAdvance = 0;
-      let godownFund = 0;
+      let godownFund = parseFloat(totalKg) * 0.05;
       let bardanPhysicalRemaining = 0;
       let bardanPenaltyBalance = 0;
       let otherUdhar = 0;
@@ -257,7 +259,7 @@ router.get('/payment-report', async (req, res) => {
                  const isGodownFund = (godownAcId && entry.account_id === godownAcId) || entry.reference_type === 'dangar_entry_fund' || desc.includes('godown fund');
                  const isBardan = bardanAcId && entry.account_id === bardanAcId;
     
-                 if (isGodownFund) {
+                 if (isGodownFund && entry.reference_type !== 'dangar_entry_fund') {
                     godownFund += bal;
                  } else if (isAdvance) {
                     memberAdvance += bal;
@@ -293,11 +295,6 @@ router.get('/payment-report', async (req, res) => {
           } catch (err) {
              console.error('Report Breakdown calculation failed', err);
           }
-      } else {
-          // Proportionally calculate godown fund if it's entry-linked
-          if (parseFloat(totalKg) > 0) {
-              godownFund = parseFloat(totalKg) * 0.05;
-          }
       }
 
       const bardanRemaining = Math.max(0, bardanPenaltyBalance);
@@ -309,6 +306,8 @@ router.get('/payment-report', async (req, res) => {
         member_id:        row.member_id,
         member_code:      row.member_code,
         member_name:      row.member_name,
+        village_name:     row.village_name || '',
+        dangar_name:      dangarNameGu,
         quality_class:    row.quality_class || '1st',
         full_ac_number:   row.full_ac_number || '',
         bank_name:        row.bank_name || '',

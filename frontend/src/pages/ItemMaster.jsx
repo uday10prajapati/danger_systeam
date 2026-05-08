@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
@@ -15,6 +14,7 @@ import ItemForm from '../components/ItemForm'
 import Toast from '../components/Toast'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import Loading from '../components/Loading'
+import api from '../api'
 
 export default function ItemMaster() {
   const { t } = useTranslation()
@@ -42,25 +42,32 @@ export default function ItemMaster() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company')
+      setLoading(true);
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
-        setCompany(response.data.data)
+        setCompany(response.data.data);
+      } else {
+        setMessage({ type: 'error', text: 'No company found. Please create a company in Company Master.' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load company context.' })
+      console.error('Failed to load company', error);
+      setMessage({ type: 'error', text: 'Failed to load company context. Please check if backend is running.' });
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const loadItems = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`/api/items/company/${company.id}`)
+      const response = await api.get(`/items/company/${company.id}`)
       if (response.data.success) {
         setItems(response.data.data || [])
         const uniqueCats = [...new Set(response.data.data.map(i => i.category).filter(Boolean))]
         setCategories(uniqueCats)
       }
     } catch (error) {
+      console.error('Load items error', error)
       setMessage({ type: 'error', text: 'Failed to load items.' })
     } finally {
       setLoading(false)
@@ -87,9 +94,7 @@ export default function ItemMaster() {
   const handleStatusToggle = async (item) => {
     try {
       const endpoint = item.is_active ? 'deactivate' : 'activate'
-      const response = await axios.post(`/api/items/${item.id}/${endpoint}`, {}, {
-        headers: { 'x-company-id': company.id }
-      })
+      const response = await api.post(`/items/${item.id}/${endpoint}`)
       if (response.data.success) {
         setMessage({ type: 'success', text: `Item ${item.is_active ? 'deactivated' : 'activated'} successfully.` })
         loadItems()
@@ -108,9 +113,7 @@ export default function ItemMaster() {
     if (!itemToDelete) return
     try {
       setLoading(true)
-      await axios.delete(`/api/items/${itemToDelete.id}`, {
-        headers: { 'x-company-id': company.id }
-      })
+      await api.delete(`/items/${itemToDelete.id}`)
       setMessage({ type: 'success', text: 'Item deleted successfully.' })
       setDeleteModalOpen(false)
       setItemToDelete(null)
@@ -284,8 +287,25 @@ export default function ItemMaster() {
     link.click()
   }
 
-  if (loading || !company) {
-    return <Loading />
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!company) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
+        <Building2 className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Company Context Missing</h2>
+        <p className="text-slate-500 mb-6 text-center max-w-md">
+          We couldn't load the company information. This usually happens if no company has been created yet or the connection to the server was lost.
+        </p>
+        <div className="flex gap-4">
+          <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <RefreshCcw className="w-4 h-4 mr-2" /> Retry Connection
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

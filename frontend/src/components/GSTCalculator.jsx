@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 
 export default function GSTCalculator({
   taxableAmount = 0,
@@ -35,7 +35,7 @@ export default function GSTCalculator({
 
   const fetchAllowedPercentages = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/gst/percentages`);
+      const response = await api.get('/gst/percentages');
       if (response.data.success) {
         setAllowedPercentages(response.data.data);
       }
@@ -49,7 +49,7 @@ export default function GSTCalculator({
       setLoading(true);
       setError('');
 
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/gst/calculate`, {
+      const response = await api.post('/gst/calculate', {
         taxable_amount: Number(taxableAmount),
         gst_percent: Number(gstPercent),
         is_intra_state: isIntraState

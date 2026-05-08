@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import {
    TrendingUp, TrendingDown, DollarSign, PieChart,
    ArrowUpRight, ArrowDownLeft, Calendar, FileText,
@@ -26,7 +26,7 @@ export default function ProfitLoss() {
 
    const loadCompany = async () => {
       try {
-         const response = await axios.get('/api/company');
+         const response = await api.get('/company');
          if (response.data.success && response.data.data) {
             setCompany(response.data.data);
          }
@@ -57,9 +57,8 @@ export default function ProfitLoss() {
    const fetchProfitLoss = async () => {
       try {
          setLoading(true);
-         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/profit-loss`, {
-            params: { startDate, endDate },
-            headers: { 'x-company-id': company.id, 'x-user-id': 1 }
+         const response = await api.get('/profit-loss', {
+            params: { startDate, endDate }
          });
 
          if (response.data.success) {
@@ -75,9 +74,7 @@ export default function ProfitLoss() {
    const fetchMonthlyData = async () => {
       try {
          const year = new Date(startDate).getFullYear();
-         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/profit-loss/monthly/${year}`, {
-            headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-         });
+         const response = await api.get(`/profit-loss/monthly/${year}`);
 
          if (response.data.success) {
             setMonthlyData(response.data.data);

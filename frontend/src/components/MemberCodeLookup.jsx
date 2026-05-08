@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Search, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function MemberCodeLookup({ companyId, onMemberSelect, initialCode = '' }) {
@@ -25,12 +25,11 @@ export default function MemberCodeLookup({ companyId, onMemberSelect, initialCod
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`/api/members/search-code`, {
+      const response = await api.get(`/members/search-code`, {
         params: {
           code: memberCode,
           limit: 5
-        },
-        headers: { 'x-company-id': companyId }
+        }
       });
 
       if (response.data.success) {
@@ -50,9 +49,7 @@ export default function MemberCodeLookup({ companyId, onMemberSelect, initialCod
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`/api/members/by-code/${code}`, {
-        headers: { 'x-company-id': companyId }
-      });
+      const response = await api.get(`/members/by-code/${code}`);
 
       if (response.data.success) {
         const member = response.data.data;

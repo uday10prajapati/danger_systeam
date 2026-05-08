@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Search, Printer, Download, Filter,
   Calendar, User, Box, ArrowRight, TrendingUp,
-  CreditCard, ChevronDown, ChevronRight, CheckCircle, Clock, X, Shield,
+  CreditCard, ChevronDown, ChevronRight, AlertCircle, Clock, X, Shield,
   Table, Layout, Database, Info, RefreshCcw
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -49,12 +49,15 @@ const DangarPaymentReport = () => {
 
   const [members, setMembers] = useState([]);
   const [items, setItems] = useState([]);
+  const [company, setCompany] = useState(null);
   const [companyAccount, setCompanyAccount] = useState('');
   const [txtModal, setTxtModal] = useState(false);
   const [billModal, setBillModal] = useState(false);
   const [billSearch, setBillSearch] = useState({ from: '', to: '' });
   const [selectedBills, setSelectedBills] = useState([]);
   const [narration, setNarration] = useState('');
+  const [seasons, setSeasons] = useState([]);
+  const [currentSeason, setCurrentSeason] = useState(null);
 
   useEffect(() => {
     fetchInitialData().then(() => fetchReport());
@@ -70,7 +73,17 @@ const DangarPaymentReport = () => {
       ]);
       if (mRes.data.success) setMembers(mRes.data.data);
       if (iRes.data.success) setItems(iRes.data.data);
-      if (cRes.data.success) setCompanyAccount(cRes.data.data?.company_account_no || '');
+      if (cRes.data.success) {
+        const compData = cRes.data.data;
+        setCompany(compData);
+        setCompanyAccount(compData?.company_account_no || '');
+        const sRes = await api.get(`/seasons/company/${compData.id}`);
+        if (sRes.data.success) {
+          const sList = sRes.data.data || [];
+          setSeasons(sList);
+          if (sList.length > 0) setCurrentSeason(sList[0]);
+        }
+      }
       if (bRes.data.success) setBanks(bRes.data.data);
     } catch (err) {
       console.error('Failed to load filter dependencies:', err);
@@ -133,9 +146,19 @@ const DangarPaymentReport = () => {
   };
 
   const exportExcel = () => {
-    const validData = data.filter(r => parseFloat(r.final_amount || 0) >= 0);
-    if (!validData.length) { alert('No valid data to export.'); return; }
-    const rows = validData.map((r, i) => ({
+    const aggregated = Object.values(data.reduce((acc, r) => {
+      const amt = parseFloat(r.final_amount || 0);
+      if (amt < 0) return acc;
+      if (!acc[r.member_id]) {
+        acc[r.member_id] = { ...r, final_amount: 0 };
+      }
+      acc[r.member_id].final_amount += amt;
+      return acc;
+    }, {}));
+
+    if (!aggregated.length) { alert('No valid data to export.'); return; }
+    
+    const rows = aggregated.map((r, i) => ({
       'Sr.': i + 1,
       'CODE': r.member_code,
       'NAME': r.member_name,
@@ -144,7 +167,6 @@ const DangarPaymentReport = () => {
       'PAYABLE AMOUNT': parseFloat(r.final_amount || 0),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    // Column widths
     ws['!cols'] = [6, 12, 40, 25, 15, 18].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Payment Report');
@@ -234,6 +256,135 @@ const DangarPaymentReport = () => {
     doc.save('dangar_payment_' + filters.startDate + '_' + filters.endDate + '.pdf');
   };
 
+  const addGujaratiFont = async (doc) => {
+    try {
+      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1];
+          doc.addFileToVFS('NotoSansGujarati.ttf', base64);
+          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
+          resolve();
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn('Could not load Gujarati font', e);
+    }
+  };
+
+  const num = (value) => {
+    const parsed = parseFloat(value || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const money = (value) => num(value).toFixed(2);
+
+  const resolveBillMeta = (bill = {}, mList = [], bList = [], comp = null, season = null) => {
+    const member = (mList || []).find(m => String(m.id) === String(bill.member_id)) || {};
+    const bank = (bList || []).find(b => String(b.bank_name || '').trim().toLowerCase() === String(bill.bank_name || '').trim().toLowerCase()) || {};
+    const cachedCompany = (() => {
+      try { return JSON.parse(localStorage.getItem('company') || '{}'); }
+      catch (e) { return {}; }
+    })();
+
+    const activeComp = comp || company || cachedCompany;
+    const activeSeason = season || currentSeason;
+
+    const companyName = activeComp?.company_name_gu || activeComp?.company_name || 'CO-OPERATIVE SOCIETY LTD.';
+    const billDate = bill.entry_date || bill.date || new Date();
+    const d = new Date(billDate);
+    const yr = d.getFullYear();
+    const mo = d.getMonth() + 1;
+    const fyS = mo >= 4 ? yr : yr - 1;
+    const fyE = fyS + 1;
+    const calculatedFY = `${fyS}-${fyE % 100}`;
+    
+    const seasonName = bill.season || activeSeason?.name || activeSeason?.season || '';
+    const financialYear = bill.financial_year || activeSeason?.financial_year || activeSeason?.year || calculatedFY;
+
+    const seasonText = seasonName 
+      ? (seasonName.includes(financialYear) ? seasonName : `${seasonName} (${financialYear})`)
+      : `DANGAR REPORT - ${financialYear}`;
+
+    return {
+      companyName,
+      seasonText,
+      memberName: bill.member_name || member.member_name || member.eng_name || 'SABHASAD',
+      villageName: bill.village_name || member.village_name || member.village || '---',
+      memberCode: bill.member_code || member.member_code || '---',
+      bankName: bill.bank_name || member.bank_name || bank.bank_name || '---',
+      branchName: bill.branch_name || member.branch_name || bank.branch_name || '---',
+      accountNo: bill.full_ac_number || member.full_ac_number || bank.full_ac_number || '---',
+      ifscCode: bill.ifsc_code || member.ifsc_code || bank.ifsc_code || '---',
+      itemName: bill.dangar_name || bill.dangar_name_gu || bill.item_name || 'DANGAR',
+      qualityClass: bill.quality_class || '1st',
+    };
+  };
+
+  const ensurePdfDependencies = async () => {
+    const needsMembers = !members.length;
+    const needsBanks = !banks.length;
+    const needsCompany = !company;
+
+    let freshMembers = members;
+    let freshBanks = banks;
+    let freshCompany = company;
+    let freshSeason = currentSeason;
+
+    try {
+      const requests = [];
+      if (needsMembers) requests.push(api.get('/members'));
+      if (needsBanks) requests.push(api.get('/banks'));
+      if (needsCompany) requests.push(api.get('/company'));
+
+      if (requests.length > 0) {
+        const results = await Promise.all(requests);
+        let idx = 0;
+        if (needsMembers) {
+          const res = results[idx++];
+          freshMembers = res?.data?.data || [];
+          setMembers(freshMembers);
+        }
+        if (needsBanks) {
+          const res = results[idx++];
+          freshBanks = res?.data?.data || [];
+          setBanks(freshBanks);
+        }
+        if (needsCompany) {
+          const res = results[idx++];
+          freshCompany = res?.data?.data;
+          setCompany(freshCompany);
+          if (freshCompany?.id) {
+            const sRes = await api.get(`/seasons/company/${freshCompany.id}`);
+            if (sRes.data.success && sRes.data.data.length > 0) {
+              freshSeason = sRes.data.data[0];
+              setCurrentSeason(freshSeason);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Dependency refresh failed', e);
+    }
+    return { freshMembers, freshBanks, freshCompany, freshSeason };
+  };
+
+  const getSeasonLabel = () => {
+    if (currentSeason?.name) {
+      return `${currentSeason.name} ડાંગર નો છેવટ નો હિસાબ`;
+    }
+    if (!filters.startDate) return "ચોમાસુ ડાંગર - ૨૦૨૪-૨૦૨૫";
+    const date = new Date(filters.startDate);
+    const year = date.getFullYear();
+    const nextYear = year + 1;
+    const enToGu = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+    const toGu = (str) => str.toString().split('').map(c => enToGu[c] || c).join('');
+    return `ચોમાસુ ડાંગર - ${toGu(year)}-${toGu(nextYear)} ડાંગર નો છેવટ નો હિસાબ`;
+  };
+
   const openExportModal = () => {
     if (!companyAccount) {
       alert('Company Bank Account No. is not set. Please update it in Company Settings.');
@@ -251,13 +402,25 @@ const DangarPaymentReport = () => {
     };
     const LINE = 101;
     const lines = [];
-    const validData = data.filter(r => parseFloat(r.final_amount || 0) >= 0);
+
+    const aggregated = Object.values(data.reduce((acc, r) => {
+      const amt = parseFloat(r.final_amount || 0);
+      if (amt < 0) return acc;
+      if (!acc[r.member_id]) {
+        acc[r.member_id] = { ...r, final_amount: 0 };
+      }
+      acc[r.member_id].final_amount += amt;
+      return acc;
+    }, {}));
+
+    if (!aggregated.length) { alert('No valid data to export.'); return; }
+
     const msg = fw(narration, 67, ' ', true);
-    const totalAmountPaise = Math.abs(Math.round(validData.reduce((sum, row) => sum + parseFloat(row.final_amount || 0), 0) * 100));
+    const totalAmountPaise = Math.abs(Math.round(aggregated.reduce((sum, row) => sum + parseFloat(row.final_amount || 0), 0) * 100));
     const totalAmtStr = fw(totalAmountPaise, 16);
 
     lines.push(('51' + '00000' + fw(companyAccount, 12) + totalAmtStr + msg).padEnd(LINE, ' ').slice(0, LINE));
-    validData.forEach(function (row) {
+    aggregated.forEach(function (row) {
       var acct = fw(String(row.full_ac_number || '').trim().replace(/\s/g, ''), 12);
       var paise = Math.abs(Math.round(parseFloat(row.final_amount || 0) * 100));
       var amt = fw(paise, 16);
@@ -276,28 +439,218 @@ const DangarPaymentReport = () => {
     setMessage({ type: 'success', text: 'Batch TXT file exported successfully' });
   };
 
-  const downloadAllBillsPDF = async () => {
+  const downloadAllBillsPDF = async (mode = 'download') => {
     if (!selectedBills.length) return;
     try {
       setLoading(true);
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [8, 6] });
-      for (let i = 0; i < selectedBills.length; i++) {
-        const bill = selectedBills[i];
-        const elementId = `printable-bill-${bill.member_id}`;
-        const element = document.getElementById(elementId);
-        if (!element) continue;
-        element.style.display = 'block';
-        element.style.position = 'fixed';
-        element.style.left = '0px';
-        element.style.top = '0px';
-        element.style.zIndex = '9999';
-        await new Promise(r => setTimeout(r, 50));
-        const dataUrl = await toPng(element, { backgroundColor: '#ffffff', width: 8 * 96, height: 6 * 96, pixelRatio: 2 });
-        element.style.display = 'none';
-        if (i > 0) pdf.addPage([8, 6], 'landscape');
-        pdf.addImage(dataUrl, 'PNG', 0, 0, 8, 6);
+      const deps = await ensurePdfDependencies() || {};
+      const freshMembers = deps.freshMembers || [];
+      const freshBanks = deps.freshBanks || [];
+      const freshCompany = deps.freshCompany || company;
+      
+      // Use filtered season if selected, else default to freshSeason
+      let targetSeason = deps.freshSeason || currentSeason;
+      if (filters.season) {
+        const found = seasons.find(s => s.season_name === filters.season);
+        if (found) targetSeason = found;
       }
-      pdf.save(`Payout_Slips_${billSearch.from}_to_${billSearch.to}.pdf`);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      await addGujaratiFont(pdf);
+      pdf.setFont('NotoGujarati', 'normal');
+
+      const W = pdf.internal.pageSize.getWidth();
+      const H = pdf.internal.pageSize.getHeight();
+      const M = 10;
+      const contentW = W - (M * 2);
+      const slipH = (H - (M * 2)) / 2 - 2;
+      
+      const navy = [15, 23, 42];
+      const white = [255, 255, 255];
+      const gray = [100, 116, 139];
+      const dark = [30, 41, 59];
+
+      const drawDynamicText = (p, text, x, y, options = {}, bFont = 'NotoGujarati', fFont = 'helvetica') => {
+        const str = String(text || '');
+        let needsRegional = false;
+        for (let i = 0; i < str.length; i++) {
+          if (str.charCodeAt(i) > 255) {
+            needsRegional = true;
+            break;
+          }
+        }
+        p.setFont(needsRegional ? bFont : fFont, options.fontStyle || 'normal');
+        p.text(str, x, y, options);
+      };
+
+      const drawSlip = (bill, yOffset, copyTitle) => {
+        const meta = resolveBillMeta(bill, freshMembers, freshBanks, freshCompany, targetSeason);
+        
+        // Outer border
+        pdf.setDrawColor(203, 213, 225);
+        pdf.setLineWidth(0.3);
+        pdf.rect(M, yOffset, contentW, slipH);
+
+        // Header Bar
+        pdf.setFillColor(...navy);
+        pdf.rect(M, yOffset, contentW, 8, 'F');
+        pdf.setTextColor(...white);
+        drawDynamicText(pdf, meta.companyName, M + 3, yOffset + 5.5, { fontStyle: 'bold' });
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6);
+        pdf.text(copyTitle, W / 2, yOffset + 5.5, { align: 'center' });
+        pdf.setTextColor(251, 191, 36);
+        pdf.text('PAYMENT SLIP', W - M - 3, yOffset + 5.5, { align: 'right' });
+
+        const headerY = yOffset + 14;
+        pdf.setFontSize(13);
+        pdf.setTextColor(...dark);
+        drawDynamicText(pdf, meta.seasonText, W / 2, headerY, { align: 'center' });
+
+        pdf.setFontSize(7.5);
+        pdf.setFont('NotoGujarati', 'normal');
+        pdf.text(`સભાસદ:`, M + 4, headerY + 6);
+        drawDynamicText(pdf, meta.memberName, M + 18, headerY + 6);
+
+        pdf.setFont('NotoGujarati', 'normal');
+        pdf.text(`કોડ:`, W - M - 30, headerY + 6);
+        drawDynamicText(pdf, meta.memberCode, W - M - 22, headerY + 6);
+
+        pdf.setFont('NotoGujarati', 'normal');
+        pdf.text(`ગામ:`, M + 4, headerY + 11);
+        drawDynamicText(pdf, meta.villageName, M + 18, headerY + 11);
+
+        pdf.setFont('NotoGujarati', 'normal');
+        pdf.text(`તારીખ:`, W - M - 30, headerY + 11);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(new Date().toLocaleDateString('en-GB'), W - M - 20, headerY + 11);
+
+        // Procurement Table
+        const tableStartY = headerY + 17;
+        const procRows = bill.classes.map(cls => [
+          `${cls.dangar_name || meta.itemName} (${cls.quality_class || '1st'})`,
+          cls.entry_count || 1,
+          cls.total_quintal || '0.00',
+          money(cls.rate_per_kg || cls.rate || 0),
+          money(cls.rate_amount || 0)
+        ]);
+
+        autoTable(pdf, {
+          startY: tableStartY,
+          head: [["ડાંગર નું નામ (ક્લાસ)", "ગુણ", "વજન", "ભાવ (કવી)", "કિંમત ૨."]],
+          body: procRows,
+          theme: 'grid',
+          margin: { left: M + 4, right: M + 4 },
+          tableWidth: contentW - 8,
+          styles: { font: 'helvetica', fontSize: 7, cellPadding: 1.5, textColor: dark, lineWidth: 0.1, halign: 'center', fontStyle: 'normal' },
+          headStyles: { font: 'NotoGujarati', fillColor: [241, 245, 249], textColor: dark, fontStyle: 'normal' },
+          columnStyles: { 0: { cellWidth: 'auto', halign: 'left' }, 1: { cellWidth: 12 }, 2: { cellWidth: 18 }, 3: { cellWidth: 18 }, 4: { halign: 'right', cellWidth: 22 } },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 0) {
+              const isGu = /[\u0a80-\u0aff]/.test(data.cell.text[0] || '');
+              data.cell.styles.font = isGu ? 'NotoGujarati' : 'helvetica';
+            }
+          }
+        });
+
+        const midY = pdf.lastAutoTable.finalY + 4;
+        const boxW = (contentW - 12) / 2;
+        pdf.setDrawColor(203, 213, 225);
+        pdf.rect(M + 4, midY, boxW, 42);
+        
+        pdf.setFontSize(7.5);
+        pdf.setFont('NotoGujarati', 'normal');
+        pdf.setTextColor(...gray);
+        pdf.text('બેંક વિગત / બેંક નું નામ', M + 6, midY + 4);
+        
+        pdf.setFontSize(7);
+        pdf.setTextColor(...dark);
+        drawDynamicText(pdf, `Bank: ${meta.bankName}`, M + 6, midY + 11);
+        drawDynamicText(pdf, `A/c No: ${meta.accountNo}`, M + 6, midY + 18);
+        drawDynamicText(pdf, `IFSC: ${meta.ifscCode}`, M + 6, midY + 25);
+        
+        pdf.setFont('NotoGujarati', 'normal');
+        pdf.setFontSize(6);
+        pdf.setTextColor(...gray);
+        pdf.text('* Computer Generated Audit Slip', M + 6, midY + 38);
+
+        const summaryRows = [
+          ['ડાંગર હિસાબ ના જમા', money(bill.total_rate_amt), ''],
+          ['ડાંગર એડવાન્સ', '', money(bill.total_adv)],
+          ['ખાલી બારદાન કપાત', '', money(bill.total_bardan_penalty)],
+          ['ડાં.માલ ગોડા.કપાત (૧મણ ૧રૂ.)', '', money(bill.total_fund)],
+          ['વ્યાજ', '', money(bill.total_int)],
+          ...bill.all_other_deductions.map(od => [od.account_name, '', money(od.amount)])
+        ];
+
+        autoTable(pdf, {
+          startY: midY,
+          head: [['વિગત', 'જમા રકમ', 'ઉધાર રકમ']],
+          body: summaryRows,
+          theme: 'grid',
+          margin: { left: M + 4 + boxW + 4, right: M + 4 },
+          tableWidth: boxW,
+          styles: { font: 'NotoGujarati', fontSize: 6.5, cellPadding: 1, textColor: dark, lineWidth: 0.1, fontStyle: 'normal' },
+          headStyles: { fillColor: [241, 245, 249], textColor: dark, fontStyle: 'normal', halign: 'center' },
+          columnStyles: { 0: { cellWidth: 'auto' }, 1: { halign: 'right', cellWidth: 16 }, 2: { halign: 'right', cellWidth: 16 } }
+        });
+
+        const totalY = Math.max(pdf.lastAutoTable.finalY + 1, midY + 44);
+        pdf.setFillColor(...navy);
+        pdf.rect(M + 4 + boxW + 4, totalY, boxW, 8, 'F');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(...white);
+        pdf.text('બાકી નીકળતી રકમ', M + 4 + boxW + 6, totalY + 5.5);
+        pdf.text(`₹ ${money(bill.total_final)}`, W - M - 6, totalY + 5.5, { align: 'right' });
+
+        const footerY = yOffset + slipH - 6;
+        pdf.setFontSize(7);
+        pdf.setTextColor(...dark);
+        pdf.text('લેનારની સહી', M + contentW * 0.15, footerY, { align: 'center' });
+        pdf.text('સેક્રેટરી ની સહી', M + contentW * 0.5, footerY, { align: 'center' });
+        pdf.text('મેનેજર ની સહી', M + contentW * 0.85, footerY, { align: 'center' });
+      };
+
+      const groupedMap = selectedBills.reduce((acc, b) => {
+        if (!acc[b.member_id]) {
+          acc[b.member_id] = {
+            ...b,
+            classes: [],
+            total_final: 0, total_rate_amt: 0, total_adv: 0, total_fund: 0, total_int: 0, total_bardan_penalty: 0, all_other_deductions: []
+          };
+        }
+        acc[b.member_id].classes.push(b);
+        acc[b.member_id].total_final += parseFloat(b.final_amount || 0);
+        acc[b.member_id].total_rate_amt += parseFloat(b.rate_amount || 0);
+        acc[b.member_id].total_adv += parseFloat(b.member_advance || 0);
+        acc[b.member_id].total_fund += parseFloat(b.godown_fund || 0);
+        acc[b.member_id].total_int += parseFloat(b.total_interest || 0);
+        acc[b.member_id].total_bardan_penalty += parseFloat(b.bardan_penalty || 0);
+        if (b.other_deductions) {
+          b.other_deductions.forEach(od => {
+            const existing = acc[b.member_id].all_other_deductions.find(x => x.account_name === od.account_name);
+            if (existing) existing.amount = (parseFloat(existing.amount) + parseFloat(od.amount)).toFixed(2);
+            else acc[b.member_id].all_other_deductions.push({...od});
+          });
+        }
+        return acc;
+      }, {});
+
+      const billList = Object.values(groupedMap);
+      billList.forEach((bill, i) => {
+        if (i > 0) pdf.addPage();
+        drawSlip(bill, M, 'CUSTOMER COPY');
+        drawSlip(bill, M + slipH + 4, 'OFFICE COPY');
+        pdf.setLineDashPattern([2, 2], 0);
+        pdf.line(M, M + slipH + 2, W - M, M + slipH + 2);
+        pdf.setLineDashPattern([], 0);
+      });
+
+      if (mode === 'print') {
+        pdf.autoPrint();
+        window.open(pdf.output('bloburl'), '_blank');
+      } else {
+        pdf.save(`Dangar_Slips_${new Date().getTime()}.pdf`);
+      }
     } catch (err) {
       console.error('Batch PDF Error:', err);
     } finally {
@@ -418,8 +771,9 @@ const DangarPaymentReport = () => {
                 onChange={(e) => setFilters({ ...filters, season: e.target.value })}
               >
                 <option value="">ALL SEASONS</option>
-                <option value="2026-27">2026-27</option>
-                <option value="2025-26">2025-26</option>
+                {seasons.map(s => (
+                  <option key={s.id} value={s.name}>{s.name} ({s.financial_year})</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1.5">
@@ -691,8 +1045,8 @@ const DangarPaymentReport = () => {
                     <p className="text-lg font-black text-slate-900">₹{selectedBills.reduce((s, b) => s + parseFloat(b.final_amount || 0), 0).toFixed(2)}</p>
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => window.print()} className="flex-1 py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"><Printer size={16} /> Print</button>
-                    <button onClick={downloadAllBillsPDF} className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><Download size={16} /> PDF</button>
+                    <button onClick={() => downloadAllBillsPDF('print')} className="flex-1 py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"><Printer size={16} /> Print</button>
+                    <button onClick={() => downloadAllBillsPDF('download')} className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><Download size={16} /> PDF</button>
                   </div>
                 </div>
               ) : (
@@ -706,111 +1060,197 @@ const DangarPaymentReport = () => {
         </div>
       )}
 
-      {/* A5 Printable Bills */}
-      {selectedBills.map((bill, index) => (
-        <div key={bill.member_id} id={`printable-bill-${bill.member_id}`} className={`hidden print:block fixed bg-white z-[9999] p-4 text-black ${index > 0 ? 'break-before-page' : ''}`} style={{ width: '8in', height: '6in', boxSizing: 'border-box' }}>
-          <div className="border-2 border-black h-full flex flex-col relative p-2">
-            <div className="text-center border-b border-black pb-2 mb-2">
-              <h1 className="text-lg font-bold">શાખાઓ નાગરિક બેંક લિ. - પદ્ધતિ અનુસાર પત્રક</h1>
-              <h2 className="text-sm font-semibold mt-1">{bill.entries?.[0]?.season || 'ચોમાસું'} ડાંગર - ૨૦૨૬-૨૭ ની પતાવટની પાવતી</h2>
-            </div>
-            <div className="grid grid-cols-12 text-[11px] border-b border-black pb-2 mb-2">
-              <div className="col-span-7 space-y-1">
-                <p><b>સભાસદનું નામ :</b> {bill.member_name}</p>
-                <p><b>ક્લાસ :</b> {bill.quality_class}</p>
-              </div>
-              <div className="col-span-5 border-l border-black pl-4">
-                <p><b>કોડ નંબર :</b> {bill.member_code}</p>
-                <p><b>તારીખ :</b> {new Date().toLocaleDateString('en-GB')}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-12 text-[10px] border-b border-black bg-slate-100 font-bold">
-              <div className="col-span-5 px-2 py-1 border-r border-black">ડાંગરનું નામ</div>
-              <div className="col-span-1 px-2 py-1 border-r border-black text-center">નંગ</div>
-              <div className="col-span-2 px-2 py-1 border-r border-black text-center">ક્વિન્ટલ</div>
-              <div className="col-span-2 px-2 py-1 border-r border-black text-center">ભાવ/Qt</div>
-              <div className="col-span-2 px-2 py-1 text-center">રકમ ₹</div>
-            </div>
-            <div className="grid grid-cols-12 text-[11px] border-b border-black min-h-[60px]">
-              <div className="col-span-5 px-2 py-2 border-r border-black font-bold italic">{bill.dangar_name_gu || '---'}</div>
-              <div className="col-span-1 px-2 py-2 border-r border-black text-center">{bill.entry_count || '1'}</div>
-              <div className="col-span-2 px-2 py-2 border-r border-black text-center">{bill.total_quintal}</div>
-              <div className="col-span-2 px-2 py-2 border-r border-black text-center">{bill.rate_per_kg}</div>
-              <div className="col-span-2 px-2 py-2 text-right">{bill.rate_amount}</div>
-            </div>
-            <div className="flex-1 grid grid-cols-12 text-[11px]">
-              <div className="col-span-5 border-r border-black p-2 space-y-1">
-                <p><b>બેંકનું નામ :</b> {bill.bank_name || '---'}</p>
-                <p><b>બ્રાન્ચ :</b> {bill.branch_name || '---'}</p>
-                <p><b>ખાતા નંબર :</b> {bill.full_ac_number || '---'}</p>
-              </div>
-              <div className="col-span-7 flex flex-col">
-                <div className="grid grid-cols-5 text-[9px] border-b border-black font-bold text-center">
-                  <div className="col-span-3 border-r border-black px-2">વિગત</div>
-                  <div className="border-r border-black px-2">જમા રકમ</div>
-                  <div className="px-2">ઉધાર રકમ</div>
+      {/* A4 Printable Bills - Two Copies */}
+      <div className="hidden print:block">
+        {(() => {
+          // Group selected bills by member for consolidated view
+          const groupedMap = selectedBills.reduce((acc, b) => {
+            if (!acc[b.member_id]) {
+              acc[b.member_id] = {
+                ...b,
+                classes: [],
+                total_final: 0,
+                total_rate_amt: 0,
+                total_adv: 0,
+                total_kapat: 0,
+                total_fund: 0,
+                total_int: 0,
+                total_other: 0,
+                total_bardan_penalty: 0,
+                all_other_deductions: []
+              };
+            }
+            acc[b.member_id].classes.push(b);
+            acc[b.member_id].total_final += parseFloat(b.final_amount || 0);
+            acc[b.member_id].total_rate_amt += parseFloat(b.rate_amount || 0);
+            acc[b.member_id].total_adv += parseFloat(b.member_advance || 0);
+            acc[b.member_id].total_fund += parseFloat(b.godown_fund || 0);
+            acc[b.member_id].total_int += parseFloat(b.total_interest || 0);
+            acc[b.member_id].total_bardan_penalty += parseFloat(b.bardan_penalty || 0);
+            if (b.other_deductions) {
+              b.other_deductions.forEach(od => {
+                 acc[b.member_id].total_other += parseFloat(od.amount || 0);
+                 const existing = acc[b.member_id].all_other_deductions.find(x => x.account_name === od.account_name);
+                 if (existing) existing.amount = (parseFloat(existing.amount || 0) + parseFloat(od.amount || 0)).toFixed(2);
+                 else acc[b.member_id].all_other_deductions.push({...od});
+              });
+            }
+            return acc;
+          }, {});
+
+          return Object.values(groupedMap).map((bill, bIdx) => {
+            const meta = resolveBillMeta(bill);
+            const otherRows = (bill.all_other_deductions || []).map((od) => ({
+              label: od.account_name || 'અન્ય કપાત',
+              credit: '',
+              debit: parseFloat(od.amount || 0).toFixed(2)
+            }));
+
+            const summaryRows = [
+              { label: 'ડાંગર હિસાબ ના જમા', credit: parseFloat(bill.total_rate_amt || 0).toFixed(2), debit: '' },
+              { label: 'ડાંગર એડવાન્સ', credit: '', debit: parseFloat(bill.total_adv || 0).toFixed(2) },
+              { label: 'ખાલી બારદાન કપાત', credit: '', debit: parseFloat(bill.total_bardan_penalty || 0).toFixed(2) },
+              { label: 'ડાં.માલ ગોડા.કપાત (૧મણ ૧રૂ.)', credit: '', debit: parseFloat(bill.total_fund || 0).toFixed(2) },
+              { label: 'વ્યાજ', credit: '', debit: parseFloat(bill.total_int || 0).toFixed(2) },
+              ...otherRows,
+            ];
+
+            const SlipCopy = ({ title }) => (
+              <div className="w-full h-[148.5mm] border-b border-zinc-400 p-8 flex flex-col font-sans relative overflow-hidden" style={{ boxSizing: 'border-box' }}>
+                {/* Copy Badge */}
+                <div className="absolute top-4 right-4 text-[8px] font-bold text-zinc-400 uppercase tracking-widest">{title}</div>
+                
+                {/* Header */}
+                <div className="text-center mb-4">
+                  <h1 className="text-xl font-bold text-zinc-900 mb-1 leading-none">{meta.companyName}</h1>
+                  <p className="text-[11px] font-bold text-zinc-600 italic leading-none">{meta.seasonText}</p>
                 </div>
-                <div className="flex-1 text-[10px] font-bold">
-                  <div className="grid grid-cols-5 border-b border-slate-100">
-                    <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર હિસાબ જમા</div>
-                    <div className="border-r border-black px-2 py-1 text-right">{bill.rate_amount}</div>
-                    <div className="px-2 py-1"></div>
+
+                {/* Metadata Table */}
+                <table className="w-full border-collapse border border-zinc-400 text-[10px] mb-3">
+                  <tbody>
+                    <tr className="border-b border-zinc-400">
+                      <td className="w-3/5 p-1.5 border-r border-zinc-400"><b>સભાસદ નું નામ :</b> <span className="font-bold uppercase">{meta.memberName}</span></td>
+                      <td className="w-2/5 p-1.5"><b>કોડ નંબર :</b> {meta.memberCode}</td>
+                    </tr>
+                    <tr className="border-b border-zinc-400">
+                      <td className="p-1.5 border-r border-zinc-400"><b>ગામ :</b> {meta.villageName}</td>
+                      <td className="p-1.5"><b>તારીખ :</b> {new Date().toLocaleDateString('en-GB')}</td>
+                    </tr>
+                    <tr className="border-b border-zinc-400">
+                      <td className="p-1.5 border-r border-zinc-400"><b>બેંક :</b> {meta.bankName}</td>
+                      <td className="p-1.5"><b>એકાઉન્ટ નંબર :</b> {meta.accountNo}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1.5 border-r border-zinc-400"><b>શાખા નું નામ :</b> {meta.branchName}</td>
+                      <td className="p-1.5"><b>IFSC :</b> {meta.ifscCode}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* Procurement Table */}
+                <table className="w-full border-collapse border border-zinc-400 text-[10px] mb-3">
+                  <thead>
+                    <tr className="bg-zinc-50 border-b border-zinc-400">
+                      <th className="p-1.5 border-r border-zinc-400 text-left">ડાંગર નું નામ (ક્લાસ)</th>
+                      <th className="p-1.5 border-r border-zinc-400 text-center w-12">ગુણ</th>
+                      <th className="p-1.5 border-r border-zinc-400 text-center w-18">વજન (Qt)</th>
+                      <th className="p-1.5 border-r border-zinc-400 text-center w-20">ભાવ (Qt)</th>
+                      <th className="p-1.5 text-right w-24">રકમ ₹</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(bill.classes || []).map((cls, ci) => (
+                      <tr key={ci} className="border-b border-zinc-200">
+                        <td className="p-1.5 border-r border-zinc-400 font-bold uppercase">{cls.dangar_name_gu || cls.item_name_gu || cls.dangar_name || cls.item_name || meta.itemName} ({cls.quality_class || meta.qualityClass})</td>
+                        <td className="p-1.5 border-r border-zinc-400 text-center">{cls.bardan_remaining || '-'}</td>
+                        <td className="p-1.5 border-r border-zinc-400 text-center font-bold">{cls.total_quintal}</td>
+                        <td className="p-1.5 border-r border-zinc-400 text-center">{cls.rate_per_kg}</td>
+                        <td className="p-1.5 text-right font-bold">{cls.rate_amount}</td>
+                      </tr>
+                    ))}
+                    {/* Filler rows */}
+                    {[...Array(Math.max(0, 3 - (bill.classes || []).length))].map((_, i) => (
+                      <tr key={`empty-${i}`} className="h-6 border-b border-zinc-100"><td colSpan={5}></td></tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Calculation Manifest */}
+                <div className="flex-1 grid grid-cols-12 gap-3">
+                  <div className="col-span-5 border border-zinc-400 p-2 text-[10px] flex flex-col">
+                    <table className="w-full border-collapse">
+                      <tbody>
+                        <tr><td className="py-1 font-bold text-zinc-500 uppercase border-b border-zinc-200" colSpan={2}>બેંક વિગત / બેંક નું નામ</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold w-28">કંપની :</td><td className="py-1">{meta.companyName}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">બેંક :</td><td className="py-1">{meta.bankName}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">શાખા :</td><td className="py-1">{meta.branchName}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">એકાઉન્ટ નં. :</td><td className="py-1">{meta.accountNo}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">IFSC :</td><td className="py-1">{meta.ifscCode}</td></tr>
+                      </tbody>
+                    </table>
+                    <div className="mt-auto pt-2 border-t border-dashed border-zinc-300 italic text-zinc-400 text-[9px]">
+                      * Computer Generated / Audit Purpose
+                    </div>
                   </div>
-                  <div className="grid grid-cols-5 border-b border-slate-100">
-                    <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર એડવાન્સ</div>
-                    <div className="border-r border-black px-2 py-1 text-right"></div>
-                    <div className="px-2 py-1 text-right">{bill.member_advance}</div>
+
+                  <div className="col-span-7 border border-zinc-400 flex flex-col">
+                    <table className="w-full border-collapse text-[10px] font-bold">
+                      <thead>
+                        <tr className="bg-zinc-50 border-b border-zinc-400 text-[9px] text-center">
+                          <th className="p-1 border-r border-zinc-400 w-[55%]">વિગત</th>
+                          <th className="p-1 border-r border-zinc-400 w-[22.5%]">જમા રકમ</th>
+                          <th className="p-1 w-[22.5%]">ઉધાર રકમ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summaryRows.map((row, idx) => (
+                          <tr key={idx} className="border-b border-zinc-200">
+                            <td className="p-1 border-r border-zinc-400">{row.label}</td>
+                            <td className="p-1 border-r border-zinc-400 text-right">{row.credit}</td>
+                            <td className="p-1 text-right">{row.debit}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    <div className="mt-auto border-t-2 border-zinc-800 font-bold bg-zinc-50 grid grid-cols-12">
+                      <div className="col-span-7 p-1.5 text-center text-xs border-r border-zinc-400">બાકી નીકળતી રકમ</div>
+                      <div className="col-span-5 p-1.5 text-right text-base pr-4">₹ {bill.total_final.toFixed(2)}</div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-5 border-b border-slate-100">
-                    <div className="col-span-3 border-r border-black px-2 py-1">ખાલી બારદાન કપાત</div>
-                    <div className="border-r border-black px-2 py-1 text-right"></div>
-                    <div className="px-2 py-1 text-right">{bill.bardan_penalty}</div>
-                  </div>
-                  <div className="grid grid-cols-5 border-b border-slate-100">
-                    <div className="col-span-3 border-r border-black px-2 py-1">ડાંગર ગોડાઉન ફંડ</div>
-                    <div className="border-r border-black px-2 py-1 text-right"></div>
-                    <div className="px-2 py-1 text-right">{bill.godown_fund}</div>
-                  </div>
-                  <div className="grid grid-cols-5 border-b border-slate-100">
-                    <div className="col-span-3 border-r border-black px-2 py-1">વ્યાજ</div>
-                    <div className="border-r border-black px-2 py-1 text-right"></div>
-                    <div className="px-2 py-1 text-right">{bill.total_interest}</div>
-                  </div>
-                  {bill.other_deductions && bill.other_deductions.length > 0 ? (
-                    bill.other_deductions.map((d, di) => (
-                      <div key={di} className="grid grid-cols-5 border-b border-slate-100">
-                        <div className="col-span-3 border-r border-black px-2 py-1">{d.account_name}</div>
-                        <div className="border-r border-black px-2 py-1 text-right"></div>
-                        <div className="px-2 py-1 text-right">{d.amount}</div>
-                      </div>
-                    ))
-                  ) : null}
                 </div>
-                <div className="grid grid-cols-5 text-sm font-black border-t-2 border-black bg-slate-50">
-                  <div className="col-span-3 border-r border-black px-2 py-2 text-center uppercase tracking-tight">ચુકવવા પાત્ર રકમ</div>
-                  <div className="col-span-2 px-2 py-2 text-right text-base tracking-tighter">₹ {bill.final_amount}</div>
+
+                {/* Footer Signatures */}
+                <div className="mt-auto grid grid-cols-3 text-[10px] font-bold text-center border-t border-zinc-200 pt-4">
+                  <div>લેનારની સહી</div>
+                  <div>સેક્રેટરી ની સહી</div>
+                  <div>મેનેજર ની સહી</div>
                 </div>
               </div>
-            </div>
-            <div className="grid grid-cols-3 text-[10px] font-bold text-center mt-4 pt-2 border-t border-dotted border-black">
-              <div>લેનારની સહી</div>
-              <div>સેક્રેટરીની સહી</div>
-              <div>મેનેજરની સહી</div>
-            </div>
-          </div>
-        </div>
-      ))}
+            );
+
+            return (
+              <div key={bill.member_id} id={`printable-bill-${bill.member_id}`} className="hidden print:flex w-[210mm] h-[297mm] bg-white mx-auto break-after-page flex-col no-scrollbar overflow-hidden">
+                <SlipCopy title="CUSTOMER COPY" />
+                <div className="h-px w-full border-t border-dashed border-zinc-500 my-2"></div>
+                <SlipCopy title="OFFICE COPY" />
+              </div>
+            );
+          });
+        })()}
+      </div>
 
       <style dangerouslySetInnerHTML={{
         __html: `
           @media print {
             .no-print { display: none !important; }
-            .break-before-page { break-before: page !important; }
-            body { margin: 0; padding: 0; background: white !important; }
+            body { margin: 0; padding: 0; background: white !important; -webkit-print-color-adjust: exact; }
             @page {
-              size: 8in 6in landscape;
-              margin: 0.2in;
+              size: A4 portrait;
+              margin: 0;
             }
+            .no-scrollbar::-webkit-scrollbar { display: none; }
           }
        `}} />
     </div>

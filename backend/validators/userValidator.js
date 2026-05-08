@@ -25,14 +25,12 @@ export function validateUser(data) {
   // Email validation
   if (!data.email || data.email.trim() === '') {
     errors.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
-    errors.email = 'Email must be a valid email address';
   }
 
   // Password validation (only for create, not update)
   if (data.password) {
-    if (data.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    if (data.password.length < 1) {
+      errors.password = 'Password must be at least 1 characters';
     } else if (data.password.length > 100) {
       errors.password = 'Password must not exceed 100 characters';
     }
@@ -66,8 +64,6 @@ export function validateLogin(data) {
 
   if (!data.email || data.email.trim() === '') {
     errors.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
-    errors.email = 'Email must be a valid email address';
   }
 
   if (!data.password || data.password === '') {

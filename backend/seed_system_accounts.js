@@ -1,69 +1,17 @@
 import { query, execute } from './db.js';
 
 const systemAccounts = [
-  {
-    account_code: 'DS0001',
-    account_name: 'Dangar System',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'BS0001',
-    account_name: 'Bardan System',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'L0001',
-    account_name: 'Member Adv Ac',
-    account_type: 'liabilities',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'RK0001',
-    account_name: 'Rounding Khate',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'BK0001',
-    account_name: 'Brokerage Khate',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'IK0001',
-    account_name: 'Interest Khate',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'LK0001',
-    account_name: 'Labour Khate',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  },
-  {
-    account_code: 'CS0001',
-    account_name: 'Cash Account',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 0
-  },
-  {
-    account_code: 'GF0001',
-    account_name: 'Dangar Godown Fund Account',
-    account_type: 'System Account',
-    is_system: 1,
-    is_subledger: 1
-  }
+  { account_code: 'DS0001', account_name: 'Dangar System', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'BS0001', account_name: 'Bardan System', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'L0001', account_name: 'Member Adv Ac', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'IK0001', account_name: 'Interest Khate', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'P0001', account_name: 'Dangar Purchase', account_type: 'purchase', is_system: 1, is_subledger: 0 },
+  { account_code: 'CS0001', account_name: 'Cash Account', account_type: 'System Account', is_system: 1, is_subledger: 0 },
+  { account_code: 'DF0001', account_name: 'Dangar Godown Fund', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'RK0001', account_name: 'Rounding Khate', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'BK0001', account_name: 'Brokerage Khate', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'LK0001', account_name: 'Labour Khate', account_type: 'System Account', is_system: 1, is_subledger: 1 },
+  { account_code: 'S0001', account_name: 'Dangar Sale', account_type: 'sales', is_system: 1, is_subledger: 0 }
 ];
 
 export async function seedSystemAccounts() {

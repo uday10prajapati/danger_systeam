@@ -5,13 +5,11 @@ import {
    TrendingDown, TrendingUp, DollarSign, RefreshCcw,
    Trash2, ShieldCheck, CheckCircle2, Hash, User, ChevronDown, Book, Users
 } from 'lucide-react';
-import axios from 'axios';
-import Loading from '../components/Loading';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
+import Loading from '../components/Loading';
+import api from '../api';
 
 export default function AccountLedger() {
    const { t } = useTranslation();
@@ -42,12 +40,14 @@ export default function AccountLedger() {
 
    const loadCompany = async () => {
       try {
-         const response = await axios.get('/api/company');
+         const response = await api.get('/company');
          if (response.data.success && response.data.data) {
             setCompany(response.data.data);
          }
       } catch (error) {
          console.error('Failed to load company', error);
+      } finally {
+         // No automatic loading stop here as fetchAccounts will handle it
       }
    };
 
@@ -60,9 +60,7 @@ export default function AccountLedger() {
 
    const fetchBardanPrice = async () => {
       try {
-         const response = await axios.get('/api/bardan-price', {
-            headers: { 'x-company-id': company.id }
-         });
+         const response = await api.get('/bardan-price');
          if (response.data.success && response.data.data) {
             setBardanPrice(parseFloat(response.data.data.price_per_bardan || 0));
          }
@@ -73,10 +71,7 @@ export default function AccountLedger() {
 
    const fetchAccounts = async () => {
       try {
-         const response = await axios.get(
-            `/api/accounts/company/${company.id}`,
-            { headers: { 'x-company-id': company.id } }
-         );
+         const response = await api.get(`/accounts/company/${company.id}`);
          if (response.data.data) {
             setAccounts(response.data.data);
          }
@@ -88,9 +83,8 @@ export default function AccountLedger() {
    const fetchAccountLedger = async (accountId) => {
       try {
          setLoading(true);
-         const response = await axios.get(
-            `/api/account-ledger/account/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-            { headers: { 'x-company-id': company.id } }
+         const response = await api.get(
+            `/account-ledger/account/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
          );
          if (response.data.success) {
             setLedgerEntries(response.data.data);
@@ -105,9 +99,8 @@ export default function AccountLedger() {
    const fetchMemberLedgerEntries = async (memberId) => {
       try {
          setMemberEntries(prev => ({ ...prev, [memberId]: null }));
-         const response = await axios.get(
-            `/api/account-ledger/account/${selectedAccount.id}?memberId=${memberId}&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-            { headers: { 'x-company-id': company.id } }
+         const response = await api.get(
+            `/account-ledger/account/${selectedAccount.id}?memberId=${memberId}&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
          );
          if (response.data.success) {
             setMemberEntries(prev => ({ ...prev, [memberId]: response.data.data }));
@@ -128,9 +121,8 @@ export default function AccountLedger() {
 
    const fetchAccountBalance = async (accountId) => {
       try {
-         const response = await axios.get(
-            `/api/account-ledger/account-stats/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-            { headers: { 'x-company-id': company.id } }
+         const response = await api.get(
+            `/account-ledger/account-stats/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
          );
          if (response.data.success) {
             setAccountBalance(response.data.data);
@@ -142,9 +134,8 @@ export default function AccountLedger() {
 
    const fetchAccountBreakdown = async (accountId) => {
       try {
-         const response = await axios.get(
-            `/api/account-ledger/breakdown/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-            { headers: { 'x-company-id': company.id } }
+         const response = await api.get(
+            `/account-ledger/breakdown/${accountId}?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
          );
          if (response.data.success) {
             setBreakdownData(response.data.data);
@@ -279,13 +270,23 @@ export default function AccountLedger() {
       autoTable(doc, {
          startY: y,
          head: [['Date', 'Description / Member', 'Debit', 'Credit', 'Balance']],
-         body: ledgerEntries.map(e => [
-            new Date(e.transaction_date).toLocaleDateString('en-GB'),
-            (e.description || '-') + (e.member_name ? ' [' + e.member_name + ']' : ''),
-            parseFloat(e.debit || 0) > 0 ? parseFloat(e.debit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-            parseFloat(e.credit || 0) > 0 ? parseFloat(e.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-            Math.abs(parseFloat(e.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(e.running_balance) >= 0 ? 'DR' : 'CR'),
-         ]),
+         body: [
+            // Opening Balance Row
+            ...(parseFloat(accountBalance.opening_balance || 0) !== 0 ? [[
+               '—',
+               'OPENING BALANCE (FORWARD)',
+               accountBalance.opening_balance_type === 'debit' ? parseFloat(accountBalance.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—',
+               accountBalance.opening_balance_type === 'credit' ? parseFloat(accountBalance.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—',
+               parseFloat(accountBalance.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (accountBalance.opening_balance_type === 'debit' ? 'DR' : 'CR'),
+            ]] : []),
+            ...ledgerEntries.map(e => [
+               new Date(e.transaction_date).toLocaleDateString('en-GB'),
+               (e.description || '-') + (e.member_name ? ' [' + e.member_name + ']' : ''),
+               parseFloat(e.debit || 0) > 0 ? parseFloat(e.debit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
+               parseFloat(e.credit || 0) > 0 ? parseFloat(e.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
+               Math.abs(parseFloat(e.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(e.running_balance) >= 0 ? 'DR' : 'CR'),
+            ])
+         ],
          foot: [['', 'CONSOLIDATED TOTALS', totDr.toLocaleString('en-IN', { minimumFractionDigits: 2 }), totCr.toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (bal >= 0 ? 'DR' : 'CR')]],
          styles: { font: 'NotoGujarati', fontSize: 8, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
          headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 7.5 },
@@ -457,13 +458,16 @@ export default function AccountLedger() {
                            {[
                               { label: 'Debit Accumulation', val: parseFloat(accountBalance.total_debit || 0), color: 'zinc' },
                               { label: 'Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), color: 'zinc' },
-                              { label: 'Interest Pool', val: parseFloat(accountBalance.total_interest || 0), color: 'zinc' },
+                              { label: 'Opening Balance', val: parseFloat(accountBalance.opening_balance || 0), color: 'zinc', type: accountBalance.opening_balance_type },
                               { label: 'Net Position', val: parseFloat(accountBalance.balance || accountBalance.running_balance || 0), color: 'blue', special: true },
                            ].map((shard, i) => (
                               <div key={i} className={`bg-zinc-50 p-3 border border-zinc-300 flex flex-col justify-between transition-all ${shard.special && shard.val < 0 ? 'bg-rose-50/30 border-rose-200' : ''}`}>
                                  <span className="text-[10px] font-mono text-zinc-500 uppercase">{shard.label}</span>
                                  <p className={`text-2xl font-bold tracking-tight font-mono mt-1 ${shard.special ? (shard.val >= 0 ? 'text-zinc-800' : 'text-rose-600') : 'text-zinc-800'}`}>
                                     ₹{shard.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    {shard.label === 'Opening Balance' && shard.val !== 0 && (
+                                       <span className="text-[10px] ml-2 text-zinc-400 font-bold">{shard.type === 'credit' ? 'JAMA' : 'UDHAR'}</span>
+                                    )}
                                  </p>
                               </div>
                            ))}
@@ -520,7 +524,17 @@ export default function AccountLedger() {
                                           </td>
                                        </tr>
                                     ) : (
-                                       ledgerEntries.map((row, idx) => (
+                                       <>
+                                          {parseFloat(accountBalance.opening_balance || 0) !== 0 && (
+                                             <tr className="bg-zinc-50 border-b border-zinc-200 font-bold italic">
+                                                <td className="px-6 py-3 text-zinc-400 border-r border-zinc-100 italic">—</td>
+                                                <td className="px-6 py-3 text-zinc-500 uppercase tracking-tight border-r border-zinc-100">OPENING BALANCE (FORWARD)</td>
+                                                <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "debit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
+                                                <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "credit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
+                                                <td className={`px-6 py-3 text-right font-black text-xs border-r border-zinc-100 ${accountBalance.opening_balance_type === "debit" ? "text-zinc-800" : "text-rose-600"}`}>₹{parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")} {accountBalance.opening_balance_type === "debit" ? "D" : "C"}</td>
+                                             </tr>
+                                          )}
+                                          {ledgerEntries.map((row, idx) => (
                                           <tr key={idx} className="group hover:bg-zinc-50 transition-all duration-300">
                                              <td className="px-6 py-4 text-zinc-400 border-r border-zinc-100 italic">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td>
 
@@ -565,8 +579,9 @@ export default function AccountLedger() {
                                                 </td>
                                              )}
                                           </tr>
-                                       ))
-                                    )}
+                                       ))}
+                                    </>
+                                 )}
                                  </tbody>
                                  <tfoot className="bg-blue-600 font-bold text-white text-[11px] uppercase tracking-widest border-t-2 border-blue-700">
                                     <tr>
@@ -612,6 +627,7 @@ export default function AccountLedger() {
                                  <tr>
                                     <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Nomenclature</th>
                                     <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Registry Class</th>
+                                    <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Opening Bal</th>
                                     <th className="px-6 py-4 uppercase tracking-widest font-bold text-right">Audit Status</th>
                                  </tr>
                               </thead>
@@ -635,6 +651,14 @@ export default function AccountLedger() {
                                           </td>
                                           <td className="px-6 py-4 border-r border-zinc-100">
                                              <span className="px-3 py-1 bg-white border border-zinc-200 text-[9px] font-black text-zinc-400 uppercase tracking-tighter group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">{acc.account_type}</span>
+                                          </td>
+                                          <td className="px-6 py-4 border-r border-zinc-100 text-right">
+                                             <div className="flex flex-col items-end">
+                                                <span className="text-xs font-bold text-zinc-800">₹{(Math.abs(parseFloat(acc.opening_balance)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                <span className={`text-[9px] font-black uppercase tracking-tighter ${parseFloat(acc.opening_balance) < 0 ? 'text-blue-600' : parseFloat(acc.opening_balance) > 0 ? 'text-red-600' : 'text-zinc-400'}`}>
+                                                   {parseFloat(acc.opening_balance) < 0 ? 'JAMA (CR)' : parseFloat(acc.opening_balance) > 0 ? 'UDHAR (DR)' : 'ZERO'}
+                                                </span>
+                                             </div>
                                           </td>
                                           <td className="px-6 py-4 text-right">
                                              <button className="p-2 bg-zinc-100 text-zinc-400 rounded-none group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:scale-110 shadow-sm border border-zinc-200">
@@ -673,6 +697,7 @@ export default function AccountLedger() {
                               <tr>
                                  <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Member Nomenclature</th>
                                  <th className="px-6 py-4 uppercase tracking-widest font-bold border-r border-zinc-200">Code</th>
+                                 <th className="px-6 py-4 uppercase tracking-widest font-bold text-right border-r border-zinc-200">Opening Bal</th>
                                  <th className="px-6 py-4 uppercase tracking-widest font-bold text-right border-r border-zinc-200">Ledger Bal</th>
                                  <th className="px-6 py-4 uppercase tracking-widest font-bold text-right border-r border-zinc-200 text-indigo-600">Dangar Amt</th>
                                  <th className="px-6 py-4 uppercase tracking-widest font-bold text-right border-r border-zinc-200 text-amber-600">Bardan Pnl</th>
@@ -688,7 +713,7 @@ export default function AccountLedger() {
                                  )
                                  .length === 0 ? (
                                  <tr>
-                                    <td colSpan="7" className="py-32 text-center">
+                                    <td colSpan="8" className="py-32 text-center">
                                        <Database size={48} className="mx-auto text-zinc-100 mb-4" strokeWidth={1} />
                                        <p className="text-zinc-300 font-bold uppercase tracking-widest text-[10px] italic">No member nodes detected in this account shard</p>
                                     </td>
@@ -717,6 +742,9 @@ export default function AccountLedger() {
                                                 </div>
                                              </td>
                                              <td className="px-6 py-4 text-zinc-400 font-mono italic border-r border-zinc-100">{row.member_code || '—'}</td>
+                                             <td className={`px-6 py-4 text-right font-bold italic border-r border-zinc-100 ${parseFloat(row.opening_balance || 0) >= 0 ? 'text-zinc-900' : 'text-rose-500'}`}>
+                                                ₹{Math.abs(parseFloat(row.opening_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.opening_balance || 0) >= 0 ? 'D' : 'C'}
+                                             </td>
                                              <td className={`px-6 py-4 text-right font-bold italic border-r border-zinc-100 ${parseFloat(row.ledger_balance || 0) >= 0 ? 'text-zinc-900' : 'text-rose-500'}`}>
                                                 ₹{Math.abs(parseFloat(row.ledger_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.ledger_balance || 0) >= 0 ? 'D' : 'C'}
                                              </td>

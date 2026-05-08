@@ -1,5 +1,5 @@
 // admin@danger.com
-// admin123
+// 6099
 import express from 'express';
 import cors from 'cors';
 import db, { initializeDatabase, query, queryOne, execute } from './db.js';
@@ -38,10 +38,17 @@ import bardanPriceRoutes from './routes/bardanPriceRoutes.js';
 import seasonRoutes from './routes/seasonRoutes.js';
 import narrationRoutes from './routes/narrationRoutes.js';
 import { seedSystemAccounts } from './seed_system_accounts.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5080;
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));
@@ -89,6 +96,16 @@ app.get('/api/health', (req, res) => {
 // Initialize database and start server
 async function startServer() {
   try {
+    // Serve static files from React build
+    const distPath = process.pkg
+      ? path.join(path.dirname(process.execPath), 'dist')
+      : process.resourcesPath
+        ? path.join(process.resourcesPath, 'app.asar', 'frontend', 'dist')
+      : path.join(__dirname, '..', 'frontend', 'dist');
+    
+    console.log(`📂 Serving static files from: ${distPath}`);
+    app.use(express.static(distPath));
+
     // Register all routes immediately
     console.log('📝 Registering routes...');
     registerCompanyRoutes(app);
@@ -130,7 +147,7 @@ async function startServer() {
     console.log('✅ Database initialized successfully');
 
     console.log('🛠 Synchronizing system accounts...');
-    await seedSystemAccounts();
+    // await seedSystemAccounts(); // Redundant: Now handled automatically in initializeDatabase()
     console.log('✅ System accounts synchronized');
 
     // Financial Years Routes
@@ -407,16 +424,42 @@ async function startServer() {
         });
       }
 
-      return res.status(404).json({
-        success: false,
-        error: 'Route not found'
-      });
+      // Serve index.html for all non-API routes (SPA Routing)
+      const indexPath = process.pkg
+        ? path.join(path.dirname(process.execPath), 'dist', 'index.html')
+        : process.resourcesPath
+          ? path.join(process.resourcesPath, 'app.asar', 'frontend', 'dist', 'index.html')
+        : path.join(__dirname, '..', 'frontend', 'dist', 'index.html');
+      
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        console.error('❌ index.html not found at:', indexPath);
+        res.status(404).send('Application not found');
+      }
     });
 
+    // Force clear port if needed (Windows specific)
+    if (process.platform === 'win32') {
+      try {
+        const { execSync } = require('child_process');
+        const stdout = execSync(`netstat -ano | findstr :${PORT}`).toString();
+        const lines = stdout.split('\n');
+        lines.forEach(line => {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== '0' && pid !== process.pid.toString()) {
+            execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
+          }
+        });
+      } catch (e) { /* ignore */ }
+    }
+
     // Start listening
-    app.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
+    app.listen(PORT, '127.0.0.1', () => {
+      console.log(`✅ Server running on http://127.0.0.1:${PORT}`);
       console.log('📊 API endpoints available');
+      console.log('🚀 BACKEND STARTUP COMPLETE');
     });
 
   } catch (error) {
@@ -426,5 +469,35 @@ async function startServer() {
   }
 }
 
-// Start the server
-startServer();
+// Start the server with retry logic for database initialization
+async function startWithRetry(retries = 5, delay = 3000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`🚀 Attempting backend startup (Attempt ${i + 1}/${retries})...`);
+      await startServer();
+      console.log('🚀 BACKEND STARTUP COMPLETE');
+      return;
+    } catch (err) {
+      console.error(`❌ Startup attempt ${i + 1} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log(`⏳ Waiting ${delay / 1000}s before next attempt...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error('❌ All startup attempts failed. Exiting.');
+        process.exit(1);
+      }
+    }
+  }
+}
+
+// Global error handlers
+process.on('uncaughtException', (err) => {
+  console.error('❌ UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ UNHANDLED REJECTION:', reason);
+});
+
+// Launch
+startWithRetry();

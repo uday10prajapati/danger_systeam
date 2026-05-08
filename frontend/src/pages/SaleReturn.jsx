@@ -6,11 +6,11 @@ import {
   Filter, ChevronRight, Layout, Activity,
   Database, Package, ShoppingCart, Info, Download
 } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SaleReturnForm from '../components/SaleReturnForm';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
+import api from '../api';
 
 export default function SaleReturn() {
   const { t } = useTranslation();
@@ -39,7 +39,7 @@ export default function SaleReturn() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
       }
@@ -52,10 +52,12 @@ export default function SaleReturn() {
     if (!company?.id) return;
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/sale-returns?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get('/sale-returns', {
+        params: {
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        }
+      });
       if (response.data.success) {
         setReturns(response.data.data);
         applyFilters(response.data.data);
@@ -77,10 +79,7 @@ export default function SaleReturn() {
 
   const viewReturnDetails = async (returnId) => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/sale-returns/${returnId}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get(`/sale-returns/${returnId}`);
       if (response.data.success) {
         setSelectedReturn(response.data.data);
         setShowDetails(true);

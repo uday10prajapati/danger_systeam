@@ -4,7 +4,7 @@ import {
   CreditCard, Info, Trash2, Save, ShoppingCart,
   Loader, Package, TrendingUp, AlertCircle, CheckCircle
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 
 export default function PurchaseForm({ onSubmit, onCancel }) {
   const [company, setCompany] = useState(null);
@@ -87,21 +87,25 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
   const loadCompanyAndData = async () => {
     try {
-      const compRes = await axios.get('/api/company');
+      const compRes = await api.get('/company');
       if (compRes.data.success && compRes.data.data) {
         const comp = compRes.data.data;
         setCompany(comp);
-        const accRes = await axios.get(`/api/accounts/company/${comp.id}`, { headers: { 'x-company-id': comp.id } });
+        const accRes = await api.get(`/accounts/company/${comp.id}`);
         if (accRes.data.success) {
           const supplierList = (accRes.data.data || []).filter(acc => acc.account_type === 'supplier');
           setAvailableSuppliers(supplierList);
         }
-        const itemRes = await axios.get(`/api/items/company/${comp.id}?active=true`, { headers: { 'x-company-id': comp.id } });
+        const itemRes = await api.get(`/items/company/${comp.id}?active=true`);
         if (itemRes.data.success) {
           setAvailableItems(itemRes.data.data || []);
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   const calculateRowDetails = (item, qty, rate) => {
@@ -183,9 +187,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           gst_percent: taxType === 'IGST' ? row.igstPercent : (row.cgstPercent + row.sgstPercent)
         }))
       };
-      const res = await axios.post('/api/purchases/with-gst', payload, {
-        headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-      });
+      const res = await api.post('/purchases/with-gst', payload);
       if (res.data.success) {
         setSuccess("Registry Synchronization Successful.");
         setTimeout(() => { if (onSubmit) onSubmit(res.data.data); }, 1000);

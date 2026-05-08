@@ -8,7 +8,7 @@ import {
   Box, Scale, Info, FileText, Printer
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ItemRateForm from '../components/ItemRateForm';
@@ -69,7 +69,7 @@ export default function ItemRate() {
   const loadCompany = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/company');
+      const res = await api.get('/company');
       if (res.data.success && res.data.data) {
         setCompany(res.data.data);
         fetchRates(res.data.data.id);
@@ -84,9 +84,7 @@ export default function ItemRate() {
   const fetchRates = async (companyId) => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/item-rates/company/${companyId}`, {
-        headers: { 'x-company-id': companyId }
-      });
+      const res = await api.get(`/item-rates/company/${companyId}`);
       if (res.data.success) {
         const fetchedRates = res.data.data || [];
         setRateEntries(fetchedRates);
@@ -103,9 +101,7 @@ export default function ItemRate() {
 
   const fetchItems = async (companyId) => {
     try {
-      const res = await axios.get(`/api/items/company/${companyId}`, {
-        headers: { 'x-company-id': companyId }
-      });
+      const res = await api.get(`/items/company/${companyId}`);
       if (res.data.success) {
         const fetchedItems = res.data.data || [];
         setItems(fetchedItems);
@@ -120,9 +116,7 @@ export default function ItemRate() {
 
   const fetchPriceHistory = async (itemId) => {
     try {
-      const res = await axios.get(`/api/item-rates/history/${itemId}`, {
-        headers: { 'x-company-id': company.id }
-      });
+      const res = await api.get(`/item-rates/history/${itemId}`);
       if (res.data.success) {
         setPriceHistory(res.data.data);
         setShowHistory(true);
@@ -170,13 +164,9 @@ export default function ItemRate() {
   const handleFormSubmit = async (formData) => {
     try {
       if (editingRate) {
-        await axios.put(`/api/item-rates/${editingRate.id}`, formData, {
-          headers: { 'x-company-id': company.id }
-        });
+        await api.put(`/item-rates/${editingRate.id}`, formData);
       } else {
-        await axios.post('/api/item-rates', formData, {
-          headers: { 'x-company-id': company.id }
-        });
+        await api.post('/item-rates', formData);
       }
       setShowForm(false);
       setEditingRate(null);

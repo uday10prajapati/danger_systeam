@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import {
   Plus, Search, RefreshCcw, Download, Hash, User,
   ExternalLink, Box, FileText, BarChart3, LayoutGrid,
@@ -48,7 +48,7 @@ export default function PurchaseReport() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       setCompany(response.data.success ? response.data.data : null);
     } catch (error) {
       console.error('Failed to load company', error);
@@ -59,11 +59,10 @@ export default function PurchaseReport() {
     if (!company?.id) return;
     try {
       setLoading(true);
-      const purchaseRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases`, {
-        params: { startDate, endDate },
-        headers: { 'x-company-id': company.id }
+      const purchaseRes = await api.get('/purchases', {
+        params: { startDate, endDate }
       });
-      const itemRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/items/company/${company.id}`);
+      const itemRes = await api.get(`/items/company/${company.id}`);
       if (purchaseRes.data.success) setData(purchaseRes.data.data);
       if (itemRes.data.success) setItemData(itemRes.data.data.filter(i => parseFloat(i.inward) > 0));
     } catch (error) {

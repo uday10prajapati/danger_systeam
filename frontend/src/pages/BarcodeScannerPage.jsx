@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import {
    Plus, Search, AlertCircle, CheckCircle2,
    Database, Activity, ScanLine, X,
@@ -35,7 +35,7 @@ export default function BarcodeScannerPage() {
 
    const loadCompany = async () => {
       try {
-         const response = await axios.get('/api/company');
+         const response = await api.get('/company');
          if (response.data.success && response.data.data) {
             setCompany(response.data.data);
          }
@@ -47,15 +47,10 @@ export default function BarcodeScannerPage() {
    const fetchStats = async () => {
       try {
          setLoading(true);
-         const itemsResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/items/company/${company.id}?active=true`,
-            { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-         );
-
-         const stockResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/stock-report`,
-            { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-         );
+         const [itemsResponse, stockResponse] = await Promise.all([
+            api.get(`/items/company/${company.id}?active=true`),
+            api.get('/stock-report')
+         ]);
 
          if (itemsResponse.data.success && stockResponse.data.success) {
             const items = itemsResponse.data.data || [];

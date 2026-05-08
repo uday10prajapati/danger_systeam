@@ -2,14 +2,35 @@ import axios from 'axios';
 
 // Detect if running in Electron (window.electron is exposed by preload.js)
 const isElectron = typeof window !== 'undefined' && window.electron !== undefined;
+const LOCAL_API_URL = 'http://127.0.0.1:5080';
 
-// Use localhost:5000 for Electron app, otherwise use env variable
+function normalizeApiUrl(rawUrl) {
+  const fallbackUrl = LOCAL_API_URL;
+
+  if (!rawUrl || rawUrl === 'undefined') {
+    return fallbackUrl;
+  }
+
+  let url = String(rawUrl).trim();
+
+  // Never allow the Chromium-blocked 5060 port in the desktop app. Force 5080.
+  url = url.replace(/:(5060|5050)(?=\/|$)/g, ':5080');
+
+  // Electron should always talk to the local backend.
+  if (isElectron) {
+    return fallbackUrl;
+  }
+
+  return url;
+}
+
+// Use localhost:5080 for Electron app, otherwise use env variable
 let viteApiUrl;
 if (isElectron) {
-  viteApiUrl = 'http://localhost:5000';
+  viteApiUrl = LOCAL_API_URL;
 } else {
   const envUrl = import.meta.env.VITE_API_URL;
-  viteApiUrl = (envUrl && envUrl !== 'undefined') ? envUrl : 'http://localhost:5000';
+  viteApiUrl = normalizeApiUrl(envUrl);
 }
 
 if (viteApiUrl.endsWith('/')) viteApiUrl = viteApiUrl.slice(0, -1);
@@ -31,6 +52,12 @@ const api = axios.create({
 // Add a request interceptor to include the financial year and company headers
 api.interceptors.request.use((config) => {
   try {
+    if (config.url) {
+      config.url = config.url
+        .replace(/127\.0\.0\.1:(5060|5050)/g, '127.0.0.1:5080')
+        .replace(/localhost:(5060|5050)/g, 'localhost:5080');
+    }
+
     const userStr = localStorage.getItem('user');
     if (userStr && userStr !== 'undefined') {
       const user = JSON.parse(userStr);

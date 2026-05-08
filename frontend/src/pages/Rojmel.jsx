@@ -5,7 +5,6 @@ import {
    Activity, Database, ShieldCheck, Download, Plus, ShoppingBag,
    ArrowUpRight, ArrowDownLeft, FileSpreadsheet, Box
 } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -14,6 +13,7 @@ import SaleForm from '../components/SaleForm';
 import CashEntryModal from '../components/CashEntryModal';
 import JVEntryModal from '../components/JVEntryModal';
 import Loading from '../components/Loading';
+import api from '../api';
 
 export default function Rojmel() {
    const { t } = useTranslation();
@@ -40,12 +40,15 @@ export default function Rojmel() {
 
    const loadCompany = async () => {
       try {
-         const response = await axios.get('/api/company');
+         setLoading(true);
+         const response = await api.get('/company');
          if (response.data.success && response.data.data) {
             setCompany(response.data.data);
          }
       } catch (error) {
          console.error('Failed to load company', error);
+      } finally {
+         setLoading(false);
       }
    };
 
@@ -58,9 +61,8 @@ export default function Rojmel() {
 
    const fetchNavDates = async () => {
       try {
-         const response = await axios.get('/api/rojmel/nav-dates', {
-            params: { date },
-            headers: { 'x-company-id': company.id }
+         const response = await api.get('/rojmel/nav-dates', {
+            params: { date }
          });
          if (response.data.success) {
             setNavDates({
@@ -77,13 +79,12 @@ export default function Rojmel() {
       if (!company?.id || !date) return;
       setLoading(true);
       try {
-         const response = await axios.get('/api/rojmel', {
+         const response = await api.get('/rojmel', {
             params: { 
                date, 
                showSubledger: showSubledger ? 1 : 0,
                itemDetails: printItemDetails ? 1 : 0
-            },
-            headers: { 'x-company-id': company.id }
+            }
          });
 
          if (response.data.success) {
@@ -96,8 +97,25 @@ export default function Rojmel() {
       }
    };
 
-   if (loading || !company) {
+   if (loading) {
       return <Loading />;
+   }
+
+   if (!company) {
+      return (
+         <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
+            <Database className="w-16 h-16 text-slate-300 mb-4" />
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Company Context Missing</h2>
+            <p className="text-slate-500 mb-6 text-center max-w-md">
+               We couldn't load the company information. This usually happens if no company has been created yet or the connection to the server was lost.
+            </p>
+            <div className="flex gap-4">
+               <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <RefreshCcw className="w-4 h-4 mr-2" /> Retry Connection
+               </button>
+            </div>
+         </div>
+      );
    }
 
    const getPrintData = () => {

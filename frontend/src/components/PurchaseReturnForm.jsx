@@ -7,8 +7,8 @@ import {
   AlertCircle, ChevronDown, Trash2, Command,
   TrendingDown, Database, ShoppingCart, Layers
 } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import api from '../api';
 import GSTSelector from './GSTSelector';
 
 const FormLabel = ({ children, icon: Icon, className = "" }) => (
@@ -63,9 +63,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`, {
-        headers: { 'x-company-id': company.id }
-      });
+      const res = await api.get(`/accounts/company/${company.id}`);
       setSuppliers(res.data.success ? res.data.data : []);
     } catch (err) {
       console.error('Fetch suppliers error', err);
@@ -75,13 +73,9 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
   const fetchAvailablePurchases = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/purchases`, // Assuming this returns purchases
-        {
-          params: { startDate: '2020-01-01', endDate: new Date().toISOString().split('T')[0] },
-          headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-        }
-      );
+      const response = await api.get('/purchases', {
+        params: { startDate: '2020-01-01', endDate: new Date().toISOString().split('T')[0] }
+      });
       setAvailablePurchases(response.data.data);
     } catch (err) {
       setError('Connection Failure: Pipeline unreachable');
@@ -114,10 +108,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
   const handleSelectPurchase = async (purchase) => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/purchase-returns/purchase/${purchase.id}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get(`/purchase-returns/purchase/${purchase.id}`);
       setSelectedPurchase(response.data.data);
       setReturnItems(
         response.data.data.items.map(item => ({
@@ -151,22 +142,18 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
 
     try {
       setLoading(true);
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/purchase-returns`,
-        {
-          purchase_id: selectedPurchase.id,
-          return_date: returnDate,
-          items: itemsToReturn.map(item => ({
-            item_id: item.item_id,
-            quantity: item.return_quantity,
-            purchase_rate: item.purchase_rate,
-            amount: item.return_amount
-          })),
-          refund_type: refundType,
-          notes
-        },
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.post('/purchase-returns', {
+        purchase_id: selectedPurchase.id,
+        return_date: returnDate,
+        items: itemsToReturn.map(item => ({
+          item_id: item.item_id,
+          quantity: item.return_quantity,
+          purchase_rate: item.purchase_rate,
+          amount: item.return_amount
+        })),
+        refund_type: refundType,
+        notes
+      });
 
       if (response.data.success) {
         setSuccess('Reversal protocol committed successfully');

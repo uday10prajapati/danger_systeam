@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 /**
  * BarcodeScanner Component
@@ -91,12 +91,7 @@ export default function BarcodeScanner({
 
     try {
       // Fetch item by barcode from API
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/items/barcode/${encodeURIComponent(scannedCode)}`,
-        {
-          headers: { 'x-company-id': companyId, 'x-user-id': 1 }
-        }
-      );
+      const response = await api.get(`/items/barcode/${encodeURIComponent(scannedCode)}`);
 
       if (response.data.success) {
         const item = response.data.data;

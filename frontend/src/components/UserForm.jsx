@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
+import api from '../api'
 import {
   AlertCircle, CheckCircle, Loader,
   Eye, EyeOff, Save, X, User,
@@ -82,7 +82,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   const loadUser = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`/api/users/${userId}`)
+      const response = await api.get(`/users/${userId}`)
       if (response.data.success) {
         const user = response.data.data
         setFormData({
@@ -140,7 +140,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
     setErrors({})
     try {
       setLoading(true)
-      const endpoint = userId ? `/api/users/${userId}` : '/api/users'
+      const endpoint = userId ? `/users/${userId}` : '/users'
       const method = userId ? 'put' : 'post'
       const submitData = { ...formData }
       submitData.role = toApiRole(submitData.role)
@@ -148,7 +148,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
       let resolvedCompanyId = Number(submitData.company_id || company_id)
       if (!Number.isInteger(resolvedCompanyId) || resolvedCompanyId <= 0) {
         try {
-          const companyRes = await axios.get('/api/company')
+          const companyRes = await api.get('/company')
           resolvedCompanyId = Number(companyRes?.data?.data?.id)
         } catch (companyErr) {
           resolvedCompanyId = NaN
@@ -165,7 +165,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
       if (userId && !submitData.password) delete submitData.password
 
-      const response = await axios({ method, url: endpoint, data: submitData })
+      const response = await api({ method, url: endpoint, data: submitData })
       if (response.data.success) {
         onSuccess?.()
       }
@@ -207,17 +207,17 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
             </div>
           </ModalField>
 
-          <ModalField label="Email Address" required error={errors.email}>
+          <ModalField label="Email / Identity" required error={errors.email}>
             <div className="relative">
               <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 ref={emailRef}
-                type="email"
+                type="text"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 onKeyDown={e => handleKeyDown(e, passwordRef)}
-                placeholder="user@example.com"
+                placeholder="Email or Simple ID (e.g. 1)"
                 className={inputCls + ' pl-9'}
               />
             </div>

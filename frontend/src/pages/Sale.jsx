@@ -6,12 +6,12 @@ import {
   Database, ShieldCheck, Activity, Package, FileText,
   Info, Filter, Download
 } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import SaleForm from '../components/SaleForm';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
+import api from '../api';
 export default function Sale() {
   const { t } = useTranslation();
   const [sales, setSales] = useState([]);
@@ -51,22 +51,26 @@ export default function Sale() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
       }
     } catch (error) {
       console.error('Failed to load company', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchSales = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/sales?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get('/sales', {
+        params: {
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        }
+      });
 
       if (response.data.success) {
         setSales(response.data.data);
@@ -89,10 +93,7 @@ export default function Sale() {
 
   const viewSaleDetails = async (saleId) => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/sales/${saleId}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get(`/sales/${saleId}`);
 
       if (response.data.success) {
         setSelectedSale(response.data.data);

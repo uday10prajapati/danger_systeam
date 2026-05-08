@@ -18,7 +18,7 @@ function Login() {
    const [loading, setLoading] = useState(false)
    const [yearsLoading, setYearsLoading] = useState(false)
    const [error, setError] = useState('')
-   const [rememberMe, setRememberMe] = useState(false)
+   // rememberMe removed
 
    const yearRef = useRef(null)
    const passwordRef = useRef(null)
@@ -42,7 +42,7 @@ function Login() {
    }, [navigate]);
 
    const fetchYears = async (emailVal) => {
-      if (!emailVal || !emailVal.includes('@')) return;
+      if (!emailVal) return;
       try {
          setYearsLoading(true);
          const res = await api.get(`/auth/years?email=${emailVal}`);
@@ -83,16 +83,21 @@ function Login() {
 
          if (response.data.success) {
             const userData = response.data.user;
+            // Force save to localStorage
             localStorage.setItem('user', JSON.stringify(userData));
             localStorage.setItem('company', JSON.stringify({
                id: userData.company_id,
                company_name: userData.company_name,
                financial_year: userData.financial_year
             }));
-            if (rememberMe) {
-               localStorage.setItem('rememberEmail', email)
+
+            try {
+               console.log('🚀 Navigating to dashboard...');
+               navigate('/dashboard');
+            } catch (navError) {
+               console.error('❌ Navigation failed:', navError);
+               setError('System redirection failed. Please try again.');
             }
-            navigate('/dashboard')
          } else {
             setError(response.data.error || 'Invalid credentials')
          }
@@ -105,9 +110,9 @@ function Login() {
 
    return (
       <div className="fixed inset-0 w-full h-full bg-zinc-100 flex items-center justify-center font-sans select-none overflow-hidden">
-         
+
          <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white border border-zinc-300 shadow-2xl overflow-hidden">
-            
+
             {/* Left Section - Identity & Stats */}
             <div className="hidden md:flex flex-col justify-between p-10 bg-zinc-50 border-r border-zinc-200">
                <div className="space-y-4">
@@ -221,16 +226,7 @@ function Login() {
                      </div>
                   </ModalField>
 
-                  <div className="flex items-center justify-between pt-1">
-                     <label className="flex items-center gap-2 cursor-pointer group">
-                        <input 
-                           type="checkbox" 
-                           checked={rememberMe} 
-                           onChange={(e) => setRememberMe(e.target.checked)} 
-                           className="w-4 h-4 rounded-none border-zinc-300 text-blue-600"
-                        />
-                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest group-hover:text-zinc-600">Stay Linked</span>
-                     </label>
+                  <div className="flex items-center justify-end pt-1">
                      <button type="button" className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Recover Access</button>
                   </div>
 

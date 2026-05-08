@@ -203,9 +203,17 @@ router.get('/', async (req, res) => {
       const bParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') bParams.push(memberId);
 
+      const opBardan = await query(`
+        SELECT COALESCE(SUM(debit) - SUM(credit), 0) as op_bal
+        FROM account_ledger
+        WHERE company_id = ? AND account_id = ? AND transaction_date < ?
+        ${memberId && memberId !== 'all' ? ' AND member_id = ?' : ''}
+      `, [companyId, accountId, startDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
+      const initialBardan = parseFloat(opBardan[0].op_bal || 0);
+
       const bRows = await query(bardanSql, bParams);
       
-      let runningQty = 0;
+      let runningQty = initialBardan;
       const rowsWithQty = bRows.map(row => {
         runningQty += (parseFloat(row.debit) - parseFloat(row.credit));
         return { ...row, balance: runningQty };
@@ -216,6 +224,7 @@ router.get('/', async (req, res) => {
         isBardan: true,
         data: rowsWithQty,
         totals: {
+          opening_balance: initialBardan,
           debit: rowsWithQty.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
           credit: rowsWithQty.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
           balance: runningQty
@@ -248,9 +257,17 @@ router.get('/', async (req, res) => {
       const sParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') sParams.push(memberId);
 
+      const opSale = await query(`
+        SELECT COALESCE(SUM(credit) - SUM(debit), 0) as op_bal
+        FROM account_ledger
+        WHERE company_id = ? AND account_id = ? AND transaction_date < ?
+        ${memberId && memberId !== 'all' ? ' AND member_id = ?' : ''}
+      `, [companyId, accountId, startDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
+      const initialSale = parseFloat(opSale[0].op_bal || 0);
+
       const sRows = await query(saleSql, sParams);
       
-      let runningBalance = 0;
+      let runningBalance = initialSale;
       const rowsWithBalance = sRows.map(row => {
         runningBalance += (parseFloat(row.credit) - parseFloat(row.debit));
         return { ...row, balance: runningBalance };
@@ -261,6 +278,7 @@ router.get('/', async (req, res) => {
         isSale: true,
         data: rowsWithBalance,
         totals: {
+          opening_balance: initialSale,
           debit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
           credit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
           balance: runningBalance
@@ -291,10 +309,18 @@ router.get('/', async (req, res) => {
       const pParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') pParams.push(memberId);
 
+      const opPurchase = await query(`
+        SELECT COALESCE(SUM(debit) - SUM(credit), 0) as op_bal
+        FROM account_ledger
+        WHERE company_id = ? AND account_id = ? AND transaction_date < ?
+        ${memberId && memberId !== 'all' ? ' AND member_id = ?' : ''}
+      `, [companyId, accountId, startDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
+      const initialPurchase = parseFloat(opPurchase[0].op_bal || 0);
+
       const pRows = await query(purchaseSql, pParams);
       
       // Calculate running balance
-      let runningBalance = 0;
+      let runningBalance = initialPurchase;
       const rowsWithBalance = pRows.map(row => {
         runningBalance += (parseFloat(row.debit) - parseFloat(row.credit));
         return { ...row, balance: runningBalance };
@@ -305,6 +331,7 @@ router.get('/', async (req, res) => {
         isPurchase: true,
         data: rowsWithBalance,
         totals: {
+          opening_balance: initialPurchase,
           debit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
           credit: rowsWithBalance.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
           balance: runningBalance

@@ -6,9 +6,8 @@ import {
   Filter, ChevronRight, Layout, Activity,
   Database, Package, ShoppingCart, TrendingDown
 } from 'lucide-react';
-import axios from 'axios';
-import { useTranslation } from 'react-i18next';
 import PurchaseReturnForm from '../components/PurchaseReturnForm';
+import api from '../api';
 
 export default function PurchaseReturn() {
   const { t } = useTranslation();
@@ -37,7 +36,7 @@ export default function PurchaseReturn() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
       }
@@ -50,10 +49,12 @@ export default function PurchaseReturn() {
     if (!company?.id) return;
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/purchase-returns?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get('/purchase-returns', {
+        params: {
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        }
+      });
       if (response.data.success) {
         setReturns(response.data.data);
         applyFilters(response.data.data);
@@ -75,10 +76,7 @@ export default function PurchaseReturn() {
 
   const viewReturnDetails = async (returnId) => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/purchase-returns/${returnId}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get(`/purchase-returns/${returnId}`);
       if (response.data.success) {
         setSelectedReturn(response.data.data);
         setShowDetails(true);

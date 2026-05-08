@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -15,6 +14,7 @@ import AccountForm from '../components/AccountForm';
 import Toast from '../components/Toast';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Loading from '../components/Loading';
+import api from '../api';
 
 export default function AccountMaster() {
   const { t } = useTranslation();
@@ -69,12 +69,18 @@ export default function AccountMaster() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      setLoading(true);
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
+      } else {
+        setMessage({ type: 'error', text: 'No company found. Please create a company in Company Master.' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load company context.' });
+      console.error('Failed to load company', error);
+      setMessage({ type: 'error', text: 'Failed to load company context. Please check if backend is running.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,10 +88,10 @@ export default function AccountMaster() {
     try {
       setLoading(true);
       const url = selectedType === 'all'
-        ? `/api/accounts/company/${company.id}`
-        : `/api/accounts/company/${company.id}?type=${selectedType}`;
+        ? `/accounts/company/${company.id}`
+        : `/accounts/company/${company.id}?type=${selectedType}`;
 
-      const response = await axios.get(url);
+      const response = await api.get(url);
       if (response.data.success) {
         setAccounts(response.data.data || []);
       }
@@ -116,7 +122,7 @@ export default function AccountMaster() {
   const handleStatusToggle = async (account) => {
     try {
       const endpoint = account.is_active ? 'deactivate' : 'activate';
-      await axios.post(`/api/accounts/${account.id}/${endpoint}`);
+      await api.post(`/accounts/${account.id}/${endpoint}`);
       setMessage({ type: 'success', text: `Account ${account.is_active ? 'deactivated' : 'activated'} successfully.` });
       loadAccounts();
     } catch (error) {
@@ -133,7 +139,7 @@ export default function AccountMaster() {
     if (!accountToDelete) return;
     try {
       setLoading(true);
-      await axios.delete(`/api/accounts/${accountToDelete.id}`);
+      await api.delete(`/accounts/${accountToDelete.id}`);
       setMessage({ type: 'success', text: 'Account deleted successfully.' });
       setDeleteModalOpen(false);
       setAccountToDelete(null);
@@ -148,7 +154,7 @@ export default function AccountMaster() {
   const handleShowBalance = async (account) => {
     setBalanceModal({ isOpen: true, account, data: null, loading: true, error: null });
     try {
-      const response = await axios.get(`/api/accounts/${account.id}/balance`);
+      const response = await api.get(`/accounts/${account.id}/balance`);
       if (response.data.success) {
         setBalanceModal({ isOpen: true, account, data: response.data.data, loading: false, error: null });
       }
@@ -284,8 +290,25 @@ export default function AccountMaster() {
     link.click();
   };
 
-  if (loading || !company) {
+  if (loading) {
     return <Loading />;
+  }
+
+  if (!company) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
+        <Building2 className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Company Context Missing</h2>
+        <p className="text-slate-500 mb-6 text-center max-w-md">
+          We couldn't load the company information. This usually happens if no company has been created yet or the connection to the server was lost.
+        </p>
+        <div className="flex gap-4">
+          <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <RefreshCcw className="w-4 h-4 mr-2" /> Retry Connection
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

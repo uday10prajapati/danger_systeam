@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../api'
 import {
   Plus, Edit3, Trash2, Power,
   Loader, AlertCircle, CheckCircle,
@@ -37,7 +37,7 @@ function UserMaster() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company')
+      const response = await api.get('/company')
       if (response.data.success && response.data.data) {
         setCompany(response.data.data)
       } else {
@@ -54,7 +54,7 @@ function UserMaster() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`/api/users/company/${company.id}`)
+      const response = await api.get(`/users/company/${company.id}`)
       if (response.data.success) {
         setUsers(response.data.data)
       }
@@ -93,8 +93,8 @@ function UserMaster() {
 
     try {
       setLoading(true)
-      const endpoint = currentStatus ? '/api/users/' + userId + '/deactivate' : '/api/users/' + userId + '/activate'
-      const response = await axios.post(endpoint)
+      const endpoint = currentStatus ? '/users/' + userId + '/deactivate' : '/users/' + userId + '/activate'
+      const response = await api.post(endpoint)
 
       if (response.data.success) {
         setToast({
@@ -241,7 +241,7 @@ function UserMaster() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by username or email..."
+                  placeholder="Search by username or identity..."
                   className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full font-mono"
                 />
               </div>
@@ -261,7 +261,7 @@ function UserMaster() {
                   <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-xs">
                     <th className="px-4 py-2 border-r border-zinc-200 w-12 text-center">#</th>
                     <th className="px-4 py-2 border-r border-zinc-200">Username</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Email Address</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">Identity</th>
                     <th className="px-4 py-2 border-r border-zinc-200 w-24 text-center">Role</th>
                     <th className="px-4 py-2 border-r border-zinc-200 w-28 text-center">Status</th>
                     <th className="px-4 py-2 border-r border-zinc-200 w-32 text-center">Joined Date</th>

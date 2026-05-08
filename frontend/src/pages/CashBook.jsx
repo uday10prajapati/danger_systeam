@@ -45,12 +45,17 @@ export default function CashBook() {
 
   const loadCompany = async () => {
     try {
+      setLoading(true);
       const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
+      } else {
+        showToast('No company found. Please create a company first.', 'error');
       }
     } catch (error) {
       console.error('Failed to load company', error);
+      showToast('Failed to load system context. Check backend connection.', 'error');
+      setLoading(false);
     }
   };
 
@@ -290,8 +295,25 @@ export default function CashBook() {
     setTimeout(()=>{win.print();win.close();},400);
   };
 
-  if (loading && entries.length === 0) {
+  if (loading) {
     return <Loading />;
+  }
+
+  if (!company) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
+        <Database className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Company Context Missing</h2>
+        <p className="text-slate-500 mb-6 text-center max-w-md">
+          We couldn't load the company information. This usually happens if no company has been created yet or the connection to the server was lost.
+        </p>
+        <div className="flex gap-4">
+          <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <RefreshCcw className="w-4 h-4 mr-2" /> Retry Connection
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import {
   Building2, User, Phone, Mail, FileText,
   ShieldAlert, IndianRupee, Save, X, RefreshCcw,
@@ -47,11 +47,23 @@ export default function AccountForm({
   const gstNoRef = useRef(null);
   const tinNoRef = useRef(null);
 
+  useEffect(() => {
+    if (initialData) {
+      const opBal = parseFloat(initialData.opening_balance || 0);
+      setFormData({
+        ...initialData,
+        opening_balance: Math.abs(opBal),
+        opening_balance_type: opBal < 0 ? 'credit' : 'debit',
+        is_subledger: initialData.is_subledger === true || initialData.is_subledger === 1
+      });
+    } else {
+      fetchNextCode(formData.account_type);
+    }
+  }, [initialData]);
+
   const fetchNextCode = async (type) => {
     try {
-      const response = await axios.get(`/api/accounts/next-id?type=${type}`, {
-        headers: { 'x-company-id': companyId }
-      });
+      const response = await api.get(`/accounts/next-id?type=${type}`);
       if (response.data.success) {
         setFormData(prev => ({ ...prev, account_code: response.data.nextId.toString() }));
       }
@@ -62,9 +74,7 @@ export default function AccountForm({
 
   const fetchNextPCode = async (type) => {
     try {
-      const response = await axios.get(`/api/accounts/next-pcode?type=${type}`, {
-        headers: { 'x-company-id': companyId }
-      });
+      const response = await api.get(`/accounts/next-pcode?type=${type}`);
       if (response.data.success) {
         setFormData(prev => ({ ...prev, p_code: response.data.nextPCode }));
       }
@@ -75,9 +85,7 @@ export default function AccountForm({
 
   const fetchNextId = async (type) => {
     try {
-      const response = await axios.get(`/api/accounts/next-id?type=${type}`, {
-        headers: { 'x-company-id': companyId }
-      });
+      const response = await api.get(`/accounts/next-id?type=${type}`);
       if (response.data.success) {
         setNextId(response.data.nextId);
       }
@@ -155,10 +163,10 @@ export default function AccountForm({
       const submitData = { company_id: companyId, ...formData };
 
       if (initialData?.id) {
-        await axios.put(`/api/accounts/${initialData.id}`, formData);
+        await api.put(`/accounts/${initialData.id}`, formData);
         onSuccess?.('Account updated successfully.');
       } else {
-        await axios.post('/api/accounts', submitData);
+        await api.post('/accounts', submitData);
         onSuccess?.('Account registered successfully.');
       }
     } catch (error) {

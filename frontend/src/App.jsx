@@ -123,11 +123,23 @@ function AppContent() {
     checkBackend()
   }, [])
 
-  // Check if user is authenticated
+  // Check if user is authenticated and redirect from login
   useEffect(() => {
     const user = localStorage.getItem('user')
     setIsAuth(!!user)
-  }, [location])
+    
+    if (user && location.pathname === '/login') {
+      console.log('✅ Session found on login page, auto-redirecting...');
+      navigate('/dashboard');
+    }
+
+    // Mandatory Auto-logout on close sentinel
+    const handleClose = () => {
+      localStorage.clear();
+    };
+    window.addEventListener('beforeunload', handleClose);
+    return () => window.removeEventListener('beforeunload', handleClose);
+  }, [location, navigate])
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50">

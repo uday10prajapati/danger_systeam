@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 import {
    AlertTriangle, TrendingDown, Package, Plus, Search, Filter,
    X, History, ChevronRight, Database, ShieldCheck,
@@ -42,7 +42,7 @@ export default function StockReport() {
 
    const loadCompany = async () => {
       try {
-         const response = await axios.get('/api/company');
+         const response = await api.get('/company');
          if (response.data.success && response.data.data) {
             setCompany(response.data.data);
          }
@@ -56,15 +56,11 @@ export default function StockReport() {
       if (!company?.id) return;
       try {
          setLoading(true);
-         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report`, {
-            headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-         });
+         const response = await api.get('/stock-report');
          if (response.data.success) {
             setStockData(response.data.data);
             // Fetch low stock items
-            const lowResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report/low-stock`, {
-               headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-            });
+            const lowResponse = await api.get('/stock-report/low-stock');
             setLowStockData(lowResponse.data.data);
          }
       } catch (error) {
@@ -77,9 +73,7 @@ export default function StockReport() {
    const fetchItemHistory = async (itemId) => {
       if (!company?.id) return;
       try {
-         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/stock-report/item/${itemId}`, {
-            headers: { 'x-company-id': company.id, 'x-user-id': 1 }
-         });
+         const response = await api.get(`/stock-report/item/${itemId}`);
          if (response.data.success) {
             setItemHistory(response.data.data);
             setShowHistory(true);

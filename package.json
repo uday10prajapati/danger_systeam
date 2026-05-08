@@ -1,7 +1,7 @@
 {
-  "name": "danger-systeam-desktop",
-  "version": "1.0.0",
-  "description": "Desktop supermarket management application",
+  "name": "danger-systeam-pro",
+  "version": "1.0.1",
+  "description": "Premium Desktop Management System for Danger Systeam",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
@@ -10,8 +10,8 @@
     "dev:full": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\" \"wait-on http://localhost:5173 && npm run dev:electron\"",
     "build": "npm run build --workspace=frontend",
     "start": "cd electron && npx electron main.js",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --win --publish never"
   },
   "workspaces": [
     "backend",
@@ -20,7 +20,6 @@
   ],
   "dependencies": {
     "axios": "^1.13.2",
-    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -36,18 +35,41 @@
     "wait-on": "^7.0.1"
   },
   "build": {
-    "asar": false,
-    "appId": "com.danger-systeam.desktop",
-    "productName": "Danger Systeam",
+    "asar": true,
+    "asarUnpack": [
+      "setup_database.ps1"
+    ],
+    "appId": "com.danger.systeam.pro",
+    "productName": "Danger Systeam Pro",
+    "artifactName": "DangerSysteamProSetup.${ext}",
     "files": [
       "electron/**/*",
-      "backend/**/*",
-      "backend/.env",
       "frontend/dist/**/*",
-      "node_modules/**/*"
+      "setup_database.ps1"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!.env"
+        ]
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules"
+      }
     ],
     "directories": {
-      "buildResources": "assets"
+      "buildResources": "assets",
+      "output": "installer/Output_Final"
+    },
+    "icon": "build/icon.png",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "requestedExecutionLevel": "requireAdministrator"
     }
   }
 }

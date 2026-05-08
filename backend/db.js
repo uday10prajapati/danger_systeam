@@ -1,5 +1,6 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,8 +8,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from the backend directory
-dotenv.config({ path: path.join(__dirname, '.env') });
+import bcrypt from 'bcryptjs';
+
+// Load .env from the best available location
+const envCandidates = process.pkg
+  ? [
+    path.join(process.resourcesPath, '.env'),
+    path.join(process.resourcesPath, 'app.asar.unpacked', 'backend', '.env'),
+    path.join(path.dirname(process.execPath), '.env'),
+  ]
+  : [path.join(__dirname, '.env')];
+
+const envPath = envCandidates.find((candidate) => fs.existsSync(candidate));
+dotenv.config(envPath ? { path: envPath } : undefined);
 
 const { Pool } = pg;
 
@@ -32,9 +44,9 @@ const pool = new Pool({
 // Helper to transform MySQL SQL to PostgreSQL
 const transformQuery = (sql) => {
   if (typeof sql !== 'string') return sql;
-  
+
   let newSql = sql;
-  
+
   // Basic Structural Translations (MySQL -> Postgres)
   newSql = newSql.replace(/INT PRIMARY KEY AUTO_INCREMENT/gi, 'SERIAL PRIMARY KEY');
   newSql = newSql.replace(/INT AUTO_INCREMENT PRIMARY KEY/gi, 'SERIAL PRIMARY KEY');
@@ -43,25 +55,27 @@ const transformQuery = (sql) => {
   newSql = newSql.replace(/LONGTEXT/gi, 'TEXT');
   newSql = newSql.replace(/TINYINT\(1\)/gi, 'BOOLEAN');
   newSql = newSql.replace(/INT\(\d+\)/gi, 'INT'); // Remove MySQL display width
-  
+
   // Handle ENUM(...) - Convert to VARCHAR for simplicity
   newSql = newSql.replace(/ENUM\([^)]+\)/gi, 'VARCHAR(255)');
-  
+
   // Handle MySQL CAST AS UNSIGNED -> Postgres CAST AS INTEGER
   newSql = newSql.replace(/AS UNSIGNED/gi, 'AS INTEGER');
-  
+
   // Handle MySQL YEAR() and MONTH() -> Postgres EXTRACT
   newSql = newSql.replace(/YEAR\(([^)]+)\)/gi, 'EXTRACT(YEAR FROM $1)');
   newSql = newSql.replace(/MONTH\(([^)]+)\)/gi, 'EXTRACT(MONTH FROM $1)');
-  
-  // Handle MySQL REGEXP -> Postgres ~ (Handles newlines and whitespace)
+
+  // Handle MySQL TO_DAYS -> Postgres date - '0001-01-01'
+  newSql = newSql.replace(/TO_DAYS\(([^)]+)\)/gi, "(CAST($1 AS DATE) - DATE '0001-01-01')");
+
+  // Handle MySQL REGEXP -> Postgres ~
   newSql = newSql.replace(/\s+REGEXP\s+/gi, ' ~ ');
-  
+
   // Handle MySQL IFNULL -> Postgres COALESCE
   newSql = newSql.replace(/IFNULL\(/gi, 'COALESCE(');
-  
+
   // Handle MySQL IF(cond, val1, val2) -> Postgres CASE WHEN cond THEN val1 ELSE val2 END
-  // This is a simple regex for 3-argument IFs
   newSql = newSql.replace(/IF\(([^,]+),([^,]+),([^)]+)\)/gi, 'CASE WHEN $1 THEN $2 ELSE $3 END');
 
   // Handle MySQL CAST AS CHAR -> Postgres CAST AS TEXT
@@ -71,13 +85,12 @@ const transformQuery = (sql) => {
   newSql = newSql.replace(/SUBSTRING\(/gi, 'SUBSTR(');
 
   // Handle MySQL DATE_FORMAT -> Postgres TO_CHAR
-  // Note: Only handles basic %Y-%m-%d pattern for now
   newSql = newSql.replace(/DATE_FORMAT\(([^,]+),\s*'%Y-%m-%d'\)/gi, "TO_CHAR($1, 'YYYY-MM-DD')");
   newSql = newSql.replace(/DATE_FORMAT\(([^,]+),\s*'%d-%m-%Y'\)/gi, "TO_CHAR($1, 'DD-MM-YYYY')");
-  
+
   // Handle MySQL backticks -> Postgres double quotes
   newSql = newSql.replace(/`/g, '"');
-  
+
   // Handle INSERT IGNORE
   const isInsertIgnore = sql.toUpperCase().includes('INSERT IGNORE');
   newSql = newSql.replace(/INSERT IGNORE INTO/gi, 'INSERT INTO');
@@ -87,38 +100,60 @@ const transformQuery = (sql) => {
   if (newSql.toUpperCase().startsWith('INSERT')) {
     // Remove trailing semicolon
     newSql = newSql.replace(/;$/, '');
-    
+
     // Add ON CONFLICT for IGNORE
     if (isInsertIgnore && !newSql.toUpperCase().includes('ON CONFLICT')) {
       newSql += ' ON CONFLICT DO NOTHING';
     }
-    
-    // Add RETURNING if missing
-    if (!newSql.toUpperCase().includes('RETURNING')) {
+
+    // Add RETURNING if missing (only for INSERT)
+    if (!newSql.toUpperCase().includes('RETURNING') && !newSql.toUpperCase().includes('SELECT')) {
       newSql += ' RETURNING id';
     }
   }
 
-  // Handle ON UPDATE CURRENT_TIMESTAMP (Postgres doesn't support this inline)
+  // Handle ON UPDATE CURRENT_TIMESTAMP
   newSql = newSql.replace(/ON UPDATE CURRENT_TIMESTAMP/gi, '');
 
-  // Handle ADD COLUMN IF NOT EXISTS (Postgres safety)
+  // Handle ADD COLUMN IF NOT EXISTS
   if (newSql.toUpperCase().includes('ADD COLUMN') && !newSql.toUpperCase().includes('IF NOT EXISTS')) {
     newSql = newSql.replace(/ADD COLUMN/gi, 'ADD COLUMN IF NOT EXISTS');
   }
 
-  // Handle GROUP_CONCAT (MySQL) -> STRING_AGG (Postgres)
+  // Handle GROUP_CONCAT -> STRING_AGG
   newSql = newSql.replace(/GROUP_CONCAT\((.*?)\s+SEPARATOR\s+['"](.*?)['"]\)/gi, 'STRING_AGG($1, $2)');
-  newSql = newSql.replace(/GROUP_CONCAT\((.*?)\)/gi, 'STRING_AGG($1, \', \')');
-  
-  // Handle DATEDIFF (MySQL) -> Subtraction (Postgres)
+  newSql = newSql.replace(/GROUP_CONCAT\((.*?)\)/gi, "STRING_AGG($1, ', ')");
+
+  // Handle DATEDIFF -> Subtraction
   newSql = newSql.replace(/DATEDIFF\((.*?), (.*?)\)/gi, '(CAST($1 AS DATE) - CAST($2 AS DATE))');
 
-  // Handle PostgreSQL placeholders last to avoid interference with capture groups
+  // Handle PostgreSQL placeholders last
   let index = 1;
   newSql = newSql.replace(/\?/g, () => `$${index++}`);
 
   return newSql;
+};
+
+// Add PostgreSQL polyfill for getConnection/connect
+pool.getConnection = async () => {
+  const client = await pool.connect();
+  // Wrap client to match expected interface
+  return {
+    query: async (sql, params = []) => {
+      const transformed = transformQuery(sql);
+      const res = await client.query(transformed, params);
+      return [res.rows, res.fields];
+    },
+    execute: async (sql, params = []) => {
+      const transformed = transformQuery(sql);
+      const res = await client.query(transformed, params);
+      return [{ insertId: res.rows[0]?.id || null, affectedRows: res.rowCount }, []];
+    },
+    beginTransaction: () => client.query('BEGIN'),
+    commit: () => client.query('COMMIT'),
+    rollback: () => client.query('ROLLBACK'),
+    release: () => client.release()
+  };
 };
 
 console.log('✅ PostgreSQL Connection Pool Initialized');
@@ -339,12 +374,12 @@ export async function initializeDatabase() {
       `);
 
       // Add missing columns to sales
-      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS driver_name VARCHAR(100)"); } catch(e) {}
-      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS mobile_number VARCHAR(20)"); } catch(e) {}
-      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS gadi_number VARCHAR(50)"); } catch(e) {}
-      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS brokerage_percent DECIMAL(5,2) DEFAULT 0"); } catch(e) {}
-      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS brokerage_amount DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
-      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS labour_charge DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS driver_name VARCHAR(100)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS mobile_number VARCHAR(20)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS gadi_number VARCHAR(50)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS brokerage_percent DECIMAL(5,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS brokerage_amount DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS labour_charge DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
 
       // Create Sale Items table
       await connection.query(`
@@ -364,7 +399,7 @@ export async function initializeDatabase() {
       `);
 
       // Add missing columns to sale_items
-      try { await connection.query("ALTER TABLE sale_items ADD COLUMN IF NOT EXISTS weight DECIMAL(15,3) DEFAULT 0"); } catch(e) {}
+      try { await connection.query("ALTER TABLE sale_items ADD COLUMN IF NOT EXISTS weight DECIMAL(15,3) DEFAULT 0"); } catch (e) { }
 
       // Create Member Master table
       await connection.query(`
@@ -500,19 +535,33 @@ export async function initializeDatabase() {
         )
       `);
 
-      // Add missing columns if not exist
-      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_member_id INT"); } catch(e) {}
-      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_account_id INT"); } catch(e) {}
+      // Performance Indexes for Ledger (Crucial for Rojmel/AccountMaster loading)
+      await connection.query("CREATE INDEX IF NOT EXISTS idx_ledger_company_date ON account_ledger(company_id, transaction_date)");
+      await connection.query("CREATE INDEX IF NOT EXISTS idx_ledger_account ON account_ledger(account_id)");
+      await connection.query("CREATE INDEX IF NOT EXISTS idx_ledger_member ON account_ledger(member_id)");
+      await connection.query("CREATE INDEX IF NOT EXISTS idx_ledger_ref_no ON account_ledger(reference_no)");
 
       // Force-add missing columns for legacy compatibility
-      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit_amount DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
-      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit_amount DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
-      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
-      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit DECIMAL(15,2) DEFAULT 0"); } catch(e) {}
-      
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_member_id INT"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_account_id INT"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit_amount DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit_amount DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+
+      // Add missing columns if not exist
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_member_id INT"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS interest_account_id INT"); } catch (e) { }
+
+      // Force-add missing columns for legacy compatibility
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit_amount DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit_amount DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS debit DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+      try { await connection.query("ALTER TABLE account_ledger ADD COLUMN IF NOT EXISTS credit DECIMAL(15,2) DEFAULT 0"); } catch (e) { }
+
       // Auto-migrate accounts table
-      try { await connection.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch(e) {}
-      try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch(e) {}
+      try { await connection.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch (e) { }
 
       // Create Village table
       await connection.query(`
@@ -714,8 +763,8 @@ export async function initializeDatabase() {
       `);
 
       // Add columns if not exist (for existing tables)
-      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_type VARCHAR(50) DEFAULT 'JV'"); } catch(e) {}
-      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_code VARCHAR(50)"); } catch(e) {}
+      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_type VARCHAR(50) DEFAULT 'JV'"); } catch (e) { }
+      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_code VARCHAR(50)"); } catch (e) { }
 
       // Create Journal Vouchers table
       await connection.query(`
@@ -1005,6 +1054,11 @@ export async function initializeDatabase() {
 
       await connection.commit();
       console.log('✅ PostgreSQL Database tables created/verified/upgraded');
+
+      // Seed Initial Data
+      await seedInitialData(connection);
+      await connection.commit();
+      console.log('✅ Database initialized successfully');
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -1013,7 +1067,111 @@ export async function initializeDatabase() {
     }
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
-    throw error;
+  }
+}
+
+/**
+ * Automatically seed essential data: Admin user and 11 System Accounts
+ */
+async function seedInitialData(connection) {
+  try {
+    console.log('🌱 Seeding initial system data...');
+
+    // 1. Ensure a Default Company exists
+    let companyId;
+    const [companies] = await connection.query("SELECT id FROM company LIMIT 1");
+    if (companies.length === 0) {
+      console.log('🏢 Creating Default Company...');
+      const [res] = await connection.execute(
+        `INSERT INTO company (company_name, address, phone, email, financial_year_start, financial_year_end) 
+         VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+        ['Danger Systeam', 'Gujarat, India', '9999999999', 'admin@danger.com', '2026-04-01', '2027-03-31']
+      );
+      companyId = res.insertId;
+    } else {
+      companyId = companies[0].id;
+    }
+
+    // 2. Ensure Financial Year exists
+    const [years] = await connection.query("SELECT id FROM financial_years WHERE company_id = ? AND year_label = ?", [companyId, '2026-27']);
+    if (years.length === 0) {
+      await connection.execute(
+        "INSERT INTO financial_years (company_id, year_label, start_date, end_date, is_active) VALUES (?, ?, ?, ?, 1)",
+        [companyId, '2026-27', '2026-04-01', '2027-03-31']
+      );
+    }
+
+    // 3. Ensure Admin User exists and has the correct password
+    const [users] = await connection.query("SELECT id FROM users WHERE email = ?", ['admin@danger.com']);
+    const hashedPassword = await bcrypt.hash('6099', 10);
+    if (users.length === 0) {
+      console.log('👤 Creating Admin User...');
+      await connection.execute(
+        "INSERT INTO users (company_id, username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?, 1)",
+        [companyId, 'Admin', 'admin@danger.com', hashedPassword, 'admin']
+      );
+    } else {
+      console.log('👤 Updating Admin User Password...');
+      await connection.execute(
+        "UPDATE users SET password = ?, username = 'Admin', role = 'admin', is_active = 1 WHERE email = ?",
+        [hashedPassword, 'admin@danger.com']
+      );
+    }
+
+    // 4. Ensure 11 System Accounts exist
+    const systemAccounts = [
+      { id: 1, name: 'Dangar System', code: 'DS0001', type: 'System Account', sub: true },
+      { id: 4, name: 'Bardan System', code: 'BS0001', type: 'System Account', sub: true },
+      { id: 7, name: 'Member Adv Ac', code: 'L0001', type: 'System Account', sub: true },
+      { id: 8, name: 'Interest Khate', code: 'IK0001', type: 'System Account', sub: true },
+      { id: 9, name: 'Dangar Purchase', code: 'P0001', type: 'purchase', sub: false },
+      { id: 10, name: 'Cash Account', code: 'CS0001', type: 'System Account', sub: false },
+      { id: 11, name: 'Dangar Godown Fund', code: 'DF0001', type: 'System Account', sub: true },
+      { name: 'Rounding Khate', code: 'RK0001', type: 'System Account', sub: true },
+      { name: 'Brokerage Khate', code: 'BK0001', type: 'System Account', sub: true },
+      { name: 'Labour Khate', code: 'LK0001', type: 'System Account', sub: true },
+      { name: 'Dangar Sale', code: 'S0001', type: 'sales', sub: false }
+    ];
+
+    for (const acc of systemAccounts) {
+      const [existing] = await connection.query("SELECT id FROM accounts WHERE account_code = ?", [acc.code]);
+      if (existing.length === 0) {
+        console.log(`📑 Seeding Account: ${acc.name}...`);
+        // We try to use the specific ID if provided to match logic in db.js
+        if (acc.id) {
+          await connection.execute(
+            `INSERT INTO accounts (id, company_id, account_name, account_type, account_code, is_subledger, is_system, financial_year) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING`,
+            [acc.id, companyId, acc.name, acc.type, acc.code, acc.sub, true, '2026-27']
+          );
+        } else {
+          await connection.execute(
+            `INSERT INTO accounts (company_id, account_name, account_type, account_code, is_subledger, is_system, financial_year) 
+             VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+            [companyId, acc.name, acc.type, acc.code, acc.sub, true, '2026-27']
+          );
+        }
+      }
+    }
+
+    console.log('✨ Data Seeding Complete.');
+
+    // 5. Sync Sequences (PostgreSQL specific)
+    // After manual ID insertion, we must sync the serial sequence to avoid duplicate key errors on future inserts
+    try {
+      await connection.query("SELECT setval(pg_get_serial_sequence('accounts', 'id'), COALESCE((SELECT MAX(id) FROM accounts), 1))");
+      await connection.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1))");
+      await connection.query("SELECT setval(pg_get_serial_sequence('company', 'id'), COALESCE((SELECT MAX(id) FROM company), 1))");
+      console.log('🔄 PostgreSQL Sequences synchronized.');
+    } catch (seqErr) {
+      console.warn('⚠️ Sequence synchronization warning:', seqErr.message);
+    }
+
+    // Success: return to caller (no commit/rollback here anymore as it's handled by caller if needed, 
+    // but seedInitialData was historically using its own transaction logic which I will now simplify)
+  } catch (e) {
+    console.error('⚠️ Seeding error:', e.message);
+    throw e; // Rethrow so caller can rollback
   }
 }
 
@@ -1055,10 +1213,10 @@ export async function execute(sql, params = []) {
     const normalized = normalizeParams(params);
     const result = await pool.query(transformedSql, normalized);
     const id = result.rows[0]?.id || null;
-    return { 
-      lastID: id, 
+    return {
+      lastID: id,
       insertId: id, // Alias for legacy MySQL compatibility
-      changes: result.rowCount 
+      changes: result.rowCount
     };
   } catch (error) {
     console.error('Execute error:', error.message, '\nSQL:', sql);
@@ -1071,7 +1229,7 @@ export async function execute(sql, params = []) {
 // ============================================
 
 export async function insertLedgerEntry(
-  companyId, accountId, transactionDate, transactionType, referenceType, 
+  companyId, accountId, transactionDate, transactionType, referenceType,
   referenceId, referenceNo, debit, credit, description, notes = '', memberId = null, financialYear = '2026-27'
 ) {
   const sql = `
@@ -1082,24 +1240,24 @@ export async function insertLedgerEntry(
   `;
 
   return await query(sql, [
-    companyId, accountId || null, memberId || null, transactionDate, 
-    transactionType || 'manual', referenceType || null, referenceId || null, 
+    companyId, accountId || null, memberId || null, transactionDate,
+    transactionType || 'manual', referenceType || null, referenceId || null,
     referenceNo || '', description || '', notes || '', financialYear
   ]);
 }
 
 export async function insertCashBookEntry(
-  companyId, transactionDate, referenceType, referenceId, referenceNo, 
+  companyId, transactionDate, referenceType, referenceId, referenceNo,
   description, cashIn, cashOut, userId, notes = '', financialYear = '2026-27'
 ) {
   const result = await insertLedgerEntry(
-     companyId, 
-     null, 
-     transactionDate, 'cash_book', referenceType,
-     referenceId, referenceNo, 
-     parseFloat(cashIn) || 0,
-     parseFloat(cashOut) || 0,
-     description, notes, null, financialYear
+    companyId,
+    null,
+    transactionDate, 'cash_book', referenceType,
+    referenceId, referenceNo,
+    parseFloat(cashIn) || 0,
+    parseFloat(cashOut) || 0,
+    description, notes, null, financialYear
   );
 
   return { insertId: result[0]?.id || null };
@@ -1210,9 +1368,9 @@ export async function getAccountBalance(accountId, upToDate = null, memberId = n
     whereClause = "(al.account_id = ? OR al.interest_account_id = ?)";
     params = [accountId, accountId];
     if (memberId) {
-       whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
-       params.push(memberId, memberId);
-       openingBalance = 0; 
+      whereClause += " AND (al.member_id = ? OR al.interest_member_id = ?)";
+      params.push(memberId, memberId);
+      openingBalance = 0;
     }
   }
 
@@ -1361,7 +1519,7 @@ export async function getAccountLedgerWithRunningBalance(accountId, startDate, e
   const prevDate = new Date(startDate);
   prevDate.setDate(prevDate.getDate() - 1);
   const balanceData = await getAccountBalance(accountId, prevDate.toISOString().split('T')[0], memberId);
-  
+
   // Get account code to check for flipping logic
   const account = await queryOne('SELECT account_code FROM accounts WHERE id = ?', [parseInt(accountId)]);
   const isCashAccount = account?.account_code === 'CS0001';
@@ -1625,7 +1783,7 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
 
     // 2. Debit the Customer/Member (Net Amount)
     if (customerId || memberId) {
-       await connection.query(
+      await connection.query(
         `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, transaction_type, reference_type, reference_id, reference_no, debit, credit, description, financial_year) 
          VALUES (?, ?, ?, ?, 'SALE', 'SALE', ?, ?, ?, 0, ?, ?)`,
         [companyId, customerId || null, memberId || null, invoiceDate, saleId, invoiceNo, netAmount, `SALE INV #${invoiceNo}`, financialYear]
@@ -1672,14 +1830,14 @@ export async function getProfitLossStatement(companyId, startDate, endDate) {
     const salesReturns = await queryOne(`SELECT COALESCE(SUM(total_return_amount), 0) as total FROM sale_returns WHERE company_id = ? AND return_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
     const purchaseCost = await queryOne(`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchases WHERE company_id = ? AND invoice_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
     const purchaseReturns = await queryOne(`SELECT COALESCE(SUM(return_amount), 0) as total FROM purchase_returns WHERE company_id = ? AND return_date BETWEEN ? AND ?`, [companyId, startDate, endDate]);
-    
+
     const netSales = parseFloat(salesRevenue.total) - parseFloat(salesReturns.total);
     const netCOGS = parseFloat(purchaseCost.total) - parseFloat(purchaseReturns.total);
     const grossProfit = netSales - netCOGS;
-    
+
     const expenses = await query(`SELECT a.account_name, SUM(al.debit - al.credit) as amount FROM account_ledger al JOIN accounts a ON al.account_id = a.id WHERE a.company_id = ? AND a.account_type = 'Expense' AND al.transaction_date BETWEEN ? AND ? GROUP BY a.id, a.account_name`, [companyId, startDate, endDate]);
     const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-    
+
     return {
       revenue: { netSales, totalSales: salesRevenue.total, returns: salesReturns.total },
       cogs: { netCOGS, totalPurchases: purchaseCost.total, returns: purchaseReturns.total },

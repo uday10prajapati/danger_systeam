@@ -26,11 +26,11 @@ router.get('/global-balances', async (req, res) => {
     if (ids.length === 0) return res.json({ success: true, data: [] });
 
     let sql = `
-      SELECT member_id, 
+      SELECT member_id, account_id,
         SUM(COALESCE(debit, debit_amount, 0)) as total_debit,
         SUM(COALESCE(credit, credit_amount, 0)) as total_credit
       FROM account_ledger
-      WHERE company_id = ? AND account_id IN (${ids.map(() => '?').join(',')})
+      WHERE company_id = ? AND account_id IN (${ids.map(() => "?").join(",")})
       AND member_id IS NOT NULL
     `;
     const params = [companyId, ...ids];
@@ -40,12 +40,13 @@ router.get('/global-balances', async (req, res) => {
       params.push(endDate);
     }
     
-    sql += ' GROUP BY member_id';
+    sql += ' GROUP BY member_id, account_id';
     
     const rows = await query(sql, params);
     
     const result = rows.map(row => ({
       member_id: row.member_id,
+      account_id: row.account_id,
       balance: parseFloat(row.total_credit || 0) - parseFloat(row.total_debit || 0)
     })).filter(r => Math.abs(r.balance) > 0.01);
 
@@ -144,13 +145,13 @@ router.get('/interest-calculations', async (req, res) => {
 // GET: Account ledger with running balance
 router.get('/account/:accountId', async (req, res) => {
   try {
-    const accountId = req.params.accountId;
+    const accountIdRaw = req.params.accountId; const accountId = accountIdRaw === 'all' ? 'all' : parseInt(accountIdRaw);
     let { startDate, endDate, memberId } = req.query;
 
     if (!endDate) {
       endDate = new Date().toISOString().split('T')[0];
     }
-    if (!startDate) {
+    if (!startDate || accountId === 'all') {
       const start = new Date();
       start.setDate(start.getDate() - 90);
       startDate = start.toISOString().split('T')[0];
@@ -168,7 +169,7 @@ router.get('/account/:accountId', async (req, res) => {
 // GET: Account balance
 router.get('/balance/:accountId', async (req, res) => {
   try {
-    const accountId = req.params.accountId;
+    const accountIdRaw = req.params.accountId; const accountId = accountIdRaw === 'all' ? 'all' : parseInt(accountIdRaw);
     const balance = await getAccountBalance(accountId);
     return res.json({ success: true, data: balance });
   } catch (error) {
@@ -180,8 +181,8 @@ router.get('/balance/:accountId', async (req, res) => {
 // GET: Account stats (debit, credit, balance) by Date Range
 router.get('/account-stats/:accountId', async (req, res) => {
   try {
-    const accountId = req.params.accountId;
-    const { startDate, endDate, memberId } = req.query;
+    const accountIdRaw = req.params.accountId; const accountId = accountIdRaw === 'all' ? 'all' : parseInt(accountIdRaw);
+    let { startDate, endDate, memberId } = req.query; if (memberId) memberId = parseInt(memberId);
     const companyId = req.header('x-company-id');
 
     let filter = ' WHERE al.company_id = ?';
@@ -204,7 +205,7 @@ router.get('/account-stats/:accountId', async (req, res) => {
        params.push(accountId);
     }
 
-    if (startDate && endDate) {
+    if (startDate && endDate && accountId !== 'all') {
       filter += ' AND DATE(al.transaction_date) BETWEEN ? AND ?';
       params.push(startDate, endDate);
     }
@@ -222,15 +223,18 @@ router.get('/account-stats/:accountId', async (req, res) => {
     let credit = parseFloat(result[0].total_credit || 0);
 
     // Symmetric Flip for Dangar System stats
-    if (parseInt(accountId) === 5) {
+    if (false && parseInt(accountId) === 5) {
        const temp = debit;
        debit = credit;
        credit = temp;
     }
     
     // Normalize opening balance
-    const accQuery = await query('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
-    const openingBal = parseFloat(accQuery[0]?.opening_balance || 0);
+    let openingBal = 0;
+    if (accountId !== 'all') {
+      const accQuery = await query('SELECT opening_balance FROM accounts WHERE id = ?', [accountId]);
+      openingBal = parseFloat(accQuery[0]?.opening_balance || 0);
+    }
 
     // In this system: opening_balance < 0 is Credit (Jama), > 0 is Debit (Udhar)
     const openingCredit = openingBal < 0 ? Math.abs(openingBal) : 0;
@@ -257,7 +261,7 @@ router.get('/account-stats/:accountId', async (req, res) => {
     }
 
     if (memberIds.length > 0) {
-        const interestData = await queryOne(`
+         const interestData = (accountId === 'all' && memberId) ? await queryOne(`SELECT SUM(COALESCE(interest_amount, 0)) as total FROM account_ledger WHERE (member_id = ? OR interest_member_id = ?) AND company_id = ?`, [memberId, memberId, companyId]) : await queryOne(`
           SELECT SUM(COALESCE(interest_amount, 0)) as total 
           FROM account_ledger 
           WHERE (account_id = ? OR interest_account_id = ?) AND company_id = ?
@@ -267,7 +271,7 @@ router.get('/account-stats/:accountId', async (req, res) => {
        // 2. Dangar Calculation
        let dQuery = 'SELECT SUM(amount) as amt, SUM(net_quintal) as qty FROM dangar_entry WHERE member_id IN (' + memberIds.map(() => '?').join(',') + ') AND company_id = ?';
        let dParams = [...memberIds, companyId];
-       if (startDate && endDate) {
+       if (startDate && endDate && accountId !== 'all') {
          dQuery += ' AND DATE(entry_date) BETWEEN ? AND ?';
          dParams.push(startDate, endDate);
        }
@@ -304,15 +308,17 @@ router.get('/account-stats/:accountId', async (req, res) => {
     res.json({
       success: true,
       data: {
-        total_debit: udharTotal,
+        total_debit: Math.max(0, udharTotal - jamaTotal),
         total_credit: netTotalJama,
         balance: finalBalance,
         bardan_balance: Math.max(0, bardan_balance),
         bardan_penalty: Math.max(0, bardan_penalty),
         dangar_amount: Math.max(0, dangar_amount),
         dangar_quintal: Math.max(0, dangar_quintal),
-        net_debit: netTotalUdhar,
-        total_interest: total_interest
+        net_debit: Math.max(0, (udharTotal + total_interest) - jamaTotal),
+        total_interest: total_interest,
+        opening_balance: Math.abs(openingBal),
+        opening_balance_type: openingBal < 0 ? 'credit' : 'debit'
       }
     });
   } catch (error) {
@@ -324,7 +330,7 @@ router.get('/account-stats/:accountId', async (req, res) => {
 // GET: Member-wise breakdown of a specific account (Deep Audit Mode)
 router.get('/breakdown/:accountId', async (req, res) => {
   try {
-    const accountId = req.params.accountId;
+    const accountIdRaw = req.params.accountId; const accountId = accountIdRaw === 'all' ? 'all' : parseInt(accountIdRaw);
     const companyId = req.header('x-company-id');
     const { startDate, endDate } = req.query;
 
@@ -360,7 +366,7 @@ router.get('/breakdown/:accountId', async (req, res) => {
       // 2. Dangar stats for this member
       let dangarQuery = 'SELECT SUM(amount) as amount, SUM(net_quintal) as qty FROM dangar_entry WHERE member_id = ? AND company_id = ?';
       let dangarParams = [mid, companyId];
-      if (startDate && endDate) {
+      if (startDate && endDate && accountId !== 'all') {
         dangarQuery += ' AND DATE(entry_date) BETWEEN ? AND ?';
         dangarParams.push(startDate, endDate);
       }
@@ -403,6 +409,7 @@ router.get('/breakdown/:accountId', async (req, res) => {
         member_id: mid,
         member_code: code,
         member_name: m.member_name,
+        opening_balance: parseFloat(m.bardan_opening || 0),
         ledger_debit: lDebit,
         ledger_credit: lCredit,
         ledger_balance: lCredit - lDebit,
@@ -440,7 +447,7 @@ router.get('/member-balance/:accountId/:memberId', async (req, res) => {
       // Return Dangar Amount as Credit (Jama)
       let dangarQuery = 'SELECT SUM(amount) as total FROM dangar_entry WHERE member_id = ? AND company_id = ?';
       let dangarParams = [memberId, companyId];
-      if (startDate && endDate) {
+      if (startDate && endDate && accountId !== 'all') {
         dangarQuery += ' AND DATE(entry_date) BETWEEN ? AND ?';
         dangarParams.push(startDate, endDate);
       }
@@ -454,7 +461,7 @@ router.get('/member-balance/:accountId/:memberId', async (req, res) => {
       let returnedQuery = "SELECT SUM(qty) as total FROM jama_bardan_entry WHERE member_id = ? AND company_id = ? AND (option_type IS NULL OR option_type != 'Self')";
       let params = [memberId, companyId];
       
-      if (startDate && endDate) {
+      if (startDate && endDate && accountId !== 'all') {
         takenQuery += ' AND DATE(entry_date) BETWEEN ? AND ?';
         returnedQuery += ' AND DATE(entry_date) BETWEEN ? AND ?';
         params.push(startDate, endDate);
@@ -480,7 +487,7 @@ router.get('/member-balance/:accountId/:memberId', async (req, res) => {
          WHERE account_id = ? AND (member_id = ? OR reference_id = ?) AND company_id = ?`;
       let ledgerParams = [accountId, memberId, memberId, companyId];
       
-      if (startDate && endDate) {
+      if (startDate && endDate && accountId !== 'all') {
         ledgerQuery += ' AND DATE(transaction_date) BETWEEN ? AND ?';
         ledgerParams.push(startDate, endDate);
       }
@@ -516,7 +523,7 @@ router.get('/', async (req, res) => {
     if (!endDate) {
       endDate = new Date().toISOString().split('T')[0];
     }
-    if (!startDate) {
+    if (!startDate || accountId === 'all') {
       const start = new Date();
       start.setDate(start.getDate() - 30);
       startDate = start.toISOString().split('T')[0];

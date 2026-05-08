@@ -7,10 +7,10 @@ import {
   Truck, Info
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import PurchaseForm from '../components/PurchaseForm';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
+import api from '../api';
 
 export default function Purchase() {
   const { t } = useTranslation();
@@ -33,14 +33,14 @@ export default function Purchase() {
 
   const loadCompany = async () => {
     try {
-      const response = await axios.get('/api/company');
+      const response = await api.get('/company');
       if (response.data.success && response.data.data) {
         setCompany(response.data.data);
         fetchPurchases(response.data.data.id);
-      } else {
-        setLoading(false);
       }
     } catch (error) {
+      console.error('Failed to load company', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -51,12 +51,11 @@ export default function Purchase() {
       const start = startDate || dateRange.startDate;
       const end = endDate || dateRange.endDate;
 
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases`, {
+      const res = await api.get('/purchases', {
         params: {
           startDate: start,
           endDate: end
-        },
-        headers: { 'x-company-id': companyId }
+        }
       });
 
       if (res.data.success) {
@@ -100,9 +99,7 @@ export default function Purchase() {
 
   const viewPurchaseDetails = async (purchaseId) => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases/${purchaseId}`, {
-        headers: { 'x-company-id': company.id }
-      });
+      const res = await api.get(`/purchases/${purchaseId}`);
       if (res.data.success) {
         setSelectedPurchase(res.data.data);
         setShowDetails(true);

@@ -2,7 +2,7 @@
 // File: backend/routes/userRoutes.js
 // User Master module with company isolation and role-based access
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { query, queryOne, execute } from '../db.js';
 import { validateUser, validateLogin } from '../validators/userValidator.js';
 
@@ -351,7 +351,7 @@ export function registerUserRoutes(app) {
         });
       }
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 1) {
         return res.status(400).json({
           success: false,
           error: 'New password must be at least 6 characters'
@@ -487,6 +487,8 @@ export function registerUserRoutes(app) {
       );
 
       // Return user info (excluding password)
+      console.log('Login successful for:', user.email);
+      res.set('Connection', 'keep-alive');
       res.json({
         success: true,
         message: 'Login successful',
@@ -500,6 +502,7 @@ export function registerUserRoutes(app) {
           financial_year: yearInfo.year_label
         }
       });
+      console.log('Response sent to client for:', user.email);
     } catch (error) {
       console.error('Login error:', error.message);
       res.status(500).json({

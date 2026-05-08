@@ -4,7 +4,7 @@ import {
   CreditCard, Info, Trash2, Save, ShoppingBag,
   Loader, Package, TrendingUp, AlertCircle, CheckCircle
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 
 export default function SaleForm({ onSubmit, onCancel }) {
   const [company, setCompany] = useState(null);
@@ -100,7 +100,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const fetchNextBillNo = async () => {
     if (!company?.id) return;
     try {
-      const res = await axios.get(`/api/sales?type=${salesType}`, { headers: { 'x-company-id': company.id } });
+      const res = await api.get(`/sales?type=${salesType}`);
       const prefix = salesType === 'cash' ? 'CS' : 'CR';
       if (res.data.success && res.data.data && res.data.data.length > 0) {
         const typedSales = res.data.data.filter(s => String(s.invoice_no).startsWith(prefix));
@@ -122,16 +122,16 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
   const loadCompanyAndData = async () => {
     try {
-      const compRes = await axios.get('/api/company');
+      const compRes = await api.get('/company');
       if (compRes.data.success && compRes.data.data) {
         const comp = compRes.data.data;
         setCompany(comp);
-        const accRes = await axios.get(`/api/accounts/company/${comp.id}`, { headers: { 'x-company-id': comp.id } });
+        const accRes = await api.get(`/accounts/company/${comp.id}`);
         if (accRes.data.success) {
           const vendorList = (accRes.data.data || []).filter(acc => acc.account_type === 'vendor');
           setAvailableMembers(vendorList);
         }
-        const itemRes = await axios.get(`/api/items/company/${comp.id}?active=true`, { headers: { 'x-company-id': comp.id } });
+        const itemRes = await api.get(`/items/company/${comp.id}?active=true`);
         if (itemRes.data.success) {
           setAvailableItems(itemRes.data.data || []);
         }
@@ -197,8 +197,8 @@ export default function SaleForm({ onSubmit, onCancel }) {
           item_id: row.id, quantity: row.quantity, weight: row.weight, sale_rate: row.rate, amount: row.amount
         }))
       };
-      const res = await axios.post('/api/sales/weight-based', payload, { headers: { 'x-company-id': company.id, 'x-user-id': 1 } });
-      if (res.data.success) {
+      const response = await api.post('/sales/weight-based', payload);
+      if (response.data.success) {
         setSuccess("Sale Manifest Synchronized Successfully.");
         setTimeout(() => { if (onSubmit) onSubmit(res.data.data); }, 1000);
       }

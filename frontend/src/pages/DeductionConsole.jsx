@@ -35,7 +35,7 @@ export default function DeductionConsole() {
       startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0]
    });
-   const [activeAccountStats, setActiveAccountStats] = useState({ total_debit: 0, total_credit: 0, balance: 0 });
+   const [activeAccountStats, setActiveAccountStats] = useState({ total_debit: 0, total_credit: 0, balance: 0, dangar_amount: 0 });
 
    // Refs for Deduction Modal
    const codeInputRef = useRef(null);
@@ -43,17 +43,21 @@ export default function DeductionConsole() {
    const dateInputRef = useRef(null);
 
    useEffect(() => {
-      if (deductionPayload.target_identifier && deductionPayload.target_identifier.startsWith('account-')) {
-         const accId = deductionPayload.target_identifier.split('-')[1];
+      const sabhasadId = deductionPayload.sabhasad_id;
+      const targetId = deductionPayload.target_identifier;
+
+      if (sabhasadId || (targetId && targetId.startsWith('account-'))) {
+         const accId = targetId && targetId.startsWith('account-') ? targetId.split('-')[1] : 'all';
+         
          api.get(`/account-ledger/account-stats/${accId}`, {
-            params: { ...accountStatsRange, endDate: deductionPayload.date, memberId: deductionPayload.sabhasad_id }
+            params: { ...accountStatsRange, endDate: deductionPayload.date, memberId: sabhasadId }
          })
             .then(res => {
                if (res.data.success) {
                   const stats = res.data.data;
                   setActiveAccountStats(stats);
 
-                  if (stats.total_interest > 0) {
+                  if (stats.total_interest > 0 && targetId) {
                      setSelectedIdentities(prev => prev.map(item => {
                         if (item.code === 'IK0001') {
                            return {
@@ -70,9 +74,9 @@ export default function DeductionConsole() {
             })
             .catch(console.error);
       } else {
-         setActiveAccountStats({ total_debit: 0, total_credit: 0, balance: 0 });
+         setActiveAccountStats({ total_debit: 0, total_credit: 0, balance: 0, dangar_amount: 0 });
       }
-   }, [deductionPayload.target_identifier, accountStatsRange.startDate, deductionPayload.date, deductionPayload.sabhasad_id]);
+   }, [deductionPayload.target_identifier, deductionPayload.sabhasad_id, accountStatsRange.startDate, deductionPayload.date]);
 
    useEffect(() => { loadIdentities(); }, []);
 
@@ -106,7 +110,7 @@ export default function DeductionConsole() {
                return {
                   total_debit: parseFloat(res.data.data.total_debit || 0),
                   total_credit: parseFloat(res.data.data.total_credit || 0),
-                  total_interest: parseFloat(res.data.data.total_interest || 0),
+                  total_interest: parseFloat(res.data.data.total_interest || 0), dangar_amount: parseFloat(res.data.data.dangar_amount || 0),
                   balance: parseFloat(res.data.data.balance || 0)
                };
             }
@@ -369,9 +373,9 @@ export default function DeductionConsole() {
                               const updated = freshIdentities.map(item => {
                                  if (item.is_auto === false) return item;
                                  const udhar = parseFloat(item.total_debit) || 0;
-                                 const jama = parseFloat(item.total_credit) || 0;
+                                 const jama = parseFloat(item.dangar_amount) || 0;
                                  const bal = jama - udhar;
-                                 if (bal < 0) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                 if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                  return item;
                               });
                               setSelectedIdentities(updated);
@@ -396,29 +400,43 @@ export default function DeductionConsole() {
                                  params: { accountIds: ledgerAccounts.map(a => a.id).join(','), endDate: deductionPayload.date }
                               });
                               if (globalRes.data.success) {
-                                 const membersToAdd = [];
-                                 globalRes.data.data.forEach(mb => {
-                                    if (mb.balance < -0.01) {
-                                       const member = members.find(m => m.id === mb.member_id);
-                                       if (member) {
-                                          membersToAdd.push({
-                                             id: member.id, type: 'member', name: member.member_name, code: member.member_code,
-                                             deduction_amount: Math.abs(mb.balance).toFixed(2), is_auto: true
-                                          });
-                                       }
-                                    }
-                                 });
-                                 const existingIds = new Set(selectedIdentities.map(p => `${p.type}-${p.id}`));
-                                 const filteredNew = membersToAdd.filter(m => !existingIds.has(`${m.type}-${m.id}`));
-                                 updatedIdentities = [...selectedIdentities, ...filteredNew];
+                                 const balancesMap = new Map(globalRes.data.data.map(mb => [mb.member_id, mb.balance]));
+                                 
+                                  // 1. Update existing members in list (Match by both member and account)
+                                  updatedIdentities = selectedIdentities.map(item => {
+                                     if (item.type !== 'member' || item.is_auto === false) return item;
+                                     const bal = globalRes.data.data.find(mb => mb.member_id === item.id && mb.account_id === item.target_account_id)?.balance || 0;
+                                     if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                     return item;
+                                  });
+
+                                  // 2. Add new entries for members with debt in specific accounts
+                                  globalRes.data.data.forEach(mb => {
+                                     const exists = updatedIdentities.some(i => i.type === 'member' && i.id === mb.member_id && i.target_account_id === mb.account_id);
+                                     
+                                     if (mb.balance < -0.01 && !exists) {
+                                        const member = members.find(m => m.id === mb.member_id);
+                                        const account = accounts.find(a => a.id === mb.account_id);
+                                        if (member) {
+                                           updatedIdentities.push({
+                                              id: member.id, type: 'member', 
+                                              name: `${member.member_name} (${account?.account_name || 'Debt'})`, 
+                                              code: member.member_code,
+                                              deduction_amount: Math.abs(mb.balance).toFixed(2), 
+                                              target_account_id: mb.account_id,
+                                              is_auto: true
+                                           });
+                                        }
+                                     }
+                                  });
                                  setSelectedIdentities(updatedIdentities);
                               }
                            } else {
                               const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
                               updatedIdentities = freshIdentities.map(item => {
                                  if (item.is_auto === false) return item;
-                                 const bal = (parseFloat(item.total_credit) || 0) - (parseFloat(item.total_debit) || 0);
-                                 if (bal < 0) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                 const udhar = parseFloat(item.total_debit) || 0; const dangar = parseFloat(item.dangar_amount) || 0; const payAmount = Math.min(udhar, dangar);
+                                 if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                  return item;
                               });
                               setSelectedIdentities(updatedIdentities);
@@ -564,8 +582,8 @@ export default function DeductionConsole() {
                               try {
                                  const updated = selectedIdentities.map(item => {
                                     if (item.is_auto === false) return item;
-                                    const bal = (parseFloat(item.total_credit) || 0) - (parseFloat(item.total_debit) || 0);
-                                    if (bal < 0) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                    const udhar = parseFloat(item.total_debit) || 0; const dangar = parseFloat(item.dangar_amount) || 0; const payAmount = Math.min(udhar, dangar);
+                                    if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                     return item;
                                  });
                                  setSelectedIdentities(updated);
@@ -581,8 +599,8 @@ export default function DeductionConsole() {
                               try {
                                  const updated = selectedIdentities.map(item => {
                                     if (item.is_auto === false) return item;
-                                    const bal = (parseFloat(item.total_credit) || 0) - (parseFloat(item.total_debit) || 0);
-                                    if (bal < 0) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                    const udhar = parseFloat(item.total_debit) || 0; const dangar = parseFloat(item.dangar_amount) || 0; const payAmount = Math.min(udhar, dangar);
+                                    if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                     return item;
                                  });
                                  setSelectedIdentities(updated);
@@ -639,7 +657,7 @@ export default function DeductionConsole() {
                      </div>
                   </div>
 
-                  {deductionPayload.target_identifier && (
+                  {(deductionPayload.target_identifier || deductionPayload.sabhasad_id) && (
                      <div className="bg-zinc-50 border border-zinc-300 p-3 mb-4 flex items-center justify-between gap-4 select-none">
                         <div className="flex items-center gap-3">
                            <div className="flex items-center gap-2">
@@ -657,9 +675,9 @@ export default function DeductionConsole() {
                         </div>
                         <div className="flex items-center gap-3">
                            <div className="flex flex-col items-end px-3 py-1 bg-white border border-zinc-300">
-                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">Jama</span>
+                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">Dangar Jama</span>
                               <span className="text-emerald-700 font-mono font-bold text-xs leading-none">
-                                 {parseFloat(activeAccountStats.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                 {parseFloat(activeAccountStats.dangar_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                            </div>
                            <div className="flex flex-col items-end px-3 py-1 bg-white border border-zinc-300">
@@ -682,7 +700,7 @@ export default function DeductionConsole() {
                   <div className="flex-1 overflow-y-auto border border-zinc-300 mb-4 select-none bg-white">
                      <div className="grid border-b border-zinc-300 bg-zinc-50"
                         style={{ gridTemplateColumns: '40px 80px 1fr 120px 110px' }}>
-                        {['No.', 'Code', 'Account Name', 'Balance', 'Amount'].map((h, i) => (
+                        {['No.', 'Code', 'Account Name', 'Udhar', 'Amount'].map((h, i) => (
                            <div key={h} className={`py-1.5 text-[10px] font-bold text-zinc-500 uppercase ${i < 4 ? 'border-r border-zinc-300' : ''} ${i >= 3 ? 'text-right px-3' : 'text-center'}`}>{h}</div>
                         ))}
                      </div>
@@ -693,16 +711,16 @@ export default function DeductionConsole() {
                         ) : selectedIdentities.map((item, idx) => {
                            const key = `${item.type}-${item.id}-${idx}`;
                            const isActive = key === deductionPayload.target_identifier;
-                           const bal = Number(item.total_credit || 0) - Number(item.total_debit || 0);
+                           const bal = Number(item.total_debit || 0);
                            const deducted = parseFloat(item.deduction_amount) || 0;
-                           const closing = bal + deducted;
+                           const closing = bal - deducted;
 
                            return (
                               <div key={key}
                                  onClick={async () => {
                                     setDeductionPayload(p => ({ ...p, target_identifier: key }));
                                     if (!item.deduction_amount || parseFloat(item.deduction_amount) === 0) {
-                                       const bal = Number(item.total_credit || 0) - Number(item.total_debit || 0);
+                                       const bal = Number(item.total_debit || 0);
                                        handleUpdateTargetAmount(item.type, item.id, Math.abs(bal).toFixed(2));
                                     }
                                  }}
@@ -712,10 +730,10 @@ export default function DeductionConsole() {
                                  <div className="border-r border-zinc-200 py-2 text-center text-xs font-mono font-bold text-zinc-700">{String(item.code || '').padStart(4, '0')}</div>
                                  <div className="border-r border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-800 uppercase tracking-tight truncate">{item.name}</div>
                                  <div className="border-r border-zinc-200 px-3 py-2 flex flex-col items-end justify-center select-none">
-                                    <div className={`text-xs font-mono font-bold ${bal < 0 ? 'text-rose-600' : bal > 0 ? 'text-emerald-600' : 'text-zinc-600'}`}>
-                                       {bal > 0 ? '+' : bal < 0 ? '-' : ''}{Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    <div className={`text-xs font-mono font-bold text-rose-600`}>
+                                       {bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </div>
-                                    {isActive && deducted !== 0 && Math.abs(closing) > 0.01 && (
+                                    {isActive && deducted !== 0 && (
                                        <div className="text-[10px] font-mono font-bold italic text-zinc-400">
                                           {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                        </div>

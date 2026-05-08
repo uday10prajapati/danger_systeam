@@ -57,8 +57,8 @@ function startBackend() {
     // Use utilityProcess for a robust background process
     backendChild = utilityProcess.fork(backendEntry, [], {
       stdio: 'pipe',
-      env: { 
-        ...process.env, 
+      env: {
+        ...process.env,
         NODE_ENV: app.isPackaged ? 'production' : 'development',
         PORT: '5080',
         DB_USER: 'postgres',
@@ -118,34 +118,7 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  // Clear session on close to force logout
-  mainWindow.on('close', (e) => {
-    // Only perform the wipe once
-    if (app.isQuitting) return;
-
-    e.preventDefault(); // Pause the close
-    const { session } = require('electron');
-    
-    console.log('🧹 Checking if Deep Clean is needed...');
-    
-      console.log('🧹 Performing Mandatory Deep Clean...');
-      session.defaultSession.clearStorageData({
-        storages: ['localstorage', 'cookies', 'sessionstorage', 'indexdb']
-      }).then(() => {
-        console.log('✅ Deep Clean Complete');
-        app.isQuitting = true;
-        app.quit();
-      }).catch(() => {
-        app.isQuitting = true;
-        app.quit();
-      });
-  });
 }
-
-app.on('before-quit', () => {
-  app.isQuitting = true;
-});
 
 app.on('ready', async () => {
   // 1. Database Setup

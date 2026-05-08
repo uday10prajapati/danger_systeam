@@ -8,7 +8,7 @@ import {
   CheckCircle, AlertCircle, Loader
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../api';
 
 export default function ItemForm({ item = null, company, onSubmit, onClose, existingItems = [] }) {
   const { t, i18n } = useTranslation();
@@ -63,9 +63,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
   const fetchNextItemCode = async () => {
     try {
-      const res = await axios.get('/api/items/next-code', {
-        headers: { 'x-company-id': company.id }
-      });
+      const res = await api.get('/items/next-code');
       if (res.data.success) {
         setFormData(prev => ({ 
           ...prev, 
@@ -80,7 +78,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
   const fetchAccounts = async () => {
     try {
-      const res = await axios.get(`/api/accounts/company/${company.id}`);
+      const res = await api.get(`/accounts/company/${company.id}`);
       if (res.data.success) {
         setAccounts(res.data.data);
         if (item) {
@@ -170,14 +168,10 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
     try {
       if (item?.id) {
-        await axios.put(`/api/items/${item.id}`, formData, {
-          headers: { 'x-company-id': company.id }
-        });
+        await api.put(`/items/${item.id}`, formData);
         onSubmit?.('Item updated successfully.');
       } else {
-        await axios.post('/api/items', formData, {
-          headers: { 'x-company-id': company.id }
-        });
+        await api.post('/items', formData);
         onSubmit?.('Item registered successfully.');
       }
     } catch (err) {

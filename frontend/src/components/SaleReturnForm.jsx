@@ -7,8 +7,8 @@ import {
   AlertCircle, ChevronDown, Trash2, Command,
   TrendingDown, Database, ShoppingCart, Layers
 } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import api from '../api';
 import GSTSelector from './GSTSelector';
 
 const FormLabel = ({ children, icon: Icon, className = "" }) => (
@@ -63,9 +63,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
 
   const fetchMembers = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/accounts/company/${company.id}`, {
-        headers: { 'x-company-id': company.id }
-      });
+      const res = await api.get(`/accounts/company/${company.id}`);
       setMembers(res.data.success ? res.data.data : []);
     } catch (err) {
       console.error('Fetch members error', err);
@@ -96,10 +94,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
   const fetchAvailableSales = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/sale-returns/available-sales`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get('/sale-returns/available-sales');
       setAvailableSales(response.data.data);
     } catch (err) {
       setError('Connection Failure: Pipeline unreachable');
@@ -111,10 +106,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
   const handleSelectSale = async (sale) => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/sale-returns/sale/${sale.id}`,
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.get(`/sale-returns/sale/${sale.id}`);
       setSelectedSale(response.data.data);
       setReturnItems(
         response.data.data.items.map(item => ({
@@ -146,22 +138,18 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
 
     try {
       setLoading(true);
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/sale-returns`,
-        {
-          sale_id: selectedSale.id,
-          return_date: returnDate,
-          items: itemsToReturn.map(item => ({
-            item_id: item.item_id,
-            quantity: item.return_quantity,
-            sale_rate: item.sale_rate,
-            amount: item.return_amount
-          })),
-          refund_type: refundType,
-          notes
-        },
-        { headers: { 'x-company-id': company.id, 'x-user-id': 1 } }
-      );
+      const response = await api.post('/sale-returns', {
+        sale_id: selectedSale.id,
+        return_date: returnDate,
+        items: itemsToReturn.map(item => ({
+          item_id: item.item_id,
+          quantity: item.return_quantity,
+          sale_rate: item.sale_rate,
+          amount: item.return_amount
+        })),
+        refund_type: refundType,
+        notes
+      });
 
       if (response.data.success) {
         setSuccess('Reversal protocol committed successfully');
