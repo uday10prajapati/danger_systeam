@@ -106,7 +106,10 @@ router.get('/', async (req, res) => {
         (
            SELECT COALESCE(m.bardan_opening, 0) + 
                   (SELECT COALESCE(SUM(qty), 0) FROM bardan_entry WHERE member_id = m.id AND company_id = ?) - 
-                  (SELECT COALESCE(SUM(qty), 0) FROM jama_bardan_entry WHERE member_id = m.id AND company_id = ? AND (option_type IS NULL OR option_type != 'Self'))
+                  (SELECT COALESCE(SUM(qty), 0) FROM jama_bardan_entry WHERE member_id = m.id AND company_id = ? AND (option_type IS NULL OR option_type != 'Self')) -
+                  (SELECT COALESCE(SUM(COALESCE(CAST(SUBSTRING(description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)), 0) 
+                   FROM account_ledger 
+                   WHERE member_id = m.id AND reference_type = 'BardanPenalty' AND company_id = ?)
         ) AS bardan_penalty_balance,
 
         -- Bardan Self Jama (Bags returned as Self)
@@ -143,7 +146,7 @@ router.get('/', async (req, res) => {
     queryParams.push(startDate, endDate);
 
     // bardan_balance & bardan_penalty_balance & bardan_self_jama
-    queryParams.push(companyId, companyId, companyId, companyId, companyId);
+    queryParams.push(companyId, companyId, companyId, companyId, companyId, companyId);
 
     // last_activity_date
     if (accountFilter && !accountFilter.includes('IN')) queryParams.push(accountId);
@@ -192,6 +195,13 @@ router.get('/', async (req, res) => {
           al.reference_type,
           COALESCE(al.debit, 0) as debit,
           COALESCE(al.credit, 0) as credit,
+          CASE 
+            WHEN al.reference_type = 'jama_bardan_entry' THEN 
+              CASE WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0 ELSE COALESCE(al.credit, 0) END
+            WHEN al.reference_type = 'BardanPenalty' THEN 
+              COALESCE(CAST(SUBSTRING(al.description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)
+            ELSE 0
+          END as penalty_credit,
           'Bardan System' as account_name
         FROM account_ledger al
         LEFT JOIN member_master m ON al.member_id = m.id
@@ -215,7 +225,8 @@ router.get('/', async (req, res) => {
       
       let runningQty = initialBardan;
       const rowsWithQty = bRows.map(row => {
-        runningQty += (parseFloat(row.debit) - parseFloat(row.credit));
+        // Use penalty_credit for quantity tracking to avoid mixing in rupee amounts from settlements
+        runningQty += (parseFloat(row.debit) - parseFloat(row.penalty_credit || row.credit));
         return { ...row, balance: runningQty };
       });
 

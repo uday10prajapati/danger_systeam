@@ -289,8 +289,14 @@ router.get('/account-stats/:accountId', async (req, res) => {
               const allReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
               const companyReturned = await queryOne("SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != 'Self')", [code, companyId]);
               
+              const penaltySettled = await queryOne(`
+                SELECT COALESCE(SUM(COALESCE(CAST(SUBSTRING(description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)), 0) as total 
+                FROM account_ledger 
+                WHERE member_id = ? AND reference_type = 'BardanPenalty' AND company_id = ?
+              `, [memberId, companyId]);
+              
               bardan_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(allReturned?.total || 0);
-              const penalty_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0);
+              const penalty_balance = parseFloat(member.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0) - parseFloat(penaltySettled?.total || 0);
               
               if (penalty_balance > 0) {
                 const priceData = await queryOne('SELECT price_per_bardan FROM bardan_price_master WHERE company_id = ?', [companyId]);
@@ -377,8 +383,14 @@ router.get('/breakdown/:accountId', async (req, res) => {
       const allReturned = await queryOne('SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ?', [code, companyId]);
       const companyReturned = await queryOne("SELECT SUM(qty) as total FROM jama_bardan_entry WHERE code = ? AND company_id = ? AND (option_type IS NULL OR option_type != 'Self')", [code, companyId]);
       
+      const penaltySettled = await queryOne(`
+        SELECT COALESCE(SUM(COALESCE(CAST(SUBSTRING(description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)), 0) as total 
+        FROM account_ledger 
+        WHERE member_id = ? AND reference_type = 'BardanPenalty' AND company_id = ?
+      `, [mid, companyId]);
+      
       const bBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(allReturned?.total || 0);
-      const pBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0);
+      const pBal = parseFloat(m.bardan_opening || 0) + parseFloat(taken?.total || 0) - parseFloat(companyReturned?.total || 0) - parseFloat(penaltySettled?.total || 0);
       const bPenalty = pBal > 0 ? pBal * bardanPrice : 0;
 
       // 4. Interest calculation for this member

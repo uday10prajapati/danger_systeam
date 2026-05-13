@@ -49,8 +49,8 @@ router.post('/manual', async (req, res) => {
           entry.interest_amount ? parseFloat(entry.interest_amount) : 0,
           entry.interest_a_per || null,
           entry.interest_percent ? parseFloat(entry.interest_percent) : 0,
-          entry.interest_member_id || null,
-          entry.interest_account_id || null
+          entry.interest_member_id || entry.member_id || null,
+          entry.interest_account_id || (entry.interest_amount > 0 ? 8 : null)
         ]);
       }
       return res.status(201).json({ success: true, data: { reference_no: referenceNo } });
@@ -76,8 +76,8 @@ router.post('/manual', async (req, res) => {
         req.body.interest_amount ? parseFloat(req.body.interest_amount) : 0,
         req.body.interest_a_per || null,
         req.body.interest_percent ? parseFloat(req.body.interest_percent) : 0,
-        req.body.interest_member_id || null,
-        req.body.interest_account_id || null
+        req.body.interest_member_id || req.body.member_id || null,
+        req.body.interest_account_id || (parseFloat(req.body.interest_amount || 0) > 0 ? 8 : null)
       ]);
     }
 

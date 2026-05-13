@@ -456,8 +456,8 @@ export default function AccountLedger() {
                         {/* Stats Shards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 print:grid-cols-4 select-none">
                            {[
-                              { label: 'Debit Accumulation', val: parseFloat(accountBalance.total_debit || 0), color: 'zinc' },
-                              { label: 'Credit Accumulation', val: parseFloat(accountBalance.total_credit || 0), color: 'zinc' },
+                              { label: 'Udhar Baju (Debit)', val: parseFloat(accountBalance.total_debit || 0), color: 'zinc' },
+                              { label: 'Jama Baju (Credit)', val: parseFloat(accountBalance.total_credit || 0), color: 'zinc' },
                               { label: 'Opening Balance', val: parseFloat(accountBalance.opening_balance || 0), color: 'zinc', type: accountBalance.opening_balance_type },
                               { label: 'Net Position', val: parseFloat(accountBalance.balance || accountBalance.running_balance || 0), color: 'blue', special: true },
                            ].map((shard, i) => (
@@ -494,8 +494,8 @@ export default function AccountLedger() {
                                        {[
                                           'Date',
                                           'Description / Member',
-                                          'Debit (+)',
-                                          'Credit (-)',
+                                          'Jama Baju (Credit)',
+                                          'Udhar Baju (Debit)',
                                           ...(selectedAccount?.account_code === 'BS0001' ? ['Self Jama'] : []),
                                           'Balance',
                                           ...(selectedAccount?.account_code === 'BS0001' ? ['Bardan Amt'] : [])
@@ -529,8 +529,8 @@ export default function AccountLedger() {
                                              <tr className="bg-zinc-50 border-b border-zinc-200 font-bold italic">
                                                 <td className="px-6 py-3 text-zinc-400 border-r border-zinc-100 italic">—</td>
                                                 <td className="px-6 py-3 text-zinc-500 uppercase tracking-tight border-r border-zinc-100">OPENING BALANCE (FORWARD)</td>
-                                                <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "debit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
                                                 <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "credit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
+                                                <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "debit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
                                                 <td className={`px-6 py-3 text-right font-black text-xs border-r border-zinc-100 ${accountBalance.opening_balance_type === "debit" ? "text-zinc-800" : "text-rose-600"}`}>₹{parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")} {accountBalance.opening_balance_type === "debit" ? "D" : "C"}</td>
                                              </tr>
                                           )}
@@ -548,19 +548,19 @@ export default function AccountLedger() {
                                                    )}
                                                 </div>
                                              </td>
-                                             <td className={`px-6 py-4 text-right font-bold text-zinc-900 border-r border-zinc-100`}>
-                                                {parseFloat(row.debit || 0) > 0 ? (
-                                                   (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
-                                                      ? parseFloat(row.debit).toLocaleString('en-IN')
-                                                      : `₹${parseFloat(row.debit).toLocaleString('en-IN')}`
-                                                ) : '—'}
-                                             </td>
                                              <td className="px-6 py-4 text-right font-bold text-zinc-500 border-r border-zinc-100">
                                                 {selectedAccount?.account_code === 'IK0001' ? (
                                                    parseFloat(row.credit || 0) > 0 ? `₹${parseFloat(row.credit).toLocaleString('en-IN')}` : `₹0.00`
                                                 ) : parseFloat(row.credit || 0) > 0 ? (
                                                    (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
                                                       ? parseFloat(row.company_credit || 0) > 0 ? parseFloat(row.company_credit).toLocaleString('en-IN') : '—' : `₹${parseFloat(row.credit).toLocaleString('en-IN')}`
+                                                ) : '—'}
+                                             </td>
+                                             <td className={`px-6 py-4 text-right font-bold text-zinc-900 border-r border-zinc-100`}>
+                                                {parseFloat(row.debit || 0) > 0 ? (
+                                                   (selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]'))
+                                                      ? parseFloat(row.debit).toLocaleString('en-IN')
+                                                      : `₹${parseFloat(row.debit).toLocaleString('en-IN')}`
                                                 ) : '—'}
                                              </td>
                                              {selectedAccount?.account_code === 'BS0001' && (
@@ -587,10 +587,10 @@ export default function AccountLedger() {
                                     <tr>
                                        <td colSpan="2" className="px-6 py-4 text-right">REGISTRY TOTALS:</td>
                                        <td className="px-6 py-4 text-right text-white">
-                                          ₹{parseFloat(accountBalance.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                          ₹{parseFloat(accountBalance.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                        </td>
                                        <td className="px-6 py-4 text-right text-white">
-                                          ₹{parseFloat(accountBalance.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                          ₹{parseFloat(accountBalance.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                        </td>
                                        {selectedAccount?.account_code === 'BS0001' && (
                                           <td className="px-6 py-4 text-right text-emerald-400">

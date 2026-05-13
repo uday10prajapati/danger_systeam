@@ -1,8 +1,48 @@
 import express from 'express';
-import { query, queryOne, execute } from '../db.js';
+import { query, queryOne, execute, ACCOUNT_CODES, postJournal, postToLedger, getAccountIdByCode } from '../db.js';
 import { generateDangarEntryCode } from '../utils/protocolCodeGenerator.js';
 
 const router = express.Router();
+
+// --- ISOLATED ACCOUNTING HELPERS ---
+
+/**
+ * Maps Dangar transaction data into balanced journal entries
+ * as per custom 'Danger System' structure.
+ */
+function mapPurchaseJournalEntries({ 
+  purchaseAccountId, godownAccountId, memberPurchaseAccountId, memberId, 
+  grossAmount, fundAmount, deductions, bookType, netQuintal, rate, srNo 
+}) {
+  const entries = [
+    { accountId: purchaseAccountId, credit: grossAmount, description: `Danger Purchase Account - ${netQuintal} Qt @ ${rate}` },
+    { accountId: godownAccountId, credit: fundAmount, description: `Danger Godown Fund Account` }
+  ];
+
+  let totalDeductions = 0;
+  deductions.forEach(d => {
+    const dAmt = parseFloat(d.calculated_amount || d.amt || 0);
+    if (dAmt > 0 && d.account_id) {
+       entries.push({
+         accountId: d.account_id,
+         debit: dAmt,
+         description: `Kapat: ${d.name || 'Deduction'}`
+       });
+       totalDeductions += dAmt;
+    }
+  });
+
+  // Net Member Allocation (Udhar Side)
+  const netMemberDebit = grossAmount + fundAmount - totalDeductions;
+  entries.push({
+    accountId: memberPurchaseAccountId,
+    memberId: memberId,
+    debit: netMemberDebit,
+    description: `Members Danger Purchase Account [SR: ${srNo}]`
+  });
+
+  return entries;
+}
 
 // GET all dangar entries
 router.get('/', async (req, res) => {
@@ -588,82 +628,47 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // 5. Commit to Unified Ledger (Double-Entry Strategy)
+    // 5. Commit to Unified Ledger (Using Isolated Mapper)
     const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
-    const purchaseAccountId = itemData?.purchase_account_id || null;
-    const targetLedgerAccId = purchaseAccountId || dangarAccountId;
-    const ledgerDesc = `${bookType} Purchase - ${net_quintal} Qt @ ${rate}`;
-    const amountVal = parseFloat(amount || 0);
-
-    try {
-      if (targetLedgerAccId) {
-        // A. DEBIT THE SYSTEM ACCOUNT (Stock Increase)
-        await execute(`
-          INSERT INTO account_ledger (
-            company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-            reference_id, reference_no, description, debit, financial_year
-          ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
-        `, [
-          companyId, targetLedgerAccId, member_id, date, entryId, srNo, ledgerDesc, 
-          amountVal, currentFinancialYear
-        ]);
-
-        // B. CREDIT THE MEMBER (Payable Increase)
-        await execute(`
-          INSERT INTO account_ledger (
-            company_id, member_id, transaction_date, transaction_type, reference_type, 
-            reference_id, reference_no, description, credit, financial_year
-          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
-        `, [
-          companyId, member_id, date, entryId, srNo, ledgerDesc, 
-          amountVal, currentFinancialYear
-        ]);
-      } else {
-        // Fallback — write ledger entry linked to member only
-        await execute(`
-          INSERT INTO account_ledger (
-            company_id, member_id, transaction_date, transaction_type, reference_type, 
-            reference_id, reference_no, description, credit, financial_year
-          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
-        `, [
-          companyId, member_id, date, entryId, srNo, ledgerDesc, 
-          amountVal, currentFinancialYear
-        ]);
+    const purchaseAccountId = itemData?.purchase_account_id || await getAccountIdByCode(companyId, ACCOUNT_CODES.DANGAR_PURCHASE);
+    const memberPurchaseAccountId = await getAccountIdByCode(companyId, ACCOUNT_CODES.MEMBERS_DANGAR_PURCHASE);
+    const godownAccountId = await getAccountIdByCode(companyId, ACCOUNT_CODES.DANGAR_GODOWN_FUND);
+    
+    // Resolve deduction account IDs from master
+    const resolvedDeductions = [];
+    if (deductions.length > 0) {
+      for (const d of deductions) {
+        const dMaster = await queryOne('SELECT ledger_account_id, name FROM deduction_master WHERE id = ?', [d.deduction_id]);
+        if (dMaster?.ledger_account_id) {
+          resolvedDeductions.push({ account_id: dMaster.ledger_account_id, name: dMaster.name, amt: d.calculated_amount });
+        }
       }
-    } catch (ledgerErr) {
-      console.warn('Ledger sync warning (non-fatal):', ledgerErr.message);
     }
 
-    // 5b. Auto-Calculate & Commit Godown Fund (1 RS per 20 KG)
-    const godownFundAmount = (parseFloat(total_kg) || 0) * 0.05;
-    if (godownFundAmount > 0) {
-       const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
-       const godownAccountId = godownAc?.id;
-       if (godownAccountId) {
-          const fundDesc = `Dangar Godown Fund`;
-          // A. DEBIT THE MEMBER (Reduction in Payable)
-          await execute(`
-             INSERT INTO account_ledger (
-                company_id, member_id, account_id, transaction_date, transaction_type, reference_type, 
-                reference_id, reference_no, description, debit, financial_year
-             ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
-          `, [
-             companyId, member_id, godownAccountId, date, entryId, srNo, fundDesc, 
-             godownFundAmount, currentFinancialYear
-          ]);
+    const journalEntries = mapPurchaseJournalEntries({
+      purchaseAccountId, godownAccountId, memberPurchaseAccountId, memberId: member_id,
+      grossAmount: parseFloat(req.body.gross_amount || amount || 0),
+      fundAmount: (parseFloat(total_kg) || 0) * 0.05,
+      deductions: resolvedDeductions,
+      bookType, netQuintal: net_quintal, rate, srNo
+    });
 
-          // B. CREDIT THE GODOWN FUND ACCOUNT
-          await execute(`
-             INSERT INTO account_ledger (
-                company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
-                reference_id, reference_no, description, credit, financial_year
-             ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
-          `, [
-             companyId, godownAccountId, member_id, date, entryId, srNo, fundDesc, 
-             godownFundAmount, currentFinancialYear
-          ]);
-          console.log(`✅ Godown Fund Settle: ${godownFundAmount}`);
-       }
+    try {
+      await postJournal({
+        companyId,
+        date,
+        referenceType: 'dangar_entry',
+        referenceId: entryId,
+        referenceNo: srNo,
+        description: `${bookType} Purchase Entry`,
+        entries: journalEntries,
+        financialYear: currentFinancialYear,
+        userId: created_by || 1,
+        transactionType: 'cash_book'
+      });
+      console.log('✅ Consolidated Dangar Journal Committed');
+    } catch (ledgerErr) {
+      console.warn('Ledger sync warning:', ledgerErr.message);
     }
 
     // 6. Auto-Settle Bardan Balance (Jama Entry)
@@ -772,52 +777,48 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    // 4. Re-sync Account Ledger
-    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'jama_bardan_entry') AND reference_id = ?", [id]);
+    // 4. Re-sync Account Ledger (Using Isolated Mapper)
+    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'dangar_entry_kapat', 'jama_bardan_entry') AND reference_id = ?", [id]);
 
-    const dangarAccount = await queryOne("SELECT id FROM accounts WHERE account_code = 'DS0001' AND company_id = ?", [companyId]);
-    const dangarAccountId = dangarAccount?.id || null;
-    const itemData = await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]);
-    const targetLedgerAccId = itemData?.purchase_account_id || dangarAccountId;
-    const ledgerDesc = `${bookType} Purchase [Edit] - ${net_quintal} Qt @ ${rate}`;
-    const amountVal = parseFloat(amount || 0);
-
-    if (targetLedgerAccId) {
-      await execute(`
-        INSERT INTO account_ledger (
-          company_id, account_id, transaction_date, transaction_type, reference_type, 
-          reference_id, reference_no, description, debit, financial_year
-        ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
-      `, [companyId, targetLedgerAccId, date, id, srNo, ledgerDesc, amountVal, currentFinancialYear]);
-
-      await execute(`
-        INSERT INTO account_ledger (
-          company_id, member_id, transaction_date, transaction_type, reference_type, 
-          reference_id, reference_no, description, credit, financial_year
-        ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry', ?, ?, ?, ?, ?)
-      `, [companyId, member_id, date, id, srNo, ledgerDesc, amountVal, currentFinancialYear]);
+    const purchaseAccountId = (await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]))?.purchase_account_id 
+      || await getAccountIdByCode(companyId, ACCOUNT_CODES.DANGAR_PURCHASE);
+    const memberPurchaseAccountId = await getAccountIdByCode(companyId, ACCOUNT_CODES.MEMBERS_DANGAR_PURCHASE);
+    const godownAccountId = await getAccountIdByCode(companyId, ACCOUNT_CODES.DANGAR_GODOWN_FUND);
+    
+    const resolvedDeductions = [];
+    if (deductions.length > 0) {
+      for (const d of deductions) {
+        const dMaster = await queryOne('SELECT ledger_account_id, name FROM deduction_master WHERE id = ?', [d.deduction_id]);
+        if (dMaster?.ledger_account_id) {
+          resolvedDeductions.push({ account_id: dMaster.ledger_account_id, name: dMaster.name, amt: d.calculated_amount });
+        }
+      }
     }
 
-    // 5. Re-sync Godown Fund
-    const godownFundAmount = (parseFloat(total_kg) || 0) * 0.05;
-    if (godownFundAmount > 0) {
-      const godownAc = await queryOne("SELECT id FROM accounts WHERE account_code = 'GF0001' AND company_id = ?", [companyId]);
-      if (godownAc?.id) {
-        const fundDesc = `Godown Fund - ${total_kg} KG @ 1/20`;
-        await execute(`
-          INSERT INTO account_ledger (
-            company_id, member_id, account_id, transaction_date, transaction_type, reference_type, 
-            reference_id, reference_no, description, debit, financial_year
-          ) VALUES (?, ?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
-        `, [companyId, member_id, godownAc.id, date, id, srNo, fundDesc, godownFundAmount, currentFinancialYear]);
+    const journalEntries = mapPurchaseJournalEntries({
+      purchaseAccountId, godownAccountId, memberPurchaseAccountId, memberId: member_id,
+      grossAmount: parseFloat(req.body.gross_amount || amount || 0),
+      fundAmount: (parseFloat(total_kg) || 0) * 0.05,
+      deductions: resolvedDeductions,
+      bookType, netQuintal: net_quintal, rate, srNo
+    });
 
-        await execute(`
-          INSERT INTO account_ledger (
-            company_id, account_id, transaction_date, transaction_type, reference_type, 
-            reference_id, reference_no, description, credit, financial_year
-          ) VALUES (?, ?, ?, 'cash_book', 'dangar_entry_fund', ?, ?, ?, ?, ?)
-        `, [companyId, godownAc.id, date, id, srNo, fundDesc, godownFundAmount, currentFinancialYear]);
-      }
+    try {
+      await postJournal({
+        companyId,
+        date,
+        referenceType: 'dangar_entry',
+        referenceId: id,
+        referenceNo: srNo,
+        description: `${bookType} Purchase Entry [Edit]`,
+        entries: journalEntries,
+        financialYear: currentFinancialYear,
+        userId: 1,
+        transactionType: 'cash_book'
+      });
+      console.log('✅ Consolidated Dangar Update Journal Committed');
+    } catch (ledgerErr) {
+      console.warn('Ledger re-sync warning:', ledgerErr.message);
     }
 
     // 6. Re-sync Bardan Return
@@ -876,7 +877,7 @@ router.post('/recalculate', async (req, res) => {
 
     // 2. Fetch all entries
     const entries = await query(
-      'SELECT id, net_quintal, quality_class FROM dangar_entry WHERE item_id = ? AND financial_year = ? AND company_id = ?',
+      'SELECT id, sr_no, net_quintal, total_kg, quality_class, item_id, member_id FROM dangar_entry WHERE item_id = ? AND financial_year = ? AND company_id = ?',
       [item_id, financial_year, company_id]
     );
 
@@ -886,7 +887,7 @@ router.post('/recalculate', async (req, res) => {
       else if (entry.quality_class === '3rd') activeRate = rates.summer_rate || rates.rate;
 
       const newAmount = parseFloat(entry.net_quintal || 0) * parseFloat(activeRate || 0);
-      const newDesc = `Dangar Purchase [Recalc] - ${entry.net_quintal} Qt @ ${activeRate}`;
+      const newDesc = `Dangar Purchase [Recalc]`;
 
       // 1. Update Dangar Entry Table
       await execute(
@@ -894,17 +895,33 @@ router.post('/recalculate', async (req, res) => {
         [activeRate, newAmount, entry.id]
       );
 
-      // 2. Update Ledger - Member Side (Credit)
+      // 2. Re-sync Ledger entries for this specific transaction
+      // We update the primary Purchase Account row and the Member Account row
+      // Note: Deductions are not recalculated here as they might be fixed amounts or percentages of something else
+      
+      // Update Purchase Account Credit (Jama)
       await execute(
-        "UPDATE account_ledger SET credit = ?, description = ? WHERE reference_type = 'dangar_entry' AND reference_id = ? AND member_id IS NOT NULL AND company_id = ?",
-        [newAmount, newDesc, entry.id, company_id]
+        `UPDATE account_ledger SET credit = ?, description = ? 
+         WHERE reference_type = 'dangar_entry' AND reference_id = ? AND account_id IS NOT NULL 
+         AND account_id = (SELECT purchase_account_id FROM item_master WHERE id = ?) AND company_id = ?`,
+        [newAmount, newDesc, entry.id, entry.item_id, company_id]
       );
 
-      // 3. Update Ledger - Purchase Account Side (Debit)
+      // Update Member Debit (Udhar)
+      const godownFund = (parseFloat(entry.total_kg) || 0) * 0.05;
+      
+      const deductions = await query('SELECT SUM(calculated_amount) as total FROM transaction_deductions WHERE entry_id = ?', [entry.id]);
+      const totalDeductions = parseFloat(deductions[0]?.total || 0);
+      
+      const newNetMemberDebit = newAmount + godownFund - totalDeductions;
+
       await execute(
-        "UPDATE account_ledger SET debit = ?, description = ?, member_id = ? WHERE reference_type = 'dangar_entry' AND reference_id = ? AND account_id IS NOT NULL AND company_id = ?",
-        [newAmount, newDesc, entry.member_id, entry.id, company_id]
+        `UPDATE account_ledger SET debit = ?, description = ? 
+         WHERE reference_type = 'dangar_entry' AND reference_id = ? AND member_id = ? AND company_id = ?`,
+        [newNetMemberDebit, newDesc, entry.id, entry.member_id, company_id]
       );
+      
+      console.log(`✅ Recalculated entry ${entry.sr_no}: Net Credit ${newNetMemberCredit}`);
     }
 
     res.json({ success: true, message: `Successfully synchronized ${entries.length} transaction nodes.` });

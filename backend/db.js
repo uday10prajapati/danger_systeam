@@ -76,13 +76,13 @@ const transformQuery = (sql) => {
   newSql = newSql.replace(/IFNULL\(/gi, 'COALESCE(');
 
   // Handle MySQL IF(cond, val1, val2) -> Postgres CASE WHEN cond THEN val1 ELSE val2 END
-  newSql = newSql.replace(/IF\(([^,]+),([^,]+),([^)]+)\)/gi, 'CASE WHEN $1 THEN $2 ELSE $3 END');
+  newSql = newSql.replace(/\bIF\(([^,]+),([^,]+),([^)]+)\)/gi, 'CASE WHEN $1 THEN $2 ELSE $3 END');
 
   // Handle MySQL CAST AS CHAR -> Postgres CAST AS TEXT
   newSql = newSql.replace(/AS CHAR/gi, 'AS TEXT');
 
-  // Handle MySQL SUBSTRING -> Postgres SUBSTR
-  newSql = newSql.replace(/SUBSTRING\(/gi, 'SUBSTR(');
+  // Handle MySQL SUBSTRING -> Postgres natively supports SUBSTRING
+  // newSql = newSql.replace(/SUBSTRING\(/gi, 'SUBSTR('); 
 
   // Handle MySQL DATE_FORMAT -> Postgres TO_CHAR
   newSql = newSql.replace(/DATE_FORMAT\(([^,]+),\s*'%Y-%m-%d'\)/gi, "TO_CHAR($1, 'YYYY-MM-DD')");
@@ -1381,18 +1381,25 @@ export async function getAccountBalance(accountId, upToDate = null, memberId = n
     SELECT 
       COALESCE(SUM(CASE 
         WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0)
-        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 
+          CASE WHEN COALESCE(al.debit, 0) > 0 THEN COALESCE(al.interest_amount, 0) ELSE 0 END
         ELSE COALESCE(al.debit, 0) 
       END), 0) as total_debit,
       COALESCE(SUM(CASE 
         WHEN a.account_code = 'CS0001' THEN COALESCE(al.debit, 0)
-        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0) 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 
+          CASE WHEN COALESCE(al.credit, 0) > 0 THEN COALESCE(al.interest_amount, 0) ELSE 0 END
         ELSE COALESCE(al.credit, 0) 
       END), 0) as total_credit,
       COALESCE(SUM(
          CASE 
            WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0) - COALESCE(al.debit, 0)
-           WHEN al.interest_account_id = ${targetAccountId} THEN -COALESCE(al.interest_amount, 0)
+           WHEN al.interest_account_id = ${targetAccountId} THEN 
+             CASE 
+               WHEN COALESCE(al.debit, 0) > 0 THEN COALESCE(al.interest_amount, 0)
+               WHEN COALESCE(al.credit, 0) > 0 THEN -COALESCE(al.interest_amount, 0)
+               ELSE 0
+             END
            ELSE COALESCE(al.debit, 0) - COALESCE(al.credit, 0)
          END
       ), 0) as ledger_balance
@@ -1447,21 +1454,32 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
       CASE 
         WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0)
         WHEN a.account_type = 'sales' AND al.reference_no LIKE 'CR%' THEN COALESCE(al.credit, 0)
-        WHEN al.interest_account_id = ${targetAccountId} THEN COALESCE(al.interest_amount, 0)
+        WHEN al.interest_account_id = ${targetAccountId} THEN 
+          CASE WHEN COALESCE(al.debit, 0) > 0 THEN COALESCE(al.interest_amount, 0) ELSE 0 END
         ELSE COALESCE(al.debit, 0) 
       END as debit,
       CASE 
         WHEN a.account_code = 'CS0001' THEN COALESCE(al.debit, 0)
         WHEN a.account_type = 'sales' AND al.reference_no LIKE 'CR%' THEN 0
-        WHEN al.interest_account_id = ${targetAccountId} THEN 0 
+        WHEN al.interest_account_id = ${targetAccountId} THEN 
+          CASE WHEN COALESCE(al.credit, 0) > 0 THEN COALESCE(al.interest_amount, 0) ELSE 0 END
         ELSE COALESCE(al.credit, 0) 
       END as credit,
       CASE 
         WHEN a.account_code = 'CS0001' THEN COALESCE(al.debit, 0)
+        WHEN a.account_code = 'BS0001' THEN COALESCE(al.debit, 0)
         ELSE 0
       END as penalty_debit,
       CASE 
         WHEN a.account_code = 'CS0001' THEN COALESCE(al.credit, 0)
+        WHEN a.account_code = 'BS0001' THEN 
+          CASE 
+            WHEN al.reference_type = 'jama_bardan_entry' THEN 
+              CASE WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0 ELSE COALESCE(al.credit, 0) END
+            WHEN al.reference_type = 'BardanPenalty' THEN 
+              COALESCE(CAST(SUBSTRING(al.description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)
+            ELSE 0
+          END
         ELSE 0
       END as penalty_credit,
       CASE 
@@ -1928,6 +1946,100 @@ export async function getProfitLossSummary(companyId) {
   const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
   return await getProfitLossStatement(companyId, start, end);
+}
+
+// --- ACCOUNTING CONSTANTS ---
+export const ACCOUNT_CODES = {
+  DANGAR_PURCHASE: 'P0001',
+  MEMBERS_DANGAR_PURCHASE: 'MP0001',
+  DANGAR_GODOWN_FUND: 'DF0001',
+  CASH_ACCOUNT: 'CS0001',
+  BARDAN_SYSTEM: 'BS0001',
+  INTEREST_KHATE: 'IK0001',
+  DANGAR_SYSTEM: 'DS0001',
+  MEMBER_ADVANCE: 'L0001'
+};
+
+/**
+ * Advanced helper for posting balanced multi-line journal entries.
+ * @param {Object} params { companyId, date, referenceType, referenceId, referenceNo, description, entries, financialYear, userId, transactionType }
+ * entries: Array of { accountId, memberId, debit, credit, description, notes }
+ */
+export async function postJournal({
+  companyId,
+  date,
+  referenceType,
+  referenceId,
+  referenceNo,
+  description,
+  entries = [],
+  financialYear = '2026-27',
+  userId = 1,
+  transactionType = 'manual'
+}) {
+  const totalDebit = entries.reduce((sum, e) => sum + parseFloat(e.debit || 0), 0);
+  const totalCredit = entries.reduce((sum, e) => sum + parseFloat(e.credit || 0), 0);
+
+  // Precision fix (round to 2 decimal places)
+  if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    throw new Error(`Unbalanced Journal Entry: Total Debit (${totalDebit.toFixed(2)}) != Total Credit (${totalCredit.toFixed(2)})`);
+  }
+
+  if (entries.length === 0) return;
+
+  const connection = await getConnection();
+  try {
+    await connection.beginTransaction();
+
+    for (const entry of entries) {
+      const debitVal = parseFloat(entry.debit || 0);
+      const creditVal = parseFloat(entry.credit || 0);
+      if (debitVal === 0 && creditVal === 0) continue;
+
+      await connection.execute(`
+        INSERT INTO account_ledger (
+          company_id, account_id, member_id, transaction_date, transaction_type, reference_type, 
+          reference_id, reference_no, description, debit, credit, financial_year, created_by, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        companyId, entry.accountId || null, entry.memberId || null, date, transactionType, referenceType,
+        referenceId, referenceNo, entry.description || description, debitVal, creditVal, financialYear, userId, entry.notes || ''
+      ]);
+    }
+
+    await connection.commit();
+    console.log(`✅ Balanced Journal Committed: ${referenceType} [SR: ${referenceNo}] | Sum: ${totalDebit.toFixed(2)}`);
+    return { success: true };
+  } catch (err) {
+    await connection.rollback();
+    console.error('Journal Posting Error:', err);
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
+/**
+ * Reusable helper for posting simple double-entry transactions (legacy compatibility)
+ */
+export async function postToLedger(params) {
+  const { amount, debitAccountId, creditAccountId, debitMemberId, creditMemberId, ...rest } = params;
+  const entries = [];
+  if (debitAccountId || debitMemberId) {
+    entries.push({ accountId: debitAccountId, memberId: debitMemberId, debit: amount });
+  }
+  if (creditAccountId || creditMemberId) {
+    entries.push({ accountId: creditAccountId, memberId: creditMemberId, credit: amount });
+  }
+  return await postJournal({ ...rest, entries });
+}
+
+/**
+ * Resolves an account ID by its system code
+ */
+export async function getAccountIdByCode(companyId, code) {
+  const row = await queryOne('SELECT id FROM accounts WHERE account_code = ? AND company_id = ?', [code, companyId]);
+  return row ? row.id : null;
 }
 
 export default pool;

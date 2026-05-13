@@ -182,7 +182,7 @@ export default function Rojmel() {
          <p class='sub'>Journal Date: ${date} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
          <table>
          <thead>
-            <tr><th colspan="2" style="text-align:center; background:#059669; border-color:#047857">JAMA (RECEIPTS)</th><th colspan="2" style="text-align:center; background:#2563eb; border-color:#1e40af">UDHAR (PAYMENTS)</th></tr>
+            <tr><th colspan="2" style="text-align:center; background:#059669; border-color:#047857">JAMA BAJU (જમા બાજુ - CREDIT)</th><th colspan="2" style="text-align:center; background:#2563eb; border-color:#1e40af">UDHAR BAJU (ઉધાર બાજુ - DEBIT)</th></tr>
             <tr><th>Particulars</th><th style="text-align:right">Amount</th><th>Particulars</th><th style="text-align:right">Amount</th></tr>
          </thead>
          <tbody>${rows.join('')}</tbody>
@@ -261,8 +261,8 @@ export default function Rojmel() {
       autoTable(doc, {
          startY: y,
          head: [
-            [{ content: 'JAMA (RECEIPTS)', colSpan: 2, styles: { fillColor: [5, 150, 105], halign: 'center', font: 'helvetica' } },
-            { content: 'UDHAR (PAYMENTS)', colSpan: 2, styles: { fillColor: [37, 99, 235], halign: 'center', font: 'helvetica' } }],
+            [{ content: 'JAMA BAJU (જમા બાજુ - CREDIT)', colSpan: 2, styles: { fillColor: [5, 150, 105], halign: 'center', font: 'helvetica' } },
+            { content: 'UDHAR BAJU (ઉધાર બાજુ - DEBIT)', colSpan: 2, styles: { fillColor: [37, 99, 235], halign: 'center', font: 'helvetica' } }],
             ['Particulars', 'Amount', 'Particulars', 'Amount']
          ],
          body: body,
@@ -470,17 +470,17 @@ export default function Rojmel() {
                   <div className="py-5 bg-emerald-50/30 flex flex-col items-center justify-center relative select-none">
                      <div className="flex items-center gap-2 mb-1">
                         <ArrowUpRight size={16} className="text-emerald-700" />
-                        <h2 className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-mono">JAMA (RECEIPTS)</h2>
+                        <h2 className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-mono">Jama Baju (જમા બાજુ)</h2>
                      </div>
-                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">INCOMING CAPITAL STREAM</p>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">CREDIT SIDE (RECEIPTS)</p>
                   </div>
 
                   <div className="py-5 bg-blue-50/30 flex flex-col items-center justify-center relative select-none">
                      <div className="flex items-center gap-2 mb-1">
                         <ArrowDownLeft size={16} className="text-blue-700" />
-                        <h2 className="text-xs font-bold text-blue-700 uppercase tracking-widest font-mono">UDHAR (PAYMENTS)</h2>
+                        <h2 className="text-xs font-bold text-blue-700 uppercase tracking-widest font-mono">Udhar Baju (ઉધાર બાજુ)</h2>
                      </div>
-                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">OUTGOING LIQUIDITY FLOW</p>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">DEBIT SIDE (PAYMENTS)</p>
                   </div>
                </div>
 

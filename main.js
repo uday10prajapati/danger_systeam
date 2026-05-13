@@ -100,14 +100,18 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1366,
     height: 768,
-    title: "Danger Systeam Pro", // Updated title
+    show: false, // Start hidden to prevent flicker while maximizing
+    title: "Danger Systeam Pro",
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true
     },
-    icon: path.join(__dirname, '../frontend/public/image.png') // Custom Icon
+    icon: path.join(__dirname, '../frontend/public/image.png')
   });
+
+  mainWindow.maximize(); // Force full screen (maximized)
+  mainWindow.show();     // Show only after maximizing
 
   if (isDev) {
     mainWindow.loadURL('http://127.0.0.1:5173');

@@ -70,43 +70,52 @@ router.get('/', async (req, res) => {
     let txParams = [companyId, date];
 
     if (showSubledger === '1') {
-      // Subledger View: Show individual entries with account names
+      // Subledger View: Show individual entries with member names
       txSql = `
         SELECT 
           al.id, 
           al.reference_no, 
           al.reference_type, 
           al.description as description, 
-          acc.account_name as sub_details, 
+          COALESCE(m.member_name, acc.account_name) as sub_details, 
           al.notes, 
-          COALESCE(al.credit, al.credit_amount, 0) as cash_in, 
-          COALESCE(al.debit, al.debit_amount, 0) as cash_out 
+          al.credit as cash_in, 
+          al.debit as cash_out,
+          COALESCE(al.credit, al.debit, 0) as sub_amount
         FROM account_ledger al
         LEFT JOIN accounts acc ON al.account_id = acc.id
+        LEFT JOIN member_master m ON al.member_id = m.id
         WHERE al.company_id = ? AND al.transaction_date = ? 
-        AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book')
+        AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book' OR al.reference_type = 'dangar_entry' OR al.reference_type = 'dangar_entry_kapat')
         ORDER BY al.id ASC
       `;
     } else {
-      // Grouped View: Show consolidated entries per reference number
+      // Grouped View: Show consolidated entries per Ledger Account AND SIDE
+      // Uses MAX() for non-aggregated columns to satisfy strict PostgreSQL GROUP BY rules
       txSql = `
         SELECT 
-          MIN(id) as id, 
-          reference_no, 
-          MAX(reference_type) as reference_type, 
-          MAX(description) as description, 
-          NULL as sub_details,
-          MAX(notes) as notes, 
-          SUM(COALESCE(credit, credit_amount, 0)) as cash_in, 
-          SUM(COALESCE(debit, debit_amount, 0)) as cash_out 
-        FROM account_ledger 
-        WHERE company_id = ? AND transaction_date = ? 
-        AND (transaction_type = 'cash_book' OR reference_type = 'cash_book')
-        GROUP BY reference_no
-        ORDER BY id ASC
+          MIN(al.id) as id, 
+          MAX(al.reference_no) as reference_no, 
+          al.reference_type, 
+          MAX(COALESCE(acc.account_name, al.description)) as description, 
+          MAX(CASE WHEN al.member_id IS NOT NULL THEN 'Multiple Members' ELSE '' END) as sub_details,
+          MAX(al.notes) as notes, 
+          SUM(COALESCE(al.credit, 0)) as cash_in, 
+          SUM(COALESCE(al.debit, 0)) as cash_out,
+          SUM(COALESCE(al.credit, al.debit, 0)) as sub_amount
+        FROM account_ledger al
+        LEFT JOIN accounts acc ON al.account_id = acc.id
+        WHERE al.company_id = ? AND al.transaction_date = ? 
+        AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book' OR al.reference_type = 'dangar_entry' OR al.reference_type = 'dangar_entry_kapat')
+        GROUP BY 
+          al.account_id, 
+          al.reference_type, 
+          (al.credit > 0)
+        ORDER BY MIN(al.id) ASC
       `;
+      txParams = [companyId, date];
     }
-    const transactions = await query(txSql, txParams);
+    const transactions = (await query(txSql, txParams)) || [];
 
     // 3. Fetch Non-Cash JV Items (Adjustments that don't hit cash_book)
     const jvSql = `
@@ -116,17 +125,18 @@ router.get('/', async (req, res) => {
       JOIN accounts a ON i.account_id = a.id
       WHERE v.company_id = ? AND v.voucher_date = ? AND a.account_type NOT IN ('cash', 'bank')
     `;
-    const jvItems = await query(jvSql, [companyId, date]);
+    const jvItems = (await query(jvSql, [companyId, date])) || [];
 
     const jamaList = []; 
     const udharList = [];
 
     if (opening) {
-      const opRow = { details: 'ઉઘડતી સિલ્ક (Op. Balance)', amount: opening.amount, isOpening: true };
+      const opRow = { details: 'ઉઘડતી સિલ્ક (Op. Balance)', amount: Number(opening.amount || 0), isOpening: true };
       opening.side === 'jama' ? jamaList.push(opRow) : udharList.push(opRow);
     }
 
     const extractGSTType = (desc) => {
+      if (!desc || typeof desc !== 'string') return null;
       if (desc.includes('CGST')) return 'CGST';
       if (desc.includes('SGST')) return 'SGST';
       if (desc.includes('IGST')) return 'IGST';
@@ -136,43 +146,56 @@ router.get('/', async (req, res) => {
     const gstGrouped = { jama: { CGST: 0, SGST: 0, IGST: 0 }, udhar: { CGST: 0, SGST: 0, IGST: 0 } };
     const gstSubledger = { jama: { CGST: [], SGST: [], IGST: [] }, udhar: { CGST: [], SGST: [], IGST: [] } };
 
-    // Process Cash Book entries
+    // Process Ledger entries
     transactions.forEach(tx => {
-      const isJVOrContra = ['jv', 'JV', 'contra', 'CONTRA'].includes(tx.reference_type);
-      const gstType = isJVOrContra ? null : extractGSTType(tx.description);
+      if (!tx) return;
+      const refType = (tx.reference_type || '').toUpperCase();
+      const desc = tx.description || 'Unknown Transaction';
+      const isJVOrContra = ['JV', 'CONTRA'].includes(refType);
+      const gstType = isJVOrContra ? null : extractGSTType(desc);
       const cIn = parseFloat(tx.cash_in || 0);
       const cOut = parseFloat(tx.cash_out || 0);
 
       if (gstType) {
         if (cIn > 0) {
           gstGrouped.jama[gstType] += cIn;
-          gstSubledger.jama[gstType].push({ id: tx.id, description: tx.description, amount: cIn });
+          gstSubledger.jama[gstType].push({ id: tx.id, description: desc, amount: cIn });
         }
         if (cOut > 0) {
           gstGrouped.udhar[gstType] += cOut;
-          gstSubledger.udhar[gstType].push({ id: tx.id, description: tx.description, amount: cOut });
+          gstSubledger.udhar[gstType].push({ id: tx.id, description: desc, amount: cOut });
         }
       } else {
+        const isNonCash = (
+          refType.includes('JV') || 
+          tx.reference_type === 'dangar_entry' || 
+          tx.reference_type === 'dangar_entry_fund' || 
+          tx.reference_type === 'jama_bardan_entry' ||
+          tx.reference_type === 'bardan_entry'
+        );
+
         if (cIn > 0) {
           jamaList.push({ 
             id: tx.id, 
-            details: tx.description, 
-            sub_details: tx.sub_details,
-            notes: tx.notes, 
+            details: desc, 
+            sub_details: tx.sub_details || '',
+            notes: tx.notes || '', 
             amount: cIn, 
-            isJV: tx.reference_type?.toUpperCase().includes('JV'), 
-            isContra: tx.reference_type?.toUpperCase().includes('CONTRA') 
+            sub_amount: tx.sub_amount || cIn,
+            isJV: isNonCash, 
+            isContra: refType.includes('CONTRA') 
           });
         }
         if (cOut > 0) {
           udharList.push({ 
             id: tx.id, 
-            details: tx.description, 
-            sub_details: tx.sub_details,
-            notes: tx.notes, 
+            details: desc, 
+            sub_details: tx.sub_details || '',
+            notes: tx.notes || '', 
             amount: cOut, 
-            isJV: tx.reference_type?.toUpperCase().includes('JV'), 
-            isContra: tx.reference_type?.toUpperCase().includes('CONTRA') 
+            sub_amount: tx.sub_amount || cOut,
+            isJV: isNonCash, 
+            isContra: refType.includes('CONTRA') 
           });
         }
       }
@@ -180,28 +203,34 @@ router.get('/', async (req, res) => {
 
     // Process Adjustment JVs
     jvItems.forEach(item => {
+      if (!item) return;
       const amt = parseFloat(item.amount || 0);
+      const vType = (item.voucher_type || '').toUpperCase();
       const row = {
         id: `JV-ITEM-${item.id}`,
-        details: item.particulars || `${item.account_name} (JV Adjustment)`,
-        notes: item.reference_no,
+        details: item.particulars || `${item.account_name || 'Unknown Account'} (JV Adjustment)`,
+        notes: item.reference_no || '',
         amount: amt,
-        isJV: item.voucher_type?.toUpperCase().includes('JV'),
-        isContra: item.voucher_type?.toUpperCase().includes('CONTRA')
+        isJV: vType.includes('JV'),
+        isContra: vType.includes('CONTRA')
       };
       item.type === 'CREDIT' ? jamaList.push(row) : udharList.push(row);
     });
 
     // Add grouped GST entries
     ['CGST', 'SGST', 'IGST'].forEach(gstType => {
-      if (gstGrouped.jama[gstType] > 0) jamaList.push({ details: `${gstType} IN/OUT`, amount: gstGrouped.jama[gstType], isGST: true, gstType, subledger: gstSubledger.jama[gstType] });
-      if (gstGrouped.udhar[gstType] > 0) udharList.push({ details: `${gstType} IN/OUT`, amount: gstGrouped.udhar[gstType], isGST: true, gstType, subledger: gstSubledger.udhar[gstType] });
+      if (gstGrouped.jama[gstType] > 0) {
+        jamaList.push({ details: `${gstType} IN/OUT`, amount: gstGrouped.jama[gstType], isGST: true, gstType, subledger: gstSubledger.jama[gstType] || [] });
+      }
+      if (gstGrouped.udhar[gstType] > 0) {
+        udharList.push({ details: `${gstType} IN/OUT`, amount: gstGrouped.udhar[gstType], isGST: true, gstType, subledger: gstSubledger.udhar[gstType] || [] });
+      }
     });
 
-    const totalJama = jamaList.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
-    const totalUdhar = udharList.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+    const totalJama = jamaList.reduce((sum, r) => sum + ((r.isJV || r.isContra) ? 0 : parseFloat(r.amount || 0)), 0);
+    const totalUdhar = udharList.reduce((sum, r) => sum + ((r.isJV || r.isContra) ? 0 : parseFloat(r.amount || 0)), 0);
 
-    let closing = null;
+    let closing = { side: null, amount: 0 };
     let finalJama = totalJama;
     let finalUdhar = totalUdhar;
 
@@ -215,11 +244,33 @@ router.get('/', async (req, res) => {
       finalJama += closing.amount;
     }
 
-    res.json({ success: true, date, data: { jama: jamaList, udhar: udharList, totals: { jama_total: finalJama, udhar_total: finalUdhar }, closing: closing || { side: null, amount: 0 }, opening: opening || { side: null, amount: 0 } } });
+    res.json({ 
+      success: true, 
+      date, 
+      data: { 
+        jama: jamaList, 
+        udhar: udharList, 
+        totals: { jama_total: finalJama, udhar_total: finalUdhar }, 
+        closing, 
+        opening: opening || { side: null, amount: 0 } 
+      } 
+    });
 
   } catch (error) {
-    console.error('Rojmel Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('ROJMEL CRITICAL ERROR');
+    console.error('Error Message:', error.message);
+    console.error('Stack Trace:', error.stack);
+    console.error('Attempted SQL:', txSql);
+    console.error('SQL Params:', txParams);
+
+    res.status(500).json({ 
+      success: false, 
+      error: 'Rojmel Generation Failed',
+      details: error.message,
+      jama: [],
+      udhar: [],
+      totals: { jama_total: 0, udhar_total: 0 }
+    });
   }
 });
 
