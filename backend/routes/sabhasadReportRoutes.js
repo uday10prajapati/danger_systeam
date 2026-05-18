@@ -223,7 +223,7 @@ router.get('/', async (req, res) => {
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
-      const bParams = [companyId, accountId, startDate, endDate];
+      const bParams = [accountId, companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') bParams.push(memberId);
 
       const opBardan = await query(`
