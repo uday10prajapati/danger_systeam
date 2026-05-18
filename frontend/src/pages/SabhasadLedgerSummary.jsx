@@ -233,20 +233,29 @@ export default function SabhasadLedgerSummary() {
         }
         
         if (isBardan || isCash) {
-          r += `
-            <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
-            <td>
-              ${(isPurchase || isBardan)
-                ? `<strong>${translateSystemText(row.member_name || '-')}</strong><br><small style="color:#2563eb">${translateSystemText(row.description || '-')}</small>`
-                : `${translateSystemText(row.description || '-')}${row.member_name ? `<br><small style="color:#2563eb">${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]</small>` : ''}`
-              }
-            </td>
-            <td style="text-align:right">₹${parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-            <td style="text-align:right">₹${parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-            ${isBardan ? '<td style="text-align:right">-</td>' : ''}
-            <td style="text-align:right; font-weight:bold; color:${parseFloat(row.balance || 0) > 0 ? '#dc2626' : '#18181b'}">₹${Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.balance || 0) >= 0 ? (isBardan || isCash ? 'C' : 'D') : (isBardan || isCash ? 'D' : 'C')}</td>
-            ${isBardan ? `<td style="text-align:right; font-weight:bold;">₹${(parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>` : ''}
-          `;
+          if (isBardan) {
+            r += `
+              <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+              <td>
+                <strong>${translateSystemText(row.member_name || '-')}</strong><br><small style="color:#2563eb">${translateSystemText(row.description || '-')}</small>
+              </td>
+              <td style="text-align:right">${parseFloat(displayDebit || 0) > 0 ? parseFloat(displayDebit || 0).toLocaleString() : '-'}</td>
+              <td style="text-align:right">${parseFloat(displayCredit || 0) > 0 ? parseFloat(displayCredit || 0).toLocaleString() : '-'}</td>
+              <td style="text-align:right">${parseFloat(row.self_credit || 0) > 0 ? parseFloat(row.self_credit || 0).toLocaleString() : '-'}</td>
+              <td style="text-align:right; font-weight:bold; color:${parseFloat(row.balance || 0) > 0 ? '#dc2626' : '#18181b'}">${Math.abs(parseFloat(row.balance || 0)).toLocaleString()} ${parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'}</td>
+              <td style="text-align:right; font-weight:bold;">₹${(parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+            `;
+          } else {
+            r += `
+              <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+              <td>
+                ${row.member_name ? `<br><small style="color:#2563eb">${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]</small>` : ''}
+              </td>
+              <td style="text-align:right">₹${parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+              <td style="text-align:right">₹${parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+              <td style="text-align:right; font-weight:bold; color:${parseFloat(row.balance || 0) > 0 ? '#dc2626' : '#18181b'}">₹${Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'}</td>
+            `;
+          }
         } else {
           const balLabel = isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR');
           r += `
@@ -303,7 +312,21 @@ export default function SabhasadLedgerSummary() {
       `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.code')}</th><th>${t('sabhasadLedgerSummary.memberName')}</th><th>${t('sabhasadLedgerSummary.accountName')}</th><th>${t('sabhasadLedgerSummary.opening')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.debit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.credit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.closing')}</th>` :
       `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.code')}</th><th>${t('sabhasadLedgerSummary.memberName')}</th><th>${t('sabhasadLedgerSummary.accountName')}</th><th>${t('sabhasadLedgerSummary.opening')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.debit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.credit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.closing')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.bardanBal')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.selfJama')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.bardanAmt')}</th>`;
 
-    const tfootRow = isPurchase || isSale ?
+    const tfootRow = isBardan ?
+      `<td colspan="3" style="text-align:right; font-weight:bold;">REGISTRY TOTALS</td>
+       <td style="text-align:right; font-weight:bold;">${parseFloat(totals.opening_balance || 0).toLocaleString()}</td>
+       <td style="text-align:right; font-weight:bold;">${parseFloat(totals.debit || 0).toLocaleString()}</td>
+       <td style="text-align:right; font-weight:bold;">${parseFloat(totals.credit || 0).toLocaleString()}</td>
+       <td style="text-align:right; font-weight:bold;">${parseFloat(totals.self_credit || 0).toLocaleString()}</td>
+       <td style="text-align:right; font-weight:bold;">${Math.abs(parseFloat(totals.balance || 0)).toLocaleString()} ${parseFloat(totals.balance || 0) >= 0 ? 'C' : 'D'}</td>
+       <td style="text-align:right; font-weight:bold;">₹${(parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>` :
+      isCash ?
+      `<td colspan="3" style="text-align:right; font-weight:bold;">REGISTRY TOTALS</td>
+       <td style="text-align:right; font-weight:bold;">₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+       <td style="text-align:right; font-weight:bold;">₹${parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+       <td style="text-align:right; font-weight:bold;">₹${parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+       <td style="text-align:right; font-weight:bold;">₹${Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(totals.balance || 0) >= 0 ? 'C' : 'D'}</td>` :
+      isPurchase || isSale ?
       `<td colspan="5" style="text-align:right; font-weight:bold;">REGISTRY TOTALS</td>
        <td style="text-align:right; font-weight:bold;">${parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
        <td style="text-align:right; font-weight:bold;">${parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -446,21 +469,31 @@ export default function SabhasadLedgerSummary() {
         }
         
         if (isBardan || isCash) {
-          return [
-            String(i + 1).padStart(3, '0'),
-            new Date(row.entry_date).toLocaleDateString('en-GB'),
-            translateSystemText(row.village_name || '-'),
-            (isPurchase || isBardan || isTransactional)
-              ? `${translateSystemText(row.member_name || '-')}\n${translateSystemText(row.description || '-')}`
-              : (row.member_name 
-                  ? `${translateSystemText(row.description || '-')}\n${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]`
-                  : (translateSystemText(row.description || '-'))),
-            '₹' + parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-            '₹' + parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-            ...(isBardan ? ['-'] : []),
-            '₹' + Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(row.balance || 0) >= 0 ? (isBardan || isCash ? 'C' : 'D') : (isBardan || isCash ? 'D' : 'C')),
-            ...(isBardan ? ['₹' + (parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })] : [])
-          ];
+          if (isBardan) {
+            return [
+              String(i + 1).padStart(3, '0'),
+              new Date(row.entry_date).toLocaleDateString('en-GB'),
+              translateSystemText(row.village_name || '-'),
+              `${translateSystemText(row.member_name || '-')}\n${translateSystemText(row.description || '-')}`,
+              parseFloat(displayDebit || 0) > 0 ? parseFloat(displayDebit || 0).toLocaleString() : '-',
+              parseFloat(displayCredit || 0) > 0 ? parseFloat(displayCredit || 0).toLocaleString() : '-',
+              parseFloat(row.self_credit || 0) > 0 ? parseFloat(row.self_credit || 0).toLocaleString() : '-',
+              Math.abs(parseFloat(row.balance || 0)).toLocaleString() + ' ' + (parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'),
+              '₹' + (parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+            ];
+          } else {
+            return [
+              String(i + 1).padStart(3, '0'),
+              new Date(row.entry_date).toLocaleDateString('en-GB'),
+              translateSystemText(row.village_name || '-'),
+              row.member_name 
+                ? `${translateSystemText(row.description || '-')}\n${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]`
+                : translateSystemText(row.description || '-'),
+              '₹' + parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+              '₹' + parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+              '₹' + Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(row.balance || 0) >= 0 ? 'C' : 'D')
+            ];
+          }
         }
 
         return [
@@ -511,7 +544,11 @@ export default function SabhasadLedgerSummary() {
       return base;
     });
 
-    const foot = isPurchase || isSale || isTransactional ?
+    const foot = isBardan ?
+      [['', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.opening_balance || 0).toLocaleString(), parseFloat(totals.debit || 0).toLocaleString(), parseFloat(totals.credit || 0).toLocaleString(), parseFloat(totals.self_credit || 0).toLocaleString(), Math.abs(parseFloat(totals.balance || 0)).toLocaleString() + ' ' + (parseFloat(totals.balance || 0) >= 0 ? 'C' : 'D'), '₹' + (parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })]] :
+      isCash ?
+      [['', '', '', t('sabhasadLedgerSummary.totals'), '₹' + parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '₹' + parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '₹' + Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.balance || 0) >= 0 ? 'C' : 'D')]] :
+      isPurchase || isSale || isTransactional ?
       [['', '', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (isSale ? (parseFloat(totals.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(totals.balance || 0) >= 0 ? 'DR' : 'CR'))]] :
       isDangar ?
       [['', '', '', '', '', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.qty || 0).toFixed(2), parseFloat(totals.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })]] :
@@ -960,11 +997,31 @@ export default function SabhasadLedgerSummary() {
                               else { displayDebit = amount; displayCredit = 0; }
                             }
 
-                             if (isBardan || isTransactional) {
+                             if (isBardan) {
                                return <>
-                                 <td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+                                 <td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100 font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
                                  <td className="px-4 py-2 text-sm border-r border-zinc-100">
-                                   {(isPurchase || isBardan) ? (
+                                   <div className="font-bold text-zinc-800 uppercase">{formatBilingualText(row.member_name || '-')}</div>
+                                   {row.description && <div className="text-[9px] text-blue-600 font-mono italic uppercase">{formatBilingualText(row.description)}</div>}
+                                 </td>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-zinc-500 border-r border-zinc-100 font-sans">
+                                   {idx === 0 ? parseFloat(totals.opening_balance || 0).toLocaleString() : '—'}
+                                 </td>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">{displayDebit > 0 ? displayDebit.toLocaleString() : '-'}</td>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-red-600 border-r border-zinc-100 font-sans">{displayCredit > 0 ? displayCredit.toLocaleString() : '-'}</td>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">{row.self_credit > 0 ? row.self_credit.toLocaleString() : '-'}</td>
+                                 <td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.balance || 0) > 0 ? 'text-red-600' : 'text-zinc-800'}`}>
+                                   {Math.abs(parseFloat(row.balance || 0)).toLocaleString()} {parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'}
+                                 </td>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{(parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                               </>;
+                             }
+
+                             if (isTransactional) {
+                               return <>
+                                 <td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100 font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+                                 <td className="px-4 py-2 text-sm border-r border-zinc-100">
+                                   {isPurchase ? (
                                      <>
                                        <div className="font-bold text-zinc-800 uppercase">{formatBilingualText(row.member_name || '-')}</div>
                                        {row.description && <div className="text-[9px] text-blue-600 font-mono italic uppercase">{formatBilingualText(row.description)}</div>}
@@ -981,13 +1038,11 @@ export default function SabhasadLedgerSummary() {
                                  </td>
                                  <td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">{displayDebit > 0 ? `₹${displayDebit.toLocaleString('en-IN')}` : '-'}</td>
                                  <td className="px-4 py-2 text-sm text-right font-bold text-red-600 border-r border-zinc-100 font-sans">{displayCredit > 0 ? `₹${displayCredit.toLocaleString('en-IN')}` : '-'}</td>
-                                 {isBardan && <td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">-</td>}
                                  <td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.balance || 0) > 0 ? 'text-red-600' : 'text-zinc-800'}`}>
-                                   ₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.balance || 0) >= 0 ? (isBardan || isTransactional ? 'C' : 'D') : (isBardan || isTransactional ? 'D' : 'C')}
+                                   ₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'}
                                  </td>
-                                 {isBardan && <td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{(parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>}
                                </>;
-                            }
+                             }
 
                             const isCR = isSale ? parseFloat(row.balance || 0) >= 0 : parseFloat(row.balance || 0) < 0;
                             const balLabel = isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR');
@@ -1019,14 +1074,24 @@ export default function SabhasadLedgerSummary() {
                             }, 0);
                           }
 
+                          if (isBardan) {
+                            return <>
+                              <td colSpan="3" className="px-4 py-2 text-right ">{t('sabhasadLedgerSummary.registryTotals')}:</td>
+                              <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">{parseFloat(totals.opening_balance || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">{parseFloat(totals.debit || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">{parseFloat(totals.credit || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">{parseFloat(totals.self_credit || 0).toLocaleString()}</td>
+                              <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">{Math.abs(parseFloat(totals.balance || 0)).toLocaleString()} {parseFloat(totals.balance || 0) >= 0 ? 'C' : 'D'}</td>
+                              <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{(parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </>;
+                          }
+
                           return <>
                             <td colSpan="3" className="px-4 py-2 text-right ">{t('sabhasadLedgerSummary.registryTotals')}:</td>
                             <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}</td>
                             <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{displayTotalDebit.toLocaleString('en-IN')}</td>
                             <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{displayTotalCredit.toLocaleString('en-IN')}</td>
-                            {isBardan && <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">-</td>}
-                            <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.balance || 0) >= 0 ? (isBardan || isTransactional ? 'C' : (isSale ? 'CR' : 'DR')) : (isBardan || isTransactional ? 'D' : (isSale ? 'DR' : 'CR'))}</td>
-                            {isBardan && <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{(parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN')}</td>}
+                            <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.balance || 0) >= 0 ? (isTransactional ? 'C' : (isSale ? 'CR' : 'DR')) : (isTransactional ? 'D' : (isSale ? 'DR' : 'CR'))}</td>
                           </>;
                         }
                         if (isDangar) return <>

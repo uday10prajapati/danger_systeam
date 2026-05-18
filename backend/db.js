@@ -1837,7 +1837,10 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
 
     // --- NEW: Post to Account Ledger ---
     // 1. Credit the Sales Account (Net Amount)
-    const [salesAcct] = await connection.query(`SELECT id FROM accounts WHERE company_id = ? AND account_type = 'sales' LIMIT 1`, [companyId]);
+    let [salesAcct] = await connection.query(`SELECT id FROM accounts WHERE company_id = ? AND account_code = 'S0001' LIMIT 1`, [companyId]);
+    if (!salesAcct || salesAcct.length === 0) {
+      [salesAcct] = await connection.query(`SELECT id FROM accounts WHERE company_id = ? AND account_type = 'sales' LIMIT 1`, [companyId]);
+    }
     if (salesAcct && salesAcct.length > 0) {
       await connection.query(
         `INSERT INTO account_ledger (company_id, account_id, transaction_date, transaction_type, reference_type, reference_id, reference_no, debit, credit, description, financial_year) 

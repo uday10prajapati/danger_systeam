@@ -307,16 +307,19 @@ router.get('/account-stats/:accountId', async (req, res) => {
        }
     }
 
-    const netTotalJama = jamaTotal + dangar_amount;
-    const netTotalUdhar = udharTotal + total_interest; // Removed bardan_penalty from global ledger view to prevent slow queries
-    const finalBalance = netTotalJama - netTotalUdhar;
+    // Standard Ledger calculations: Only represent the actual ledger debit and credit entries of the account.
+    // Do not add dangar_amount or interest to the standard total_debit, total_credit, and balance.
+    const standardDebitTotal = debit;
+    const standardCreditTotal = credit;
+    const standardBalance = openingBal + debit - credit;
 
     res.json({
       success: true,
       data: {
-        total_debit: Math.max(0, udharTotal - jamaTotal),
-        total_credit: netTotalJama,
-        balance: finalBalance,
+        total_debit: standardDebitTotal,
+        total_credit: standardCreditTotal,
+        balance: standardBalance,
+        running_balance: standardBalance, // Populate running_balance so the table footer displays the correct balance
         bardan_balance: Math.max(0, bardan_balance),
         bardan_penalty: Math.max(0, bardan_penalty),
         dangar_amount: Math.max(0, dangar_amount),

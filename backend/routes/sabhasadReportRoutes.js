@@ -108,7 +108,7 @@ router.get('/', async (req, res) => {
            SELECT COALESCE(m.bardan_opening, 0) + 
                   (SELECT COALESCE(SUM(qty), 0) FROM bardan_entry WHERE member_id = m.id AND company_id = ?) - 
                   (SELECT COALESCE(SUM(qty), 0) FROM jama_bardan_entry WHERE member_id = m.id AND company_id = ? AND (option_type IS NULL OR option_type != 'Self')) -
-                  (SELECT COALESCE(SUM(COALESCE(CAST(SUBSTRING(description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)), 0) 
+                  (SELECT COALESCE(SUM(COALESCE(NULLIF(regexp_replace(description, '[^0-9]', '', 'g'), ''), '0')::INTEGER), 0) 
                    FROM account_ledger 
                    WHERE member_id = m.id AND reference_type = 'BardanPenalty' AND company_id = ?)
         ) AS bardan_penalty_balance,
@@ -198,12 +198,21 @@ router.get('/', async (req, res) => {
           al.reference_no,
           al.reference_type,
           COALESCE(al.debit, 0) as debit,
-          COALESCE(al.credit, 0) as credit,
           CASE 
-            WHEN al.reference_type = 'jama_bardan_entry' THEN 
-              CASE WHEN LOWER(COALESCE(al.description, '')) LIKE '[self]%' THEN 0 ELSE COALESCE(al.credit, 0) END
+            WHEN al.reference_type = 'jama_bardan_entry' AND (LOWER(COALESCE(al.description, '')) LIKE '%[self]%' OR EXISTS(SELECT 1 FROM jama_bardan_entry jbe WHERE jbe.id = al.reference_id AND jbe.option_type = 'Self')) THEN 
+              COALESCE(al.credit, 0)
+            ELSE 0
+          END as self_credit,
+          CASE 
+            WHEN al.reference_type = 'jama_bardan_entry' AND NOT (LOWER(COALESCE(al.description, '')) LIKE '%[self]%' OR EXISTS(SELECT 1 FROM jama_bardan_entry jbe WHERE jbe.id = al.reference_id AND jbe.option_type = 'Self')) THEN 
+              COALESCE(al.credit, 0)
             WHEN al.reference_type = 'BardanPenalty' THEN 
-              COALESCE(CAST(SUBSTRING(al.description FROM '\\(([0-9]+)[[:space:]]*Bags\\)') AS INTEGER), 0)
+              COALESCE(NULLIF(regexp_replace(al.description, '[^0-9]', '', 'g'), ''), '0')::INTEGER
+            ELSE 0
+          END as regular_credit,
+          CASE 
+            WHEN al.reference_type = 'BardanPenalty' THEN 
+              COALESCE(NULLIF(regexp_replace(al.description, '[^0-9]', '', 'g'), ''), '0')::INTEGER
             ELSE 0
           END as penalty_credit,
           'Bardan System' as account_name
@@ -229,9 +238,18 @@ router.get('/', async (req, res) => {
       
       let runningQty = initialBardan;
       const rowsWithQty = bRows.map(row => {
-        // Use penalty_credit for quantity tracking to avoid mixing in rupee amounts from settlements
-        runningQty += (parseFloat(row.debit) - parseFloat(row.penalty_credit || row.credit));
-        return { ...row, balance: runningQty };
+        const deb = parseFloat(row.debit || 0);
+        const cre = parseFloat(row.regular_credit || 0);
+        const selfCre = parseFloat(row.self_credit || 0);
+        
+        runningQty += (deb - (cre + selfCre));
+        return { 
+          ...row, 
+          debit: deb,
+          credit: cre,
+          self_credit: selfCre,
+          balance: runningQty 
+        };
       });
 
       return res.json({
@@ -240,8 +258,9 @@ router.get('/', async (req, res) => {
         data: rowsWithQty,
         totals: {
           opening_balance: initialBardan,
-          debit: rowsWithQty.reduce((acc, r) => acc + parseFloat(r.debit || 0), 0),
-          credit: rowsWithQty.reduce((acc, r) => acc + parseFloat(r.credit || 0), 0),
+          debit: rowsWithQty.reduce((acc, r) => acc + (r.debit || 0), 0),
+          credit: rowsWithQty.reduce((acc, r) => acc + (r.credit || 0), 0),
+          self_credit: rowsWithQty.reduce((acc, r) => acc + (r.self_credit || 0), 0),
           balance: runningQty
         }
       });

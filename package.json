@@ -53,7 +53,8 @@
         "to": "backend",
         "filter": [
           "**/*",
-          "!.env"
+          "!.env",
+          "!node_modules"
         ]
       },
       {

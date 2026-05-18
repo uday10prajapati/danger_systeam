@@ -166,10 +166,17 @@ router.post('/with-gst', async (req, res) => {
         );
 
         // CREDIT Sales
-        const [salesAcctRow] = await connection.query(
-          `SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'Revenue' OR account_type = 'Sales') AND is_deleted = 0 LIMIT 1`,
+        let [salesAcctRow] = await connection.query(
+          `SELECT id FROM accounts WHERE company_id = ? AND account_code = 'S0001' AND is_deleted = 0 LIMIT 1`,
           [companyId]
         );
+
+        if (!salesAcctRow || salesAcctRow.length === 0) {
+          [salesAcctRow] = await connection.query(
+            `SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'Revenue' OR account_type = 'Sales') AND is_deleted = 0 LIMIT 1`,
+            [companyId]
+          );
+        }
 
         let salesAccountId = null;
         if (salesAcctRow && salesAcctRow.length > 0) {

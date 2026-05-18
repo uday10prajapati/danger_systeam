@@ -118,8 +118,11 @@ router.post('/weight-based', async (req, res) => {
         );
 
         // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
-        // 2. Credit Sales Account (Search by type or common name)
-        const salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'sales' OR account_name LIKE '%Sales%') LIMIT 1", [companyId]);
+        // 2. Credit Sales Account (Search by code first, then fallback)
+        let salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_code = 'S0001' LIMIT 1", [companyId]);
+        if (!salesAcc) {
+            salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'sales' OR account_name LIKE '%Sales%') LIMIT 1", [companyId]);
+        }
         if (salesAcc) {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
@@ -138,7 +141,10 @@ router.post('/weight-based', async (req, res) => {
 
         // 2. Credit Sales Account (Shows on JAMA side of Rojmel)
         // 2. Credit Sales Account
-        const salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'sales' OR account_name LIKE '%Sales%') LIMIT 1", [companyId]);
+        let salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND account_code = 'S0001' LIMIT 1", [companyId]);
+        if (!salesAcc) {
+            salesAcc = await queryOne("SELECT id FROM accounts WHERE company_id = ? AND (account_type = 'sales' OR account_name LIKE '%Sales%') LIMIT 1", [companyId]);
+        }
         if (salesAcc) {
             await connection.query(
                 `INSERT INTO account_ledger (company_id, account_id, member_id, transaction_date, reference_id, reference_type, reference_no, credit, description, financial_year, created_by, transaction_type)
