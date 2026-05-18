@@ -178,90 +178,147 @@ router.get('/', async (req, res) => {
                        selectedAcc?.account_name?.toLowerCase().includes('vyaj');
 
     if (accountId && isBardan) {
+      let conditions = 'al.account_id = ? AND al.company_id = ?';
+      const bParams = [accountId, companyId];
+
+      if (village) {
+        conditions += ' AND m.village_name = ?';
+        bParams.push(village);
+      }
+
+      if (memberId && memberId !== 'all') {
+        conditions += ' AND m.id = ?';
+        bParams.push(memberId);
+      }
+
       const bardanSql = `
         SELECT 
+          m.id AS member_id,
           m.member_code,
           m.member_name,
           m.village_name,
-          al.member_id,
-          al.transaction_date as entry_date,
-          CASE 
-            WHEN al.reference_type = 'bardan_entry' THEN 'BARDAN taken'
-            WHEN al.reference_type = 'jama_bardan_entry' AND LOWER(al.description) LIKE '%settlement%' THEN 'Dangar Settlement'
-            WHEN al.reference_type = 'jama_bardan_entry' THEN 'Bardan Settlement'
-            WHEN al.reference_type = 'SALE_DEDUCTION' AND (LOWER(al.description) LIKE 'brokerage on%' OR LOWER(al.description) LIKE 'brokrej on%') THEN 'Brokerage on Bardan'
-            WHEN al.reference_type = 'dangar_entry_fund' OR LOWER(al.description) LIKE 'godown fund%' THEN 'Dangar Godown Fund'
-            WHEN al.interest_account_id = ? THEN 'Interest Amount'
-            WHEN al.reference_type = 'SALE_DEDUCTION' AND LOWER(al.description) LIKE 'labour on%' THEN 'Labour Charge'
-            ELSE al.description 
-          END as description,
-          al.reference_no,
-          al.reference_type,
-          COALESCE(al.debit, 0) as debit,
-          CASE 
-            WHEN al.reference_type = 'jama_bardan_entry' AND (LOWER(COALESCE(al.description, '')) LIKE '%[self]%' OR EXISTS(SELECT 1 FROM jama_bardan_entry jbe WHERE jbe.id = al.reference_id AND jbe.option_type = 'Self')) THEN 
-              COALESCE(al.credit, 0)
-            ELSE 0
-          END as self_credit,
-          CASE 
-            WHEN al.reference_type = 'jama_bardan_entry' AND NOT (LOWER(COALESCE(al.description, '')) LIKE '%[self]%' OR EXISTS(SELECT 1 FROM jama_bardan_entry jbe WHERE jbe.id = al.reference_id AND jbe.option_type = 'Self')) THEN 
-              COALESCE(al.credit, 0)
-            WHEN al.reference_type = 'BardanPenalty' THEN 
-              COALESCE(NULLIF(regexp_replace(al.description, '[^0-9]', '', 'g'), ''), '0')::INTEGER
-            ELSE 0
-          END as regular_credit,
-          CASE 
-            WHEN al.reference_type = 'BardanPenalty' THEN 
-              COALESCE(NULLIF(regexp_replace(al.description, '[^0-9]', '', 'g'), ''), '0')::INTEGER
-            ELSE 0
-          END as penalty_credit,
-          'Bardan System' as account_name
-        FROM account_ledger al
-        LEFT JOIN member_master m ON al.member_id = m.id
-        WHERE al.company_id = ? AND al.account_id = ?
-        AND al.transaction_date BETWEEN ? AND ?
-        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
-        ORDER BY al.transaction_date ASC, al.id ASC
+          
+          -- Opening Balance before startDate (including base member_master.bardan_opening)
+          COALESCE(m.bardan_opening, 0) + COALESCE(
+            (
+              SELECT COALESCE(SUM(al2.debit), 0) - COALESCE(SUM(
+                CASE 
+                  WHEN al2.reference_type = 'BardanPenalty' THEN 
+                    COALESCE(NULLIF(regexp_replace(al2.description, '[^0-9]', '', 'g'), ''), '0')::INTEGER
+                  ELSE al2.credit
+                END
+              ), 0)
+              FROM account_ledger al2
+              WHERE al2.member_id = m.id AND al2.account_id = ? AND al2.company_id = ?
+              AND al2.transaction_date < ?
+            ), 0
+          ) AS opening_balance,
+
+          -- Period Debit
+          (
+            SELECT COALESCE(SUM(al2.debit), 0)
+            FROM account_ledger al2
+            WHERE al2.member_id = m.id AND al2.account_id = ? AND al2.company_id = ?
+            AND al2.transaction_date BETWEEN ? AND ?
+          ) AS debit,
+
+          -- Period Regular Credit
+          (
+            SELECT COALESCE(SUM(
+              CASE 
+                WHEN al2.reference_type = 'BardanPenalty' THEN 
+                  COALESCE(NULLIF(regexp_replace(al2.description, '[^0-9]', '', 'g'), ''), '0')::INTEGER
+                ELSE al2.credit
+              END
+            ), 0)
+            FROM account_ledger al2
+            WHERE al2.member_id = m.id AND al2.account_id = ? AND al2.company_id = ?
+            AND NOT (
+              al2.reference_type = 'jama_bardan_entry' 
+              AND (
+                LOWER(COALESCE(al2.description, '')) LIKE '%[self]%' 
+                OR EXISTS(SELECT 1 FROM jama_bardan_entry jbe WHERE jbe.id = al2.reference_id AND jbe.option_type = 'Self')
+              )
+            )
+            AND al2.transaction_date BETWEEN ? AND ?
+          ) AS regular_credit,
+
+          -- Period Self Credit
+          (
+            SELECT COALESCE(SUM(al2.credit), 0)
+            FROM account_ledger al2
+            WHERE al2.member_id = m.id AND al2.account_id = ? AND al2.company_id = ?
+            AND al2.reference_type = 'jama_bardan_entry' 
+            AND (
+              LOWER(COALESCE(al2.description, '')) LIKE '%[self]%' 
+              OR EXISTS(SELECT 1 FROM jama_bardan_entry jbe WHERE jbe.id = al2.reference_id AND jbe.option_type = 'Self')
+            )
+            AND al2.transaction_date BETWEEN ? AND ?
+          ) AS self_credit
+
+        FROM member_master m
+        INNER JOIN account_ledger al ON al.member_id = m.id
+        WHERE ${conditions}
+        GROUP BY m.id, m.member_code, m.member_name, m.village_name, m.bardan_opening
+        ORDER BY m.member_name ASC
       `;
-      const bParams = [accountId, companyId, accountId, startDate, endDate];
-      if (memberId && memberId !== 'all') bParams.push(memberId);
 
-      const opBardan = await query(`
-        SELECT COALESCE(SUM(debit) - SUM(credit), 0) as op_bal
-        FROM account_ledger
-        WHERE company_id = ? AND account_id = ? AND transaction_date < ?
-        ${memberId && memberId !== 'all' ? ' AND member_id = ?' : ''}
-      `, [companyId, accountId, startDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
-      const initialBardan = parseFloat(opBardan[0].op_bal || 0);
+      // Build parameters for the subqueries
+      const finalParams = [
+        // Opening subquery
+        accountId, companyId, startDate,
+        // Debit subquery
+        accountId, companyId, startDate, endDate,
+        // Regular Credit subquery
+        accountId, companyId, startDate, endDate,
+        // Self Credit subquery
+        accountId, companyId, startDate, endDate,
+        // Main WHERE conditions
+        ...bParams
+      ];
 
-      const bRows = await query(bardanSql, bParams);
-      
-      let runningQty = initialBardan;
-      const rowsWithQty = bRows.map(row => {
+      const bRows = await query(bardanSql, finalParams);
+
+      const rowsWithBalances = bRows.map(row => {
+        const op = parseFloat(row.opening_balance || 0);
         const deb = parseFloat(row.debit || 0);
         const cre = parseFloat(row.regular_credit || 0);
         const selfCre = parseFloat(row.self_credit || 0);
-        
-        runningQty += (deb - (cre + selfCre));
-        return { 
-          ...row, 
+        const closing = op + deb - cre - selfCre;
+
+        return {
+          member_id: row.member_id,
+          member_code: row.member_code,
+          member_name: row.member_name,
+          village_name: row.village_name,
+          opening_balance: op,
           debit: deb,
           credit: cre,
           self_credit: selfCre,
-          balance: runningQty 
+          balance: closing,
+          account_name: 'Bardan System'
         };
       });
+
+      // Filter out members who have all zero values to keep the list clean, but if there's a specific member selected, keep it.
+      const filteredRows = rowsWithBalances.filter(r => 
+        (memberId && memberId !== 'all') || 
+        Math.abs(r.opening_balance) > 0 || 
+        Math.abs(r.debit) > 0 || 
+        Math.abs(r.credit) > 0 || 
+        Math.abs(r.self_credit) > 0
+      );
 
       return res.json({
         success: true,
         isBardan: true,
-        data: rowsWithQty,
+        data: filteredRows,
         totals: {
-          opening_balance: initialBardan,
-          debit: rowsWithQty.reduce((acc, r) => acc + (r.debit || 0), 0),
-          credit: rowsWithQty.reduce((acc, r) => acc + (r.credit || 0), 0),
-          self_credit: rowsWithQty.reduce((acc, r) => acc + (r.self_credit || 0), 0),
-          balance: runningQty
+          opening_balance: filteredRows.reduce((acc, r) => acc + r.opening_balance, 0),
+          debit: filteredRows.reduce((acc, r) => acc + r.debit, 0),
+          credit: filteredRows.reduce((acc, r) => acc + r.credit, 0),
+          self_credit: filteredRows.reduce((acc, r) => acc + r.self_credit, 0),
+          balance: filteredRows.reduce((acc, r) => acc + r.balance, 0)
         }
       });
     }

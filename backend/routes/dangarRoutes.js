@@ -786,7 +786,8 @@ router.put('/:id', async (req, res) => {
     }
 
     // 4. Re-sync Account Ledger (Using Isolated Mapper)
-    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'dangar_entry_kapat', 'jama_bardan_entry') AND reference_id = ?", [id]);
+    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'dangar_entry_kapat') AND reference_id = ?", [id]);
+    await execute("DELETE FROM account_ledger WHERE reference_type = 'jama_bardan_entry' AND reference_no = ? AND company_id = ?", [srNo, companyId]);
 
     const purchaseAccountId = (await queryOne('SELECT purchase_account_id FROM item_master WHERE id = ?', [item_id]))?.purchase_account_id 
       || await getAccountIdByCode(companyId, ACCOUNT_CODES.DANGAR_PURCHASE);
@@ -942,15 +943,16 @@ router.post('/recalculate', async (req, res) => {
 // DELETE dangar entry
 router.delete('/:id', async (req, res) => {
   try {
-    // 1. Delete associated ledger entries (Both the purchase credit AND any Bardan return)
-    // The purchase entry is linked via source_id = id AND source_table = 'dangar_entry' (if we use source_table)
-    // Wait, in POST we didn't set source_table for the dangar purchase, we used reference_id.
-    // Let's delete all ledger entries linked to this Dangar SR/ID
-    await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund', 'jama_bardan_entry') AND reference_id = ?", [req.params.id]);
+    const entry = await queryOne('SELECT sr_no, company_id FROM dangar_entry WHERE id = ?', [req.params.id]);
     
-    // 2. Delete associated jama_bardan_entry created during this dangar entry
-    // These are linked via the same SR No or we can find them via the ledger source link
-    await execute('DELETE FROM jama_bardan_entry WHERE remark LIKE ?', [`%Dangar Settlement SR: %`]); // A bit risky, better to use SR
+    if (entry) {
+      // 1. Delete associated ledger entries (Both the purchase credit AND any Bardan return)
+      await execute("DELETE FROM account_ledger WHERE reference_type IN ('dangar_entry', 'dangar_entry_fund') AND reference_id = ?", [req.params.id]);
+      await execute("DELETE FROM account_ledger WHERE reference_type = 'jama_bardan_entry' AND reference_no = ? AND company_id = ?", [entry.sr_no, entry.company_id]);
+      
+      // 2. Delete associated jama_bardan_entry created during this dangar entry
+      await execute('DELETE FROM jama_bardan_entry WHERE remark LIKE ? AND company_id = ?', [`%Dangar Settlement SR: ${entry.sr_no}%`, entry.company_id]);
+    }
     
     // 3. Delete weights and the main entry
     await execute('DELETE FROM dangar_weights WHERE entry_id = ?', [req.params.id]);

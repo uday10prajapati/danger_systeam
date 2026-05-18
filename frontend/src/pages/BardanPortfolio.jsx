@@ -143,8 +143,8 @@ const BardanPortfolio = () => {
       // ensure history shows name correctly for the font mapping
       setHistory(processedHistory.map(h => {
         const m = membersWithGu.find(mem => String(mem.member_code) === String(h.code));
-        return { 
-          ...h, 
+        return {
+          ...h,
           name: m?.member_name_gu || m?.member_name || h.name || '',
           display_balance: h.balance.toFixed(2),
           display_debit: h.debit.toFixed(2),
@@ -225,11 +225,11 @@ const BardanPortfolio = () => {
         String(row.pavti_no || '').toLowerCase().includes(term);
     }).map((r, i) =>
       '<tr style="background:' + (i % 2 === 0 ? '#fff' : '#f8fafc') + '">' +
-        '<td>' + ((r.date || r.entry_date) ? new Date(r.date || r.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-') : '') + '</td>' +
-        '<td>' + (r.particulars || '') + '</td>' +
-        '<td style="text-align:right">' + (r.taken || r.debit || r.given || '-') + '</td>' +
-        '<td style="text-align:right">' + (r.returned || r.credit || '-') + '</td>' +
-        '<td style="text-align:right">' + (r.balance || '-') + '</td>' +
+      '<td>' + ((r.date || r.entry_date) ? new Date(r.date || r.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-') : '') + '</td>' +
+      '<td>' + (r.particulars || '') + '</td>' +
+      '<td style="text-align:right">' + (r.taken || r.debit || r.given || '-') + '</td>' +
+      '<td style="text-align:right">' + (r.returned || r.credit || '-') + '</td>' +
+      '<td style="text-align:right">' + (r.balance || '-') + '</td>' +
       '</tr>'
     );
 
@@ -266,7 +266,7 @@ const BardanPortfolio = () => {
     setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
-   const handleHistoryExportPDF = async () => {
+  const handleHistoryExportPDF = async () => {
     const dataToPrint = formData.code ? ledgerData : history;
     const filteredRows = dataToPrint.filter(row => {
       const term = (historySearchQuery || '').toLowerCase();
@@ -613,7 +613,7 @@ const BardanPortfolio = () => {
                   onClick={handleHistoryPrint}
                   className="flex items-center gap-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold px-3 py-2 transition shadow-sm select-none"
                 >
-                   <Printer size={15} /> {t('common.print') || 'PRINT'}
+                  <Printer size={15} /> {t('common.print') || 'PRINT'}
                 </button>
                 <button
                   onClick={handleHistoryExportPDF}
@@ -624,7 +624,7 @@ const BardanPortfolio = () => {
                   onClick={() => setShowHistory(false)}
                   className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 transition shadow-sm select-none"
                 >
-                   <X size={16} /> {t('bardanPortfolio.exitHistory')}
+                  <X size={16} /> {t('bardanPortfolio.exitHistory')}
                 </button>
               </div>
             </div>
@@ -634,7 +634,7 @@ const BardanPortfolio = () => {
               <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                     {t('bardanPortfolio.historyLog')}
+                    {t('bardanPortfolio.historyLog')}
                   </span>
                   <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-bold text-[10px] px-2 py-0.5">
                     {(formData.code ? ledgerData : history).length} {t('common.records')}
@@ -696,14 +696,14 @@ const BardanPortfolio = () => {
                           <div className="flex justify-end gap-1.5">
                             {row.id !== 'OP' && row.type !== 'OPENING' && (
                               <>
-                                <button 
-                                  onClick={() => handleEdit(row)} 
+                                <button
+                                  onClick={() => handleEdit(row)}
                                   className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-blue-600 transition"
                                 >
                                   <Edit2 size={13} />
                                 </button>
-                                <button 
-                                  onClick={() => handleVoid(row.id, row.type)} 
+                                <button
+                                  onClick={() => handleVoid(row.id, row.type)}
                                   className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-rose-600 transition"
                                 >
                                   <Trash2 size={13} />
@@ -726,7 +726,7 @@ const BardanPortfolio = () => {
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
                   <ArrowLeftRight size={20} className="text-zinc-600" />
-                   {t('bardanPortfolio.title')}
+                  {t('bardanPortfolio.title')}
                 </h1>
                 <p className="text-xs font-prompt text-zinc-500 mt-0.5 uppercase tracking-wider">{t('bardanPortfolio.eyebrow')}</p>
               </div>
@@ -736,19 +736,19 @@ const BardanPortfolio = () => {
                   onClick={() => setShowPriceModal(true)}
                   className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
                 >
-                   <Tag size={14} /> {t('bardanPortfolio.bardanRate')}
+                  <Tag size={14} /> {t('bardanPortfolio.bardanRate')}
                 </button>
                 <button
                   onClick={() => setShowHistory(true)}
                   className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
                 >
-                   <History size={14} /> {t('bardanPortfolio.history')}
+                  <History size={14} /> {t('bardanPortfolio.history')}
                 </button>
                 <button
                   onClick={handleSave}
                   className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 select-none transition shadow-sm"
                 >
-                   <Save size={14} /> {t('bardanPortfolio.saveTransaction')}
+                  <Save size={14} /> {t('bardanPortfolio.saveTransaction')}
                 </button>
               </div>
             </div>
@@ -767,7 +767,7 @@ const BardanPortfolio = () => {
                         : 'text-zinc-600'
                         } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                       <TrendingUp size={15} /> {t('bardanPortfolio.giveBags')}
+                      <TrendingUp size={15} /> {t('bardanPortfolio.giveBags')}
                     </button>
                     <button
                       onClick={() => setFormData({ ...formData, type: 'RETURNED' })}
@@ -777,13 +777,13 @@ const BardanPortfolio = () => {
                         : 'text-zinc-600'
                         } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                       <TrendingDown size={15} /> {t('bardanPortfolio.returnBags')}
+                      <TrendingDown size={15} /> {t('bardanPortfolio.returnBags')}
                     </button>
                   </div>
 
                   {/* Form Grid Details */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
-                     <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1">
                       <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.pavti_no')}</label>
                       <input
                         name="pavtiNo"
@@ -883,7 +883,7 @@ const BardanPortfolio = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 select-none">
                     <div className="flex flex-col gap-1 relative">
-                       <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanPortfolio.labels.bagsCount')}</label>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanPortfolio.labels.bagsCount')}</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -895,7 +895,7 @@ const BardanPortfolio = () => {
                         />
                         {formData.type === 'RETURNED' && (
                           <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-zinc-50 border border-zinc-300 px-2 py-0.5 select-none">
-                             <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest leading-none">{t('bardanPortfolio.table.balance')}: </span>
+                            <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest leading-none">{t('bardanPortfolio.table.balance')}: </span>
                             <span className="text-emerald-700 force-en font-bold text-xs leading-none">{balanceData.balance || 0}</span>
                           </div>
                         )}
@@ -903,7 +903,7 @@ const BardanPortfolio = () => {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                       <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.mem_nominal')}</label>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.mem_nominal')}</label>
                       <div className="flex items-center gap-3 bg-zinc-50 p-2 border border-zinc-300 select-none">
                         <input
                           type="checkbox"
@@ -913,7 +913,7 @@ const BardanPortfolio = () => {
                           onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
                         />
                         <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-zinc-700 cursor-pointer select-none">
-                           {formData.memNominal === 'Member' ? t('bardanPortfolio.labels.sabhasadActive') : t('bardanPortfolio.labels.nominalMember')}
+                          {formData.memNominal === 'Member' ? t('bardanPortfolio.labels.sabhasadActive') : t('bardanPortfolio.labels.nominalMember')}
                         </label>
                       </div>
                     </div>
@@ -939,7 +939,7 @@ const BardanPortfolio = () => {
                   <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-300">
                     <div className="flex items-center gap-2">
                       <TrendingUp size={15} className="text-zinc-600" />
-                       <p className="text-[10px] font-bold text-zinc-600 uppercase">{t('bardanPortfolio.labels.totalTaken')}</p>
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase">{t('bardanPortfolio.labels.totalTaken')}</p>
                     </div>
                     <p className="text-base font-bold text-zinc-800 leading-none force-en">{((balanceData.opening || 0) + (balanceData.taken || 0)).toFixed(2)}</p>
                   </div>
@@ -947,14 +947,14 @@ const BardanPortfolio = () => {
                   <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-300">
                     <div className="flex items-center gap-2">
                       <TrendingDown size={15} className="text-zinc-600" />
-                       <p className="text-[10px] font-bold text-zinc-600 uppercase">{t('bardanPortfolio.labels.totalReturned')}</p>
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase">{t('bardanPortfolio.labels.totalReturned')}</p>
                     </div>
                     <p className="text-base font-bold text-zinc-800 leading-none force-en">{balanceData.returned}</p>
                   </div>
 
                   <div className="p-4 bg-zinc-50 border border-zinc-300 flex justify-between items-center">
                     <div className="flex flex-col justify-between">
-                       <span className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">{t('bardanPortfolio.labels.closingBalance')}</span>
+                      <span className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">{t('bardanPortfolio.labels.closingBalance')}</span>
                       <span className="text-lg font-bold text-zinc-800 mt-1 leading-none force-en">{balanceData.balance}</span>
                     </div>
                     {bardanPrice > 0 && (
@@ -968,21 +968,21 @@ const BardanPortfolio = () => {
 
                 <div className="bg-white border border-zinc-300 flex flex-col select-none">
                   <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
-                     <span className="text-xs font-bold text-zinc-700 uppercase">{t('bardanEntry.multiVectorMatrix')}</span>
+                    <span className="text-xs font-bold text-zinc-700 uppercase">{t('bardanEntry.multiVectorMatrix')}</span>
                   </div>
-                  
+
                   <div className="p-4 space-y-4">
                     {formData.type === 'RETURNED' && (
                       <div className="flex flex-col gap-1 select-none">
-                         <label className="text-[10px] font-bold text-zinc-500 uppercase italic">{t('bardanEntry.option')}</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase italic">{t('bardanEntry.option')}</label>
                         <select
                           name="option"
                           className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-bold text-xs select-none"
                           value={formData.option}
                           onChange={handleChange}
                         >
-                           <option value="Company">{t('bardanPortfolio.labels.companyBags')}</option>
-                           <option value="Self">{t('bardanPortfolio.labels.personalBags')}</option>
+                          <option value="Company">{t('bardanPortfolio.labels.companyBags')}</option>
+                          <option value="Self">{t('bardanPortfolio.labels.personalBags')}</option>
                         </select>
                       </div>
                     )}
