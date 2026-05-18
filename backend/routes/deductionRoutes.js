@@ -261,7 +261,7 @@ router.post('/execute-batch', async (req, res) => {
     const companyId = req.headers['x-company-id'];
 
     const kapatAccs = await query(
-      "SELECT id, account_name FROM accounts WHERE (account_name LIKE '%Kapat%' OR account_name LIKE '%Deduction%' OR account_name LIKE '%Adv%') AND company_id = ? LIMIT 1", 
+      "SELECT id, account_name FROM accounts WHERE (account_name ILIKE '%Kapat%' OR account_name ILIKE '%Deduction%' OR account_name ILIKE '%Adv%' OR account_code = 'L0001') AND company_id = ? LIMIT 1", 
       [companyId]
     );
     const fallbackRule = kapatAccs.length > 0 ? { ledger_account_id: kapatAccs[0].id, name: kapatAccs[0].account_name } : null;

@@ -1206,9 +1206,18 @@ async function seedInitialData(connection) {
     // 5. Sync Sequences (PostgreSQL specific)
     // After manual ID insertion, we must sync the serial sequence to avoid duplicate key errors on future inserts
     try {
-      await connection.query("SELECT setval(pg_get_serial_sequence('accounts', 'id'), COALESCE((SELECT MAX(id) FROM accounts), 1))");
-      await connection.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1))");
-      await connection.query("SELECT setval(pg_get_serial_sequence('company', 'id'), COALESCE((SELECT MAX(id) FROM company), 1))");
+      const syncTables = ['accounts', 'users', 'company', 'account_ledger', 'jama_bardan_entry', 'bardan_entry', 'dangar_entry', 'deduction_targets', 'deduction_master'];
+      for (const t of syncTables) {
+        try {
+          const maxValRes = await connection.query(`SELECT COALESCE(MAX(id), 0) as max_id FROM "${t}"`);
+          const maxVal = parseInt(maxValRes[0]?.max_id || 0);
+          if (maxVal > 0) {
+            await connection.query(`SELECT setval(pg_get_serial_sequence('${t}', 'id'), ${maxVal})`);
+          }
+        } catch (tblErr) {
+          // Ignore tables without primary keys or specific sequences
+        }
+      }
       console.log('🔄 PostgreSQL Sequences synchronized.');
     } catch (seqErr) {
       console.warn('⚠️ Sequence synchronization warning:', seqErr.message);
