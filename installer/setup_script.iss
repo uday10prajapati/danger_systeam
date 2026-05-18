@@ -46,16 +46,63 @@ Filename: "http://localhost:3000"; Description: "Open Application in Browser"; F
 
 [Code]
 var
-  PGInstalled: Boolean;
+  PGPrereqPage: TWizardPage;
+  PGInstallCheckBox: TCheckBox;
+  PGStatusLabel: TLabel;
 
 function NeedToInstallPostgreSQL: Boolean;
 begin
-  // Check if PostgreSQL directory exists in Program Files
-  PGInstalled := DirExists(ExpandConstant('{commonpf}\PostgreSQL'));
-  Result := not PGInstalled;
+  // Only install if checkbox is checked
+  Result := PGInstallCheckBox.Checked;
 end;
 
 procedure InitializeWizard;
+var
+  PGPath: String;
+  IsPGDetected: Boolean;
 begin
-  PGInstalled := DirExists(ExpandConstant('{commonpf}\PostgreSQL'));
+  // Check common PostgreSQL paths (both 32-bit and 64-bit program files)
+  // And also check the Registry for installations
+  IsPGDetected := DirExists(ExpandConstant('{commonpf64}\PostgreSQL')) or 
+                  DirExists(ExpandConstant('{commonpf}\PostgreSQL')) or
+                  RegKeyExists(HKEY_LOCAL_MACHINE, 'SOFTWARE\PostgreSQL\Installations');
+
+  // Create the Custom Page
+  PGPrereqPage := CreateCustomPage(wpSelectDir, 'Database Prerequisites', 'PostgreSQL Database Engine check.');
+
+  // Status Label
+  PGStatusLabel := TLabel.Create(PGPrereqPage);
+  PGStatusLabel.Parent := PGPrereqPage.Surface;
+  PGStatusLabel.Top := 10;
+  PGStatusLabel.Font.Style := [fsBold];
+  
+  if IsPGDetected then
+  begin
+    PGStatusLabel.Caption := 'PostgreSQL Status: Detected (Already Installed)';
+    PGStatusLabel.Font.Color := clGreen;
+  end
+  else
+  begin
+    PGStatusLabel.Caption := 'PostgreSQL Status: Not Found';
+    PGStatusLabel.Font.Color := clRed;
+  end;
+
+  // Checkbox for Installation
+  PGInstallCheckBox := TCheckBox.Create(PGPrereqPage);
+  PGInstallCheckBox.Parent := PGPrereqPage.Surface;
+  PGInstallCheckBox.Top := PGStatusLabel.Top + 40;
+  PGInstallCheckBox.Width := PGPrereqPage.SurfaceWidth;
+  PGInstallCheckBox.Caption := 'Install PostgreSQL Database Server (Recommended if not installed)';
+  
+  // Default logic: 
+  // If not detected, check the box. If detected, uncheck and disable (or just uncheck).
+  if IsPGDetected then
+  begin
+    PGInstallCheckBox.Checked := False;
+    // User can still check it if they want to reinstall/update, but let's leave it unchecked.
+  end
+  else
+  begin
+    PGInstallCheckBox.Checked := True;
+  end;
 end;

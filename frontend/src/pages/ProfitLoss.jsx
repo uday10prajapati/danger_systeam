@@ -98,7 +98,7 @@ export default function ProfitLoss() {
       return (
          <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
             <div className="text-center font-black uppercase tracking-widest text-slate-300">
-               <p className="text-xs mb-6 italic tracking-[0.4em]">Establishing Fiscal Bridge...</p>
+               <p className="text-xs mb-6 italic tracking-[0.4em]">{t('saleReport.establishingBridge')}</p>
                <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
                   <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
                </div>
@@ -116,9 +116,9 @@ export default function ProfitLoss() {
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <PieChart size={12} />
-                     <span>Fiscal Intelligence / Profit & Loss Audit</span>
+                     <span>{t('profitLoss.eyebrow')}</span>
                   </div>
-                  <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Performance Dossier</h1>
+                  <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('profitLoss.dossier')}</h1>
                </div>
 
                <div className="flex flex-wrap items-center gap-4">
@@ -127,12 +127,12 @@ export default function ProfitLoss() {
                         onClick={() => setViewMode('summary')}
                         className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'summary' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
                            }`}
-                     >Summary</button>
+                     >{t('profitLoss.summary')}</button>
                      <button
                         onClick={() => { setViewMode('monthly'); fetchMonthlyData(); }}
                         className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'monthly' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
                            }`}
-                     >Heatmap</button>
+                     >{t('profitLoss.heatmap')}</button>
                   </div>
 
                   <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
@@ -155,7 +155,7 @@ export default function ProfitLoss() {
             {loading ? (
                <div className="flex flex-col items-center justify-center py-32 space-y-6">
                   <ActivityIcon className="animate-spin text-blue-100" size={60} />
-                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Synthesizing Fiscal Stream...</p>
+                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">{t('common.loading')}</p>
                </div>
             ) : (
                <div className="space-y-10 animate-in fade-in slide-in-from-bottom duration-700">
@@ -171,7 +171,7 @@ export default function ProfitLoss() {
                               <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 border ${plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-900/40 text-rose-400 border-rose-800'
                                  }`}>
                                  {plData.netProfit >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                 System Audit: {plData.netProfit >= 0 ? 'Surplus' : 'Deficit'}
+                                 System Audit: {plData.netProfit >= 0 ? t('profitLoss.surplus') : t('profitLoss.deficit')}
                               </div>
                               <div>
                                  <span className={`text-lg font-bold italic mr-1 ${plData.netProfit >= 0 ? 'text-slate-200' : 'text-slate-600'}`}>₹</span>
@@ -180,7 +180,7 @@ export default function ProfitLoss() {
                                  </h2>
                               </div>
                               <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest italic text-slate-400">
-                                 Return Efficiency: <span className={`px-2 py-0.5 rounded-md ${plData.netProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-600 text-white'}`}>{plData.profitMargin}% Yield</span>
+                                 {t('profitLoss.returnEfficiency')} <span className={`px-2 py-0.5 rounded-md ${plData.netProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-600 text-white'}`}>{plData.profitMargin}% {t('profitLoss.yield')}</span>
                               </div>
                            </div>
 
@@ -204,8 +204,8 @@ export default function ProfitLoss() {
                            <div className="bg-slate-900 p-6 flex justify-between items-center relative overflow-hidden">
                               <div className="absolute inset-0 bg-linear-to-r from-rose-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                               <div className="relative z-10">
-                                 <h3 className="text-white font-bold uppercase tracking-[0.5em] text-[10px] italic">Expenditure Registry</h3>
-                                 <p className="text-slate-500 text-[7px] font-bold uppercase tracking-widest mt-1">Debit Allocations (ઉધાર)</p>
+                                 <h3 className="text-white font-bold uppercase tracking-[0.5em] text-[10px] italic">{t('profitLoss.expenditure')}</h3>
+                                 <p className="text-slate-500 text-[7px] font-bold uppercase tracking-widest mt-1">{t('saleReport.debitAlloc')}</p>
                               </div>
                               <TrendingDown size={20} className="text-rose-600/40 relative z-10" />
                            </div>
@@ -215,8 +215,8 @@ export default function ProfitLoss() {
                                  <div className="flex items-center gap-3">
                                     <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><ShoppingBag size={16} /></div>
                                     <div>
-                                       <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">Net Purchases</p>
-                                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inventory Values</p>
+                                       <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{t('profitLoss.purchases')}</p>
+                                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('saleReport.inventoryValues')}</p>
                                     </div>
                                  </div>
                                  <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData?.costOfGoodsSold?.netCostOfGoodsSold)}</p>
@@ -228,7 +228,7 @@ export default function ProfitLoss() {
                                        <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><CreditCard size={16} /></div>
                                        <div>
                                           <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{acc.account_name}</p>
-                                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Indirect Overheads</p>
+                                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('profitLoss.indirectOverheads')}</p>
                                        </div>
                                     </div>
                                     <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(acc.amount)}</p>
@@ -240,8 +240,8 @@ export default function ProfitLoss() {
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
                                     <div className="relative z-10 flex justify-between items-end">
                                        <div>
-                                          <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1.5 block italic text-emerald-300">Surplus Provision</span>
-                                          <h4 className="text-2xl font-bold italic tracking-tighter uppercase">Net Profit</h4>
+                                          <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1.5 block italic text-emerald-300">{t('saleReport.surplusProvision')}</span>
+                                          <h4 className="text-2xl font-bold italic tracking-tighter uppercase">{t('profitLoss.netProfit')}</h4>
                                        </div>
                                        <p className="text-2xl font-bold italic tracking-tighter">₹{formatCurrency(plData.netProfit)}</p>
                                     </div>
@@ -255,8 +255,8 @@ export default function ProfitLoss() {
                            <div className="bg-slate-900 p-6 flex justify-between items-center relative overflow-hidden">
                               <div className="absolute inset-0 bg-linear-to-r from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                               <div className="relative z-10">
-                                 <h3 className="text-white font-bold uppercase tracking-[0.5em] text-[10px] italic">Revenue Registry</h3>
-                                 <p className="text-slate-500 text-[7px] font-bold uppercase tracking-widest mt-1">Credit Allocations (જમા)</p>
+                                 <h3 className="text-white font-bold uppercase tracking-[0.5em] text-[10px] italic">{t('profitLoss.revenue')}</h3>
+                                 <p className="text-slate-500 text-[7px] font-bold uppercase tracking-widest mt-1">{t('saleReport.creditAlloc')}</p>
                               </div>
                               <TrendingUp size={20} className="text-emerald-600/40 relative z-10" />
                            </div>
@@ -266,8 +266,8 @@ export default function ProfitLoss() {
                                  <div className="flex items-center gap-3">
                                     <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><TrendingUp size={16} /></div>
                                     <div>
-                                       <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">Net Sales</p>
-                                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Inwards Revenue</p>
+                                       <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{t('profitLoss.sales')}</p>
+                                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('saleReport.inwardsRevenue')}</p>
                                     </div>
                                  </div>
                                  <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(plData?.revenue?.netSales)}</p>
@@ -279,7 +279,7 @@ export default function ProfitLoss() {
                                        <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400"><DollarSign size={16} /></div>
                                        <div>
                                           <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{acc.account_name}</p>
-                                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Secondary Inflow</p>
+                                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('profitLoss.secondaryInflow')}</p>
                                        </div>
                                     </div>
                                     <p className="text-xl font-bold text-slate-800 italic">₹{formatCurrency(acc.amount)}</p>
@@ -291,8 +291,8 @@ export default function ProfitLoss() {
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
                                     <div className="relative z-10 flex justify-between items-end">
                                        <div>
-                                          <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1.5 block italic text-rose-300">Equity Deficit</span>
-                                          <h4 className="text-2xl font-bold italic tracking-tighter uppercase">Net Loss</h4>
+                                          <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1.5 block italic text-rose-300">{t('saleReport.equityDeficit')}</span>
+                                          <h4 className="text-2xl font-bold italic tracking-tighter uppercase">{t('profitLoss.netLoss')}</h4>
                                        </div>
                                        <p className="text-2xl font-bold italic tracking-tighter">₹{formatCurrency(Math.abs(plData.netProfit))}</p>
                                     </div>
@@ -308,7 +308,7 @@ export default function ProfitLoss() {
                      <div className="bg-slate-900 p-3 rounded-lg flex flex-col md:flex-row shadow-2xl relative overflow-hidden">
                         <div className="absolute inset-0 bg-linear-to-r from-blue-600/5 to-transparent"></div>
                         <div className="flex-1 p-6 md:border-r border-white/5 flex justify-between items-center group">
-                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Expenditure</span>
+                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">{t('profitLoss.aggregateExpenditure')}</span>
                            <p className="text-2xl font-bold text-white italic tracking-tighter">
                               ₹{formatCurrency(Math.max(
                                  (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
@@ -317,7 +317,7 @@ export default function ProfitLoss() {
                            </p>
                         </div>
                         <div className="flex-1 p-6 flex justify-between items-center group">
-                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Aggregate Revenue</span>
+                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">{t('profitLoss.aggregateRevenue')}</span>
                            <p className="text-2xl font-bold text-white italic tracking-tighter">
                               ₹{formatCurrency(Math.max(
                                  (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
@@ -334,7 +334,7 @@ export default function ProfitLoss() {
                         <div className="p-10 border-b border-slate-50 bg-[#F8FAFC]/50 backdrop-blur-sm relative overflow-hidden">
                            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-50/50 rounded-full -mr-48 -mt-48 blur-3xl opacity-50"></div>
                            <div className="relative z-10">
-                              <h2 className="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">Fiscal Timeline Heatmap</h2>
+                              <h2 className="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">{t('profitLoss.heatmap')}</h2>
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-1 italic">Chronological Efficiency Mapping</p>
                            </div>
                         </div>
@@ -343,11 +343,11 @@ export default function ProfitLoss() {
                            <table className="w-full text-left">
                               <thead className="bg-[#F8FAFC]">
                                  <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                                    <th className="px-10 py-5">Temporal Vector</th>
-                                    <th className="px-10 py-5 text-right">Revenue Shard</th>
-                                    <th className="px-10 py-5 text-right">Cost Exposure</th>
-                                    <th className="px-10 py-5 text-right">Resultant Yield</th>
-                                    <th className="px-10 py-5 text-right">Intensity</th>
+                                    <th className="px-10 py-5">{t('common.date')}</th>
+                                    <th className="px-10 py-5 text-right">{t('profitLoss.revenueShard')}</th>
+                                    <th className="px-10 py-5 text-right">{t('profitLoss.costExposure')}</th>
+                                    <th className="px-10 py-5 text-right">{t('profitLoss.resultantYield')}</th>
+                                    <th className="px-10 py-5 text-right">{t('profitLoss.intensity')}</th>
                                  </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-50">
@@ -397,9 +397,9 @@ export default function ProfitLoss() {
                   {/* Performance Indicators Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10">
                      {[
-                        { label: 'Operating Margin', val: `${plData?.profitMargin}%`, icon: <ActivityIcon size={20} />, color: 'blue' },
-                        { label: 'Expense Absorption', val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={20} />, color: 'indigo' },
-                        { label: 'Fiscal Health Index', val: plData?.netProfit >= 0 ? 'Optimal Surplus' : 'Risk Warning', icon: <ShieldCheck size={20} />, color: plData?.netProfit >= 0 ? 'emerald' : 'rose' }
+                        { label: t('profitLoss.operatingMargin'), val: `${plData?.profitMargin}%`, icon: <ActivityIcon size={20} />, color: 'blue' },
+                        { label: t('profitLoss.expenseAbsorption'), val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={20} />, color: 'indigo' },
+                        { label: t('profitLoss.fiscalHealth'), val: plData?.netProfit >= 0 ? 'Optimal Surplus' : 'Risk Warning', icon: <ShieldCheck size={20} />, color: plData?.netProfit >= 0 ? 'emerald' : 'rose' }
                      ].map((stat, i) => (
                         <div key={i} className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
                            <div>

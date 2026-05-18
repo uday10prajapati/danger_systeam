@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Calendar, RefreshCcw, X, CreditCard, Box, Calculator, TrendingUp, Printer, FileText, MapPin } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
 
 const fmt = (n, dec = 2) =>
    parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -17,6 +19,7 @@ const clsConfig = {
 };
 
 const DangarSummaryReport = () => {
+   const { t } = useTranslation();
    const navigate = useNavigate();
    const [loading, setLoading] = useState(false);
    const [message, setMessage] = useState(null);
@@ -48,25 +51,6 @@ const DangarSummaryReport = () => {
       }
    };
 
-   const addGujaratiFont = async (doc) => {
-      try {
-         const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-         const blob = await res.blob();
-         return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-               const base64 = reader.result.split(',')[1];
-               doc.addFileToVFS('NotoSansGujarati.ttf', base64);
-               doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-               resolve();
-            };
-            reader.readAsDataURL(blob);
-         });
-      } catch (e) {
-         console.warn('Could not load Gujarati font', e);
-      }
-   };
-
    const handleExportPDF = async () => {
       const company = JSON.parse(localStorage.getItem('company') || '{}');
       const cName = company.company_name || company.name || 'Company';
@@ -81,8 +65,8 @@ const DangarSummaryReport = () => {
 
       const hdr = () => {
          doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
-         doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-         doc.text(cName.toUpperCase(), M, 17);
+         doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
+         doc.text(cName, M, 17);
          doc.setFontSize(7); doc.setTextColor(148, 163, 184);
          doc.text('DANGAR PURCHASE SUMMARY & AUDIT', W / 2, 17, { align: 'center' });
          doc.setFontSize(7); doc.setTextColor(239, 68, 68);
@@ -91,7 +75,7 @@ const DangarSummaryReport = () => {
 
       const ftr = (pg, tot) => {
          doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
-         doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+         doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
          doc.text(cName + ' - Dangar Audit', M, H - 9);
          doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
          doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
@@ -99,9 +83,9 @@ const DangarSummaryReport = () => {
 
       hdr();
       let y = 45;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
-      doc.text('Dangar Purchase Summary', M, y);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
+      doc.text(t('dangarSummaryReport.title'), M, y);
+      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
       doc.text('Period: ' + dateRange.startDate + ' to ' + dateRange.endDate + '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
       doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
       y += 32;
@@ -109,7 +93,7 @@ const DangarSummaryReport = () => {
       // Section 1: Variety Table
       autoTable(doc, {
          startY: y,
-         head: [['Item', 'Class', 'Entries', 'KG', 'Quintal', 'Avg Rate', 'Deduction', 'Amount']],
+         head: [[t('dangarSummaryReport.table.item'), t('dangarSummaryReport.table.class'), t('dangarSummaryReport.table.entries'), t('dangarSummaryReport.table.kg'), t('dangarSummaryReport.table.quintal'), t('dangarSummaryReport.table.avgRate'), t('dangarSummaryReport.table.deduction'), t('dangarSummaryReport.table.amount')]],
          body: [
             ...dangarSummary.map(r => [
                r.item_name || '-',
@@ -121,11 +105,11 @@ const DangarSummaryReport = () => {
                'Rs.' + fmt(r.total_deduction),
                'Rs.' + fmt(r.total_amount)
             ]),
-            ['TOTAL', '', grandEntryCount, fmt(grandKg, 0), fmt(grandQuintal), '-', 'Rs.' + fmt(grandDeduction), 'Rs.' + fmt(grandRateAmount)]
+            [t('dangarSummaryReport.table.total'), '', grandEntryCount, fmt(grandKg, 0), fmt(grandQuintal), '-', 'Rs.' + fmt(grandDeduction), 'Rs.' + fmt(grandRateAmount)]
          ],
-         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
-         footStyles: { font: 'helvetica', fillColor: [30, 41, 59], textColor: white },
+         styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'normal' },
+         footStyles: { font: 'NotoGujarati', fillColor: [30, 41, 59], textColor: white },
          alternateRowStyles: { fillColor: stripe },
          theme: 'grid',
          margin: { left: M, right: M },
@@ -134,19 +118,23 @@ const DangarSummaryReport = () => {
                d.cell.styles.fontStyle = 'bold';
                d.cell.styles.fillColor = [241, 245, 249];
             }
+            const text = d.cell.text.join(' ');
+            if (text && !/[\u0A80-\u0AFF]/.test(text)) {
+               d.cell.styles.font = 'helvetica';
+            }
          }
       });
       y = doc.lastAutoTable.finalY + 20;
 
       // Section 2: Account Payment activity
       if (y > H - 120) { doc.addPage(); hdr(); y = 45; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
-      doc.text('Payment Activity by Account', M, y);
+      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
+      doc.text(t('dangarSummaryReport.paymentActivityByAccount'), M, y);
       y += 12;
 
       autoTable(doc, {
          startY: y,
-         head: [['Account Name', 'Code', 'Type', 'Txns', 'Credited', 'Debited', 'Net']],
+         head: [[t('dangarSummaryReport.table.account'), t('dangarSummaryReport.table.code'), t('dangarSummaryReport.table.type'), t('dangarSummaryReport.table.txns'), t('dangarSummaryReport.table.credited'), t('dangarSummaryReport.table.debited'), t('dangarSummaryReport.table.net')]],
          body: paymentPerAccount.map(a => {
             const net = parseFloat(a.net_paid || 0);
             return [
@@ -159,9 +147,15 @@ const DangarSummaryReport = () => {
                (net >= 0 ? '+' : '-') + 'Rs.' + fmt(Math.abs(net))
             ];
          }),
-         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
+         styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'normal' },
          alternateRowStyles: { fillColor: stripe },
+         didParseCell: (data) => {
+            const text = data.cell.text.join(' ');
+            if (text && !/[\u0A80-\u0AFF]/.test(text)) {
+               data.cell.styles.font = 'helvetica';
+            }
+         },
          theme: 'grid',
          margin: { left: M, right: M }
       });
@@ -169,13 +163,13 @@ const DangarSummaryReport = () => {
 
       // Section 3: Village Summary
       if (y > H - 120) { doc.addPage(); hdr(); y = 45; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
-      doc.text('Procurement by Village', M, y);
+      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
+      doc.text(t('dangarSummaryReport.procurementByVillage'), M, y);
       y += 12;
 
       autoTable(doc, {
          startY: y,
-         head: [['Village', 'Entries', 'KG', 'Quintal', 'Deduction', 'Amount']],
+         head: [[t('dangarSummaryReport.table.village'), t('dangarSummaryReport.table.entries'), t('dangarSummaryReport.table.kg'), t('dangarSummaryReport.table.quintal'), t('dangarSummaryReport.table.deduction'), t('dangarSummaryReport.table.amount')]],
          body: villageSummary.map(r => [
             r.village_name || '-',
             r.entry_count,
@@ -184,9 +178,15 @@ const DangarSummaryReport = () => {
             'Rs.' + fmt(r.total_deduction),
             'Rs.' + fmt(r.total_amount)
          ]),
-         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
+         styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
+         headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'normal' },
          alternateRowStyles: { fillColor: stripe },
+         didParseCell: (data) => {
+            const text = data.cell.text.join(' ');
+            if (text && !/[\u0A80-\u0AFF]/.test(text)) {
+               data.cell.styles.font = 'helvetica';
+            }
+         },
          theme: 'grid',
          margin: { left: M, right: M }
       });
@@ -209,13 +209,13 @@ const DangarSummaryReport = () => {
    const totalKapatBal = fixedAccounts.reduce((s, a) => s + parseFloat(a.total_balance || 0), 0);
 
    const kpis = [
-      { label: 'Procurement', value: `₹${fmt(grandRateAmount)}`, sub: `${grandEntryCount} entries` },
-      { label: 'Weight', value: `${fmt(grandKg, 0)} KG`, sub: `${fmt(grandQuintal)} Qtl` },
-      { label: 'Members', value: activeMembers, sub: 'active suppliers' },
-      { label: 'Member Payable', value: `₹${fmt(totalMemberCredit)}`, sub: 'total credited' },
-      { label: 'Deductions', value: `₹${fmt(grandDeduction)}`, sub: 'kapat + fund' },
-      { label: 'Interest', value: `₹${fmt(totalInterest)}`, sub: 'accumulated' },
-      { label: 'Net Payable', value: `₹${fmt(netPayable)}`, sub: 'credit – debit' },
+      { label: t('dangarSummaryReport.kpis.procurement'), value: `₹${fmt(grandRateAmount)}`, sub: `${grandEntryCount} ` + t('dangarSummaryReport.kpis.entries') },
+      { label: t('dangarSummaryReport.kpis.weight'), value: `${fmt(grandKg, 0)} KG`, sub: `${fmt(grandQuintal)} ` + t('dangarSummaryReport.table.quintal') },
+      { label: t('dangarSummaryReport.kpis.members'), value: activeMembers, sub: t('dangarSummaryReport.kpis.activeSuppliers') },
+      { label: t('dangarSummaryReport.kpis.memberPayable'), value: `₹${fmt(totalMemberCredit)}`, sub: t('dangarSummaryReport.kpis.totalCredited') },
+      { label: t('dangarSummaryReport.kpis.deductions'), value: `₹${fmt(grandDeduction)}`, sub: t('dangarSummaryReport.kpis.kapatFund') },
+      { label: t('dangarSummaryReport.kpis.interest'), value: `₹${fmt(totalInterest)}`, sub: t('dangarSummaryReport.kpis.accumulated') },
+      { label: t('dangarSummaryReport.kpis.netPayable'), value: `₹${fmt(netPayable)}`, sub: t('dangarSummaryReport.kpis.creditDebit') },
    ];
 
    if (loading) {
@@ -233,9 +233,9 @@ const DangarSummaryReport = () => {
                <div>
                   <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
                      <Database size={20} className="text-zinc-600" />
-                     Dangar Purchase Summary
+                     {t('dangarSummaryReport.title')}
                   </h1>
-                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Procurement Audit</p>
+                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">{t('dangarSummaryReport.eyebrow')}</p>
                </div>
 
                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto select-none no-print">
@@ -245,7 +245,7 @@ const DangarSummaryReport = () => {
                         onChange={e => setDateRange({ ...dateRange, startDate: e.target.value })}
                         className="bg-transparent border-none outline-none text-xs text-zinc-700 w-[105px] font-bold"
                      />
-                     <span className="text-zinc-300 text-xs select-none">—</span>
+                     <span className="text-zinc-300 text-sm select-none">—</span>
                      <input type="date" value={dateRange.endDate}
                         onChange={e => setDateRange({ ...dateRange, endDate: e.target.value })}
                         className="bg-transparent border-none outline-none text-xs text-zinc-700 w-[105px] font-bold"
@@ -255,8 +255,7 @@ const DangarSummaryReport = () => {
                      onClick={handleExportPDF}
                      className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
                   >
-                     <Printer size={14} /> PDF
-                  </button>
+                     <Printer size={14} />{t('common.pdf')}</button>
                   <button onClick={fetchSummary} className="p-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 transition select-none">
                      <RefreshCcw size={15} className={`${loading ? 'animate-spin' : ''}`} />
                   </button>
@@ -277,16 +276,16 @@ const DangarSummaryReport = () => {
                ))}
             </div>
 
-            {/* Variety & Class Breakdown Table */}
+            {/* {t('dangarSummaryReport.varietyBreakdown')} Table */}
             <section className="mb-4">
                <div className="border border-zinc-300 bg-zinc-50 flex flex-col">
                   <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                           Variety & Class Breakdown
+                        <span className="text-sm font-bold text-zinc-700  ">
+                           {t('dangarSummaryReport.varietyBreakdown')}
                         </span>
-                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                           {dangarSummary.length} VARIETIES
+                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">
+                           {dangarSummary.length} ` + t('dangarSummaryReport.table.varieties')
                         </span>
                      </div>
                   </div>
@@ -294,8 +293,8 @@ const DangarSummaryReport = () => {
                      <table className="w-full text-left">
                         <thead>
                            <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-500 uppercase tracking-wider select-none">
-                              {['Item', 'Class', 'Entries', 'KG', 'Quintal', 'Avg Rate', 'Deduction', 'Amount'].map(h => (
-                                 <th key={h} className={`px-4 py-3 ${h === 'Item' || h === 'Class' ? '' : 'text-right'}`}>{h}</th>
+                              {[t('dangarSummaryReport.table.item'), t('dangarSummaryReport.table.class'), t('dangarSummaryReport.table.entries'), t('dangarSummaryReport.table.kg'), t('dangarSummaryReport.table.quintal'), t('dangarSummaryReport.table.avgRate'), t('dangarSummaryReport.table.deduction'), t('dangarSummaryReport.table.amount')].map((h, idx) => (
+                                 <th key={idx} className={`px-4 py-3 ${idx < 2 ? 'text-left' : 'text-right'}`}>{h}</th>
                               ))}
                            </tr>
                         </thead>
@@ -309,7 +308,7 @@ const DangarSummaryReport = () => {
                                     const c = clsConfig[cls] || clsConfig['1st'];
                                     return (
                                        <tr key={i} className="hover:bg-zinc-50 transition">
-                                          <td className="px-4 py-3 text-sm font-bold text-zinc-700 uppercase">{row.item_name || '—'}</td>
+                                          <td className="px-4 py-3 text-sm font-bold text-zinc-700 ">{row.item_name || '—'}</td>
                                           <td className="px-4 py-3">
                                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase ${c.text}`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`}></span>
@@ -327,7 +326,7 @@ const DangarSummaryReport = () => {
                                     );
                                  })}
                                  <tr className="bg-zinc-100 font-bold border-t border-zinc-300">
-                                    <td className="px-4 py-3 text-zinc-700 uppercase" colSpan="2">TOTAL</td>
+                                    <td className="px-4 py-3 text-zinc-700 " colSpan="2">{t('dangarSummaryReport.table.total')}</td>
                                     <td className="px-4 py-3 text-right text-zinc-700">{grandEntryCount}</td>
                                     <td className="px-4 py-3 text-right text-zinc-700">{fmt(grandKg, 0)}</td>
                                     <td className="px-4 py-3 text-right text-zinc-800">{fmt(grandQuintal)}</td>
@@ -343,16 +342,16 @@ const DangarSummaryReport = () => {
                </div>
             </section>
 
-            {/* Procurement by Village */}
+            {/* {t('dangarSummaryReport.procurementByVillage')} */}
             <section className="mb-4">
                <div className="border border-zinc-300 bg-zinc-50 flex flex-col">
                   <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                           Procurement by Village
+                        <span className="text-sm font-bold text-zinc-700  ">
+                           {t('dangarSummaryReport.procurementByVillage')}
                         </span>
-                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                           {villageSummary.length} REGIONS
+                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">
+                           {villageSummary.length} ` + t('dangarSummaryReport.table.regions')
                         </span>
                      </div>
                   </div>
@@ -360,8 +359,8 @@ const DangarSummaryReport = () => {
                      <table className="w-full text-left">
                         <thead>
                            <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-500 uppercase tracking-wider select-none">
-                              {['Village', 'Entries', 'KG', 'Quintal', 'Deduction', 'Amount'].map(h => (
-                                 <th key={h} className={`px-4 py-3 ${h === 'Village' ? '' : 'text-right'}`}>{h}</th>
+                              {[t('dangarSummaryReport.table.village'), t('dangarSummaryReport.table.entries'), t('dangarSummaryReport.table.kg'), t('dangarSummaryReport.table.quintal'), t('dangarSummaryReport.table.deduction'), t('dangarSummaryReport.table.amount')].map((h, idx) => (
+                                 <th key={idx} className={`px-4 py-3 ${idx === 0 ? 'text-left' : 'text-right'}`}>{h}</th>
                               ))}
                            </tr>
                         </thead>
@@ -371,7 +370,7 @@ const DangarSummaryReport = () => {
                            ) : (
                               villageSummary.map((row, i) => (
                                  <tr key={i} className="hover:bg-zinc-50 transition">
-                                    <td className="px-4 py-3 text-sm font-bold text-zinc-700 uppercase font-sans">
+                                    <td className="px-4 py-3 text-sm font-bold text-zinc-700  font-sans">
                                        {row.village_name || '—'}
                                        {row.village_name_gu && <span className="text-zinc-400 font-normal ml-2 font-sans">{row.village_name_gu}</span>}
                                     </td>
@@ -395,11 +394,11 @@ const DangarSummaryReport = () => {
                   <div className="border border-zinc-300 bg-zinc-50 flex flex-col h-full">
                      <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                           <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                              Payment Activity by Account
+                           <span className="text-sm font-bold text-zinc-700  ">
+                              {t('dangarSummaryReport.paymentActivityByAccount')}
                            </span>
-                           <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                              {paymentPerAccount.length} ACCOUNTS
+                           <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">
+                              {paymentPerAccount.length} ` + t('dangarSummaryReport.table.accounts')
                            </span>
                         </div>
                      </div>
@@ -407,9 +406,9 @@ const DangarSummaryReport = () => {
                         <table className="w-full text-left h-full">
                            <thead>
                               <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-500 uppercase tracking-wider select-none">
-                                 {['Account', 'Type', 'Txns', 'Credited', 'Debited', 'Net'].map(h => (
-                                    <th key={h} className={`px-4 py-3 ${h === 'Account' || h === 'Type' ? '' : 'text-right'}`}>{h}</th>
-                                 ))}
+                                 {[t('dangarSummaryReport.table.account'), t('dangarSummaryReport.table.type'), t('dangarSummaryReport.table.txns'), t('dangarSummaryReport.table.credited'), t('dangarSummaryReport.table.debited'), t('dangarSummaryReport.table.net')].map((h, idx) => (
+                                 <th key={idx} className={`px-4 py-3 ${idx < 2 ? 'text-left' : 'text-right'}`}>{h}</th>
+                              ))}
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-zinc-200 text-xs font-mono">
@@ -446,20 +445,20 @@ const DangarSummaryReport = () => {
                </div>
 
                <div className="space-y-6">
-                  {/* Financial Summary */}
+                  {/* {t('dangarSummaryReport.financialSummary')} */}
                   <div className="border border-zinc-300 bg-zinc-50 flex flex-col select-none">
                      <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center gap-2">
                         <TrendingUp size={16} className="text-zinc-600" />
-                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                           Financial Summary
+                        <span className="text-sm font-bold text-zinc-700  ">
+                           {t('dangarSummaryReport.financialSummary')}
                         </span>
                      </div>
                      <div className="bg-white divide-y divide-zinc-200 font-mono text-xs select-none">
                         {[
-                           { label: 'Gross Procurement', value: `₹${fmt(grandRateAmount)}`, color: 'text-zinc-800' },
-                           { label: 'Kapat Deductions', value: `− ₹${fmt(grandDeduction)}`, color: 'text-rose-600 font-bold' },
-                           { label: 'Interest', value: `− ₹${fmt(totalInterest)}`, color: 'text-rose-600 font-bold' },
-                           { label: 'Account Kapat Bal.', value: `₹${fmt(Math.abs(totalKapatBal))}`, color: totalKapatBal < 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold' },
+                           { label: t('dangarSummaryReport.summary.grossProcurement'), value: `₹${fmt(grandRateAmount)}`, color: 'text-zinc-800' },
+                           { label: t('dangarSummaryReport.summary.kapatDeductions'), value: `− ₹${fmt(grandDeduction)}`, color: 'text-rose-600 font-bold' },
+                           { label: t('dangarSummaryReport.kpis.interest'), value: `− ₹${fmt(totalInterest)}`, color: 'text-rose-600 font-bold' },
+                           { label: t('dangarSummaryReport.summary.accountKapatBal'), value: `₹${fmt(Math.abs(totalKapatBal))}`, color: totalKapatBal < 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold' },
                         ].map((r, i) => (
                            <div key={i} className="flex items-center justify-between px-4 py-3 select-none">
                               <span className="font-sans text-zinc-500 font-bold">{r.label}</span>
@@ -467,7 +466,7 @@ const DangarSummaryReport = () => {
                            </div>
                         ))}
                         <div className="flex items-center justify-between px-4 py-3 bg-zinc-50 border-t border-zinc-300 font-sans select-none">
-                           <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Net Payable</span>
+                           <span className="text-sm font-bold text-zinc-700  ">{t('dangarSummaryReport.kpis.netPayable')}</span>
                            <span className={`text-base font-bold font-mono ${netPayable >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}`}>
                               ₹{fmt(netPayable)}
                            </span>

@@ -124,9 +124,9 @@ export default function StockReport() {
                <div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
                      <Package size={12} />
-                     <span>Inventory Core / Live Stock Registry</span>
+                     <span>{t('stockReport.eyebrow')}</span>
                   </div>
-                  <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Repository Audit</h1>
+                  <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('stockReport.audit')}</h1>
                </div>
                <div className="flex items-center gap-4">
                   <button
@@ -134,7 +134,7 @@ export default function StockReport() {
                      className="flex items-center gap-2 bg-blue-600 px-8 py-3.5 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
                   >
                      <SyncIcon size={18} className={loading ? 'animate-spin' : ''} />
-                     Re-Sync Inventory
+                     {t('common.sync')}
                   </button>
                </div>
             </div>
@@ -142,10 +142,10 @@ export default function StockReport() {
             {/* Dynamic Metric Grid - Compact Airy Modules */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
                {[
-                  { label: 'Live Inventory Qty', val: formatNumber(totalValue.current), icon: <Package size={18} />, color: 'blue' },
-                  { label: 'Gross Procurement', val: formatNumber(totalValue.purchased), icon: <Plus size={18} />, color: 'emerald' },
-                  { label: 'Fulfilled Sales', val: formatNumber(totalValue.sold), icon: <TrendingDown size={18} />, color: 'indigo' },
-                  { label: 'Critical Reorders', val: lowStockData.length, icon: <AlertTriangle size={18} />, color: 'rose' }
+                  { label: t('stockReport.liveInventory'), val: formatNumber(totalValue.current), icon: <Package size={18} />, color: 'blue' },
+                  { label: t('stockReport.grossProcurement'), val: formatNumber(totalValue.purchased), icon: <Plus size={18} />, color: 'emerald' },
+                  { label: t('stockReport.fulfilledSales'), val: formatNumber(totalValue.sold), icon: <TrendingDown size={18} />, color: 'indigo' },
+                  { label: t('stockReport.criticalReorders'), val: lowStockData.length, icon: <AlertTriangle size={18} />, color: 'rose' }
                ].map((stat, i) => (
                   <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
                      <div className="flex justify-between items-start mb-4">
@@ -160,12 +160,12 @@ export default function StockReport() {
             {/* Global Toolbar - Controller Console */}
             <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-4">
                <div className="flex-1 min-w-[350px]">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Nomenclature Vector Search</span>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">{t('stockReport.nomenclature')}</span>
                   <div className="relative group">
                      <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                      <input
                         type="text"
-                        placeholder="SEARCH BY ITEM CODE OR NOMENCLATURE..."
+                        placeholder={t("stockReport.nomenclature")}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
@@ -174,7 +174,7 @@ export default function StockReport() {
                </div>
 
                <div className="w-full lg:w-[300px]">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Repository Status Filter</span>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">{t('stockReport.status')}</span>
                   <div className="relative group">
                      <Filter size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                      <select
@@ -182,9 +182,9 @@ export default function StockReport() {
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="w-full pl-14 pr-10 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest appearance-none cursor-pointer"
                      >
-                        <option value="ALL">ALL REPOSITORY ITEMS</option>
-                        <option value="LOW">INSUFFICIENT STOCK ONLY</option>
-                        <option value="OK">HEALTHY STOCK LEVELS</option>
+                        <option value="ALL">{t("common.all")}</option>
+                        <option value="LOW">{t("stockReport.critical")}</option>
+                        <option value="OK">{t("stockReport.optimal")}</option>
                      </select>
                      <ChevronRight size={14} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none rotate-90" />
                   </div>
@@ -193,7 +193,7 @@ export default function StockReport() {
                <button
                   onClick={fetchStockReport}
                   className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]"
-               >Execute Audit</button>
+               >{t('stockReport.executeAudit')}</button>
             </div>
 
             {/* Procurement Alert Manifest */}
@@ -231,14 +231,14 @@ export default function StockReport() {
                   <table className="w-full text-left">
                      <thead className="bg-[#F8FAFC]">
                         <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                           <th className="px-8 py-5">Nomenclature Node</th>
-                           <th className="px-8 py-5">Classification</th>
-                           <th className="px-8 py-5 text-center">Net Procured (+)</th>
-                           <th className="px-8 py-5 text-center">Net Sales (-)</th>
-                           <th className="px-8 py-5 text-center bg-slate-50/50">Live Postion</th>
-                           <th className="px-8 py-5 text-center">Threshold</th>
-                           <th className="px-8 py-5 text-center">Status Index</th>
-                           <th className="px-8 py-5 text-center">Audit</th>
+                           <th className="px-8 py-5">{t('stockReport.nomenclature')}</th>
+                           <th className="px-8 py-5">{t('stockReport.classification')}</th>
+                           <th className="px-8 py-5 text-center">{t('stockReport.netProcured')}</th>
+                           <th className="px-8 py-5 text-center">{t('stockReport.netSales')}</th>
+                           <th className="px-8 py-5 text-center bg-slate-50/50">{t('stockReport.livePosition')}</th>
+                           <th className="px-8 py-5 text-center">{t('stockReport.threshold')}</th>
+                           <th className="px-8 py-5 text-center">{t('stockReport.status')}</th>
+                           <th className="px-8 py-5 text-center">{t('common.audit')}</th>
                         </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
@@ -246,7 +246,7 @@ export default function StockReport() {
                            <tr>
                               <td colSpan="8" className="py-32 text-center">
                                  <SyncIcon className="animate-spin text-blue-100 mx-auto" size={50} />
-                                 <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Synchronizing Repository Streams...</p>
+                                 <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">{t('saleReport.syncingStreams')}</p>
                               </td>
                            </tr>
                         ) : filteredData.length === 0 ? (
@@ -278,7 +278,7 @@ export default function StockReport() {
                                     <div className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest inline-flex items-center gap-2 border ${item.stock_status === 'LOW' ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                        }`}>
                                        <div className={`w-1.5 h-1.5 rounded-full ${item.stock_status === 'LOW' ? 'bg-rose-600' : 'bg-emerald-600'}`}></div>
-                                       {item.stock_status === 'LOW' ? 'CRITICAL' : 'OPTIMAL'}
+                                       {item.stock_status === 'LOW' ? t('stockReport.critical') : t('stockReport.optimal')}
                                     </div>
                                  </td>
                                  <td className="px-8 py-6 text-center">
@@ -302,11 +302,11 @@ export default function StockReport() {
                {/* Dashboard Insight Footer */}
                <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
                   <div className="flex items-center gap-4">
-                     <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Status: Verified</span>
+                     <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> {t('common.audit')} Status: Verified</span>
                      <span className="flex items-center gap-2"><Layout size={12} /> Nodes Scanning: {stockData.length}</span>
                   </div>
                   <div className="flex items-center gap-3 font-mono">
-                     <span>SYS_MD5: {new Date().getTime().toString(16).toUpperCase()}</span>
+                     <span>SYS_MD5: {new Date().getTime().toString(16)}</span>
                      <div className="w-px h-3 bg-slate-200"></div>
                      <span>REF: {company.id}</span>
                   </div>
@@ -314,7 +314,7 @@ export default function StockReport() {
             </div>
          </div>
 
-         {/* History Audit Modal - Premium Glassmorphic */}
+         {/* History {t('common.audit')} Modal - Premium Glassmorphic */}
          {showHistory && selectedItem && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 z-[1000] animate-in fade-in duration-300">
                <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-100 animate-in zoom-in-95 duration-500 relative">
@@ -325,7 +325,7 @@ export default function StockReport() {
                      <div className="relative z-10 flex items-center gap-4">
                         <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white"><History size={32} /></div>
                         <div>
-                           <h2 className="text-2xl font-bold text-white tracking-tight italic uppercase">Nomenclature Audit Log</h2>
+                           <h2 className="text-2xl font-bold text-white tracking-tight italic uppercase">{t('stockReport.auditHistory')}</h2>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">
                               Vector Path: {selectedItem.item_name} / #{selectedItem.item_code}
                            </p>
@@ -343,7 +343,7 @@ export default function StockReport() {
                      {itemHistory.length === 0 ? (
                         <div className="py-20 text-center opacity-10">
                            <History size={60} strokeWidth={1} className="mx-auto mb-4" />
-                           <p className="text-sm font-bold uppercase tracking-[0.4em] italic">No Audit History Logged</p>
+                           <p className="text-sm font-bold uppercase tracking-[0.4em] italic">No {t('common.audit')} History Logged</p>
                         </div>
                      ) : (
                         <table className="w-full text-left">
@@ -389,7 +389,7 @@ export default function StockReport() {
                      <button
                         onClick={() => setShowHistory(false)}
                         className="bg-slate-900 text-white px-10 py-3 rounded-lg shadow-xl hover:bg-black transition-all active:scale-95"
-                     >Close Audit Window</button>
+                     >Close {t('common.audit')} Window</button>
                   </div>
                </div>
             </div>

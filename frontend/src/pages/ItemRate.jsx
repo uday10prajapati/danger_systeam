@@ -11,12 +11,14 @@ import { useTranslation } from 'react-i18next';
 import api from '../api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
 import ItemRateForm from '../components/ItemRateForm';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
+import html2canvas from 'html2canvas';
 
 export default function ItemRate() {
   const { t } = useTranslation();
@@ -51,6 +53,7 @@ export default function ItemRate() {
         company_id: item.company_id,
         item_id: item.id,
         item_name: item.item_name,
+        item_name_gu: item.item_name_gu,
         item_code: item.item_code,
         barcode: item.barcode,
         purchase_rate: item.purchase_price || 0,
@@ -176,98 +179,129 @@ export default function ItemRate() {
     }
   };
 
-  const addGujaratiFont = async (doc) => {
-    try {
-      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          doc.addFileToVFS('NotoSansGujarati.ttf', reader.result.split(',')[1]);
-          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-          resolve();
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) { console.warn('Could not load font', e); }
+  const toGujaratiDigits = (num) => {
+    const gujDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+    return num.toString().split('').map(digit => gujDigits[digit] || digit).join('');
+  };
+
+  const buildTariffManifestHTML = () => {
+    const cName = company?.company_name_gu || company?.company_name || 'Company';
+    const reportTitle = t('itemRate.print.tariffManifest');
+
+    const tableRows = filteredRates.map((rate, idx) => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
+        <td style="padding:10px;border:1px solid #d1d5db;font-family:'NotoGujarati', 'Noto Sans Gujarati', sans-serif;font-weight:700;">${rate.item_name_gu || rate.item_name}</td>
+        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;font-weight:bold;">${rate.item_code || '-'}</td>
+        <td style="padding:10px;border:1px solid #d1d5db;text-align:right;font-weight:900;">₹${parseFloat(rate.sale_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;">${new Date(rate.effective_from).toLocaleDateString('en-GB')}</td>
+        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;">
+          <span style="font-size:10px;font-weight:800;padding:2px 6px;border:1px solid #d1d5db;background:#f8fafc;">
+            ${rate.is_active === 1 ? t('itemRate.table.verified') : t('itemRate.table.redacted')}
+          </span>
+        </td>
+      </tr>
+    `).join('');
+
+    return `
+      <div style="width:1000px;background:#fff;color:#111827;font-family:'NotoGujarati', 'Noto Sans Gujarati', Arial, sans-serif;padding:30px;border:1px solid #cbd5e1;">
+        <div style="background:#2563eb;color:#fff;padding:20px 25px;display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;">
+          <div style="font-size:24px;font-weight:900;">${cName}</div>
+          <div style="font-size:14px;font-weight:700;opacity:0.9;letter-spacing:1px;">${reportTitle}</div>
+        </div>
+        
+        <div style="margin-bottom:20px;">
+          <h2 style="font-size:28px;font-weight:900;color:#1e293b;margin-bottom:8px;">${reportTitle}</h2>
+          <div style="font-size:13px;color:#64748b;display:flex;gap:15px;padding-bottom:15px;border-bottom:2px solid #f1f5f9;">
+            <span>${t('memberMaster.status')}: <b>${selectedStatus === 'all' ? t('common.all') : t(`itemRate.table.${selectedStatus}`)}</b></span>
+            <span>${t('dangarMaster.records')}: <b>${filteredRates.length}</b></span>
+            <span>${t('itemRate.pdf.generated')}: <b>${new Date().toLocaleString('en-IN')}</b></span>
+          </div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">#</th>
+              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:left;">${t('itemRate.table.nomenclature')}</th>
+              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">${t('itemRate.table.systemId')}</th>
+              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:right;">${t('itemRate.table.yieldIndex')}</th>
+              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">${t('itemRate.table.timeline')}</th>
+              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">${t('itemRate.table.auditStatus')}</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    `;
   };
 
   const handleExportPDF = async () => {
     if (filteredRates.length === 0) {
-      setMessage({ type: 'error', text: 'No data available to export.' });
+      setMessage({ type: 'error', text: t('itemMaster.errors.failedLoadItems') });
       return;
     }
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    await addGujaratiFont(doc);
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 32;
-    const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139];
-    const dark = [30, 41, 59], stripe = [241, 245, 249];
+    
+    setLoading(true);
+    try {
+      const tempWrap = document.createElement('div');
+      tempWrap.style.position = 'fixed';
+      tempWrap.style.left = '-10000px';
+      tempWrap.style.top = '0';
+      tempWrap.style.width = '1000px';
+      tempWrap.style.background = '#fff';
+      tempWrap.innerHTML = buildTariffManifestHTML();
+      document.body.appendChild(tempWrap);
 
-    const cName = company?.company_name || 'Company';
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 500));
 
-    const hdr = () => {
-      const navy = [37, 99, 235], white = [255, 255, 255];
-      doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-      doc.text(cName.toUpperCase(), M, 17);
-      doc.setFontSize(7); doc.setTextColor(191, 219, 254);
-      doc.text('ITEM RATE MASTER REGISTRY', W / 2, 17, { align: 'center' });
-      doc.setFontSize(7); doc.setTextColor(239, 68, 68);
-      doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
-    };
+      const canvas = await html2canvas(tempWrap, { 
+        scale: 2.5, 
+        useCORS: true, 
+        backgroundColor: '#ffffff',
+        logging: false 
+      });
+      document.body.removeChild(tempWrap);
 
-    const ftr = (pg, tot) => {
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.text(cName + ' - Tariff Manifest', M, H - 9);
-      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
-    };
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 32;
+      const imgW = pageW - margin * 2;
+      const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
 
-    hdr();
-    let y = 55;
-    doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...navy);
-    doc.text('Item Tariff Manifest', M, y);
-    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
-    doc.text('Status: ' + (selectedStatus === 'all' ? 'All Rates' : selectedStatus.toUpperCase()) +
-      '   |   Records: ' + filteredRates.length, M, y + 13);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-    y += 28;
+      let yPos = 0;
+      let pIdx = 0;
+      while (yPos < canvas.height) {
+        const sliceH = Math.min(pageHpx, canvas.height - yPos);
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = canvas.width;
+        pCanvas.height = sliceH;
+        const ctx = pCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pCanvas.width, pCanvas.height);
+        ctx.drawImage(canvas, 0, yPos, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
 
-    const bodyRows = filteredRates.map(rate => [
-      rate.item_name || 'Unknown',
-      rate.item_code || '-',
-      parseFloat(rate.sale_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-      rate.effective_from ? new Date(rate.effective_from).toLocaleDateString('en-GB') : '-',
-      rate.is_active === 1 ? 'Active' : 'Inactive'
-    ]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Category', 'Node Name', 'Code', 'P-Code', 'Unit', 'W-Rate', 'S-Rate', 'Purchase']],
-      body: bodyRows,
-      styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: stripe },
-      theme: 'grid',
-      margin: { left: M, right: M },
-      columnStyles: {
-        5: { halign: 'right' },
-        6: { halign: 'right' },
-        7: { halign: 'right' }
-      },
-    });
-
-    const tot = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-    doc.save('Tariff_Manifest_' + new Date().toISOString().split('T')[0] + '.pdf');
+        if (pIdx > 0) doc.addPage();
+        doc.addImage(pCanvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, (sliceH * imgW) / canvas.width);
+        
+        yPos += sliceH;
+        pIdx++;
+      }
+      
+      doc.save('Tariff_Manifest_' + new Date().toISOString().split('T')[0] + '.pdf');
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      setMessage({ type: 'error', text: 'PDF Generation Failed' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePrint = () => {
     if (filteredRates.length === 0) {
-      setMessage({ type: 'error', text: 'No data available to print.' });
+      setMessage({ type: 'error', text: t('itemMaster.errors.failedLoadItems') });
       return;
     }
     const cName = company?.company_name || 'Company';
@@ -277,11 +311,11 @@ export default function ItemRate() {
         <td style="padding: 6px 8px; border: 1px solid #e4e4e7;">${rate.item_code || '-'}</td>
         <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:right"><strong>${parseFloat(rate.sale_rate || 0).toFixed(2)}</strong></td>
         <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:center">${rate.effective_from ? new Date(rate.effective_from).toLocaleDateString('en-GB') : '-'}</td>
-        <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:center">${rate.is_active === 1 ? 'ACTIVE' : 'INACTIVE'}</td>
+        <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:center">${rate.is_active === 1 ? t('itemRate.table.verified') : t('itemRate.table.redacted')}</td>
       </tr>`);
 
     const win = window.open('', '_blank', 'width=1100,height=800');
-    win.document.write(`<html><head><title>Tariff Manifest</title>
+    win.document.write(`<html><head><title>${t('itemRate.print.tariffManifest')}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,sans-serif;font-size:10px;color:#18181b;padding:30px}
@@ -295,11 +329,11 @@ export default function ItemRate() {
         td{font-size:10px}
         @media print{@page{size:A4 portrait;margin:0}}
       </style></head><body>
-      <div class='logo-bar'><h1>${cName}</h1><span>Tariff Manifest &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
-      <h2>Item Tariff Manifest</h2>
-      <p class='sub'>Status: ${(selectedStatus === 'all' ? 'All Rates' : selectedStatus).toUpperCase()} &nbsp;|&nbsp; Records: ${filteredRates.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
+      <div class='logo-bar'><h1>${cName}</h1><span>${t('itemRate.print.tariffManifest')} &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
+      <h2>${t('itemRate.print.tariffManifest')}</h2>
+      <p class='sub'>${t('memberMaster.status')}: ${(selectedStatus === 'all' ? t('common.all') : t(`itemRate.table.${selectedStatus}`))} &nbsp;|&nbsp; ${t('dangarMaster.records')}: ${filteredRates.length} &nbsp;|&nbsp; ${t('itemRate.pdf.generated')}: ${new Date().toLocaleString('en-IN')}</p>
       <table>
-        <thead><tr><th>Nomenclature</th><th>System ID</th><th style="text-align:right">Rate (₹)</th><th style="text-align:center">Effective Date</th><th style="text-align:center">Status</th></tr></thead>
+        <thead><tr><th>${t('itemRate.table.nomenclature')}</th><th>${t('itemRate.table.systemId')}</th><th style="text-align:right">${t('itemRate.table.yieldIndex')} (₹)</th><th style="text-align:center">${t('itemRate.table.timeline')}</th><th style="text-align:center">${t('itemRate.table.auditStatus')}</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table></body></html>`);
     win.document.close(); win.focus();
@@ -320,9 +354,9 @@ export default function ItemRate() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
               <Tag size={20} className="text-zinc-600" />
-              Price Gradient Master
+              {t('itemRate.title')}
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Management / Tariff Registry</p>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('itemRate.eyebrow')}</p>
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -330,20 +364,19 @@ export default function ItemRate() {
               onClick={handleExportPDF}
               className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
             >
-              <FileText size={14} /> PDF
-            </button>
+              <FileText size={14} />{t('common.pdf')}</button>
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
             >
-              <Printer size={14} /> PRINT
+              <Printer size={14} /> {t('dangarMaster.print')}
             </button>
             <button
               onClick={() => { setEditingRate(null); setShowForm(true); }}
               className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest select-none"
             >
               <Plus size={16} />
-              INITIALIZE TARIFF
+              {t('itemRate.initializeTariff')}
             </button>
           </div>
         </div>
@@ -351,14 +384,14 @@ export default function ItemRate() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 select-none">
           {[
-            { label: 'Global Tariffs', val: rates.length },
-            { label: 'Verified Nodes', val: rateEntries.filter(r => Number(r.is_active) === 1).length },
-            { label: 'Active Inventory', val: new Set(rates.filter(r => r.is_active === 1).map(r => r.item_id)).size },
-            { label: 'Audit Protocol', val: 'SYMMETRICAL' }
+            { label: t('itemRate.stats.globalTariffs'), val: rates.length },
+            { label: t('itemRate.stats.verifiedNodes'), val: rateEntries.filter(r => Number(r.is_active) === 1).length },
+            { label: t('itemRate.stats.activeInventory'), val: new Set(rates.filter(r => r.is_active === 1).map(r => r.item_id)).size },
+            { label: t('itemRate.stats.auditProtocol'), val: t('itemRate.stats.symmetricalValue') || '?????' }
           ].map((stat, i) => (
             <div key={i} className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">{stat.label}</span>
-              <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{stat.val}</span>
+              <span className="text-sm font-sans text-zinc-500 font-prompt">{stat.label}</span>
+              <span className={`text-2xl font-bold font-sans text-zinc-800 mt-1 ${i < 3 ? 'force-en' : 'font-prompt'}`}>{stat.val}</span>
             </div>
           ))}
         </div>
@@ -367,11 +400,11 @@ export default function ItemRate() {
         <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[500px]">
           <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                   Tariff Manifest
+                <span className="text-sm font-bold text-zinc-700  ">
+                   {t('itemRate.table.nomenclature')}
                 </span>
-                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 uppercase">
-                   {filteredRates.length} NODES
+                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 ">
+                   {filteredRates.length} {t('itemRate.table.nomenclature')}
                 </span>
              </div>
              
@@ -380,7 +413,7 @@ export default function ItemRate() {
                  <Search className="w-4 h-4 text-zinc-400" />
                  <input
                    type="text"
-                   placeholder="SEARCH NOMENCLATURE OR SKU..."
+                   placeholder={t('itemRate.searchPlaceholder')}
                    value={searchTerm}
                    onChange={handleSearch}
                    className="bg-transparent text-xs font-bold text-zinc-700 outline-none w-64 placeholder:text-zinc-300 font-mono"
@@ -398,14 +431,14 @@ export default function ItemRate() {
                          : 'bg-transparent text-zinc-600 hover:bg-zinc-100'
                      }`}
                    >
-                     {status}
+                     {t(`itemRate.table.${status}`)}
                    </button>
                  ))}
                </div>
                
                <button onClick={() => fetchRates(company.id)} className="px-3 py-1.5 bg-blue-600 text-white border border-blue-500 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all flex items-center gap-2">
                  <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
-                 SYNC VECTORS
+                 {t('itemRate.syncVectors')}
                </button>
              </div>
           </div>
@@ -414,22 +447,22 @@ export default function ItemRate() {
             {loading ? (
               <div className="py-20 text-center">
                 <RefreshCcw className="animate-spin mx-auto text-blue-500 mb-2" size={24} />
-                <p className="text-xs font-bold text-zinc-400 font-mono uppercase tracking-widest">Synchronizing Tariff Streams...</p>
+                <p className="text-xs font-bold text-zinc-400 font-mono uppercase tracking-widest">{t('itemRate.loadingStreams')}</p>
               </div>
             ) : filteredRates.length === 0 ? (
               <div className="py-20 text-center text-zinc-400 font-bold font-mono text-xs uppercase tracking-widest">
-                No Tariff Nodes Isolated
+                {t('itemRate.noNodesIsolated')}
               </div>
             ) : (
               <table className="w-full text-left border-collapse font-sans text-xs select-none">
                 <thead>
                   <tr className="bg-zinc-100 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-widest select-none">
-                    <th className="px-4 py-3 border-r border-zinc-200">Nomenclature</th>
-                    <th className="px-4 py-3 border-r border-zinc-200">System ID</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-right">Yield Index</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-center">Timeline</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-center">Audit Status</th>
-                    <th className="px-4 py-3 text-center">Actions</th>
+                    <th className="px-4 py-3 border-r border-zinc-200 font-prompt">{t('itemRate.table.nomenclature')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200 font-prompt">{t('itemRate.table.systemId')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200 text-right font-prompt">{t('itemRate.table.yieldIndex')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200 text-center font-prompt">{t('itemRate.table.timeline')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200 text-center font-prompt">{t('itemRate.table.auditStatus')}</th>
+                    <th className="px-4 py-3 text-center font-prompt">{t('itemRate.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
@@ -437,37 +470,37 @@ export default function ItemRate() {
                     <tr key={idx} className="hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-2 border-r border-zinc-200">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-800 uppercase tracking-tight italic leading-tight">{rate.item_name}</span>
-                          <span className="text-[9px] text-zinc-400 mt-0.5 uppercase">
-                            {rate.is_pending_rate ? 'PENDING CONFIG' : `INWARD: ₹${parseFloat(rate.purchase_rate || 0).toFixed(2)}`}
+                          <span className="text-sm font-bold text-zinc-800 tracking-tight leading-tight font-prompt">{rate.item_name_gu || rate.item_name}</span>
+                          <span className="text-sm text-zinc-400 mt-0.5 ">
+                            {rate.is_pending_rate ? t('itemRate.table.pendingConfig') : `${t('itemRate.table.inward')}: ₹${parseFloat(rate.purchase_rate || 0).toFixed(2)}`}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200">
-                        <span className="text-[10px] font-bold text-zinc-700 font-mono uppercase tracking-wider">{rate.item_code}</span>
+                        <span className="text-sm font-bold text-zinc-700 font-sans  ">{rate.item_code}</span>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800">
+                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800 force-en">
                         <div className="flex flex-col items-end">
                           <span>₹{(parseFloat(rate.sale_rate) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Yield: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
+                          <span className="text-sm font-bold text-emerald-600 mt-0.5">{t('itemRate.table.yield')}: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center font-mono font-bold text-zinc-600">
+                      <td className="px-4 py-2 border-r border-zinc-200 text-center font-sans font-bold text-zinc-600 force-en">
                         {new Date(rate.effective_from).toLocaleDateString('en-GB')}
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200 text-center">
                         <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${rate.is_pending_rate ? 'bg-amber-50 border-amber-300 text-amber-600' : (rate.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600')}`}>
-                          {rate.is_pending_rate ? 'PENDING' : (rate.is_active ? 'VERIFIED' : 'REDACTED')}
+                          {rate.is_pending_rate ? t('itemRate.table.pending') : (rate.is_active ? t('itemRate.table.verified') : t('itemRate.table.redacted'))}
                         </span>
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex items-center justify-center gap-1">
                           {!rate.is_pending_rate && (
-                            <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm" title="Chronological Audit">
+                            <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm" title={t('itemRate.history.title')}>
                               <History size={13} />
                             </button>
                           )}
-                          <button onClick={() => handleEdit(rate)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm" title="Edit Tariff">
+                          <button onClick={() => handleEdit(rate)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm" title={t('itemRate.editTariff')}>
                             <Edit2 size={13} />
                           </button>
                         </div>
@@ -488,7 +521,7 @@ export default function ItemRate() {
             <div className="p-4 border-b border-zinc-300 bg-zinc-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <History size={16} className="text-zinc-600" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Chronological Audit</h3>
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('itemRate.history.title')}</h3>
               </div>
               <button onClick={() => setShowHistory(false)} className="p-1 text-zinc-400 hover:text-red-600 transition"><X size={18} /></button>
             </div>
@@ -497,16 +530,16 @@ export default function ItemRate() {
               {priceHistory.map((h, i) => (
                 <div key={i} className="bg-zinc-50 p-3 border border-zinc-300 space-y-3">
                   <div className="flex justify-between items-center mb-1 border-b border-zinc-200 pb-2">
-                    <span className="text-[10px] font-bold text-zinc-800 uppercase font-mono tracking-wider">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-sm font-bold text-zinc-800  font-sans ">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                     <span className={`text-[9px] font-bold uppercase px-2 py-0.5 border ${h.status === 'Active' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-zinc-200 border-zinc-300 text-zinc-500'}`}>{h.status}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Release Yield</p>
+                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('itemRate.history.releaseYield')}</p>
                       <p className="text-base font-bold text-zinc-800">₹{parseFloat(h.sale_rate).toFixed(2)}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Inward Value</p>
+                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('itemRate.history.inwardValue')}</p>
                       <p className="text-sm font-bold text-zinc-600">₹{parseFloat(h.purchase_rate).toFixed(2)}</p>
                     </div>
                   </div>
@@ -515,7 +548,7 @@ export default function ItemRate() {
             </div>
             
             <div className="p-4 bg-zinc-50 border-t border-zinc-300 flex justify-end">
-              <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-blue-600 text-white font-bold uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all select-none">Close Audit</button>
+              <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-blue-600 text-white font-bold uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all select-none">{t('common.close') || 'Close'}</button>
             </div>
           </div>
         </div>

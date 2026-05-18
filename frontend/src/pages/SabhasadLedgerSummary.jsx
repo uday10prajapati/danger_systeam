@@ -1,3 +1,6 @@
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
 import React, { useState, useEffect } from 'react';
 import {
   Search, Download, Filter, FileText,
@@ -11,12 +14,14 @@ import TableHeading from '../components/TableHeading';
 import Loading from '../components/Loading';
 import Toast from '../components/Toast';
 import api from '../api';
+import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 
 export default function SabhasadLedgerSummary() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [data, setData] = useState([]);
   const [totals, setTotals] = useState({ opening_balance: 0, debit: 0, credit: 0, closing_balance: 0 });
   const [loading, setLoading] = useState(true);
+  const [backendFlags, setBackendFlags] = useState({});
   const [syncing, setSyncing] = useState(false);
   const [company, setCompany] = useState(null);
   const [bardanPrice, setBardanPrice] = useState(0);
@@ -134,7 +139,7 @@ export default function SabhasadLedgerSummary() {
       if (bankRes.data.success) setBanks(bankRes.data.data);
 
       if (seasonRes.data.success) {
-        setSeasons(seasonRes.data.data.filter(s => s.toUpperCase() !== 'DANGAR'));
+        setSeasons(seasonRes.data.data.filter(s => s !== 'DANGAR'));
       }
 
       if (itemRes.data.success) setItems(itemRes.data.data);
@@ -169,6 +174,13 @@ export default function SabhasadLedgerSummary() {
       if (response.data.success) {
         setData(response.data.data);
         setTotals(response.data.totals);
+        setBackendFlags({
+          isPurchase: response.data.isPurchase,
+          isSale: response.data.isSale,
+          isBardan: response.data.isBardan,
+          isDangar: response.data.isDangar,
+          isTransactional: response.data.isTransactional
+        });
       }
     } catch (error) {
       console.error('Fetch report error:', error);
@@ -225,8 +237,8 @@ export default function SabhasadLedgerSummary() {
             <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
             <td>
               ${(isPurchase || isBardan)
-                ? `<strong>${row.member_name || '-'}</strong><br><small style="color:#2563eb">${row.description || '-'}</small>`
-                : `${row.description || '-'}${row.member_name ? `<br><small style="color:#2563eb">Node: ${row.member_name} [${row.member_id}]</small>` : ''}`
+                ? `<strong>${translateSystemText(row.member_name || '-')}</strong><br><small style="color:#2563eb">${translateSystemText(row.description || '-')}</small>`
+                : `${translateSystemText(row.description || '-')}${row.member_name ? `<br><small style="color:#2563eb">${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]</small>` : ''}`
               }
             </td>
             <td style="text-align:right">₹${parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -240,8 +252,8 @@ export default function SabhasadLedgerSummary() {
           r += `
             <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
             <td>${row.member_code || '-'}</td>
-            <td>${row.member_name || '-'}</td>
-            <td>${row.description}</td>
+            <td>${translateSystemText(row.member_name || '-')}</td>
+            <td>${translateSystemText(row.description)}</td>
             <td style="text-align:right">${displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             <td style="text-align:right">${displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             <td style="text-align:right; font-weight:bold;">${Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${balLabel}</td>
@@ -250,10 +262,10 @@ export default function SabhasadLedgerSummary() {
       } else if (isDangar) {
         r += `
           <td>${row.member_code}</td>
-          <td>${row.member_name}</td>
+          <td>${translateSystemText(row.member_name)}</td>
           <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
           <td style="text-align:right">${parseFloat(row.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td>${row.item_name}</td>
+          <td>${translateSystemText(row.item_name)}</td>
           <td>${row.quality_class}</td>
           <td>${row.book_type}</td>
           <td style="text-align:right">${parseFloat(row.net_quintal || 0).toFixed(2)} Qt</td>
@@ -262,8 +274,8 @@ export default function SabhasadLedgerSummary() {
       } else {
         r += `
           <td>${row.member_code || '-'}</td>
-          <td style="font-weight:600">${row.member_name || '-'}</td>
-          <td>${row.account_name || '-'}</td>
+          <td style="font-weight:600">${translateSystemText(row.member_name || '-')}</td>
+          <td>${translateSystemText(row.account_name || '-')}</td>
           <td style="text-align:right; color: ${parseFloat(row.opening_balance) >= 0 ? '#059669' : '#dc2626'}">${parseFloat(row.opening_balance) >= 0 ? '+' : '-'}${Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
           <td style="text-align:center">${row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}</td>
           <td style="text-align:right">${parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -282,14 +294,14 @@ export default function SabhasadLedgerSummary() {
     });
 
     const thCols = isBardan || isCash ?
-      `<th>Sr</th><th>Date</th><th>Description / Member</th><th style="text-align:right">Debit (+)</th><th style="text-align:right">Credit (-)</th>${isBardan ? '<th>Self Jama</th>' : ''}<th style="text-align:right">Balance</th>${isBardan ? '<th style="text-align:right">Bardan Amt</th>' : ''}` :
+      `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th>${t('sabhasadLedgerSummary.descriptionMember')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.debit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.credit')}</th>${isBardan ? `<th>${t('sabhasadLedgerSummary.selfJama')}</th>` : ''}<th style="text-align:right">${t('sabhasadLedgerSummary.balance')}</th>${isBardan ? `<th style="text-align:right">${t('sabhasadLedgerSummary.bardanAmt')}</th>` : ''}` :
       isPurchase || isSale ?
-      `<th>Sr</th><th>Date</th><th>Code</th><th>Member Name</th><th>Description</th><th style="text-align:right">${isSale ? 'Credit Sale' : 'Debit (+)'}</th><th style="text-align:right">${isSale ? 'Cash Sale' : 'Credit (-)'}</th><th style="text-align:right">Balance</th>` :
+      `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th>${t('sabhasadLedgerSummary.code')}</th><th>${t('sabhasadLedgerSummary.memberName')}</th><th>${t('sabhasadLedgerSummary.description')}</th><th style="text-align:right">${isSale ? t('sabhasadLedgerSummary.creditSale') : t('sabhasadLedgerSummary.debit')}</th><th style="text-align:right">${isSale ? t('sabhasadLedgerSummary.cashSale') : t('sabhasadLedgerSummary.credit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.balance')}</th>` :
       isDangar ?
-      `<th>Sr</th><th>Code</th><th>Member Name</th><th>Date</th><th style="text-align:right">Rate</th><th>Item</th><th>Class</th><th>Season</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th>` :
+      `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.code')}</th><th>${t('sabhasadLedgerSummary.memberName')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.purchesRate')}</th><th>${t('sabhasadLedgerSummary.itemName')}</th><th>${t('sabhasadLedgerSummary.class')}</th><th>${t('sabhasadLedgerSummary.season')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.totalQty')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.totalRate')}</th>` :
       hideBardan ?
-      `<th>Sr</th><th>Code</th><th>Member Name</th><th>Account</th><th>Opening</th><th>Date</th><th style="text-align:right">Debit (+)</th><th style="text-align:right">Credit (-)</th><th style="text-align:right">Closing</th>` :
-      `<th>Sr</th><th>Code</th><th>Member Name</th><th>Account</th><th>Opening</th><th>Date</th><th style="text-align:right">Debit (+)</th><th style="text-align:right">Credit (-)</th><th style="text-align:right">Closing</th><th style="text-align:right">Bardan Bal</th><th style="text-align:right">Self Jama</th><th style="text-align:right">Bardan Amt</th>`;
+      `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.code')}</th><th>${t('sabhasadLedgerSummary.memberName')}</th><th>${t('sabhasadLedgerSummary.accountName')}</th><th>${t('sabhasadLedgerSummary.opening')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.debit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.credit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.closing')}</th>` :
+      `<th>${t('sabhasadLedgerSummary.srNo')}</th><th>${t('sabhasadLedgerSummary.code')}</th><th>${t('sabhasadLedgerSummary.memberName')}</th><th>${t('sabhasadLedgerSummary.accountName')}</th><th>${t('sabhasadLedgerSummary.opening')}</th><th>${t('sabhasadLedgerSummary.date')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.debit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.credit')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.closing')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.bardanBal')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.selfJama')}</th><th style="text-align:right">${t('sabhasadLedgerSummary.bardanAmt')}</th>`;
 
     const tfootRow = isPurchase || isSale ?
       `<td colspan="5" style="text-align:right; font-weight:bold;">REGISTRY TOTALS</td>
@@ -333,7 +345,7 @@ export default function SabhasadLedgerSummary() {
         </head>
         <body>
           <div class="header-bar">
-            <h1>${cName.toUpperCase()}</h1>
+            <h1>${cName}</h1>
             <div style="font-weight: 600; font-size: 9pt; opacity: 0.9;">SABHASAD LEDGER SUMMARY</div>
           </div>
           
@@ -372,29 +384,11 @@ export default function SabhasadLedgerSummary() {
     win.document.close();
   };
 
-  const addGujaratiFont = async (doc) => {
-    try {
-      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          doc.addFileToVFS('NotoSansGujarati.ttf', base64);
-          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-          resolve();
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) {
-      console.warn('Could not load Gujarati font', e);
-    }
-  };
-
   const handleExportPDF = async () => {
     if (data.length === 0) return;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
     await addGujaratiFont(doc);
+    await addPromptFont(doc);
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     const M = 32;
@@ -403,10 +397,10 @@ export default function SabhasadLedgerSummary() {
 
     const hdr = () => {
       doc.setFillColor(...navy); doc.rect(0, 0, W, 28, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
-      doc.text(cName.toUpperCase(), M, 18);
+      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
+      doc.text(cName, M, 18);
       doc.setFontSize(7.5); doc.setTextColor(191, 219, 254);
-      doc.text('SABHASAD LEDGER SUMMARY REGISTRY', W / 2, 18, { align: 'center' });
+      doc.text(t('sabhasadLedgerSummary.ledgerSummaryRegistry'), W / 2, 18, { align: 'center' });
       doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
       doc.text('AUDIT CERTIFIED', W - M, 18, { align: 'right' });
     };
@@ -414,7 +408,7 @@ export default function SabhasadLedgerSummary() {
     const ftr = (pg, tot) => {
       doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
       doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
       doc.text(cName + ' - Sabhasad Ledger Registry', M, H - 9);
       doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
       doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
@@ -422,26 +416,26 @@ export default function SabhasadLedgerSummary() {
 
     hdr();
     let y = 62;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...navy);
-    doc.text('Ledger Summary Registry', M, y);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
+    doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(16); doc.setTextColor(...navy);
+    doc.text(t('sabhasadLedgerSummary.ledgerSummaryRegistry'), M, y);
+    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
     doc.text('PERIOD: ' + dateRange.startDate + ' to ' + dateRange.endDate, M, y + 13);
     doc.text('GENERATED: ' + new Date().toLocaleString('en-IN'), W - M, y + 13, { align: 'right' });
     doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
     y += 32;
 
     const head = isBardan || isCash ?
-      [['Sr', 'Date', 'Description / Member', 'Debit (+)', 'Credit (-)', ...(isBardan ? ['Self Jama'] : []), 'Balance', ...(isBardan ? ['Bardan Amt'] : [])]] :
-      isPurchase || isSale ?
-      [['Sr', 'Date', 'Code', 'Member Name', 'Description', isSale ? 'Credit Sale' : 'Debit (+)', isSale ? 'Cash Sale' : 'Credit (-)', 'Balance']] :
+      [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.descriptionMember'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), ...(isBardan ? [t('sabhasadLedgerSummary.selfJama')] : []), t('sabhasadLedgerSummary.balance'), ...(isBardan ? [t('sabhasadLedgerSummary.bardanAmt')] : [])]] :
+      isPurchase || isSale || isTransactional ?
+      [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.description'), isSale ? t('sabhasadLedgerSummary.creditSale') : t('sabhasadLedgerSummary.debit'), isSale ? t('sabhasadLedgerSummary.cashSale') : t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.balance')]] :
       isDangar ?
-      [['Sr', 'Code', 'Member Name', 'Date', 'Rate', 'Item', 'Class', 'Season', 'Qty', 'Total']] :
+      [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.purchesRate'), t('sabhasadLedgerSummary.itemName'), t('sabhasadLedgerSummary.class'), t('sabhasadLedgerSummary.season'), t('sabhasadLedgerSummary.totalQty'), t('sabhasadLedgerSummary.totalRate')]] :
       hideBardan ?
-      [['Sr', 'Code', 'Member Name', 'Account', 'Opening', 'Date', 'Debit (+)', 'Credit (-)', 'Closing']] :
-      [['Sr', 'Code', 'Member Name', 'Account', 'Opening', 'Date', 'Debit (+)', 'Credit (-)', 'Closing', 'Bardan Bal', 'Self Jama', 'Bardan Amt']];
+      [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.accountName'), t('sabhasadLedgerSummary.opening'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.closing')]] :
+      [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.accountName'), t('sabhasadLedgerSummary.opening'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.closing'), t('sabhasadLedgerSummary.bardanBal'), t('sabhasadLedgerSummary.selfJama'), t('sabhasadLedgerSummary.bardanAmt')]];
 
     const body = data.map((row, i) => {
-      if (isPurchase || isSale || isBardan) {
+      if (isPurchase || isSale || isBardan || isTransactional) {
         let displayDebit = parseFloat(row.debit || 0);
         let displayCredit = parseFloat(row.credit || 0);
         if (isSale) {
@@ -455,11 +449,12 @@ export default function SabhasadLedgerSummary() {
           return [
             String(i + 1).padStart(3, '0'),
             new Date(row.entry_date).toLocaleDateString('en-GB'),
-            (isPurchase || isBardan)
-              ? `${row.member_name || '-'}\n${row.description || '-'}`
+            translateSystemText(row.village_name || '-'),
+            (isPurchase || isBardan || isTransactional)
+              ? `${translateSystemText(row.member_name || '-')}\n${translateSystemText(row.description || '-')}`
               : (row.member_name 
-                  ? `${row.description || '-'}\nNode: ${row.member_name} [${row.member_id}]`
-                  : (row.description || '-')),
+                  ? `${translateSystemText(row.description || '-')}\n${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]`
+                  : (translateSystemText(row.description || '-'))),
             '₹' + parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
             '₹' + parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
             ...(isBardan ? ['-'] : []),
@@ -472,8 +467,9 @@ export default function SabhasadLedgerSummary() {
           String(i + 1).padStart(3, '0'),
           new Date(row.entry_date).toLocaleDateString('en-GB'),
           row.member_code || '-',
-          row.member_name || '-',
-          row.description || '-',
+          translateSystemText(row.member_name || '-'),
+          translateSystemText(row.village_name || '-'),
+          translateSystemText(row.description || '-'),
           displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
           displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
           Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR'))
@@ -482,10 +478,11 @@ export default function SabhasadLedgerSummary() {
       if (isDangar) return [
         String(i + 1).padStart(3, '0'),
         row.member_code,
-        row.member_name,
+        translateSystemText(row.member_name),
+        translateSystemText(row.village_name || '-'),
         new Date(row.entry_date).toLocaleDateString('en-GB'),
         parseFloat(row.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-        row.item_name,
+        translateSystemText(row.item_name),
         row.quality_class,
         row.book_type,
         parseFloat(row.net_quintal || 0).toFixed(2),
@@ -495,8 +492,9 @@ export default function SabhasadLedgerSummary() {
       const base = [
         String(i + 1).padStart(3, '0'),
         row.member_code || '-',
-        row.member_name || '-',
-        row.account_name || '-',
+        translateSystemText(row.member_name || '-'),
+        translateSystemText(row.village_name || '-'),
+        translateSystemText(row.account_name || '-'),
         (parseFloat(row.opening_balance) >= 0 ? '+' : '-') + Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
         row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-',
         parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -513,23 +511,41 @@ export default function SabhasadLedgerSummary() {
       return base;
     });
 
-    const foot = isPurchase || isSale ?
-      [['', '', '', '', 'TOTALS', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (isSale ? (parseFloat(totals.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(totals.balance || 0) >= 0 ? 'DR' : 'CR'))]] :
+    const foot = isPurchase || isSale || isTransactional ?
+      [['', '', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (isSale ? (parseFloat(totals.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(totals.balance || 0) >= 0 ? 'DR' : 'CR'))]] :
       isDangar ?
-      [['', '', '', '', '', '', '', 'TOTAL', parseFloat(totals.qty || 0).toFixed(2), parseFloat(totals.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })]] :
+      [['', '', '', '', '', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.qty || 0).toFixed(2), parseFloat(totals.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })]] :
       hideBardan ?
-      [['', '', '', 'TOTALS', parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR')]] :
-      [['', '', '', 'TOTALS', parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'), '', '', '']];
+      [['', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR')]] :
+      [['', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'), '', '', '']];
 
     autoTable(doc, {
       startY: y,
       head: head,
       body: body,
       foot: foot,
+      didParseCell: (data) => {
+        const text = data.cell.text.join(' ');
+        if (!text) return;
+        
+        // Use NotoGujarati for Unicode characters
+        if (/[\u0A80-\u0AFF]/.test(text)) {
+          data.cell.styles.font = 'NotoGujarati';
+          return;
+        }
+
+        // Use Prompt font for legacy-mapped Gujarati (lowercase text)
+        if (/[a-z]/.test(text)) {
+          data.cell.styles.font = 'Prompt';
+        } else {
+          // Use standard Helvetica for numbers, codes, and uppercase text
+          data.cell.styles.font = 'helvetica';
+        }
+      },
       theme: 'grid',
       styles: { font: 'NotoGujarati', fontSize: 6.5, cellPadding: [3, 4], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.2 },
-      headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 6.5 },
-      footStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 6.5 },
+      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 6.5 },
+      footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 6.5 },
       alternateRowStyles: { fillColor: stripe },
       margin: { left: M, right: M },
       columnStyles: isPurchase || isSale ? {
@@ -644,20 +660,26 @@ export default function SabhasadLedgerSummary() {
   if (loading || !company) return <Loading />;
 
   const selectedAcc = accounts.find(a => a.id === parseInt(accountId));
-  const isDangar = selectedAcc?.account_code === 'DS0001' || 
-                   selectedAcc?.account_name?.toLowerCase().includes('dangar system');
-  const isPurchase = (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('purches') ||
-                     (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('purchase');
-  const isInterest = selectedAcc?.account_code === 'IK0001' || selectedAcc?.account_name?.toLowerCase().includes('interest khate');
-  const isBrokerage = selectedAcc?.account_name?.toLowerCase().includes('brokerage');
-  const isLabour = selectedAcc?.account_name?.toLowerCase().includes('labour');
-  const isSale = (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('sale');
-  const isBardan = (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('bardan system');
-  const isTransactional = !!accountId && !isSale && !isBardan;
   const hasDangar = data.some(row => 
     row.account_name?.toLowerCase().includes('dangar') || 
     row.account_code === 'DS0001'
   );
+  const isDangar = backendFlags.isDangar || (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('dangar') || hasDangar;
+  const isPurchase = backendFlags.isPurchase || (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('purches') ||
+                     (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('purchase') ||
+                     (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('qrldi') ||
+                     (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('\u0a96\u0ab0\u0ac0\u0aa6\u0ac0');
+  const isInterest = selectedAcc?.account_code === 'IK0001' || 
+                     selectedAcc?.account_name?.toLowerCase().includes('interest khate') ||
+                     selectedAcc?.account_name?.toLowerCase().includes('vyaj');
+  const isBrokerage = selectedAcc?.account_name?.toLowerCase().includes('brokerage');
+  const isLabour = selectedAcc?.account_name?.toLowerCase().includes('labour');
+  const isSale = backendFlags.isSale || (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('sale') ||
+                 (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('veca') ||
+                 (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('\u0ab5\u0ac7\u0a9a\u0abe\u0aa3');
+  const isBardan = backendFlags.isBardan || (selectedAcc?.account_name || accName || '')?.toLowerCase().includes('bardan system');
+  const isTransactional = backendFlags.isTransactional || (!!accountId && !isSale && !isBardan);
+  const isCash = data.some(r => (r.payment_type || '').toLowerCase().includes('cash'));
   const hideBardan = !selectedAcc?.account_name?.toLowerCase().includes('dangar') && 
                      !data.some(r => r.account_name?.toLowerCase().includes('dangar') || r.account_code === 'DS0001');
 
@@ -672,16 +694,16 @@ export default function SabhasadLedgerSummary() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
               <Activity size={20} className="text-zinc-600" />
-              Sabhasad Ledger Summary
+              {t('sabhasadLedgerSummary.title')}
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Reports / Ledger Analysis</p>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">{t('sabhasadLedgerSummary.eyebrow')}</p>
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            <button onClick={clearFilters} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><X size={14} /> Clear</button>
-            <button onClick={fetchReportData} className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} /> SYNC REPORT</button>
-            <button onClick={() => window.print()} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><Printer size={14} /> Print</button>
-            <button onClick={handleExportPDF} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><FileText size={14} /> PDF</button>
+            <button onClick={clearFilters} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><X size={14} /> {t('sabhasadLedgerSummary.clear')}</button>
+            <button onClick={fetchReportData} className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} />{t('sabhasadLedgerSummary.syncReport')}</button>
+            <button onClick={() => window.print()} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><Printer size={14} />{t('sabhasadLedgerSummary.print')}</button>
+            <button onClick={handleExportPDF} className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap"><FileText size={14} />{t('sabhasadLedgerSummary.pdf')}</button>
           </div>
         </div>
 
@@ -689,29 +711,29 @@ export default function SabhasadLedgerSummary() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-zinc-50 border border-zinc-200 rounded-none">
           <div className="md:col-span-3 grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Start Date</span>
+              <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.startDate')}</span>
               <input ref={startDateRef} type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onKeyDown={e => handleKeyDown(e, endDateRef)} className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
             </div>
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">End Date</span>
+              <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.endDate')}</span>
               <input ref={endDateRef} type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onKeyDown={e => handleKeyDown(e, accRef)} className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
             </div>
           </div>
 
           <div className="md:col-span-3 relative space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Account Nomenclature</span>
+            <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.accountNomenclature')}</span>
             <div className="relative group">
               <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input ref={accRef} type="text" value={accCode} onChange={(e) => { setAccCode(e.target.value); setShowAccDrop(true); }} onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }} onKeyDown={e => handleKeyDown(e, memCodeRef)} placeholder="ID / NAME" className="w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700" />
+              <input ref={accRef} type="text" value={accCode} onChange={(e) => { setAccCode(e.target.value); setShowAccDrop(true); }} onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }} onKeyDown={e => handleKeyDown(e, memCodeRef)} placeholder="ID / NAME" className={`w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`} />
             </div>
             {showAccDrop && (
               <div className="absolute top-[55px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden">
                 <div className="max-h-64 overflow-y-auto">
-                  <div onClick={() => handleSelectAcc(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">ALL ACCOUNTS</div>
+                  <div onClick={() => handleSelectAcc(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">{t('sabhasadLedgerSummary.allAccounts')}</div>
                   {filteredAccs.map(a => (
                     <div key={a.id} onClick={() => handleSelectAcc(a)} className="px-4 py-2 hover:bg-blue-50 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group">
-                      <span className="text-[10px] font-bold text-zinc-700 group-hover:text-blue-600 transition-colors uppercase">{a.account_name}</span>
-                      <span className="text-[9px] font-mono text-zinc-400">#{a.id}</span>
+                      <span className="text-sm font-bold text-zinc-700 group-hover:text-blue-600 transition-colors">{formatBilingualText(a.account_name)}</span>
+                      <span className="text-sm font-sans text-zinc-400">#{a.id}</span>
                     </div>
                   ))}
                 </div>
@@ -720,7 +742,7 @@ export default function SabhasadLedgerSummary() {
           </div>
 
           <div className="md:col-span-4 relative space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Member Identity</span>
+            <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.memberIdentity')}</span>
             <div className="flex gap-2">
               <div className="w-24 relative">
                 <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -728,17 +750,17 @@ export default function SabhasadLedgerSummary() {
               </div>
               <div className="flex-1 relative">
                 <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input ref={memNameRef} type="text" value={memName} onChange={(e) => { setMemName(e.target.value); setShowMemDrop(true); }} onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }} onKeyDown={e => handleKeyDown(e, null, fetchReportData)} placeholder="NAME SEARCH" className="w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700 uppercase" />
+                <input ref={memNameRef} type="text" value={memName} onChange={(e) => { setMemName(e.target.value); setShowMemDrop(true); }} onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }} onKeyDown={e => handleKeyDown(e, null, fetchReportData)} placeholder={t('sabhasadLedgerSummary.nameSearch')} className={`w-full pl-9 pr-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[11px] text-zinc-700 uppercase ${i18n.language === 'gu' ? 'font-prompt' : ''}`} />
               </div>
             </div>
             {showMemDrop && (
               <div className="absolute top-[55px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden">
                 <div className="max-h-64 overflow-y-auto">
-                  <div onClick={() => handleSelectMem(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">ALL MEMBERS</div>
+                  <div onClick={() => handleSelectMem(null)} className="px-4 py-2 hover:bg-zinc-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-zinc-200 uppercase tracking-widest">{t('sabhasadLedgerSummary.allMembers')}</div>
                   {filteredMems.map(m => (
                     <div key={m.id} onClick={() => handleSelectMem(m)} className="px-4 py-2 hover:bg-blue-50 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group">
-                      <span className="text-[10px] font-bold text-zinc-700 group-hover:text-blue-600 transition-colors uppercase">{m.member_name}</span>
-                      <span className="text-[9px] font-mono text-zinc-400">#{m.id}</span>
+                      <span className="text-sm font-bold text-zinc-700 group-hover:text-blue-600 transition-colors">{formatBilingualText(m.member_name)}</span>
+                      <span className="text-sm font-sans text-zinc-400">#{m.id}</span>
                     </div>
                   ))}
                 </div>
@@ -749,7 +771,7 @@ export default function SabhasadLedgerSummary() {
           <div className="md:col-span-2 flex items-center justify-end pt-4 md:pt-0 gap-4">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input type="checkbox" checked={hideZeroBalance} onChange={(e) => setHideZeroBalance(e.target.checked)} className="w-3.5 h-3.5 text-blue-600 border-zinc-300 rounded-none focus:ring-0 focus:ring-offset-0" />
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Hide Zero Bal</span>
+              <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.hideZeroBal')}</span>
             </label>
           </div>
         </div>
@@ -757,52 +779,52 @@ export default function SabhasadLedgerSummary() {
         {/* Extended Filters: Village, Bank, Season */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-zinc-50 border border-zinc-200 rounded-none -mt-4 border-t-0">
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Village Filter</span>
+            <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.villageFilter')}</span>
             <select 
               value={village} 
               onChange={(e) => setVillage(e.target.value)}
-              className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase"
+              className={`w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
-              <option value="">ALL VILLAGES</option>
+              <option value="">{t('sabhasadLedgerSummary.allVillages')}</option>
               {[...new Set(members.map(m => m.village_name).filter(Boolean))].sort().map(v => (
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
           </div>
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Bank Filter</span>
+            <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.bankFilter')}</span>
             <select 
               value={bankName} 
               onChange={(e) => setBankName(e.target.value)}
-              className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase"
+              className={`w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
-              <option value="">ALL BANKS</option>
+              <option value="">{t('sabhasadLedgerSummary.allBanks')}</option>
               {banks.map(b => (
                 <option key={b.id} value={b.bank_name}>{b.bank_name}</option>
               ))}
             </select>
           </div>
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Season Filter</span>
+            <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.seasonFilter')}</span>
             <select 
               value={season} 
               onChange={(e) => setSeason(e.target.value)}
-              className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase"
+              className={`w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
-              <option value="">ALL SEASONS</option>
+              <option value="">{t('sabhasadLedgerSummary.allSeasons')}</option>
               {seasons.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
           </div>
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Dangar Name (Item)</span>
+            <span className="text-[11px] font-bold text-zinc-500">{t('sabhasadLedgerSummary.dangarName')}</span>
             <select 
               value={itemId} 
               onChange={(e) => setItemId(e.target.value)}
-              className="w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase"
+              className={`w-full px-3 py-1.5 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[11px] text-zinc-700 uppercase ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
-              <option value="">ALL ITEMS</option>
+              <option value="">{t('sabhasadLedgerSummary.allItems')}</option>
               {items.map(i => (
                 <option key={i.id} value={i.id}>{i.item_name}</option>
               ))}
@@ -813,23 +835,23 @@ export default function SabhasadLedgerSummary() {
         {/* High-Density Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase">Opening Balance</span>
-            <span className="text-lg font-bold font-mono text-zinc-800 mt-0.5">₹{Math.abs(parseFloat(totals.opening_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-[9px]">{parseFloat(totals.opening_balance || 0) >= 0 ? (isTransactional ? 'C' : 'DR') : (isTransactional ? 'D' : 'CR')}</span></span>
+            <span className="text-sm font-sans text-zinc-500 ">{t('sabhasadLedgerSummary.openingBalance')}</span>
+            <span className="text-lg font-bold font-sans text-zinc-800 mt-0.5">₹{Math.abs(parseFloat(totals.opening_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-sm">{parseFloat(totals.opening_balance || 0) >= 0 ? (isTransactional ? 'C' : 'DR') : (isTransactional ? 'D' : 'CR')}</span></span>
           </div>
           
           <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase">Total Debit (+)</span>
-            <span className="text-lg font-bold font-mono text-zinc-800 mt-0.5">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-sans text-zinc-500 ">{t('sabhasadLedgerSummary.totalDebit')}</span>
+            <span className="text-lg font-bold font-sans text-zinc-800 mt-0.5">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
 
           <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase">Total Credit (-)</span>
-            <span className="text-lg font-bold font-mono text-zinc-800 mt-0.5">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-sans text-zinc-500 ">{t('sabhasadLedgerSummary.totalCredit')}</span>
+            <span className="text-lg font-bold font-sans text-zinc-800 mt-0.5">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
 
           <div className="bg-zinc-50 border border-zinc-300 p-2.5 flex flex-col justify-between">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase">Closing Balance</span>
-            <span className="text-xl font-bold font-mono text-blue-600 mt-0.5">₹{Math.abs(parseFloat(totals.closing_balance || totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-[10px]">{parseFloat(totals.closing_balance || totals.balance || 0) >= 0 ? (isSale ? 'CR' : (isBardan || isTransactional ? 'C' : 'DR')) : (isSale ? 'DR' : (isBardan || isTransactional ? 'D' : 'CR'))}</span></span>
+            <span className="text-sm font-sans text-zinc-500 ">{t('sabhasadLedgerSummary.closingBalance')}</span>
+            <span className="text-xl font-bold font-sans text-blue-600 mt-0.5">₹{Math.abs(parseFloat(totals.closing_balance || totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-sm">{parseFloat(totals.closing_balance || totals.balance || 0) >= 0 ? (isSale ? 'CR' : (isBardan || isTransactional ? 'C' : 'DR')) : (isSale ? 'DR' : (isBardan || isTransactional ? 'D' : 'CR'))}</span></span>
           </div>
         </div>
 
@@ -837,95 +859,95 @@ export default function SabhasadLedgerSummary() {
         <div className="bg-white border border-zinc-300 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
           <div className="px-4 py-2 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-wider select-none">Ledger Registry List</span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[9px] px-2 py-0.5 select-none">{data.length} RECORDS</span>
+              <span className="text-sm font-bold text-zinc-700   select-none">{t('sabhasadLedgerSummary.ledgerRegistryList')}</span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 select-none">{data.length} {t('sabhasadLedgerSummary.records')}</span>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={fetchReportData} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title="Refresh Registry"><RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} /></button>
+              <button onClick={fetchReportData} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title={t('sabhasadLedgerSummary.refreshRegistry')}><RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} /></button>
             </div>
           </div>
           <div className="overflow-x-auto scroller-airy">
             <table className="w-full text-left border-collapse select-none">
               <thead>
                 <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-[9px]">
-                  <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Sr No</th>
+                  <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.srNo')}</th>
                   {isSale || isBardan || isTransactional ? (
                     <>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[250px]">Description / Member</th>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Opening</th>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{isBardan || isTransactional ? 'Debit (+)' : (isSale ? 'Credit Sale' : 'Debit (+)')}</th>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{isBardan || isTransactional ? 'Credit (-)' : (isSale ? 'Cash Sale' : 'Credit (-)')}</th>
-                      {isBardan && <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Self Jama</th>}
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Balance</th>
-                      {isBardan && <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Bardan Amt</th>}
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.date')}</th>
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200 min-w-[250px]">{t('sabhasadLedgerSummary.descriptionMember')}</th>
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.opening')}</th>
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{isBardan || isTransactional ? t('sabhasadLedgerSummary.debit') : (isSale ? t('sabhasadLedgerSummary.creditSale') : t('sabhasadLedgerSummary.debit'))}</th>
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{isBardan || isTransactional ? t('sabhasadLedgerSummary.credit') : (isSale ? t('sabhasadLedgerSummary.cashSale') : t('sabhasadLedgerSummary.credit'))}</th>
+                      {isBardan && <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.selfJama')}</th>}
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.balance')}</th>
+                      {isBardan && <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-blue-600">{t('sabhasadLedgerSummary.bardanAmt')}</th>}
                     </>
                   ) : (
                     <>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Code</th>
-                      <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[200px]">Member Name</th>
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.code')}</th>
+                      <th className="px-4 py-3   font-bold border-r border-zinc-200 min-w-[200px]">{t('sabhasadLedgerSummary.memberName')}</th>
                       {isDangar ? (
                         <>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Opening</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Purches Rate</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Item Name</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Class</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Season</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Total Qty (Qt)</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Total Rate</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.opening')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.date')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.purchesRate')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.itemName')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.class')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.season')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.totalQty')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-blue-600">{t('sabhasadLedgerSummary.totalRate')}</th>
                         </>
                       ) : isInterest ? (
                         <>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Opening</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Accrual Date</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Interest Rate (%)</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Days</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Reference</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Interest Amount</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.opening')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.accrualDate')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.interestRate')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.days')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 min-w-[150px]">{t('sabhasadLedgerSummary.reference')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-blue-600">{t('sabhasadLedgerSummary.interestAmount')}</th>
                         </>
                       ) : (isBrokerage || isLabour) ? (
                         <>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Opening</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Invoice No</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Description</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">{isBrokerage ? 'Brokerage' : 'Labour'} Amt</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.opening')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.date')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.invoiceNo')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 min-w-[150px]">{t('sabhasadLedgerSummary.description')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-blue-600">{isBrokerage ? t('sabhasadLedgerSummary.brokerageAmt').split(' ')[0] : t('sabhasadLedgerSummary.labourAmt').split(' ')[0]} Amt</th>
                         </>
                       ) : (
                         <>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 min-w-[150px]">Account Name</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Opening</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200">Date</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Debit (+)</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Credit (-)</th>
-                          <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Closing</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 min-w-[150px]">{t('sabhasadLedgerSummary.accountName')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.opening')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200">{t('sabhasadLedgerSummary.date')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.debit')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.credit')}</th>
+                          <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right">{t('sabhasadLedgerSummary.closing')}</th>
                           {!hideBardan && (
                             <>
-                              <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-indigo-600">Bardan Bal</th>
-                              <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-emerald-600">Self Jama</th>
-                              <th className="px-4 py-3 uppercase tracking-widest font-bold border-r border-zinc-200 text-right text-blue-600">Bardan Amt</th>
+                              <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-indigo-600">{t('sabhasadLedgerSummary.bardanBal')}</th>
+                              <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-emerald-600">{t('sabhasadLedgerSummary.selfJama')}</th>
+                              <th className="px-4 py-3   font-bold border-r border-zinc-200 text-right text-blue-600">{t('sabhasadLedgerSummary.bardanAmt')}</th>
                             </>
                           )}
                         </>
                       )}
                     </>
                   )}
-                  <th className="px-4 py-3 uppercase tracking-widest font-bold text-center">Audit</th>
+                  <th className="px-4 py-3   font-bold text-center">{t('sabhasadLedgerSummary.audit')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {syncing ? (
-                  <tr><td colSpan="12" className="py-32 text-center"><RefreshCcw size={48} className="animate-spin text-zinc-200 mx-auto mb-4" /><p className="text-zinc-400 font-bold uppercase text-[9px] tracking-widest italic">Synchronizing Registry...</p></td></tr>
+                  <tr><td colSpan="12" className="py-32 text-center"><RefreshCcw size={48} className="animate-spin text-zinc-200 mx-auto mb-4" /><p className="text-zinc-400 font-bold uppercase text-[9px] tracking-widest italic">{t('sabhasadLedgerSummary.synchronizingRegistry')}</p></td></tr>
                 ) : data.length === 0 ? (
-                  <tr><td colSpan="12" className="py-32 text-center text-zinc-300 font-bold uppercase text-[9px] tracking-[0.4em] italic bg-zinc-50/30"><Database size={56} className="mx-auto mb-4 opacity-50" strokeWidth={1} />No Sabhasad Records Found</td></tr>
+                  <tr><td colSpan="12" className="py-32 text-center text-zinc-300 font-bold  text-sm tracking-[0.4em]  bg-zinc-50/30"><Database size={56} className="mx-auto mb-4 opacity-50" strokeWidth={1} />{t('sabhasadLedgerSummary.noSabhasadRecordsFound')}</td></tr>
                 ) : (
                   <>
                     {data.map((row, idx) => (
                       <tr key={idx} className="group hover:bg-zinc-50 transition-all duration-200">
-                        <td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 font-mono">{String(idx + 1).padStart(3, '0')}</td>
-                        {(!isSale && !isBardan && !isTransactional) && <td className="px-4 py-2 text-[10px] text-blue-600 font-bold border-r border-zinc-100 italic font-mono">{row.member_code}</td>}
-                        {(!isSale && !isBardan && !isTransactional) && <td className="px-4 py-2 text-[10px] font-bold text-zinc-800 uppercase border-r border-zinc-100">{row.member_name}</td>}
+                        <td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100 font-sans">{String(idx + 1).padStart(3, '0')}</td>
+                        {(!isSale && !isBardan && !isTransactional) && <td className="px-4 py-2 text-sm text-blue-600 font-bold border-r border-zinc-100  font-sans">{row.member_code}</td>}
+                        {(!isSale && !isBardan && !isTransactional) && <td className="px-4 py-2 text-sm font-bold text-zinc-800  border-r border-zinc-100">{formatBilingualText(row.member_name)}</td>}
                         {(() => {
                           if (isSale || isBardan || isTransactional) {
                             let displayDebit = parseFloat(row.debit || 0);
@@ -940,43 +962,43 @@ export default function SabhasadLedgerSummary() {
 
                              if (isBardan || isTransactional) {
                                return <>
-                                 <td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
-                                 <td className="px-4 py-2 text-[10px] border-r border-zinc-100">
+                                 <td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
+                                 <td className="px-4 py-2 text-sm border-r border-zinc-100">
                                    {(isPurchase || isBardan) ? (
                                      <>
-                                       <div className="font-bold text-zinc-800 uppercase">{row.member_name || '-'}</div>
-                                       {row.description && <div className="text-[9px] text-blue-600 font-mono italic uppercase">{row.description}</div>}
+                                       <div className="font-bold text-zinc-800 uppercase">{formatBilingualText(row.member_name || '-')}</div>
+                                       {row.description && <div className="text-[9px] text-blue-600 font-mono italic uppercase">{formatBilingualText(row.description)}</div>}
                                      </>
                                    ) : (
                                      <>
-                                       <div className="font-bold text-zinc-800 uppercase">{row.description || '-'}</div>
-                                       {row.member_name && <div className="text-[9px] text-blue-600 font-mono italic uppercase">Node: {row.member_name} [{row.member_id}]</div>}
+                                       <div className="font-bold text-zinc-800 uppercase">{formatBilingualText(row.description || '-')}</div>
+                                       {row.member_name && <div className="text-[9px] text-blue-600 font-mono italic uppercase">{formatBilingualText('Node')}: {formatBilingualText(row.member_name)} [{row.member_id}]</div>}
                                      </>
                                    )}
                                  </td>
-                                 <td className="px-4 py-2 text-[10px] text-right font-bold text-zinc-500 border-r border-zinc-100 font-mono">
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-zinc-500 border-r border-zinc-100 font-sans">
                                    {idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}
                                  </td>
-                                 <td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">{displayDebit > 0 ? `₹${displayDebit.toLocaleString('en-IN')}` : '-'}</td>
-                                 <td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">{displayCredit > 0 ? `₹${displayCredit.toLocaleString('en-IN')}` : '-'}</td>
-                                 {isBardan && <td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">-</td>}
-                                 <td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.balance || 0) > 0 ? 'text-red-600' : 'text-zinc-800'}`}>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">{displayDebit > 0 ? `₹${displayDebit.toLocaleString('en-IN')}` : '-'}</td>
+                                 <td className="px-4 py-2 text-sm text-right font-bold text-red-600 border-r border-zinc-100 font-sans">{displayCredit > 0 ? `₹${displayCredit.toLocaleString('en-IN')}` : '-'}</td>
+                                 {isBardan && <td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">-</td>}
+                                 <td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.balance || 0) > 0 ? 'text-red-600' : 'text-zinc-800'}`}>
                                    ₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.balance || 0) >= 0 ? (isBardan || isTransactional ? 'C' : 'D') : (isBardan || isTransactional ? 'D' : 'C')}
                                  </td>
-                                 {isBardan && <td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{(parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>}
+                                 {isBardan && <td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{(parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>}
                                </>;
                             }
 
                             const isCR = isSale ? parseFloat(row.balance || 0) >= 0 : parseFloat(row.balance || 0) < 0;
                             const balLabel = isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR');
-                            return <><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-blue-600 font-bold border-r border-zinc-100 font-mono">{row.member_code || '-'}</td><td className="px-4 py-2 text-[10px] font-bold text-zinc-800 uppercase border-r border-zinc-100">{row.member_name || '-'}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.description}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-zinc-500 border-r border-zinc-100 font-mono">{idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{displayDebit.toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">₹{displayCredit.toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${isCR ? (isSale ? 'text-emerald-600' : 'text-rose-600') : (isSale ? 'text-rose-600' : 'text-zinc-800')}`}>₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {balLabel}</td></>;
+                            return <><td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-sm text-blue-600 font-bold border-r border-zinc-100 font-sans">{row.member_code || '-'}</td><td className="px-4 py-2 text-sm font-bold text-zinc-800  border-r border-zinc-100">{formatBilingualText(row.member_name || '-')}</td><td className="px-4 py-2 text-sm text-zinc-500  border-r border-zinc-100">{formatBilingualText(row.description)}</td><td className="px-4 py-2 text-sm text-right font-bold text-zinc-500 border-r border-zinc-100 font-sans">{idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}</td><td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{displayDebit.toLocaleString('en-IN')}</td><td className="px-4 py-2 text-sm text-right font-bold text-red-600 border-r border-zinc-100 font-sans">₹{displayCredit.toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${isCR ? (isSale ? 'text-emerald-600' : 'text-rose-600') : (isSale ? 'text-rose-600' : 'text-zinc-800')}`}>₹{Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {balLabel}</td></>;
                           }
-                          if (isDangar) return <><td className="px-4 py-2 text-[10px] text-right font-bold text-zinc-500 border-r border-zinc-100 font-mono">{idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-500 uppercase border-r border-zinc-100">{row.item_name || 'Item'}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.quality_class || '1st'}</td><td className="px-4 py-2 text-[10px] text-amber-600 uppercase border-r border-zinc-100">{row.book_type || 'Season'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-indigo-600 border-r border-zinc-100 font-mono">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[9px] opacity-50 font-sans ml-1">Qt</span></td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
-                          if (isInterest) return <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td><td className="px-4 py-2 text-[10px] text-zinc-500 border-r border-zinc-100 font-mono">{row.days || 0} Days</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.description || 'Interest'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td></>;
-                          if (isBrokerage || isLabour) return <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-[10px] text-blue-500 italic border-r border-zinc-100 font-mono">{row.invoice_no}</td><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.description}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
-                          return <><td className="px-4 py-2 text-[10px] text-zinc-400 uppercase border-r border-zinc-100">{row.account_name}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-zinc-400 border-r border-zinc-100 italic font-mono">{row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-red-600 border-r border-zinc-100 font-mono">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>{!hideBardan && <><td className={`px-4 py-2 text-[10px] text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.bardan_balance || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>{Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-emerald-600 border-r border-zinc-100 font-mono">{parseFloat(row.bardan_self_jama || 0).toLocaleString()}</td><td className="px-4 py-2 text-[10px] text-right font-bold text-blue-600 border-r border-zinc-100 font-mono">₹{Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td></>}</>;
+                          if (isDangar) return <><td className="px-4 py-2 text-sm text-right font-bold text-zinc-500 border-r border-zinc-100 font-sans">{idx === 0 ? `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}` : '—'}</td><td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{parseFloat(row.rate || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-sm text-zinc-500  border-r border-zinc-100">{formatBilingualText(row.item_name || t('sabhasadLedgerSummary.itemName'))}</td><td className="px-4 py-2 text-sm text-zinc-400  border-r border-zinc-100">{row.quality_class || '1st'}</td><td className="px-4 py-2 text-sm text-amber-600  border-r border-zinc-100">{row.book_type || t('sabhasadLedgerSummary.season')}</td><td className="px-4 py-2 text-sm text-right font-bold text-indigo-600 border-r border-zinc-100 font-sans">{parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-sm opacity-50 font-sans ml-1">Qt</span></td><td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
+                          if (isInterest) return <><td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{new Date(row.transaction_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">{parseFloat(row.interest_percent || 0).toFixed(2)} %</td><td className="px-4 py-2 text-sm text-zinc-500 border-r border-zinc-100 font-sans">{row.days || 0} Days</td><td className="px-4 py-2 text-sm text-zinc-400  border-r border-zinc-100">{formatBilingualText(row.description || 'Interest')}</td><td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">₹{parseFloat(row.interest_amount || 0).toLocaleString('en-IN')}</td></>;
+                          if (isBrokerage || isLabour) return <><td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{new Date(row.entry_date).toLocaleDateString('en-GB')}</td><td className="px-4 py-2 text-sm text-blue-500  border-r border-zinc-100 font-sans">{row.invoice_no}</td><td className="px-4 py-2 text-sm text-zinc-400  border-r border-zinc-100">{formatBilingualText(row.description)}</td><td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">₹{parseFloat(row.amount || 0).toLocaleString('en-IN')}</td></>;
+                          return <><td className="px-4 py-2 text-sm text-zinc-400  border-r border-zinc-100">{formatBilingualText(row.account_name)}</td><td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{parseFloat(row.opening_balance) >= 0 ? '+' : '-'}₹{Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-sm text-zinc-400 border-r border-zinc-100  font-sans">{row.last_activity_date ? new Date(row.last_activity_date).toLocaleDateString('en-GB') : '-'}</td><td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</td><td className="px-4 py-2 text-sm text-right font-bold text-red-600 border-r border-zinc-100 font-sans">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</td><td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.closing_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>{!hideBardan && <><td className={`px-4 py-2 text-sm text-right font-bold border-r border-zinc-100 font-mono ${parseFloat(row.bardan_balance || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>{Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td><td className="px-4 py-2 text-sm text-right font-bold text-emerald-600 border-r border-zinc-100 font-sans">{parseFloat(row.bardan_self_jama || 0).toLocaleString()}</td><td className="px-4 py-2 text-sm text-right font-bold text-blue-600 border-r border-zinc-100 font-sans">₹{Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}</td></>}</>;
                         })()}
-                        <td className="px-4 py-2 text-center"><button onClick={() => openAudit(row)} className="p-1.5 bg-zinc-100 text-blue-600 border border-zinc-200 rounded-none hover:bg-blue-600 hover:text-white transition shadow-sm" title="Audit Ledger"><Activity size={12} /></button></td>
+                        <td className="px-4 py-2 text-center"><button onClick={() => openAudit(row)} className="p-1.5 bg-zinc-100 text-blue-600 border border-zinc-200 rounded-none hover:bg-blue-600 hover:text-white transition shadow-sm" title={t('sabhasadLedgerSummary.auditLedger')}><Activity size={12} /></button></td>
                       </tr>
                     ))}
                     <tr className="bg-blue-600 font-bold text-white uppercase text-[9px] tracking-widest ">
@@ -998,39 +1020,39 @@ export default function SabhasadLedgerSummary() {
                           }
 
                           return <>
-                            <td colSpan="3" className="px-4 py-2 text-right uppercase">Registry Totals:</td>
-                            <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}</td>
-                            <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{displayTotalDebit.toLocaleString('en-IN')}</td>
-                            <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{displayTotalCredit.toLocaleString('en-IN')}</td>
-                            {isBardan && <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">-</td>}
-                            <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.balance || 0) >= 0 ? (isBardan || isTransactional ? 'C' : (isSale ? 'CR' : 'DR')) : (isBardan || isTransactional ? 'D' : (isSale ? 'DR' : 'CR'))}</td>
-                            {isBardan && <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{(parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN')}</td>}
+                            <td colSpan="3" className="px-4 py-2 text-right ">{t('sabhasadLedgerSummary.registryTotals')}:</td>
+                            <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{displayTotalDebit.toLocaleString('en-IN')}</td>
+                            <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{displayTotalCredit.toLocaleString('en-IN')}</td>
+                            {isBardan && <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">-</td>}
+                            <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.balance || 0) >= 0 ? (isBardan || isTransactional ? 'C' : (isSale ? 'CR' : 'DR')) : (isBardan || isTransactional ? 'D' : (isSale ? 'DR' : 'CR'))}</td>
+                            {isBardan && <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{(parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN')}</td>}
                           </>;
                         }
                         if (isDangar) return <>
-                          <td colSpan="9" className="px-4 py-2 text-right">SUMMARY TOTALS</td>
-                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">{data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[8px] opacity-70 ml-1">Qt</span></td>
-                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
+                          <td colSpan="9" className="px-4 py-2 text-right uppercase">{t('sabhasadLedgerSummary.totals')}</td>
+                          <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">{data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-sm opacity-70 ml-1">Qt</span></td>
+                          <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
                         </>;
                         if (isInterest) return <>
-                          <td colSpan="8" className="px-4 py-2 text-right">TOTAL ACCRUAL POOL</td>
-                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}</td>
+                          <td colSpan="8" className="px-4 py-2 text-right uppercase">{t('sabhasadLedgerSummary.totals')}</td>
+                          <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN')}</td>
                         </>;
                         if (isBrokerage || isLabour) return <>
-                          <td colSpan="7" className="px-4 py-2 text-right uppercase">Total {isBrokerage ? 'Brokerage' : 'Labour'} Accumulation</td>
-                          <td className="px-4 py-2 text-right text-[11px] font-mono tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
+                          <td colSpan="7" className="px-4 py-2 text-right uppercase ">{t('sabhasadLedgerSummary.totals')}</td>
+                          <td className="px-4 py-2 text-right text-[11px] font-sans tracking-tighter">₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN')}</td>
                         </>;
                         return <>
-                          <td colSpan="4" className="px-4 py-2 text-right">CONSOLIDATED SUMMARY</td>
-                          <td className="px-4 py-2 border-r border-blue-500/30 font-mono text-right text-white italic text-[11px]">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-4 py-2 border-r border-blue-500/30 font-mono"></td>
-                          <td className="px-4 py-2 text-right text-white italic font-mono text-[11px]">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-4 py-2 text-right text-white italic font-mono text-[11px]">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-4 py-2 text-right text-white italic font-mono text-[11px]">₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>
+                          <td colSpan="4" className="px-4 py-2 text-right uppercase">{t('sabhasadLedgerSummary.consolidatedTotals')}</td>
+                          <td className="px-4 py-2 border-r border-blue-500/30 font-sans text-right text-white  text-[11px]">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-2 border-r border-blue-500/30 font-sans"></td>
+                          <td className="px-4 py-2 text-right text-white  font-sans text-[11px]">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-2 text-right text-white  font-sans text-[11px]">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-2 text-right text-white  font-sans text-[11px]">₹{Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN')} {parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</td>
                           {!hideBardan && <>
-                            <td className="px-4 py-2 text-right text-white font-mono text-[11px]">{Math.abs(data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0)).toLocaleString()} {data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}</td>
-                            <td className="px-4 py-2 text-right text-white font-mono text-[11px]">{data.reduce((s, r) => s + parseFloat(r.bardan_self_jama || 0), 0).toLocaleString()}</td>
-                            <td className="px-4 py-2 text-right text-white font-mono text-[11px]">₹{Math.abs(data.reduce((s, r) => s + (parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0) * bardanPrice), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {data.reduce((s, r) => s + parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}</td>
+                            <td className="px-4 py-2 text-right text-white font-sans text-[11px]">{Math.abs(data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0)).toLocaleString()} {data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}</td>
+                            <td className="px-4 py-2 text-right text-white font-sans text-[11px]">{data.reduce((s, r) => s + parseFloat(r.bardan_self_jama || 0), 0).toLocaleString()}</td>
+                            <td className="px-4 py-2 text-right text-white font-sans text-[11px]">₹{Math.abs(data.reduce((s, r) => s + (parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0) * bardanPrice), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {data.reduce((s, r) => s + parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0), 0) >= 0 ? 'DR' : 'CR'}</td>
                           </>}
                         </>;
                       })()}
@@ -1052,7 +1074,7 @@ export default function SabhasadLedgerSummary() {
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white border border-zinc-200 text-blue-600"><Activity size={18} /></div>
                 <div>
-                  <h2 className="text-[12px] font-bold text-zinc-800 uppercase tracking-tight">{auditMember.member_name}<span className="text-blue-600 ml-2 font-mono">#{auditMember.member_code}</span></h2>
+                  <h2 className="text-[12px] font-bold text-zinc-800 uppercase tracking-tight">{formatBilingualText(auditMember.member_name)}<span className="text-blue-600 ml-2 font-sans">#{auditMember.member_code}</span></h2>
                   <p className="text-[9px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Audit Protocol Activation</p>
                 </div>
               </div>
@@ -1060,23 +1082,23 @@ export default function SabhasadLedgerSummary() {
             </div>
             <div className="flex-1 overflow-y-auto p-6 scroller-airy bg-white">
               {auditLoading ? (
-                <div className="py-32 text-center"><RefreshCcw className="animate-spin mx-auto text-blue-500 mb-4" size={40} /><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">Decrypting Ledger Stream...</p></div>
+                <div className="py-32 text-center"><RefreshCcw className="animate-spin mx-auto text-blue-500 mb-4" size={40} /><p className="text-sm font-bold text-zinc-400 uppercase tracking-widest italic">Decrypting Ledger Stream...</p></div>
               ) : (
                 <div className="border border-zinc-300 overflow-hidden">
-                  <table className="w-full text-left font-mono text-[10px] border-collapse">
+                  <table className="w-full text-left font-mono text-sm border-collapse">
                     <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                      <tr><th className="px-4 py-3 border-r border-zinc-200 uppercase">Date</th><th className="px-4 py-3 border-r border-zinc-200 uppercase">Description</th><th className="px-4 py-3 border-r border-zinc-200 uppercase">Reference</th><th className="px-4 py-3 text-right border-r border-zinc-200 uppercase">Debit (+)</th><th className="px-4 py-3 text-right border-r border-zinc-200 uppercase">Credit (-)</th><th className="px-4 py-3 text-right border-r border-zinc-200 uppercase">Self Jama</th><th className="px-4 py-3 text-right uppercase">Running</th></tr>
+                      <tr><th className="px-4 py-3 border-r border-zinc-200 ">{t('sabhasadLedgerSummary.date')}</th><th className="px-4 py-3 border-r border-zinc-200 ">{t('sabhasadLedgerSummary.description')}</th><th className="px-4 py-3 border-r border-zinc-200 ">{t('sabhasadLedgerSummary.reference')}</th><th className="px-4 py-3 text-right border-r border-zinc-200 ">{t('sabhasadLedgerSummary.debit')}</th><th className="px-4 py-3 text-right border-r border-zinc-200 ">{t('sabhasadLedgerSummary.credit')}</th><th className="px-4 py-3 text-right border-r border-zinc-200 ">{t('sabhasadLedgerSummary.selfJama')}</th><th className="px-4 py-3 text-right ">Running</th></tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 font-bold uppercase">
                       {auditTransactions.map((tx, i) => (
                         <tr key={i} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-3 text-zinc-400 border-r border-zinc-100 italic">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
-                          <td className="px-4 py-3 text-zinc-800 border-r border-zinc-100">{tx.description}</td>
+                          <td className="px-4 py-3 text-zinc-400 border-r border-zinc-100 ">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
+                          <td className="px-4 py-3 text-zinc-800 border-r border-zinc-100">{formatBilingualText(tx.description)}</td>
                           <td className="px-4 py-3 text-zinc-400 border-r border-zinc-100">{tx.reference_no}</td>
-                          <td className="px-4 py-3 text-right text-blue-600 border-r border-zinc-100 font-mono">₹{(parseFloat(tx.debit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className="px-4 py-3 text-right text-red-600 border-r border-zinc-100 font-mono">{parseFloat(tx.company_credit || 0) > 0 ? `₹${parseFloat(tx.company_credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
-                          <td className="px-4 py-3 text-right text-emerald-600 border-r border-zinc-100 font-mono">{parseFloat(tx.self_credit || 0) > 0 ? parseFloat(tx.self_credit).toLocaleString() : '—'}</td>
-                          <td className={`px-4 py-3 text-right font-black font-mono ${parseFloat(tx.running_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}<span className="text-[8px] ml-1 opacity-50 not-italic font-sans">{parseFloat(tx.running_balance || 0) >= 0 ? 'DR' : 'CR'}</span></td>
+                          <td className="px-4 py-3 text-right text-blue-600 border-r border-zinc-100 font-sans">₹{(parseFloat(tx.debit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-3 text-right text-red-600 border-r border-zinc-100 font-sans">{parseFloat(tx.company_credit || 0) > 0 ? `₹${parseFloat(tx.company_credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
+                          <td className="px-4 py-3 text-right text-emerald-600 border-r border-zinc-100 font-sans">{parseFloat(tx.self_credit || 0) > 0 ? parseFloat(tx.self_credit).toLocaleString() : '—'}</td>
+                          <td className={`px-4 py-3 text-right font-black font-mono ${parseFloat(tx.running_balance || 0) >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}<span className="text-sm ml-1 opacity-50 not- font-sans">{parseFloat(tx.running_balance || 0) >= 0 ? 'DR' : 'CR'}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1084,7 +1106,7 @@ export default function SabhasadLedgerSummary() {
                 </div>
               )}
             </div>
-            <div className="px-5 py-3.5 bg-zinc-100 border-t border-zinc-300 flex justify-end"><button onClick={() => setShowAuditModal(false)} className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px]">Close Audit</button></div>
+            <div className="px-5 py-3.5 bg-zinc-100 border-t border-zinc-300 flex justify-end"><button onClick={() => setShowAuditModal(false)} className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-sm">Close Audit</button></div>
           </div>
         </div>
       )}

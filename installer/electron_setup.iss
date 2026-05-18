@@ -29,7 +29,58 @@ Name: "{autodesktop}\Danger Systeam Pro"; Filename: "{app}\Danger Systeam Pro.ex
 Filename: "powershell.exe"; \
     Parameters: "-ExecutionPolicy Bypass -File ""{app}\setup_database.ps1"" -InstallerPath ""{tmp}\postgresql-18.3-2-windows-x64.exe"""; \
     StatusMsg: "Configuring PostgreSQL and Database (this may take a few minutes)..."; \
+    Check: NeedToInstallPostgreSQL; \
     Flags: runhidden waituntilterminated
 
 ; Launch Application
 Filename: "{app}\Danger Systeam Pro.exe"; Description: "Launch Danger Systeam Pro"; Flags: nowait postinstall
+
+[Code]
+var
+  PGPrereqPage: TWizardPage;
+  PGInstallCheckBox: TCheckBox;
+  PGStatusLabel: TLabel;
+
+function NeedToInstallPostgreSQL: Boolean;
+begin
+  Result := PGInstallCheckBox.Checked;
+end;
+
+procedure InitializeWizard;
+var
+  PGPath: String;
+  IsPGDetected: Boolean;
+begin
+  IsPGDetected := DirExists(ExpandConstant('{commonpf64}\PostgreSQL')) or 
+                  DirExists(ExpandConstant('{commonpf}\PostgreSQL')) or
+                  RegKeyExists(HKEY_LOCAL_MACHINE, 'SOFTWARE\PostgreSQL\Installations');
+
+  PGPrereqPage := CreateCustomPage(wpSelectDir, 'Database Prerequisites', 'PostgreSQL Database Engine check.');
+
+  PGStatusLabel := TLabel.Create(PGPrereqPage);
+  PGStatusLabel.Parent := PGPrereqPage.Surface;
+  PGStatusLabel.Top := 10;
+  PGStatusLabel.Font.Style := [fsBold];
+  
+  if IsPGDetected then
+  begin
+    PGStatusLabel.Caption := 'PostgreSQL Status: Detected (Already Installed)';
+    PGStatusLabel.Font.Color := clGreen;
+  end
+  else
+  begin
+    PGStatusLabel.Caption := 'PostgreSQL Status: Not Found';
+    PGStatusLabel.Font.Color := clRed;
+  end;
+
+  PGInstallCheckBox := TCheckBox.Create(PGPrereqPage);
+  PGInstallCheckBox.Parent := PGPrereqPage.Surface;
+  PGInstallCheckBox.Top := PGStatusLabel.Top + 40;
+  PGInstallCheckBox.Width := PGPrereqPage.SurfaceWidth;
+  PGInstallCheckBox.Caption := 'Install/Configure Database (Recommended if not set up)';
+  
+  if IsPGDetected then
+    PGInstallCheckBox.Checked := False
+  else
+    PGInstallCheckBox.Checked := True;
+end;

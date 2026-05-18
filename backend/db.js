@@ -33,7 +33,7 @@ console.log('  Database:', process.env.DB_NAME || 'danger_systeam');
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'postgres',
-  password: String(process.env.DB_PASSWORD || ''),
+  password: String(process.env.DB_PASSWORD || '6099'),
   database: process.env.DB_NAME || 'danger_systeam',
   port: parseInt(process.env.DB_PORT || '5432'),
   max: 20,
@@ -204,6 +204,36 @@ export const getConnection = async () => {
 
 // Initialize database and create tables
 export async function initializeDatabase() {
+  // First, verify if the database exists by connecting to 'postgres' first
+  const masterPool = new pg.Pool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'postgres',
+    password: String(process.env.DB_PASSWORD || '6099'),
+    database: 'postgres',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    connectionTimeoutMillis: 5000,
+  });
+
+  try {
+    console.log('🔍 Checking if target database exists...');
+    const client = await masterPool.connect();
+    const dbCheck = await client.query("SELECT 1 FROM pg_database WHERE datname = 'danger_systeam'");
+    
+    if (dbCheck.rowCount === 0) {
+      console.log('🚀 Database missing. Creating "danger_systeam"...');
+      await client.query('CREATE DATABASE danger_systeam');
+      console.log('✅ Database created successfully.');
+    } else {
+      console.log('✅ Target database already exists.');
+    }
+    client.release();
+  } catch (err) {
+    console.warn('⚠️ Master database check failed (might be permissions or already connected):', err.message);
+  } finally {
+    await masterPool.end();
+  }
+
+  // Now proceed with normal initialization
   const connection = await getConnection();
   try {
     await connection.beginTransaction();
@@ -249,14 +279,20 @@ export async function initializeDatabase() {
           id SERIAL PRIMARY KEY,
           company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
           username VARCHAR(100) NOT NULL,
+          full_name_gu VARCHAR(255),
           email VARCHAR(100) NOT NULL,
           password VARCHAR(255) NOT NULL,
           role VARCHAR(50) DEFAULT 'cashier',
+          module_access JSONB DEFAULT '[]',
           is_active INT DEFAULT 1,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Add missing columns if they don't exist
+      try { await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS module_access JSONB DEFAULT '[]'"); } catch (e) { }
+      try { await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name_gu VARCHAR(255)"); } catch (e) { }
 
       // Create Accounts table
       await connection.query(`
@@ -264,6 +300,7 @@ export async function initializeDatabase() {
           id SERIAL PRIMARY KEY,
           company_id INT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
           account_name VARCHAR(100) NOT NULL,
+          account_name_gu VARCHAR(255),
           account_type VARCHAR(50) NOT NULL,
           phone VARCHAR(20),
           email VARCHAR(100),
@@ -561,7 +598,10 @@ export async function initializeDatabase() {
 
       // Auto-migrate accounts table
       try { await connection.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS account_name_gu VARCHAR(255)"); } catch (e) { }
       try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS member_name_gu VARCHAR(255)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE village ADD COLUMN IF NOT EXISTS eng_name VARCHAR(255)"); } catch (e) { }
 
       // Create Village table
       await connection.query(`
@@ -569,6 +609,7 @@ export async function initializeDatabase() {
           id SERIAL PRIMARY KEY,
           village_code VARCHAR(50),
           village_name VARCHAR(255),
+          eng_name VARCHAR(255),
           taluka_name VARCHAR(255),
           district_name VARCHAR(255),
           no_of_villages INT DEFAULT 0,
@@ -758,13 +799,16 @@ export async function initializeDatabase() {
           narration_code VARCHAR(50),
           narration_text TEXT NOT NULL,
           narration_type VARCHAR(50) DEFAULT 'JV',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
       // Add columns if not exist (for existing tables)
       try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_type VARCHAR(50) DEFAULT 'JV'"); } catch (e) { }
       try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_code VARCHAR(50)"); } catch (e) { }
+      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS narration_text_gu TEXT"); } catch (e) { }
+      try { await connection.query("ALTER TABLE narrations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"); } catch (e) { }
 
       // Create Journal Vouchers table
       await connection.query(`
@@ -1101,21 +1145,24 @@ async function seedInitialData(connection) {
       );
     }
 
-    // 3. Ensure Admin User exists and has the correct password
-    const [users] = await connection.query("SELECT id FROM users WHERE email = ?", ['admin@danger.com']);
-    const hashedPassword = await bcrypt.hash('6099', 10);
-    if (users.length === 0) {
-      console.log('👤 Creating Admin User...');
+    // 3. Ensure Admin User exists
+    const [usersCountRows] = await connection.query("SELECT COUNT(*) as count FROM users");
+    const userCount = parseInt(usersCountRows[0].count || 0);
+    
+    if (userCount === 0) {
+      console.log('👤 Seeding Admin User (admin@danger.com / 6099)...');
+      const hashedPassword = await bcrypt.hash('6099', 10);
+      const adminModuleAccess = JSON.stringify([
+        'company', 'users', 'accounts', 'items', 'members', 
+        'dangar', 'bardan', 'reports', 'settings', 'deductions', 'banks'
+      ]);
+      
       await connection.execute(
-        "INSERT INTO users (company_id, username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?, 1)",
-        [companyId, 'Admin', 'admin@danger.com', hashedPassword, 'admin']
+        "INSERT INTO users (company_id, username, full_name_gu, email, password, role, is_active, module_access) VALUES (?, ?, ?, ?, ?, ?, 1, ?) ON CONFLICT DO NOTHING",
+        [companyId, 'Admin', 'એડમિન', 'admin@danger.com', hashedPassword, 'admin', adminModuleAccess]
       );
     } else {
-      console.log('👤 Updating Admin User Password...');
-      await connection.execute(
-        "UPDATE users SET password = ?, username = 'Admin', role = 'admin', is_active = 1 WHERE email = ?",
-        [hashedPassword, 'admin@danger.com']
-      );
+      console.log(`✅ ${userCount} users already exist. Skipping admin seeding.`);
     }
 
     // 4. Ensure 11 System Accounts exist
@@ -1518,7 +1565,7 @@ export async function getAccountLedger(accountId, startDate, endDate, memberId =
         WHEN al.interest_account_id = ${targetAccountId} THEN al.interest_member_id 
         ELSE al.member_id 
       END as member_id,
-      CASE WHEN ${targetAccountId} = 8 THEN NULL ELSE m.member_name END as member_name,
+      CASE WHEN ${targetAccountId} = 8 THEN NULL ELSE COALESCE(m.member_name_gu, m.member_name) END as member_name,
       CASE WHEN ${targetAccountId} = 8 THEN NULL ELSE m.member_code END as member_code,
       al.interest_percent,
       al.interest_amount,
@@ -1566,17 +1613,17 @@ export async function getTrialBalance(companyId, asOfDate = null) {
   const sql = `
     SELECT id, account_name, account_type, SUM(total_debit) as total_debit, SUM(total_credit) as total_credit, SUM(total_debit - total_credit) as balance
     FROM (
-      SELECT a.id::TEXT, a.account_name, a.account_type, COALESCE(SUM(COALESCE(al.debit, 0)), 0) as total_debit, COALESCE(SUM(COALESCE(al.credit, 0)), 0) as total_credit
+      SELECT a.id::TEXT, COALESCE(a.account_name_gu, a.account_name) as account_name, a.account_type, COALESCE(SUM(COALESCE(al.debit, 0)), 0) as total_debit, COALESCE(SUM(COALESCE(al.credit, 0)), 0) as total_credit
       FROM accounts a
       LEFT JOIN account_ledger al ON a.id = al.account_id ${dateCondition}
       WHERE a.company_id = ? AND a.is_deleted = 0
-      GROUP BY a.id, a.account_name, a.account_type
+      GROUP BY a.id, a.account_name, a.account_name_gu, a.account_type
       UNION ALL
-      SELECT CONCAT('M', m.id) as id, m.member_name as account_name, 'member' as account_type, COALESCE(SUM(COALESCE(al.debit, 0)), 0) as total_debit, COALESCE(SUM(COALESCE(al.credit, 0)), 0) as total_credit
+      SELECT CONCAT('M', m.id) as id, COALESCE(m.member_name_gu, m.member_name) as account_name, 'member' as account_type, COALESCE(SUM(COALESCE(al.debit, 0)), 0) as total_debit, COALESCE(SUM(COALESCE(al.credit, 0)), 0) as total_credit
       FROM member_master m
       LEFT JOIN account_ledger al ON m.id = al.member_id ${dateCondition}
       WHERE m.company_id = ? AND m.account_id IS NULL
-      GROUP BY m.id, m.member_name
+      GROUP BY m.id, m.member_name, m.member_name_gu
     ) unified
     GROUP BY id, account_name, account_type ORDER BY account_name ASC
   `;
@@ -1592,7 +1639,7 @@ export async function getTrialBalance(companyId, asOfDate = null) {
 
 export async function getLedgerByDateRange(companyId, startDate, endDate) {
   const sql = `
-    SELECT al.id, COALESCE(a.account_name, m.member_name) as account_name, al.transaction_date, COALESCE(al.reference_type, al.transaction_type) as reference_type, al.reference_no, COALESCE(al.description, '') as description, COALESCE(al.debit, 0) as debit, COALESCE(al.credit, 0) as credit, (COALESCE(al.debit, 0) - COALESCE(al.credit, 0)) as net_amount
+    SELECT al.id, COALESCE(a.account_name_gu, a.account_name, m.member_name_gu, m.member_name) as account_name, al.transaction_date, COALESCE(al.reference_type, al.transaction_type) as reference_type, al.reference_no, COALESCE(al.description, '') as description, COALESCE(al.debit, 0) as debit, COALESCE(al.credit, 0) as credit, (COALESCE(al.debit, 0) - COALESCE(al.credit, 0)) as net_amount
     FROM account_ledger al
     LEFT JOIN accounts a ON al.account_id = a.id
     LEFT JOIN member_master m ON al.member_id = m.id
@@ -1819,12 +1866,40 @@ export async function createSale(companyId, invoiceNo, invoiceDate, customerId, 
 }
 
 export async function getSalesByCompany(companyId, startDate, endDate, financialYear = '2026-27') {
-  const sql = `SELECT s.id, s.invoice_no, s.invoice_date, COALESCE(a.account_name, m.member_name, 'Walk-in') as customer_name, COALESCE(m.member_code, CAST(a.id AS TEXT)) as member_code, s.payment_type, s.total_amount, s.net_amount, COUNT(si.id) as item_count, s.created_at FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN member_master m ON s.member_id = m.id LEFT JOIN sale_items si ON s.id = si.sale_id WHERE s.company_id = ? AND s.invoice_date BETWEEN ? AND ? AND s.financial_year = ? GROUP BY s.id, a.account_name, m.member_name, m.member_code, a.id ORDER BY s.invoice_date DESC, s.created_at DESC`;
+  const sql = `
+    SELECT 
+      s.id, s.invoice_no, s.invoice_date, 
+      COALESCE(a.account_name, m.eng_name, m.member_name, 'Walk-in') as customer_name, 
+      COALESCE(a.account_name_gu, m.member_name) as customer_name_gu,
+      COALESCE(m.member_code, CAST(a.id AS TEXT)) as member_code, 
+      s.payment_type, s.total_amount, s.net_amount, 
+      COUNT(si.id) as item_count, s.created_at 
+    FROM sales s 
+    LEFT JOIN accounts a ON s.customer_account_id = a.id 
+    LEFT JOIN member_master m ON s.member_id = m.id 
+    LEFT JOIN sale_items si ON s.id = si.sale_id 
+    WHERE s.company_id = ? AND s.invoice_date BETWEEN ? AND ? AND s.financial_year = ? 
+    GROUP BY s.id, a.account_name, m.member_name, m.eng_name, m.member_code, a.id, a.account_name_gu 
+    ORDER BY s.invoice_date DESC, s.created_at DESC
+  `;
   return await query(sql, [companyId, startDate, endDate, financialYear]);
 }
 
 export async function getSaleDetails(saleId) {
-  const sale = await queryOne(`SELECT s.*, COALESCE(a.account_name, m.member_name, 'Walk-in') as customer_name, u.username as created_by_user, c.company_name FROM sales s LEFT JOIN accounts a ON s.customer_account_id = a.id LEFT JOIN member_master m ON s.member_id = m.id LEFT JOIN users u ON s.created_by = u.id LEFT JOIN company c ON s.company_id = c.id WHERE s.id = ?`, [saleId]);
+  const sale = await queryOne(`
+    SELECT 
+      s.*, 
+      COALESCE(a.account_name, m.eng_name, m.member_name, 'Walk-in') as customer_name, 
+      COALESCE(a.account_name_gu, m.member_name) as customer_name_gu,
+      u.username as created_by_user, 
+      c.company_name 
+    FROM sales s 
+    LEFT JOIN accounts a ON s.customer_account_id = a.id 
+    LEFT JOIN member_master m ON s.member_id = m.id 
+    LEFT JOIN users u ON s.created_by = u.id 
+    LEFT JOIN company c ON s.company_id = c.id 
+    WHERE s.id = ?
+  `, [saleId]);
   if (!sale) return null;
   const items = await query(`SELECT si.*, it.item_name, it.item_code FROM sale_items si LEFT JOIN item_master it ON si.item_id = it.id WHERE si.sale_id = ?`, [saleId]);
   return { ...sale, items };

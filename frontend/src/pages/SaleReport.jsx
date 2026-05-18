@@ -7,11 +7,12 @@ import {
   FileText, BarChart3, LayoutGrid, Box, ChevronDown,
   ChevronRight, UserCheck, TrendingUp, Tags, Database,
   ShieldCheck, Layout, Layers, Filter, Calendar, ArrowRight,
-  CheckCircle2, History, Package, RefreshCcw, Printer
+  CheckCircle2, History, Package, Printer
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
 import PageHeader from '../components/PageHeader';
 import Toast from '../components/Toast';
 
@@ -28,7 +29,7 @@ const formatQty = (qty) => {
 };
 
 export default function SaleReport() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [viewType, setViewType] = useState('report');
   const [data, setData] = useState([]);
   const [itemData, setItemData] = useState([]);
@@ -96,13 +97,13 @@ export default function SaleReport() {
 
   const filteredReports = data.filter(s =>
     s.invoice_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.customer_name_gu || s.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(s.customer_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(s.member_code || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const groupedReports = filteredReports.reduce((acc, s) => {
-    const key = s.customer_name || 'COUNTER SALE';
+    const key = s.customer_name_gu || s.customer_name || 'COUNTER SALE';
     if (!acc[key]) acc[key] = { name: key, invoices: [], total: 0 };
     acc[key].invoices.push(s);
     acc[key].total += parseFloat(s.total_amount || 0);
@@ -124,45 +125,27 @@ export default function SaleReport() {
 
   const totalRevenueAudit = filteredReports.reduce((sum, s) => sum + parseFloat(s.total_amount || 0), 0);
 
-  const addGujaratiFont = async (doc) => {
-      try {
-         const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-         const blob = await res.blob();
-         return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-               const base64 = reader.result.split(',')[1];
-               doc.addFileToVFS('NotoSansGujarati.ttf', base64);
-               doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-               resolve();
-            };
-            reader.readAsDataURL(blob);
-         });
-      } catch (e) {
-         console.warn('Could not load Gujarati font', e);
-      }
-   };
-
   const handlePrint = () => {
-    const cName = company?.company_name || 'Company';
+    const cName = company?.company_name_gu || company?.company_name || 'Company';
     const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.total_amount || 0), 0);
     const win = window.open('', '_blank', 'width=900,height=800');
     const rows = filteredReports.map((s, i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td>${s.customer_name || 'COUNTER SALE'}</td>
+        <td>${s.customer_name_gu || s.customer_name || 'COUNTER SALE'}</td>
         <td>${new Date(s.invoice_date).toLocaleDateString('en-GB')}</td>
         <td>#${s.invoice_no}</td>
-        <td style="text-align:center">${s.item_count} Items</td>
+        <td style="text-align:center">${s.item_count} ${t('common.items')}</td>
         <td style="text-align:right">${formatCurrency(s.total_amount)}</td>
         <td style="text-align:right">${formatCurrency(s.discount_amount || 0)}</td>
         <td style="text-align:right;font-weight:700">${formatCurrency(s.net_amount)}</td>
-        <td style="text-align:center">${(s.payment_type || 'cash').toUpperCase()}</td>
+        <td style="text-align:center">${(s.payment_type || 'cash')}</td>
       </tr>`);
     win.document.write(`
       <html><head><title>${cName} - Sale Report</title>
       <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:20px}
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box }
+        body { font-family: 'Noto Sans Gujarati', 'Prompt', Arial, sans-serif; font-size: 10px; color: #1e293b; padding: 32px }
         .logo-bar{background:#0f172a;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-radius:4px}
         .logo-bar h1{font-size:13px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
         .logo-bar span{font-size:9px;color:#94a3b8}
@@ -177,20 +160,20 @@ export default function SaleReport() {
         @media print{@page{size:A4 portrait;margin:1.5cm}}
       </style></head><body>
       <div class='logo-bar'><h1>${cName}</h1><span>Sale Report / Analytics &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
-      <div class='report-title'>Revenue Command Deck</div>
-      <div class='report-sub'>Period: ${startDate} &rarr; ${endDate} &nbsp;|&nbsp; Records: ${filteredReports.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</div>
+      <div class='report-title'>${t('saleReport.title')}</div>
+      <div class='report-sub'>Period: ${startDate} &rarr; ${endDate} &nbsp;|&nbsp; ${t('common.records')}: ${filteredReports.length} &nbsp;|&nbsp; ${t('saleReport.generated') || 'Generated'}: ${new Date().toLocaleString('en-IN')}</div>
       <hr class='divider'/>
       <table>
         <thead><tr>
-          <th>Client</th><th>Date</th><th>Invoice</th><th>Items</th>
-          <th style='text-align:right'>Gross Amt</th>
-          <th style='text-align:right'>Discount</th>
-          <th style='text-align:right'>Net Amt</th>
-          <th style='text-align:center'>Mode</th>
+          <th>${t('common.client')}</th><th>${t('common.date')}</th><th>${t('common.invoice')}</th><th>${t('common.items')}</th>
+          <th style='text-align:right'>${t('common.grossAmt')}</th>
+          <th style='text-align:right'>${t('common.discount')}</th>
+          <th style='text-align:right'>${t('common.netAmt')}</th>
+          <th style='text-align:center'>${t('common.mode')}</th>
         </tr></thead>
         <tbody>${rows.join('')}</tbody>
         <tfoot><tr>
-          <td colspan='4'>TOTALS &mdash; ${filteredReports.length} Records</td>
+          <td colspan='4'>${t('common.totals')} &mdash; ${filteredReports.length} ${t('common.records')}</td>
           <td colspan='2'></td>
           <td style='text-align:right'>${formatCurrency(totalAmt)}</td>
           <td></td>
@@ -209,12 +192,12 @@ export default function SaleReport() {
     const H = doc.internal.pageSize.getHeight();
     const M = 32;
     const navy = [15,23,42], white = [255,255,255], gray = [100,116,139], dark = [30,41,59], stripe = [241,245,249];
-    const cName = company?.company_name || 'Company';
+    const cName = company?.company_name_gu || company?.company_name || 'Company';
 
     const hdr = () => {
        doc.setFillColor(...navy); doc.rect(0,0,W,26,'F');
-       doc.setFont('NotoGujarati','normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-       doc.text(cName.toUpperCase(), M, 17);
+       doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...white);
+       doc.text(cName, M, 17);
        doc.setFontSize(7); doc.setTextColor(148,163,184);
        doc.text('SALE REPORT / ANALYTICS', W/2, 17, {align:'center'});
        doc.setFontSize(7); doc.setTextColor(239,68,68);
@@ -232,7 +215,7 @@ export default function SaleReport() {
     hdr();
     let y = 40;
     doc.setFont('NotoGujarati','normal'); doc.setFontSize(15); doc.setTextColor(...navy);
-    doc.text('Revenue Command Deck', M, y);
+    doc.text(t('saleReport.title'), M, y);
     doc.setFontSize(7.5); doc.setTextColor(...gray);
     doc.text('Period: ' + startDate + ' to ' + endDate + '  |  Records: ' + filteredReports.length + '  |  Generated: ' + new Date().toLocaleString('en-IN'), M, y+13);
     doc.setDrawColor(226,232,240); doc.setLineWidth(0.4); doc.line(M, y+18, W-M, y+18);
@@ -241,25 +224,31 @@ export default function SaleReport() {
     const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.net_amount || 0), 0);
 
     const bodyRows = filteredReports.map(s => [
-        s.customer_name || 'COUNTER SALE',
+        s.customer_name_gu || s.customer_name || 'COUNTER SALE',
         new Date(s.invoice_date).toLocaleDateString('en-GB'),
         '#' + s.invoice_no,
-        s.item_count + ' Items',
+        s.item_count + ' ' + t('common.items'),
         'Rs.' + parseFloat(s.total_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2}),
         'Rs.' + parseFloat(s.discount_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2}),
         'Rs.' + parseFloat(s.net_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2}),
-        (s.payment_type || 'cash').toUpperCase()
+        (s.payment_type || 'cash')
     ]);
 
     autoTable(doc, {
        startY: y,
-       head: [['Client', 'Date', 'Invoice', 'Items', 'Gross Amt', 'Discount', 'Net Amt', 'Mode']],
+       head: [[t('saleReport.clientIdentity'), t('common.date'), t('common.invoice'), t('common.items'), t('common.grossAmt'), t('common.discount'), t('saleReport.netProceeds'), t('common.mode')]],
        body: bodyRows,
-       foot: [['', '', '', '', '', 'TOTAL', 'Rs.' + totalAmt.toLocaleString('en-IN', {minimumFractionDigits:2}), '']],
-       styles: { font: 'helvetica', fontSize:7.5, cellPadding:[4,5], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
-       headStyles: { font: 'helvetica', fillColor:navy, textColor:white, fontStyle: 'normal' },
-       footStyles: { font: 'helvetica', fillColor:[30,41,59], textColor:white },
+       foot: [['', '', '', '', '', t('common.totals'), 'Rs.' + totalAmt.toLocaleString('en-IN', {minimumFractionDigits:2}), '']],
+       styles: { font: 'NotoGujarati', fontSize:7.5, cellPadding:[4,5], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
+       headStyles: { font: 'NotoGujarati', fillColor:navy, textColor:white, fontStyle: 'normal' },
+       footStyles: { font: 'NotoGujarati', fillColor:[30,41,59], textColor:white },
        alternateRowStyles: { fillColor:stripe },
+       didParseCell: (data) => {
+         const text = data.cell.text.join(' ');
+         if (text && !/[\u0A80-\u0AFF]/.test(text)) {
+           data.cell.styles.font = 'helvetica';
+         }
+       },
        theme: 'grid',
        margin: { left:M, right:M }
     });
@@ -286,23 +275,23 @@ export default function SaleReport() {
       <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
 
         <PageHeader
-          eyebrow="Revenue Core / Sales Audit Registry"
+          eyebrow={t('saleReport.eyebrow')}
           eyebrowIcon={<ShoppingCart size={12} />}
-          title="Revenue Command Deck"
-          subtitle="Consolidated analytics for enterprise revenue"
+          title={t('saleReport.title')}
+          subtitle={t('saleReport.subtitle')}
         >
           <div className="flex gap-2">
             <button onClick={() => setViewType('report')} className={`px-4 py-2 border text-xs font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
-              <UserCheck size={14} className="inline mr-2" /> Report
+              <UserCheck size={14} className="inline mr-2" /> {t('common.report')}
             </button>
             <button onClick={() => setViewType('summary')} className={`px-4 py-2 border text-xs font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
-              <Tags size={14} className="inline mr-2" /> Summary
+              <Tags size={14} className="inline mr-2" /> {t('common.summary')}
             </button>
             <button onClick={handleExportPDF} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all flex items-center gap-2">
-              <FileText size={14} /> PDF
+              <FileText size={14} /> {t('common.pdf')}
             </button>
             <button onClick={handlePrint} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all flex items-center gap-2">
-              <Printer size={14} /> Print
+              <Printer size={14} /> {t('common.print')}
             </button>
             <button onClick={exportToExcel} className="px-3 py-2 bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition-all">
               <Download size={14} />
@@ -315,10 +304,10 @@ export default function SaleReport() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
           {[
-            { label: 'Total Revenue Yield', val: formatCurrency(totalRevenueAudit), icon: <TrendingUp size={18} />, color: 'blue' },
-            { label: 'Settlement Nodes', val: filteredReports.length, icon: <FileText size={18} />, color: 'indigo' },
-            { label: 'Catalog Throughput', val: itemData.length, icon: <LayoutGrid size={18} />, color: 'emerald' },
-            { label: 'Audit Protocol', val: 'SYMMETRICAL', icon: <ShieldCheck size={18} />, color: 'slate' }
+            { label: t('saleReport.totalRevenue'), val: formatCurrency(totalRevenueAudit), icon: <TrendingUp size={18} />, color: 'blue' },
+            { label: t('saleReport.settlementNodes'), val: filteredReports.length, icon: <FileText size={18} />, color: 'indigo' },
+            { label: t('saleReport.catalogThroughput'), val: itemData.length, icon: <LayoutGrid size={18} />, color: 'emerald' },
+            { label: t('saleReport.auditProtocol'), val: 'SYMMETRICAL', icon: <ShieldCheck size={18} />, color: 'slate' }
           ].map((stat, i) => (
             <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
               <div>
@@ -333,12 +322,12 @@ export default function SaleReport() {
         {/* Command Deck Toolbar */}
         <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[350px]">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Identity Search Audit</span>
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">{t('saleReport.audit')}</span>
             <div className="relative group">
               <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
               <input
                 type="text"
-                placeholder="SEARCH CLIENTS, PRODUCTS OR INVOICES..."
+                placeholder={t('saleReport.searchPrompt')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
@@ -352,7 +341,7 @@ export default function SaleReport() {
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
           </div>
 
-          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Sync Revenue</button>
+          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">{t('saleReport.syncRevenue')}</button>
         </div>
 
         {/* Revenue Manifest Canvas */}
@@ -371,19 +360,19 @@ export default function SaleReport() {
               <thead className="bg-[#F8FAFC]">
                 {viewType === 'report' ? (
                   <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                    <th className="px-10 py-5 w-1/3">Client Identity / Timeline</th>
-                    <th className="px-8 py-5">Reference Ledger</th>
-                    <th className="px-8 py-5 text-center">Settlement Type</th>
-                    <th className="px-8 py-5 text-right">Net Proceeds</th>
-                    <th className="px-8 py-5 text-center">Audit</th>
+                    <th className="px-10 py-5 w-1/3">{t('saleReport.clientIdentity')}</th>
+                    <th className="px-8 py-5">{t('saleReport.referenceLedger')}</th>
+                    <th className="px-8 py-5 text-center">{t('saleReport.settlementType')}</th>
+                    <th className="px-8 py-5 text-right">{t('saleReport.netProceeds')}</th>
+                    <th className="px-8 py-5 text-center">{t('saleReport.audit')}</th>
                   </tr>
                 ) : (
                   <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                    <th className="px-10 py-5 w-1/3">Product Taxonomy / SKU</th>
-                    <th className="px-8 py-5 text-center">Unit</th>
-                    <th className="px-8 py-5 text-right">Yield Volume</th>
-                    <th className="px-8 py-5 text-right">Gross Proceeds</th>
-                    <th className="px-8 py-5 text-center">Status</th>
+                    <th className="px-10 py-5 w-1/3">{t('saleReport.productTaxonomy')}</th>
+                    <th className="px-8 py-5 text-center">{t('saleReport.unit')}</th>
+                    <th className="px-8 py-5 text-right">{t('saleReport.yieldVolume')}</th>
+                    <th className="px-8 py-5 text-right">{t('saleReport.grossProceeds')}</th>
+                    <th className="px-8 py-5 text-center">{t('saleReport.status')}</th>
                   </tr>
                 )}
               </thead>
@@ -392,7 +381,7 @@ export default function SaleReport() {
                   <tr>
                     <td colSpan="5" className="py-32 text-center">
                       <SyncIcon className="animate-spin text-blue-100 mx-auto" size={50} />
-                      <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">Building Revenue Matrix...</p>
+                      <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">{t('saleReport.buildingMatrix')}</p>
                     </td>
                   </tr>
                 ) : (
@@ -410,7 +399,7 @@ export default function SaleReport() {
                                     {expandedGroups[group.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                   </div>
                                   <div>
-                                    <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{group.name}</p>
+                                    <p className={`font-bold text-slate-800 text-base tracking-tight italic ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase'}`}>{group.name}</p>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{group.invoices.length} RECORDED SETTLEMENTS</p>
                                   </div>
                                 </div>
@@ -435,8 +424,8 @@ export default function SaleReport() {
                                   </div>
                                 </td>
                                 <td className="px-8 py-5 text-center">
-                                  <div className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest inline-block ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
-                                    {s.payment_type?.toUpperCase() || 'CASH'}
+                                  <div className={`px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest inline-block ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                    {s.payment_type === 'cash' ? t('sale.cash') : t('sale.credit')}
                                   </div>
                                 </td>
                                 <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm opacity-60 italic">
@@ -512,10 +501,10 @@ export default function SaleReport() {
           <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Revenue Stream: Optimal</span>
-              <span className="flex items-center gap-2"><Layout size={12} /> Repository Status: Validated</span>
+              <span className="flex items-center gap-2"><Layout size={12} /> Repository {t('saleReport.status')}: Validated</span>
             </div>
             <div className="flex items-center gap-3 font-mono">
-              <span>REVENUE_CHRONO: {new Date().getTime().toString(16).toUpperCase()}</span>
+              <span>REVENUE_CHRONO: {new Date().getTime().toString(16)}</span>
               <div className="w-px h-3 bg-slate-200"></div>
               <span>REF: {company.id}</span>
             </div>

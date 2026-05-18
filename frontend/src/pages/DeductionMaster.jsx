@@ -46,7 +46,9 @@ export default function DeductionMaster() {
 
    const loadAccounts = async () => {
       try {
-         const res = await api.get('/accounts?type=ledger');
+         const user = JSON.parse(localStorage.getItem('user') || '{}');
+         if (!user.company_id) return;
+         const res = await api.get(`/accounts/company/${user.company_id}?type=ledger`);
          if (res.data.success) {
             setAccounts(res.data.data || []);
          }

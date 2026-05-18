@@ -52,15 +52,15 @@ function Dashboard() {
   }
 
   const summaryMetrics = [
-    { label: 'Total Inventory Assets', value: stats?.totalItems || '0', unit: 'Units', icon: Package, color: 'text-blue-600' },
-    { label: 'Below Threshold Risk', value: stats?.belowThreshold || '0', unit: 'Alerts', icon: AlertCircle, color: 'text-amber-600' },
-    { label: 'Critical Stock Level', value: stats?.lowStockCount || '0', unit: 'Items', icon: TrendingDown, color: 'text-red-600' },
-    { label: 'Pending Reorders', value: stats?.reorders || '0', unit: 'Orders', icon: RefreshCcw, color: 'text-emerald-600' },
+    { label: t('dashboard.totalInventoryAssets'), value: stats?.totalItems || '0', unit: t('dashboard.units'), icon: Package, color: 'text-blue-600' },
+    { label: t('dashboard.belowThresholdRisk'), value: stats?.belowThreshold || '0', unit: t('dashboard.alerts'), icon: AlertCircle, color: 'text-amber-600' },
+    { label: t('dashboard.criticalStockLevel'), value: stats?.lowStockCount || '0', unit: t('dashboard.items'), icon: TrendingDown, color: 'text-red-600' },
+    { label: t('dashboard.pendingReorders'), value: stats?.reorders || '0', unit: t('dashboard.orders'), icon: RefreshCcw, color: 'text-emerald-600' },
   ]
 
   const financialFlow = [
-    { label: "Today's Gross Liquidity (Sales)", value: stats?.todaysSales || 0, icon: ArrowUpRight, color: 'blue' },
-    { label: "Today's Procurement Outflow", value: stats?.todaysPurchases || 0, icon: TrendingDown, color: 'zinc' },
+    { label: t('dashboard.todaysGrossLiquidity'), value: stats?.todaysSales || 0, icon: ArrowUpRight, color: 'blue' },
+    { label: t('dashboard.todaysProcurementOutflow'), value: stats?.todaysPurchases || 0, icon: TrendingDown, color: 'zinc' },
   ]
 
   return (
@@ -72,23 +72,23 @@ function Dashboard() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
               <LayoutDashboard size={20} className="text-zinc-600" />
-              Executive Command Center
+              {t('dashboard.executiveCommandCenter')}
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Operations / Real-time Analytics</p>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">{t('dashboard.opsRealTimeAnalytics')}</p>
           </div>
           
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap">
               <Calendar size={14} />
-              Fiscal Period: May 2026
+              {t('dashboard.fiscalPeriod')}: May 2026
             </button>
             <button className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap">
               <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} onClick={fetchStats} />
-              SYNC DATA
+              {t('dashboard.syncData')}
             </button>
             <button className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-xs font-bold px-3 py-2 rounded-none transition shadow-sm select-none uppercase whitespace-nowrap">
               <Download size={14} />
-              Report
+              {t('dashboard.report')}
             </button>
           </div>
         </div>
@@ -128,7 +128,7 @@ function Dashboard() {
                 </div>
               </div>
               <button className="px-4 py-1.5 bg-white text-zinc-900 font-bold text-[9px] uppercase tracking-widest hover:bg-zinc-100 transition-colors rounded-none border border-white">
-                View Ledger
+                {t('dashboard.viewLedger')}
               </button>
             </div>
           ))}
@@ -143,16 +143,16 @@ function Dashboard() {
               <div className="flex items-center gap-2">
                 <Activity size={14} className="text-blue-600" />
                 <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-wider">
-                  Inventory Surveillance Registry
+                  {t('dashboard.inventorySurveillanceRegistry')}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 bg-white border border-zinc-300 px-2 py-1">
                   <Search size={10} className="text-zinc-400" />
-                  <input type="text" placeholder="Filter stream..." className="bg-transparent border-none outline-none text-[9px] text-zinc-600 w-32 placeholder:text-zinc-300 font-mono uppercase" />
+                  <input type="text" placeholder={t('dashboard.filterStream')} className="bg-transparent border-none outline-none text-[9px] text-zinc-600 w-32 placeholder:text-zinc-300 font-mono uppercase" />
                 </div>
                 <button className="text-blue-600 text-[9px] font-bold hover:underline uppercase tracking-widest">
-                  Detailed View
+                  {t('dashboard.detailedView')}
                 </button>
               </div>
             </div>
@@ -161,11 +161,11 @@ function Dashboard() {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-500 font-mono text-[9px]">
                   <tr>
-                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">Nomenclature</th>
-                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Current</th>
-                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">Limit</th>
-                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-center">Protocol Status</th>
-                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold">Last Activity</th>
+                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">{t('dashboard.nomenclature')}</th>
+                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{t('dashboard.currentStock')}</th>
+                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{t('dashboard.limit')}</th>
+                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-center">{t('dashboard.protocolStatus')}</th>
+                    <th className="px-4 py-2.5 uppercase tracking-widest font-bold">{t('dashboard.lastActivity')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
@@ -180,7 +180,9 @@ function Dashboard() {
                           item.statusColor === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-200' :
                           'bg-red-50 text-red-600 border-red-200'
                         }`}>
-                          {item.status}
+                          {item.status === 'Healthy' ? t('dashboard.status.healthy') : 
+                           item.status === 'Low Stock' ? t('dashboard.status.lowStock') : 
+                           item.status === 'Critical' ? t('dashboard.status.critical') : item.status}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-[10.5px] text-zinc-400 font-mono italic">{item.date}</td>
@@ -196,7 +198,7 @@ function Dashboard() {
             <div className="flex items-center justify-between mb-4 border-b border-zinc-100 pb-2">
               <div className="flex items-center gap-2">
                 <Database size={14} className="text-zinc-400" />
-                <h2 className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest">Asset Allocation</h2>
+                <h2 className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest">{t('dashboard.assetAllocation')}</h2>
               </div>
               <ChevronDown size={14} className="text-zinc-300" />
             </div>
@@ -209,16 +211,16 @@ function Dashboard() {
                 <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#D4D4D8" strokeWidth="4" strokeDasharray="35 65" strokeDashoffset="-65"></circle>
               </svg>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                <p className="text-[8px] font-mono font-bold text-zinc-400 uppercase">Equity</p>
+                <p className="text-[8px] font-mono font-bold text-zinc-400 uppercase">{t('dashboard.equity')}</p>
                 <p className="text-lg font-black text-zinc-800 font-mono leading-none">100%</p>
               </div>
             </div>
 
             <div className="mt-4 space-y-2.5">
               {[
-                { label: 'Primary Portfolio', value: '40.0%', color: 'bg-blue-600' },
-                { label: 'Reserve Assets', value: '25.0%', color: 'bg-zinc-500' },
-                { label: 'Secondary Stock', value: '35.0%', color: 'bg-zinc-200' },
+                { label: t('dashboard.primaryPortfolio'), value: '40.0%', color: 'bg-blue-600' },
+                { label: t('dashboard.reserveAssets'), value: '25.0%', color: 'bg-zinc-500' },
+                { label: t('dashboard.secondaryStock'), value: '35.0%', color: 'bg-zinc-200' },
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between border-b border-zinc-50 pb-1">
                   <div className="flex items-center gap-2">
@@ -239,7 +241,7 @@ function Dashboard() {
             <div className="flex items-center gap-2">
               <Users size={14} className="text-zinc-600" />
               <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-wider">
-                Authorized Logistics & Supplier Registry
+                {t('dashboard.authorizedLogisticsSupplierRegistry')}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -253,19 +255,19 @@ function Dashboard() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-500 font-mono text-[9px]">
                 <tr>
-                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">Legal Name</th>
-                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">SKU Count</th>
-                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">Last Inbound</th>
-                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">Expected Arrival</th>
-                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">Operational Hub</th>
-                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold text-center">Compliance</th>
+                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">{t('dashboard.legalName')}</th>
+                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200 text-right">{t('dashboard.skuCount')}</th>
+                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">{t('dashboard.lastInbound')}</th>
+                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">{t('dashboard.expectedArrival')}</th>
+                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold border-r border-zinc-200">{t('dashboard.operationalHub')}</th>
+                  <th className="px-4 py-2.5 uppercase tracking-widest font-bold text-center">{t('dashboard.compliance')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {stats?.supplierInfo?.map((sup, idx) => (
                   <tr key={idx} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-4 py-2 text-[10.5px] font-bold text-zinc-800 uppercase border-r border-zinc-100">{sup.name}</td>
-                    <td className="px-4 py-2 text-[10.5px] font-mono text-right text-zinc-600 border-r border-zinc-100">{sup.products} <span className="text-[9px] text-zinc-400">Lines</span></td>
+                    <td className="px-4 py-2 text-[10.5px] font-mono text-right text-zinc-600 border-r border-zinc-100">{sup.products} <span className="text-[9px] text-zinc-400">{t('dashboard.lines')}</span></td>
                     <td className="px-4 py-2 text-[10.5px] font-mono text-zinc-500 border-r border-zinc-100">{sup.lastShipment}</td>
                     <td className="px-4 py-2 text-[10.5px] font-mono text-blue-600 font-bold border-r border-zinc-100 italic">{sup.nextShipment}</td>
                     <td className="px-4 py-2 text-[10.5px] text-zinc-400 uppercase border-r border-zinc-100">{sup.contact}</td>

@@ -46,7 +46,7 @@ router.get('/ledger/:code', async (req, res) => {
     const { code } = req.params;
 
     // 1. Get Opening Balance from member_master
-    const member = await queryOne(`SELECT bardan_opening, member_name FROM member_master WHERE member_code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
+    const member = await queryOne(`SELECT bardan_opening, member_name, member_name_gu FROM member_master WHERE member_code = ? ${companyId ? 'AND company_id = ?' : ''}`, companyId ? [code, companyId] : [code]);
     const openingBal = parseFloat(member?.bardan_opening || 0);
 
     // 2. Get All Given (Debit)
@@ -95,18 +95,18 @@ router.get('/ledger/:code', async (req, res) => {
       id: 'OP',
       date: null,
       type: 'OPENING',
-      particulars: 'Opening Balance (Initial)',
+      particulars: 'શરૂઆતની બાકી (પ્રારંભિક)',
       debit: openingBal,
       credit: 0,
       balance: openingBal,
-      name: member?.member_name || ''
+      name: member?.member_name_gu || member?.member_name || ''
     }];
 
     ledger.forEach(item => {
       // All bags reduce the physical debt balance for inventory tracking
       runningBalance += (item.debit - item.credit);
       item.balance = runningBalance;
-      item.particulars = `Trans (#${item.pavti_no || 'NA'})`;
+      item.particulars = `વ્યવહાર (#${item.pavti_no || 'NA'})`;
       result.push(item);
     });
 

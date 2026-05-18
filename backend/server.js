@@ -368,28 +368,7 @@ async function startServer() {
       }
     });
 
-    // User routes
-    app.get('/api/users', async (req, res) => {
-      try {
-        const users = await query('SELECT id, username, email, role, created_at FROM users LIMIT 100');
-        res.json(users || []);
-      } catch (error) {
-        res.status(500).json({ error: error.message });
-      }
-    });
-
-    app.post('/api/users', async (req, res) => {
-      try {
-        const { username, email, password, role } = req.body;
-        const result = await execute(
-          'INSERT INTO users (username, email, password, role, is_active) VALUES (?, ?, ?, ?, 1)',
-          [username, email, password, role || 'staff']
-        );
-        res.status(201).json({ id: result.lastID, message: 'User created' });
-      } catch (error) {
-        res.status(500).json({ error: error.message });
-      }
-    });
+    // User routes are registered via registerUserRoutes(app) in the startup section.
 
     // Reports routes
     app.get('/api/reports/daily-sales', async (req, res) => {
@@ -456,7 +435,7 @@ async function startServer() {
     }
 
     // Start listening
-    app.listen(PORT, '127.0.0.1', () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running on http://127.0.0.1:${PORT}`);
       console.log('📊 API endpoints available');
       console.log('🚀 BACKEND STARTUP COMPLETE');
@@ -470,7 +449,7 @@ async function startServer() {
 }
 
 // Start the server with retry logic for database initialization
-async function startWithRetry(retries = 5, delay = 3000) {
+async function startWithRetry(retries = 25, delay = 6000) {
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`🚀 Attempting backend startup (Attempt ${i + 1}/${retries})...`);

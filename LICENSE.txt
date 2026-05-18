@@ -1,0 +1,9 @@
+DANGER SYSTEAM PRO - END USER LICENSE AGREEMENT
+
+1. GRANT OF LICENSE: This software is licensed to the user for internal business management.
+2. RESTRICTIONS: You may not reverse engineer, decompile, or disassemble this software.
+3. DATA PRIVACY: All data is stored locally on your machine. You are responsible for regular backups using the built-in Database Management tools.
+4. WARRANTY: This software is provided "as-is" without warranty of any kind.
+5. OWNERSHIP: All intellectual property rights in the software remain with the developer.
+
+By installing this software, you agree to these terms.

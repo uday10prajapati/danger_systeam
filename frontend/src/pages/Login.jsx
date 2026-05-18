@@ -8,7 +8,10 @@ import {
 } from 'lucide-react'
 import api from '../api'
 
+import { useTranslation } from 'react-i18next'
+
 function Login() {
+   const { t } = useTranslation()
    const navigate = useNavigate()
    const [email, setEmail] = useState('')
    const [password, setPassword] = useState('')
@@ -109,7 +112,7 @@ function Login() {
    }
 
    return (
-      <div className="fixed inset-0 w-full h-full bg-zinc-100 flex items-center justify-center font-sans select-none overflow-hidden">
+      <div className="login-page fixed inset-0 w-full h-full bg-zinc-100 flex items-center justify-center font-sans select-none overflow-hidden">
 
          <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white border border-zinc-300 shadow-2xl overflow-hidden">
 
@@ -121,26 +124,26 @@ function Login() {
                         <ShoppingBag size={24} />
                      </div>
                      <h1 className="text-xl font-bold tracking-tighter text-zinc-800 uppercase">
-                        Danger Systeam
+                        {t('login.brandName')}
                      </h1>
                   </div>
                   <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest leading-relaxed">
-                     Enterprise Accounting & Industrial Ledger Management System
+                     {t('login.systemDescription')}
                   </p>
                </div>
 
                <div className="space-y-3">
-                  <SectionLabel>System Integrity</SectionLabel>
+                  <SectionLabel>{t('login.integrity')}</SectionLabel>
                   <div className="space-y-2">
-                     <BenefitItem icon={<Shield size={14} />} text="Audit Certified Logs" />
-                     <BenefitItem icon={<Zap size={14} />} text="Zero-Latency Sync" />
-                     <BenefitItem icon={<ShieldCheck size={14} />} text="Encrypted Data Vault" />
+                     <BenefitItem icon={<Shield size={14} />} text={t('login.auditLogs')} />
+                     <BenefitItem icon={<Zap size={14} />} text={t('login.zeroLatency')} />
+                     <BenefitItem icon={<ShieldCheck size={14} />} text={t('login.dataVault')} />
                   </div>
                </div>
 
                <div className="pt-6 border-t border-zinc-200">
                   <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-                     Authorized Personnel Only • v4.2.0
+                     {t('login.authorizedOnly')} • v4.2.0
                   </p>
                </div>
             </div>
@@ -148,9 +151,9 @@ function Login() {
             {/* Right Section - Login Form */}
             <div className="p-8 md:p-12 flex flex-col justify-center bg-white">
                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-zinc-800 uppercase tracking-tight">System Login</h2>
+                  <h2 className="text-lg font-bold text-zinc-800 uppercase tracking-tight">{t('login.title')}</h2>
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
-                     Verify your credentials to enter
+                     {t('login.subtitle')}
                   </p>
                </div>
 
@@ -161,7 +164,7 @@ function Login() {
                      </div>
                   )}
 
-                  <ModalField label="Identity Node (Email)">
+                  <ModalField label={t('login.identityLabel')}>
                      <div className="relative">
                         <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                         <input
@@ -170,7 +173,7 @@ function Login() {
                            onChange={(e) => setEmail(e.target.value)}
                            onBlur={handleEmailBlur}
                            onKeyDown={e => handleKeyDown(e, yearRef)}
-                           className={inputCls + ' pl-10'}
+                           className={inputCls + ' pl-10 force-en'}
                            placeholder="admin@danger.com"
                            required
                            autoFocus
@@ -178,7 +181,7 @@ function Login() {
                      </div>
                   </ModalField>
 
-                  <ModalField label="Fiscal Cycle">
+                  <ModalField label={t('login.fiscalCycle')}>
                      <div className="relative">
                         <TrendingUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                         <select
@@ -203,7 +206,7 @@ function Login() {
                      </div>
                   </ModalField>
 
-                  <ModalField label="Security Key">
+                  <ModalField label={t('login.securityKey')}>
                      <div className="relative">
                         <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                         <input
@@ -212,7 +215,7 @@ function Login() {
                            value={password}
                            onChange={(e) => setPassword(e.target.value)}
                            onKeyDown={e => handleKeyDown(e, null)}
-                           className={inputCls + ' pl-10 pr-10'}
+                           className={inputCls + ' pl-10 pr-10 force-en'}
                            placeholder="••••••••"
                            required
                         />
@@ -227,7 +230,7 @@ function Login() {
                   </ModalField>
 
                   <div className="flex items-center justify-end pt-1">
-                     <button type="button" className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Recover Access</button>
+                     <button type="button" className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline">{t('login.recoverAccess')}</button>
                   </div>
 
                   <button
@@ -239,11 +242,11 @@ function Login() {
                      {loading ? (
                         <>
                            <Loader className="animate-spin" size={14} />
-                           Authenticating...
+                           {t('login.authenticating')}
                         </>
                      ) : (
                         <>
-                           ENTER SYSTEM <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                           {t('login.enterSystem')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </>
                      )}
                   </button>

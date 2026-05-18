@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const company_id = await resolveCompanyId(req);
-    const { narration_text, narration_code, narration_type } = req.body;
+    const { narration_text, narration_text_gu, narration_code, narration_type } = req.body;
     if (!company_id) {
       return res.status(400).json({ success: false, error: 'Invalid company context. Please create/select company first.' });
     }
@@ -61,8 +61,8 @@ router.post('/', async (req, res) => {
     }
 
     await execute(
-      'INSERT INTO narrations (company_id, narration_text, narration_code, narration_type) VALUES (?, ?, ?, ?)',
-      [company_id, narration_text, narration_code, narration_type || 'JV']
+      'INSERT INTO narrations (company_id, narration_text, narration_text_gu, narration_code, narration_type) VALUES (?, ?, ?, ?, ?)',
+      [company_id, narration_text, narration_text_gu, narration_code, narration_type || 'JV']
     );
     res.status(201).json({ success: true });
   } catch (error) {
@@ -73,7 +73,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const company_id = await resolveCompanyId(req);
-    const { narration_text, narration_code, narration_type } = req.body;
+    const { narration_text, narration_text_gu, narration_code, narration_type } = req.body;
     if (!company_id) {
       return res.status(400).json({ success: false, error: 'Invalid company context. Please create/select company first.' });
     }
@@ -90,8 +90,8 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Narration text already exists' });
     }
     await execute(
-      'UPDATE narrations SET narration_text = ?, narration_code = ?, narration_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?',
-      [narration_text, narration_code, narration_type || 'JV', req.params.id, company_id]
+      'UPDATE narrations SET narration_text = ?, narration_text_gu = ?, narration_code = ?, narration_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?',
+      [narration_text, narration_text_gu, narration_code, narration_type || 'JV', req.params.id, company_id]
     );
     res.json({ success: true });
   } catch (error) {

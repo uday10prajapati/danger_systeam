@@ -406,7 +406,7 @@ export default function PurchaseReport() {
               <span className="flex items-center gap-2"><Layout size={12} /> Repository Status: Validated</span>
             </div>
             <div className="flex items-center gap-3 font-mono">
-              <span>CHRONO_HASH: {new Date().getTime().toString(16).toUpperCase()}</span>
+              <span>CHRONO_HASH: {new Date().getTime().toString(16)}</span>
               <div className="w-px h-3 bg-slate-200"></div>
               <span>REF: {company.id}</span>
             </div>

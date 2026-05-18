@@ -9,63 +9,88 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+// This component renders text as an image using HTML5 Canvas.
+// This is 100% immune to Google Translate because translators cannot "read" canvas pixels.
+const CanvasLabel = ({ text }) => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = 24 * dpr;
+      canvas.height = 14 * dpr;
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, 24, 14);
+      ctx.font = 'bold 10px ui-monospace, monospace';
+      ctx.fillStyle = 'currentColor';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 12, 8);
+    }
+  }, [text]);
+  return <canvas ref={canvasRef} style={{ width: '24px', height: '14px', display: 'block' }} className="notranslate" />;
+};
+
 const NAV_GROUPS = [
   {
-    id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard,
+    id: 'dashboard', label: 'modules.dashboard', icon: LayoutDashboard,
     path: '/dashboard'
   },
   {
-    id: 'master', label: 'Master', icon: Database,
+    id: 'master', label: 'modules.master', icon: Database,
     children: [
-      { id: 'village', label: 'Village Master', icon: MapPin, path: '/village' },
-      { id: 'members', label: 'Member Master', icon: Users2, path: '/members' },
-      { id: 'accounts', label: 'Account Master', icon: DollarSign, path: '/accounts' },
-      { id: 'items', label: 'Item Master', icon: Package, path: '/items' },
-      { id: 'narrations', label: 'Narration Master', icon: MessageSquare, path: '/narrations' },
-      { id: 'dangar-master', label: 'Dangar Master', icon: Shield, path: '/dangar-master' },
+      { id: 'village', label: 'modules.villageMaster', icon: MapPin, path: '/village' },
+      { id: 'members', label: 'modules.memberMaster', icon: Users2, path: '/members' },
+      { id: 'accounts', label: 'modules.accountMaster', icon: DollarSign, path: '/accounts' },
+      { id: 'items', label: 'modules.itemMaster', icon: Package, path: '/items' },
+      { id: 'narrations', label: 'modules.narrationMaster', icon: MessageSquare, path: '/narrations' },
+      { id: 'dangar-master', label: 'modules.dangarMaster', icon: Shield, path: '/dangar-master' },
     ]
   },
   {
-    id: 'dangar', label: 'Dangar', icon: TrendingDown,
+    id: 'dangar', label: 'modules.dangar', icon: TrendingDown,
     children: [
-      { id: 'dangar-entry', label: 'Dangar Entry', icon: Database, path: '/dangar-entry' },
-      { id: 'dangar-rates', label: 'Yearly Rate Master', icon: TrendingUp, path: '/dangar-rates' },
-      { id: 'kapat', label: 'Kapat Console', icon: TrendingDown, path: '/kapat' },
-      { id: 'bardan-portfolio', label: 'Bardan Portfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
-      { id: 'interest-calculator', label: 'Interest Calculator', icon: DollarSign, path: '/interest-calculator' },
-      { id: 'dangar-payment-report', label: 'Payment Report', icon: FileText, path: '/dangar-payment-report' },
+      { id: 'dangar-entry', label: 'modules.dangarEntry', icon: Database, path: '/dangar-entry' },
+      { id: 'dangar-rates', label: 'modules.yearlyRateMaster', icon: TrendingUp, path: '/dangar-rates' },
+      { id: 'kapat', label: 'modules.kapatConsole', icon: TrendingDown, path: '/kapat' },
+      { id: 'bardan-portfolio', label: 'modules.bardanPortfolio', icon: ArrowLeftRight, path: '/bardan-portfolio' },
+      { id: 'interest-calculator', label: 'modules.interestCalculator', icon: DollarSign, path: '/interest-calculator' },
+      { id: 'dangar-payment-report', label: 'modules.paymentReport', icon: FileText, path: '/dangar-payment-report' },
     ]
   },
   {
-    id: 'transactions', label: 'Transactions', icon: ShoppingCart,
+    id: 'transactions', label: 'modules.transactions', icon: ShoppingCart,
     children: [
-      { id: 'sales', label: 'Sales', icon: ShoppingCart, path: '/sales' },
-      { id: 'sales-return', label: 'Sale Return', icon: RotateCcw, path: '/sales-return' },
-      { id: 'rates', label: 'Item Rate', icon: BarChart3, path: '/rates' },
-      { id: 'rojmel', label: 'Rojmel', icon: Book, path: '/rojmel' },
+      { id: 'sales', label: 'modules.sale', icon: ShoppingCart, path: '/sales' },
+      { id: 'sales-return', label: 'modules.saleReturn', icon: RotateCcw, path: '/sales-return' },
+      { id: 'rates', label: 'modules.itemRate', icon: BarChart3, path: '/rates' },
+      { id: 'rojmel', label: 'modules.rojmel', icon: Book, path: '/rojmel' },
     ]
   },
   {
-    id: 'reports', label: 'Reports', icon: BarChart2,
+    id: 'reports', label: 'modules.reports', icon: BarChart2,
     children: [
-      { id: 'ledger', label: 'Account Ledger', icon: BookOpen, path: '/ledger' },
-      { id: 'sabhasad-ledger', label: 'Sabhasad Ledger', icon: Users, path: '/sabhasad-ledger' },
-      { id: 'ledger-report', label: 'Ledger Audit', icon: FileText, path: '/ledger-report' },
-      { id: 'profit-loss', label: 'Profit & Loss', icon: BarChart2, path: '/profit-loss' },
-      { id: 'stock', label: 'Stock Report', icon: Package, path: '/stock' },
-      { id: 'sale-report', label: 'Sale Report', icon: ShoppingCart, path: '/sale-report' },
+      { id: 'ledger', label: 'modules.accountLedger', icon: BookOpen, path: '/ledger' },
+      { id: 'sabhasad-ledger', label: 'modules.sabhasadLedger', icon: Users, path: '/sabhasad-ledger' },
+      { id: 'ledger-report', label: 'modules.ledgerAudit', icon: FileText, path: '/ledger-report' },
+      { id: 'profit-loss', label: 'modules.profitAndLoss', icon: BarChart2, path: '/profit-loss' },
+      { id: 'stock', label: 'modules.stockReport', icon: Package, path: '/stock' },
+      { id: 'sale-report', label: 'modules.saleReport', icon: ShoppingCart, path: '/sale-report' },
     ]
   },
   {
-    id: 'settings', label: 'Settings', icon: Settings,
+    id: 'settings', label: 'modules.settings', icon: Settings,
     children: [
-      { id: 'company', label: 'Company', icon: Building2, path: '/company' },
-      { id: 'users', label: 'User Master', icon: Users, path: '/users' },
+      { id: 'company', label: 'modules.company', icon: Building2, path: '/company' },
+      { id: 'users', label: 'modules.userMaster', icon: Users, path: '/users' },
+      { id: 'backup', label: 'modules.database', icon: Database, path: '/settings' },
     ]
   }
 ]
 
 function DropdownMenu({ group, onNavigate }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const location = useLocation()
@@ -93,7 +118,7 @@ function DropdownMenu({ group, onNavigate }) {
           }`}
       >
         <group.icon size={13} />
-        {group.label.toUpperCase()}
+        {t(group.label)}
       </button>
     )
   }
@@ -112,7 +137,7 @@ function DropdownMenu({ group, onNavigate }) {
           }`}
       >
         <group.icon size={13} />
-        {group.label.toUpperCase()}
+        {t(group.label)}
         <ChevronDown size={12} className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -131,7 +156,7 @@ function DropdownMenu({ group, onNavigate }) {
                     }`}
                 >
                   <child.icon size={13} className={childActive ? 'text-white' : 'text-zinc-400'} />
-                  {child.label.toUpperCase()}
+                  {t(child.label)}
                 </button>
               )
             })}
@@ -159,6 +184,7 @@ function Navbar({ backendStatus }) {
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
     localStorage.setItem('language', lng)
+    document.documentElement.lang = lng;
   }
 
   useEffect(() => {
@@ -179,7 +205,6 @@ function Navbar({ backendStatus }) {
             <div className="w-6 h-6 bg-zinc-800 flex items-center justify-center text-white font-mono text-xs font-bold border border-zinc-700 rounded-none shadow-sm">
               DS
             </div>
-            <span className="text-zinc-800 font-bold text-sm tracking-tight hidden sm:block font-mono uppercase">Danger Systeam</span>
           </div>
 
           {/* Desktop nav links */}
@@ -194,20 +219,24 @@ function Navbar({ backendStatus }) {
             {/* Financial Year */}
             <div className="hidden sm:flex items-center bg-zinc-100 border border-zinc-300 px-2 py-1 select-none">
               <span className="text-[10px] font-bold text-zinc-600 uppercase">
-                FY {currentUser.financial_year || '2026-27'}
+                {t('modules.financialYear')} {currentUser.financial_year || '2026-27'}
               </span>
             </div>
 
             {/* Language */}
-            <div className="flex bg-zinc-100 border border-zinc-300 p-0.5">
+            <div className="flex bg-zinc-100 border border-zinc-300 p-0.5 notranslate" translate="no">
               <button
                 onClick={() => changeLanguage('en')}
-                className={`px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'en' ? 'bg-white text-zinc-900 border border-zinc-300 font-mono' : 'text-zinc-400 hover:text-zinc-600'}`}
-              >EN</button>
+                className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'en' ? 'bg-white text-zinc-900 border border-zinc-300 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+              >
+                <CanvasLabel text="EN" />
+              </button>
               <button
                 onClick={() => changeLanguage('gu')}
-                className={`px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'bg-white text-zinc-900 border border-zinc-300 font-mono' : 'text-zinc-400 hover:text-zinc-600'}`}
-              >GU</button>
+                className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'bg-white text-zinc-900 border border-zinc-300 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+              >
+                <CanvasLabel text="GU" />
+              </button>
             </div>
 
             {/* User Profile */}
@@ -216,18 +245,18 @@ function Navbar({ backendStatus }) {
                 onClick={() => setShowProfile(o => !o)}
                 className="flex items-center gap-1.5 p-1 hover:bg-zinc-50 transition border border-transparent hover:border-zinc-300 rounded-none"
               >
-                <span className="hidden lg:block text-xs font-bold text-zinc-700 uppercase">{currentUser.username}</span>
+                <span className="hidden lg:block text-xs font-bold text-zinc-700 font-prompt-sm">{currentUser.full_name_gu || currentUser.username}</span>
                 <ChevronDown size={12} className={`text-zinc-400 transition-transform ${showProfile ? 'rotate-180' : ''}`} />
               </button>
 
               {showProfile && (
                 <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-400 rounded-none shadow-md py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right font-mono">
                   <div className="px-3 py-1 mb-1 border-b border-zinc-200">
-                    <p className="text-xs font-bold text-zinc-800">{(currentUser.username || 'ADMIN').toUpperCase()}</p>
-                    <p className="text-[9px] text-zinc-400 mt-0.5 uppercase tracking-tight">{currentUser.role || 'ADMIN'}</p>
+                    <p className="text-xs font-bold text-zinc-800 font-prompt-sm">{(currentUser.full_name_gu || currentUser.username || 'ADMIN')}</p>
+                    <p className="text-[9px] text-zinc-400 mt-0.5 uppercase tracking-tight force-en">{currentUser.role || 'ADMIN'}</p>
                   </div>
                   <button onClick={() => { localStorage.removeItem('user'); navigate('/login') }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-700 hover:bg-red-50 transition font-bold text-xs uppercase select-none">
-                    <LogOut size={13} /> Log Out
+                    <LogOut size={13} /> {t('modules.logout')}
                   </button>
                 </div>
               )}
@@ -251,12 +280,16 @@ function Navbar({ backendStatus }) {
             <div className="flex items-center gap-2 px-2 py-1 mb-1 border-b border-zinc-200">
               <div className="flex bg-zinc-100 border border-zinc-300 px-2 py-1 select-none">
                 <span className="text-[10px] font-bold text-zinc-600">
-                  FY {currentUser.financial_year || '2026-27'}
+                  {t('modules.financialYear')} {currentUser.financial_year || '2026-27'}
                 </span>
               </div>
-              <div className="flex bg-zinc-100 p-0.5 border border-zinc-300">
-                <button onClick={() => changeLanguage('en')} className={`px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'en' ? 'bg-white text-zinc-800' : 'text-zinc-400'}`}>EN</button>
-                <button onClick={() => changeLanguage('gu')} className={`px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'bg-white text-zinc-800' : 'text-zinc-400'}`}>GU</button>
+              <div className="flex bg-zinc-100 p-0.5 border border-zinc-300 notranslate" translate="no">
+                <button onClick={() => changeLanguage('en')} className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'en' ? 'bg-white text-zinc-800' : 'text-zinc-400'}`}>
+                  <CanvasLabel text="EN" />
+                </button>
+                <button onClick={() => changeLanguage('gu')} className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'bg-white text-zinc-800' : 'text-zinc-400'}`}>
+                  <CanvasLabel text="GU" />
+                </button>
               </div>
             </div>
             {NAV_GROUPS.map(group => {
@@ -268,13 +301,13 @@ function Navbar({ backendStatus }) {
                     onClick={() => navigate(group.path)}
                     className={`w-full flex items-center gap-2 px-3 py-2 transition ${active ? 'bg-blue-600 text-white font-bold' : 'text-zinc-700 hover:bg-zinc-50'}`}
                   >
-                    <group.icon size={15} /> {group.label.toUpperCase()}
+                    <group.icon size={15} /> {t(group.label)}
                   </button>
                 )
               }
               return (
                 <div key={group.id} className="pt-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-3 pb-1 border-b border-zinc-100 mb-1">{group.label}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-3 pb-1 border-b border-zinc-100 mb-1">{t(group.label)}</p>
                   {group.children.map(child => {
                     const active = location.pathname === child.path
                     return (
@@ -284,7 +317,7 @@ function Navbar({ backendStatus }) {
                         className={`w-full flex items-center gap-2 px-5 py-1.5 transition ${active ? 'bg-blue-600 text-white font-bold' : 'text-zinc-600 hover:bg-zinc-50'}`}
                       >
                         <child.icon size={14} className={active ? 'text-white' : 'text-zinc-400'} />
-                        {child.label.toUpperCase()}
+                        {t(child.label)}
                       </button>
                     )
                   })}
@@ -296,7 +329,7 @@ function Navbar({ backendStatus }) {
               onClick={() => { localStorage.removeItem('user'); navigate('/login') }}
               className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 transition font-bold"
             >
-              <LogOut size={15} /> LOG OUT
+              <LogOut size={15} /> {t('modules.logout')}
             </button>
           </div>
         </div>

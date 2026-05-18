@@ -100,16 +100,16 @@ const BardanEntry = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Decommission this transaction node?')) return;
+    if (!window.confirm(t('bardanEntry.confirmDelete'))) return;
     try {
       setLoading(true);
       const res = await bardanEntryApi.deleteEntry(id);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Node decommissioned' });
+        setMessage({ type: 'success', text: t('bardanEntry.nodeDecommissioned') });
         loadData();
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Decommission failed' });
+      setMessage({ type: 'error', text: t('bardanEntry.decommissionFailed') });
     } finally {
       setLoading(false);
     }
@@ -139,7 +139,7 @@ const BardanEntry = () => {
         setShowHistory(false);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load manifest details' });
+      setMessage({ type: 'error', text: t('bardanEntry.failedToLoadDetails') });
     } finally {
       setLoading(false);
     }
@@ -173,14 +173,14 @@ const BardanEntry = () => {
         <div className="max-w-[1500px] mx-auto px-8">
           <div className="flex justify-between items-center py-10">
             <div>
-              <h1 className="text-3xl font-black text-rose-500 tracking-tight italic uppercase">Bardan History</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Gunny Bag Registry Manifest</p>
+              <h1 className="text-3xl font-black text-rose-500 tracking-tight italic uppercase">{t('bardanEntry.historyTitle')}</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">{t('bardanEntry.historyEyebrow')}</p>
             </div>
             <button
               onClick={() => setShowHistory(false)}
               className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
             >
-              <X size={16} /> Exit History
+              <X size={16} /> {t('bardanEntry.exitHistory')}
             </button>
           </div>
 
@@ -188,26 +188,26 @@ const BardanEntry = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 italic text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <th className="px-10 py-6">Identity</th>
-                  <th className="px-10 py-6">Date & Pavti</th>
-                  <th className="px-10 py-6 text-right">Quantity</th>
-                  <th className="px-10 py-6 text-right">Operations</th>
+                  <th className="px-10 py-6">{t('bardanEntry.identity')}</th>
+                  <th className="px-10 py-6">{t('bardanEntry.datePavti')}</th>
+                  <th className="px-10 py-6 text-right">{t('bardanEntry.quantity')}</th>
+                  <th className="px-10 py-6 text-right">{t('bardanEntry.operations')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {history.map((row) => (
                   <tr key={row.id} className="group hover:bg-white transition-all">
                     <td className="px-10 py-6">
-                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight italic">{row.name}</p>
-                      <p className="text-[10px] font-bold text-slate-400 tracking-widest">CODE: {row.code}</p>
+                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight italic font-prompt">{row.name}</p>
+                      <p className="text-[10px] font-bold text-slate-400 tracking-widest">{t('memberMaster.table.code')}: {row.code}</p>
                     </td>
                     <td className="px-10 py-6">
-                      <p className="text-sm font-bold text-slate-600 font-mono italic">{new Date(row.entry_date).toLocaleDateString()}</p>
-                      <p className="text-[10px] font-bold text-rose-500 uppercase italic"># {row.pavti_no || 'N/A'}</p>
+                      <p className="text-sm font-bold text-slate-600 font-mono italic">{new Date(row.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-')}</p>
+                      <p className="text-[10px] font-bold text-rose-500 uppercase italic font-prompt"># {row.pavti_no || 'N/A'}</p>
                     </td>
                     <td className="px-10 py-6 text-right">
-                      <p className="text-2xl font-black text-slate-800 italic">{row.qty}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Bags Recorded</p>
+                      <p className="text-2xl font-black text-slate-800 italic font-mono">{row.qty}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">{t('bardanEntry.bagsRecorded')}</p>
                     </td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
@@ -234,7 +234,7 @@ const BardanEntry = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-3 text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1 italic">
               <Package size={12} />
-              <span>Asset Management / Logistics Vector</span>
+              <span>{t('bardanEntry.logisticsVector')}</span>
             </div>
             <h1 className="text-4xl font-black text-slate-800 tracking-tighter leading-none italic uppercase">
               {t('bardanEntry.title')}
@@ -246,8 +246,8 @@ const BardanEntry = () => {
               <History size={20} />
             </div>
             <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-rose-500 transition-colors">{t('dangarEntry.dataShow')}</p>
-              <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-rose-500/30">View Registry Logs</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-rose-500 transition-colors">{t('bardanEntry.viewRegistryLogs')}</p>
+              <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-rose-500/30">{t('bardanEntry.registrySubtitle')}</p>
             </div>
           </div>
         </div>
@@ -288,8 +288,8 @@ const BardanEntry = () => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">{t('bardanEntry.pavti_no')}</label>
                   <input
                     name="pavtiNo"
-                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
-                    placeholder="ENTER PVT NO."
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic font-prompt"
+                    placeholder={t('bardanEntry.enterPavtiNo')}
                     value={formData.pavtiNo}
                     onChange={handleChange}
                   />
@@ -318,7 +318,7 @@ const BardanEntry = () => {
                       value={formData.code}
                       onChange={handleChange}
                     >
-                      <option value="">IDENTITY NODE...</option>
+                      <option value="">{t('bardanEntry.identityNode')}</option>
                       {members.map(m => <option key={m.id} value={m.member_code}>{m.member_code}</option>)}
                     </select>
                   </div>
@@ -334,8 +334,8 @@ const BardanEntry = () => {
                       value={formData.name}
                       onChange={handleChange}
                     >
-                      <option value="">NAME REFERENCE...</option>
-                      {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
+                      <option value="">{t('bardanEntry.nameReference')}</option>
+                      {members.map(m => <option key={m.id} value={m.member_name} className="font-prompt">{m.member_name_gu || m.member_name}</option>)}
                     </select>
                   </div>
                 </div>
@@ -349,7 +349,7 @@ const BardanEntry = () => {
                     <input
                       type="number"
                       name="qty"
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all font-black text-sm text-slate-700 shadow-inner italic font-prompt"
                       placeholder="0.00"
                       value={formData.qty}
                       onChange={handleChange}
@@ -365,7 +365,7 @@ const BardanEntry = () => {
                     value={formData.memNominal}
                     onChange={handleChange}
                   >
-                    <option value="">SELECT...</option>
+                    <option value="">{t('bardanEntry.select')}</option>
                     <option value="Member">Sabhasad</option>
                     <option value="Nominal">Nominal</option>
                   </select>
@@ -378,8 +378,8 @@ const BardanEntry = () => {
                   <Info className="absolute left-5 top-5 text-slate-300 group-focus-within:text-rose-500 transition-colors" size={18} />
                   <textarea
                     name="remark"
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-mono italic"
-                    placeholder="ADDITIONAL CONTEXT..."
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all font-black text-sm text-slate-700 min-h-[100px] shadow-inner font-prompt italic"
+                    placeholder={t('bardanEntry.additionalContext')}
                     value={formData.remark}
                     onChange={handleChange}
                   />
@@ -397,7 +397,7 @@ const BardanEntry = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-800 leading-none italic uppercase">{t('bardanEntry.item_details')}</h3>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Multi-vector Matrix</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('bardanEntry.multiVectorMatrix')}</p>
                 </div>
               </div>
 
@@ -406,9 +406,9 @@ const BardanEntry = () => {
                   <thead>
                     <tr className="italic text-[9px] font-black text-slate-400 uppercase tracking-widest">
                       <th className="py-3 text-center w-8">#</th>
-                      <th className="py-3 px-2 text-left">COL 1</th>
-                      <th className="py-3 px-2 text-left">COL 2</th>
-                      <th className="py-3 px-2 text-left">COL 3</th>
+                      <th className="py-3 px-2 text-left">{t('bardanEntry.col1')}</th>
+                      <th className="py-3 px-2 text-left">{t('bardanEntry.col2')}</th>
+                      <th className="py-3 px-2 text-left">{t('bardanEntry.col3')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -464,7 +464,7 @@ const BardanEntry = () => {
                   <input
                     type="number"
                     name="totalQty"
-                    className="w-32 text-right bg-rose-50/50 border border-rose-100 rounded-lg px-3 py-3 text-2xl font-black italic tracking-tighter"
+                    className="w-32 text-right bg-rose-50/50 border border-rose-100 rounded-lg px-3 py-3 text-2xl font-black italic tracking-tighter font-mono"
                     value={formData.totalQty}
                     onChange={handleChange}
                   />
@@ -477,11 +477,11 @@ const BardanEntry = () => {
         {/* Commands */}
         <div className="mt-12 bg-white/40 backdrop-blur-md p-6 rounded-lg border border-white shadow-xl flex flex-wrap justify-center gap-5">
           {[
-            { label: 'Display History', icon: History, color: 'slate', action: () => setShowHistory(true), sub: 'Registry logs' },
-            { label: 'Initialize New', icon: Plus, color: 'blue', action: resetForm, sub: 'Reset command' },
-            { label: 'Commit Entry', icon: Save, color: 'rose', action: handleSave, sub: 'Commit to DB' },
-            { label: 'Physical Print', icon: Printer, color: 'slate', action: handlePrint, sub: 'Generate slip' },
-            { label: 'Abort State', icon: X, color: 'slate', action: resetForm, sub: 'Clear form' },
+            { label: t('bardanEntry.commands.displayHistory'), icon: History, color: 'slate', action: () => setShowHistory(true), sub: t('bardanEntry.subs.registryLogs') },
+            { label: t('bardanEntry.commands.initializeNew'), icon: Plus, color: 'blue', action: resetForm, sub: t('bardanEntry.subs.resetCommand') },
+            { label: t('bardanEntry.commands.commitEntry'), icon: Save, color: 'rose', action: handleSave, sub: t('bardanEntry.subs.commitToDb') },
+            { label: t('bardanEntry.commands.physicalPrint'), icon: Printer, color: 'slate', action: handlePrint, sub: t('bardanEntry.subs.generateSlip') },
+            { label: t('bardanEntry.commands.abortState'), icon: X, color: 'slate', action: resetForm, sub: t('bardanEntry.subs.clearForm') },
           ].map((btn, i) => (
             <button
               key={i}

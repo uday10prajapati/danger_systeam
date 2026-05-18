@@ -8,12 +8,14 @@ import {
 import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
 import PurchaseForm from '../components/PurchaseForm';
 import SaleForm from '../components/SaleForm';
 import CashEntryModal from '../components/CashEntryModal';
 import JVEntryModal from '../components/JVEntryModal';
 import Loading from '../components/Loading';
 import api from '../api';
+import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 
 export default function Rojmel() {
    const { t } = useTranslation();
@@ -111,7 +113,7 @@ export default function Rojmel() {
             </p>
             <div className="flex gap-4">
                <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  <RefreshCcw className="w-4 h-4 mr-2" /> Retry Connection
+                  <RefreshCcw className="w-4 h-4 mr-2" /> {t('common.retryConnection')}
                </button>
             </div>
          </div>
@@ -139,7 +141,7 @@ export default function Rojmel() {
    const handlePrint = () => {
       const { paddedJama, paddedUdhar } = getPrintData();
       if (!paddedJama.length && !paddedUdhar.length) {
-         alert('No data available to print.');
+         alert(t('itemMaster.errors.failedLoadItems'));
          return;
       }
       const cName = company ? (company.company_name || 'Company') : 'Company';
@@ -148,15 +150,15 @@ export default function Rojmel() {
          const isLast = i === paddedJama.length - 1;
          const rowStyle = isLast ? 'font-weight:bold; background:#f1f5f9; border-top:2px solid #cbd5e1;' : `background:${i % 2 === 0 ? '#fff' : '#f8fafc'}`;
          return `<tr style="${rowStyle}">
-            <td style="border-right:1px solid #e2e8f0; width:35%; font-family: monospace;">${j.details || ''}</td>
+            <td style="border-right:1px solid #e2e8f0; width:35%; font-family: monospace;">${translateSystemText(j.details || '')}</td>
             <td style="border-right:1px solid #94a3b8; width:15%; text-align:right; color:#059669; font-family: monospace;">${j.amount ? parseFloat(j.amount).toFixed(2) : ''}</td>
-            <td style="border-right:1px solid #e2e8f0; width:35%; padding-left:10px; font-family: monospace;">${u.details || ''}</td>
+            <td style="border-right:1px solid #e2e8f0; width:35%; padding-left:10px; font-family: monospace;">${translateSystemText(u.details || '')}</td>
             <td style="width:15%; text-align:right; color:#2563eb; font-family: monospace;">${u.amount ? parseFloat(u.amount).toFixed(2) : ''}</td>
          </tr>`;
       });
 
       const win = window.open('', '_blank', 'width=1100,height=800');
-      win.document.write(`<html><head><title>Daily Ledger Registry (Rojmel)</title>
+      win.document.write(`<html><head><title>${t('rojmel.pdf.dailyLedger')}</title>
          <style>
             *{margin:0;padding:0;box-sizing:border-box}
             body{font-family:Arial, sans-serif;font-size:10px;color:#1e293b;padding:30px;background:#fff}
@@ -175,22 +177,22 @@ export default function Rojmel() {
             @media print{@page{size:A4 portrait;margin:1.5cm}}
          </style></head><body>
          <div class='logo-bar'>
-            <h1>${cName.toUpperCase()}</h1>
-            <span>DAILY FINANCIAL LEDGER (ROJMEL) &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span>
+            <h1>${cName}</h1>
+            <span>${t('rojmel.pdf.registryTitle')} &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span>
          </div>
-         <h2>Daily Ledger Registry (Rojmel)</h2>
-         <p class='sub'>Journal Date: ${date} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
+         <h2>${t('rojmel.pdf.dailyLedger')}</h2>
+         <p class='sub'>${t('rojmel.pdf.journalDate')}: ${date} &nbsp;|&nbsp; ${t('rojmel.pdf.generated')}: ${new Date().toLocaleString('en-IN')}</p>
          <table>
          <thead>
-            <tr><th colspan="2" style="text-align:center; background:#059669; border-color:#047857">JAMA BAJU (જમા બાજુ - CREDIT)</th><th colspan="2" style="text-align:center; background:#2563eb; border-color:#1e40af">UDHAR BAJU (ઉધાર બાજુ - DEBIT)</th></tr>
-            <tr><th>Particulars</th><th style="text-align:right">Amount</th><th>Particulars</th><th style="text-align:right">Amount</th></tr>
+            <tr><th colspan="2" style="text-align:center; background:#059669; border-color:#047857">${t('rojmel.pdf.jamaSide')}</th><th colspan="2" style="text-align:center; background:#2563eb; border-color:#1e40af">${t('rojmel.pdf.udharSide')}</th></tr>
+            <tr><th>${t('rojmel.pdf.particulars')}</th><th style="text-align:right">${t('rojmel.pdf.amount')}</th><th>${t('rojmel.pdf.particulars')}</th><th style="text-align:right">${t('rojmel.pdf.amount')}</th></tr>
          </thead>
          <tbody>${rows.join('')}</tbody>
          <tfoot>
             <tr class="total-row" style="background:#1e3a8a;">
-               <td style="padding:10px; border-right:1px solid #1e40af">GROSS POSTED JAMA</td>
+               <td style="padding:10px; border-right:1px solid #1e40af">${t('rojmel.pdf.grossJama')}</td>
                <td style="padding:10px; text-align:right; border-right:1px solid #1e40af; color:#4ade80">${data?.totals?.jama_total ? parseFloat(data.totals.jama_total).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</td>
-               <td style="padding:10px; border-right:1px solid #1e40af; padding-left:10px">GROSS POSTED UDHAR</td>
+               <td style="padding:10px; border-right:1px solid #1e40af; padding-left:10px">${t('rojmel.pdf.grossUdhar')}</td>
                <td style="padding:10px; text-align:right; color:#bfdbfe">${data?.totals?.udhar_total ? parseFloat(data.totals.udhar_total).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</td>
             </tr>
          </tfoot>
@@ -199,27 +201,10 @@ export default function Rojmel() {
       setTimeout(() => { win.print(); win.close(); }, 400);
    };
 
-   const addGujaratiFont = async (doc) => {
-      try {
-         const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-         const blob = await res.blob();
-         return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-               const base64 = reader.result.split(',')[1];
-               doc.addFileToVFS('NotoSansGujarati.ttf', base64);
-               doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-               resolve();
-            };
-            reader.readAsDataURL(blob);
-         });
-      } catch (e) { console.warn('Could not load font', e); }
-   };
-
    const handleDownloadPDF = async () => {
       const { paddedJama, paddedUdhar } = getPrintData();
       if (!paddedJama.length && !paddedUdhar.length) {
-         alert('No data available to export.');
+         alert(t('itemMaster.errors.failedLoadItems'));
          return;
       }
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -228,32 +213,32 @@ export default function Rojmel() {
       const W = doc.internal.pageSize.getWidth();
       const H = doc.internal.pageSize.getHeight();
       const M = 40;
-      const cName = (company?.company_name || 'Company').toUpperCase();
+      const cName = (company?.company_name || 'Company');
 
       // Header
       const navy = [37, 99, 235], gray = [100, 116, 139], white = [255, 255, 255];
       doc.setFillColor(...navy); doc.rect(0, 0, W, 28, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
+      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(10); doc.setTextColor(...white);
       doc.text(cName, M, 18);
       doc.setFontSize(7.5); doc.setTextColor(219, 234, 254);
-      doc.text('DAILY FINANCIAL LEDGER (ROJMEL)', W / 2, 18, { align: 'center' });
+      doc.text(t('rojmel.pdf.registryTitle'), W / 2, 18, { align: 'center' });
       doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
-      doc.text('CONFIDENTIAL', W - M, 18, { align: 'right' });
+      doc.text(t('rojmel.pdf.confidential'), W - M, 18, { align: 'right' });
 
       let y = 60;
       doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
-      doc.text('Daily Ledger Registry (Rojmel)', M, y);
+      doc.text(t('rojmel.pdf.dailyLedger'), M, y);
       doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(100, 116, 139);
-      doc.text(`Journal Date: ${date}  |  Generated: ${new Date().toLocaleString('en-IN')}`, M, y + 13);
+      doc.text(`${t('rojmel.pdf.journalDate')}: ${date}  |  ${t('rojmel.pdf.generated')}: ${new Date().toLocaleString('en-IN')}`, M, y + 13);
       doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
       y += 28;
 
       const body = paddedJama.map((j, i) => {
          const u = paddedUdhar[i] || { details: '', amount: '' };
          return [
-            j.details || '',
+            translateSystemText(j.details || ''),
             j.amount ? parseFloat(j.amount).toFixed(2) : '',
-            u.details || '',
+            translateSystemText(u.details || ''),
             u.amount ? parseFloat(u.amount).toFixed(2) : ''
          ];
       });
@@ -261,20 +246,26 @@ export default function Rojmel() {
       autoTable(doc, {
          startY: y,
          head: [
-            [{ content: 'JAMA BAJU (જમા બાજુ - CREDIT)', colSpan: 2, styles: { fillColor: [5, 150, 105], halign: 'center', font: 'helvetica' } },
-            { content: 'UDHAR BAJU (ઉધાર બાજુ - DEBIT)', colSpan: 2, styles: { fillColor: [37, 99, 235], halign: 'center', font: 'helvetica' } }],
-            ['Particulars', 'Amount', 'Particulars', 'Amount']
+            [{ content: t('rojmel.pdf.jamaSide'), colSpan: 2, styles: { fillColor: [5, 150, 105], halign: 'center', font: 'NotoGujarati' } },
+            { content: t('rojmel.pdf.udharSide'), colSpan: 2, styles: { fillColor: [37, 99, 235], halign: 'center', font: 'NotoGujarati' } }],
+            [t('rojmel.pdf.particulars'), t('rojmel.pdf.amount'), t('rojmel.pdf.particulars'), t('rojmel.pdf.amount')]
          ],
          body: body,
          foot: [[
-            'TOTAL JAMA',
+            t('rojmel.pdf.totalJama'),
             { content: parseFloat(data?.totals?.jama_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } },
-            'TOTAL UDHAR',
+            t('rojmel.pdf.totalUdhar'),
             { content: parseFloat(data?.totals?.udhar_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }
          ]],
          styles: { font: 'NotoGujarati', fontSize: 8.5, cellPadding: 5, lineColor: [226, 232, 240], lineWidth: 0.3 },
-         headStyles: { font: 'helvetica', fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-         footStyles: { font: 'helvetica', fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+         headStyles: { font: 'NotoGujarati', fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+         footStyles: { font: 'NotoGujarati', fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+         didParseCell: (data) => {
+            const text = data.cell.text.join(' ');
+            if (text && !/[\u0A80-\u0AFF]/.test(text)) {
+               data.cell.styles.font = 'helvetica';
+            }
+         },
          theme: 'grid',
          margin: { left: M, right: M }
       });
@@ -346,16 +337,16 @@ export default function Rojmel() {
                <div>
                   <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
                      <Calculator size={20} className="text-zinc-600" />
-                     Daily Financial Ledger
+                     {t('rojmel.title')}
                   </h1>
-                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Fiscal Core / Live Daily Journal (Rojmel)</p>
+                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('rojmel.eyebrow')}</p>
                </div>
 
                <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
                      onClick={fetchRojmel}
                      className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                     title="Refresh Registry"
+                     title={t('common.refreshRegistry')}
                   >
                      <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} />
                   </button>
@@ -363,14 +354,12 @@ export default function Rojmel() {
                      onClick={handlePrint}
                      className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
                   >
-                     <Printer size={14} /> PRINT
-                  </button>
+                     <Printer size={14} />{t('common.print')}</button>
                   <button
                      onClick={handleDownloadPDF}
                      className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
                   >
-                     <FileText size={14} /> PDF
-                  </button>
+                     <FileText size={14} />{t('common.pdf')}</button>
                </div>
             </div>
 
@@ -381,10 +370,11 @@ export default function Rojmel() {
                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
                      <input
                         type="text"
-                        placeholder="SEARCH TRANSACTIONS..."
+                        placeholder={t('rojmel.searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 bg-white border border-zinc-300 outline-none focus:border-zinc-500 text-[10px] font-bold uppercase tracking-widest transition-all"
+                        className="w-full pl-9 pr-4 py-1.5 bg-white border border-zinc-300 outline-none focus:border-zinc-500 text-[10px] font-bold tracking-widest transition-all"
+                        style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
                      />
                   </div>
 
@@ -395,7 +385,7 @@ export default function Rojmel() {
                         onChange={(e) => setShowSubledger(e.target.checked)}
                         className="w-4 h-4 rounded-none border-zinc-300 text-blue-600 focus:ring-0 focus:ring-offset-0"
                      />
-                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-zinc-700">Show Subledger</span>
+                     <span className="text-sm font-bold text-zinc-500   group-hover:text-zinc-700">{t('rojmel.showSubledger')}</span>
                   </label>
 
                   <label className="flex items-center gap-2 cursor-pointer group">
@@ -405,13 +395,13 @@ export default function Rojmel() {
                         onChange={(e) => setPrintItemDetails(e.target.checked)}
                         className="w-4 h-4 rounded-none border-zinc-300 text-blue-600 focus:ring-0 focus:ring-offset-0"
                      />
-                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-zinc-700">Item Details</span>
+                     <span className="text-sm font-bold text-zinc-500   group-hover:text-zinc-700">{t('rojmel.itemDetails')}</span>
                   </label>
                </div>
 
                <div className='flex gap-2'>
                   <div className="flex items-center gap-3">
-                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Journal Timeline:</span>
+                     <span className="text-sm font-bold text-zinc-400  ">{t('rojmel.journalTimeline')}:</span>
                      <div className="flex items-center bg-white border border-zinc-300 shadow-sm">
                         <button
                            disabled={!navDates.prev}
@@ -422,7 +412,7 @@ export default function Rojmel() {
                         </button>
 
                         <div className="relative flex items-center px-3 py-1.5 min-w-[140px] justify-center group cursor-pointer" onClick={() => document.getElementById('rojmel-date-input').showPicker()}>
-                           <span className="text-xs font-bold text-zinc-700 font-mono tracking-widest">
+                           <span className="text-sm font-bold text-zinc-700 font-sans ">
                               {new Date(date).toLocaleDateString('en-GB').replace(/\//g, '-')}
                            </span>
                            <Calendar size={14} className="ml-3 text-zinc-400 group-hover:text-blue-600 transition-colors" />
@@ -450,14 +440,14 @@ export default function Rojmel() {
             {/* Table Header Section like other pages */}
             <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between border-b-0 print:hidden select-none">
                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                     Journal Registry Shard
+                  <span className="text-sm font-bold text-zinc-700  ">
+                     {t('rojmel.registryShard')}
                   </span>
-                  <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                     {jamaList.length + udharList.length} POSTINGS
+                  <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 ">
+                     {jamaList.length + udharList.length} {t('rojmel.postings')}
                   </span>
                </div>
-               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Journal Date: {new Date(date).toLocaleDateString('en-GB')}</p>
+               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('rojmel.journalTimeline')}: {new Date(date).toLocaleDateString('en-GB')}</p>
             </div>
 
             {/* Ledger Registry Table */}
@@ -470,36 +460,36 @@ export default function Rojmel() {
                   <div className="py-5 bg-emerald-50/30 flex flex-col items-center justify-center relative select-none">
                      <div className="flex items-center gap-2 mb-1">
                         <ArrowUpRight size={16} className="text-emerald-700" />
-                        <h2 className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-mono">Jama Baju (જમા બાજુ)</h2>
+                        <h2 className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-mono">{t('rojmel.jamaBaju')}</h2>
                      </div>
-                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">CREDIT SIDE (RECEIPTS)</p>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{t('rojmel.creditSide')}</p>
                   </div>
 
                   <div className="py-5 bg-blue-50/30 flex flex-col items-center justify-center relative select-none">
                      <div className="flex items-center gap-2 mb-1">
                         <ArrowDownLeft size={16} className="text-blue-700" />
-                        <h2 className="text-xs font-bold text-blue-700 uppercase tracking-widest font-mono">Udhar Baju (ઉધાર બાજુ)</h2>
+                        <h2 className="text-xs font-bold text-blue-700 uppercase tracking-widest font-mono">{t('rojmel.udharBaju')}</h2>
                      </div>
-                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">DEBIT SIDE (PAYMENTS)</p>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{t('rojmel.debitSide')}</p>
                   </div>
                </div>
 
                {/* Table Columns Sub-Headers */}
                <div className="grid grid-cols-2 bg-zinc-100 border-b border-zinc-300 uppercase text-[10px] font-bold text-zinc-600 tracking-wider">
                   <div className="grid grid-cols-12 border-r border-zinc-300">
-                     <div className="col-span-6 px-4 py-2 text-left">Particulars</div>
-                     <div className="col-span-3 px-4 py-2 text-right">Sub</div>
-                     <div className="col-span-3 px-4 py-2 text-right bg-emerald-100/50 text-emerald-800">Amount</div>
+                     <div className="col-span-6 px-4 py-2 text-left">{t('rojmel.particulars')}</div>
+                     <div className="col-span-3 px-4 py-2 text-right">{t('rojmel.sub')}</div>
+                     <div className="col-span-3 px-4 py-2 text-right bg-emerald-100/50 text-emerald-800">{t('rojmel.amount')}</div>
                   </div>
                   <div className="grid grid-cols-12">
-                     <div className="col-span-6 px-4 py-2 text-left">Particulars</div>
-                     <div className="col-span-3 px-4 py-2 text-right">Sub</div>
-                     <div className="col-span-3 px-4 py-2 text-right bg-blue-100/50 text-blue-800">Amount</div>
+                     <div className="col-span-6 px-4 py-2 text-left">{t('rojmel.particulars')}</div>
+                     <div className="col-span-3 px-4 py-2 text-right">{t('rojmel.sub')}</div>
+                     <div className="col-span-3 px-4 py-2 text-right bg-blue-100/50 text-blue-800">{t('rojmel.amount')}</div>
                   </div>
                </div>
 
                {/* Ledger Data Rows */}
-               <div className="grid grid-cols-2 flex-1 divide-x divide-zinc-300 relative bg-white font-mono">
+               <div className="grid grid-cols-2 flex-1 divide-x divide-zinc-300 relative bg-white font-sans text-zinc-800">
                   {/* Jama Side */}
                   <div className="flex flex-col divide-y divide-zinc-200">
                      {normalizedJama.map((row, idx) => {
@@ -510,11 +500,11 @@ export default function Rojmel() {
                               className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-zinc-50 font-bold' : 'hover:bg-zinc-50/50'}`}
                               onDoubleClick={() => handleEditEntry(row, 'jama')}
                            >
-                              <div className="col-span-6 px-4 py-2 uppercase truncate">
-                                 <div className="font-bold text-zinc-800">{row.details}</div>
+                              <div className="col-span-6 px-4 py-2">
+                                 <div className="font-bold text-zinc-800">{formatBilingualText(row.details)}</div>
                                  {showSubledger && row.sub_details && (
-                                    <div className="text-[10px] text-zinc-700 font-bold mt-0.5 leading-tight uppercase">
-                                       {row.sub_details}
+                                    <div className="text-[11px] text-zinc-600 font-semibold mt-0.5 leading-tight">
+                                       {formatBilingualText(row.sub_details)}
                                     </div>
                                  )}
                                  {printItemDetails && row.notes && (
@@ -542,11 +532,11 @@ export default function Rojmel() {
                               className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-zinc-50 font-bold' : 'hover:bg-zinc-50/50'}`}
                               onDoubleClick={() => handleEditEntry(row, 'udhar')}
                            >
-                              <div className="col-span-6 px-4 py-2 uppercase truncate">
-                                 <div className="font-bold text-zinc-800">{row.details}</div>
+                              <div className="col-span-6 px-4 py-2">
+                                 <div className="font-bold text-zinc-800">{formatBilingualText(row.details)}</div>
                                  {showSubledger && row.sub_details && (
-                                    <div className="text-[10px] text-zinc-700 font-bold mt-0.5 leading-tight uppercase">
-                                       {row.sub_details}
+                                    <div className="text-[11px] text-zinc-600 font-semibold mt-0.5 leading-tight">
+                                       {formatBilingualText(row.sub_details)}
                                     </div>
                                  )}
                                  {printItemDetails && row.notes && (
@@ -569,13 +559,13 @@ export default function Rojmel() {
                {data?.totals && (
                   <div className="grid grid-cols-2 bg-blue-600 text-white uppercase text-[10px] font-bold tracking-widest border-t border-blue-500">
                      <div className="grid grid-cols-12 items-center">
-                        <div className="col-span-9 px-4 py-3 text-white">Gross Posted Jama</div>
+                        <div className="col-span-9 px-4 py-3 text-white">{t('rojmel.grossJama')}</div>
                         <div className="col-span-3 px-4 py-3 text-right text-white text-sm font-black font-mono tracking-tighter italic">
                            ₹{parseFloat(data.totals.jama_total).toFixed(2)}
                         </div>
                      </div>
                      <div className="grid grid-cols-12 items-center border-l border-blue-500">
-                        <div className="col-span-9 px-4 py-3 text-white">Gross Posted Udhar</div>
+                        <div className="col-span-9 px-4 py-3 text-white">{t('rojmel.grossUdhar')}</div>
                         <div className="col-span-3 px-4 py-3 text-right text-white text-sm font-black font-mono tracking-tighter italic">
                            ₹{parseFloat(data.totals.udhar_total).toFixed(2)}
                         </div>
@@ -591,34 +581,34 @@ export default function Rojmel() {
                      onClick={() => { setEditingEntry(null); setActiveModal('credit'); }}
                      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white text-[10px] font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest"
                   >
-                     <Plus size={14} /> JAMA ENTRY
+                     <Plus size={14} /> {t('rojmel.actions.jamaEntry')}
                   </button>
                   <button
                      onClick={() => { setEditingEntry(null); setActiveModal('debit'); }}
                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 border border-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest"
                   >
-                     <Plus size={14} /> UDHAR ENTRY
+                     <Plus size={14} /> {t('rojmel.actions.udharEntry')}
                   </button>
                </div>
 
                <div className="flex items-center gap-2">
-                  <button
+                  {/* <button
                      onClick={() => setActiveModal('purchase')}
                      className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-4 py-2 uppercase tracking-widest"
                   >
-                     PROCURE
-                  </button>
+                     {t('rojmel.actions.procure')}
+                  </button> */}
                   <button
                      onClick={() => setActiveModal('sales')}
                      className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-4 py-2 uppercase tracking-widest"
                   >
-                     SALE
+                     {t('rojmel.actions.sale')}
                   </button>
                   <button
                      onClick={() => setActiveModal('jv')}
                      className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-4 py-2 uppercase tracking-widest"
                   >
-                     JOURNAL
+                     {t('rojmel.actions.journal')}
                   </button>
                </div>
             </div>

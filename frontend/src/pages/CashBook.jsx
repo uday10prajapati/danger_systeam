@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   TrendingUp, TrendingDown, DollarSign, Calendar, Search, 
   Plus, Filter, Download, ArrowUpRight, ArrowDownLeft,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import CashEntryModal from '../components/CashEntryModal';
@@ -14,7 +16,8 @@ import Toast from '../components/Toast';
 import Loading from '../components/Loading';
 import api from '../api';
 
-export default function CashBook() {
+export default function CashBook() { 
+  const { t } = useTranslation();
   const [entries, setEntries] = useState([]);
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,22 +125,6 @@ export default function CashBook() {
     }
   };
 
-  const addGujaratiFont = async (doc) => {
-    try {
-      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          doc.addFileToVFS('NotoSansGujarati.ttf', reader.result.split(',')[1]);
-          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-          resolve();
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) { console.warn('Could not load font', e); }
-  };
-
   const handleExportPDF = async () => {
     if (filteredEntries.length === 0) {
       alert('No data available to export.');
@@ -157,7 +144,7 @@ export default function CashBook() {
       const navy = [37, 99, 235], white = [255, 255, 255];
       doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
       doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-      doc.text(cName.toUpperCase(), M, 17);
+      doc.text(cName, M, 17);
       doc.setFontSize(7); doc.setTextColor(191, 219, 254);
       doc.text('DAILY FINANCIAL LEDGER (ROJMEL)', W / 2, 17, { align: 'center' });
       doc.setFontSize(7); doc.setTextColor(239, 68, 68);
@@ -166,7 +153,7 @@ export default function CashBook() {
 
     const ftr = (pg, tot) => {
       doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
+      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
       doc.text(cName + ' - Cash Book Registry', M, H - 9);
       doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
       doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
@@ -180,7 +167,7 @@ export default function CashBook() {
     doc.text('Daily Financial Ledger Registry', M, y);
     y += 20;
     
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
+    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
     doc.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}  |  Records: ${filteredEntries.length}`, M, y);
     doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 8, W - M, y + 8);
     y += 25;
@@ -211,6 +198,12 @@ export default function CashBook() {
       headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
       footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: stripe },
+      didParseCell: (data) => {
+        const text = data.cell.text.join(' ');
+        if (text && !/[\u0A80-\u0AFF]/.test(text)) {
+          data.cell.styles.font = 'helvetica';
+        }
+      },
       theme: 'grid',
       margin: { left: M, right: M },
       columnStyles: {
@@ -309,7 +302,7 @@ export default function CashBook() {
         </p>
         <div className="flex gap-4">
           <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <RefreshCcw className="w-4 h-4 mr-2" /> Retry Connection
+            <RefreshCcw className="w-4 h-4 mr-2" /> {t('common.retryConnection')}
           </button>
         </div>
       </div>
@@ -349,18 +342,18 @@ export default function CashBook() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Total Receipts (Jama)</span>
-            <span className="text-2xl font-bold font-mono text-emerald-600 mt-1">₹{summary.total_in.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-sans text-zinc-500  ">Total Receipts (Jama)</span>
+            <span className="text-2xl font-bold font-sans text-emerald-600 mt-1">₹{summary.total_in.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
 
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Total Payments (Udhar)</span>
-            <span className="text-2xl font-bold font-mono text-red-600 mt-1">₹{summary.total_out.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-sans text-zinc-500  ">Total Payments (Udhar)</span>
+            <span className="text-2xl font-bold font-sans text-red-600 mt-1">₹{summary.total_out.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
 
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Net Cash Balance</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">₹{summary.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <span className="text-sm font-sans text-zinc-500  ">Net Cash Balance</span>
+            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">₹{summary.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
 
@@ -368,10 +361,10 @@ export default function CashBook() {
         <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
           <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider select-none">
+                <span className="text-sm font-bold text-zinc-700   select-none">
                    Transaction Manifest
                 </span>
-                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 select-none">
+                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 select-none">
                    {filteredEntries.length} RECORDS
                 </span>
              </div>
@@ -396,7 +389,7 @@ export default function CashBook() {
                    onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
                    className="bg-transparent text-xs text-zinc-800 outline-none font-mono"
                  />
-                 <span className="text-zinc-400 text-xs font-mono">-</span>
+                 <span className="text-zinc-400 text-sm font-sans">-</span>
                  <input 
                    type="date" 
                    value={dateRange.endDate}
@@ -405,7 +398,7 @@ export default function CashBook() {
                  />
                </div>
 
-               <button onClick={fetchData} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title="Refresh Registry">
+               <button onClick={fetchData} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title={t('common.refreshRegistry')}>
                  <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
                </button>
 
@@ -413,14 +406,12 @@ export default function CashBook() {
                   onClick={handleExportPDF}
                   className="flex items-center gap-1 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase transition shadow-sm"
                >
-                  <FileText size={14} /> PDF
-               </button>
+                  <FileText size={14} />{t('common.pdf')}</button>
                <button
                   onClick={handlePrint}
                   className="flex items-center gap-1 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase transition shadow-sm"
                >
-                  <Printer size={14} /> PRINT
-               </button>
+                  <Printer size={14} />{t('common.print')}</button>
              </div>
           </div>
 
@@ -453,11 +444,11 @@ export default function CashBook() {
                       <td className="px-4 py-2 border-r border-zinc-200 font-bold text-zinc-600">
                         {new Date(entry.transaction_date).toLocaleDateString('en-GB')}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 font-sans font-bold tracking-tight text-zinc-800 uppercase">
+                      <td className="px-4 py-2 border-r border-zinc-200 font-sans font-bold tracking-tight text-zinc-800 ">
                         <div className="flex flex-col">
                           <span className="text-zinc-800">{entry.description}</span>
                           {entry.notes && (
-                            <span className="text-[9px] font-mono text-zinc-400 mt-0.5 uppercase">
+                            <span className="text-sm font-sans text-zinc-400 mt-0.5 ">
                               {entry.notes}
                             </span>
                           )}
@@ -465,7 +456,7 @@ export default function CashBook() {
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-zinc-700 font-mono uppercase tracking-wider">{entry.reference_no || 'MANUAL'}</span>
+                          <span className="text-sm font-bold text-zinc-700 font-sans  ">{entry.reference_no || 'MANUAL'}</span>
                           <span className={`inline-flex w-fit px-1.5 py-0.5 mt-0.5 text-[8px] font-bold border ${
                             entry.reference_type === 'sale' ? 'bg-blue-50 border-blue-200 text-blue-600' :
                             entry.reference_type === 'purchase' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
@@ -475,10 +466,10 @@ export default function CashBook() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-emerald-600 font-mono">
+                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-emerald-600 font-sans">
                         {parseFloat(entry.cash_in || 0) > 0 ? `₹${parseFloat(entry.cash_in).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-red-600 font-mono">
+                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-red-600 font-sans">
                         {parseFloat(entry.cash_out || 0) > 0 ? `₹${parseFloat(entry.cash_out).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
                       </td>
                       <td className={`px-4 py-2 border-r border-zinc-200 text-right font-bold font-mono text-zinc-800`}>
@@ -510,7 +501,7 @@ export default function CashBook() {
             toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-600 border-blue-500 text-white'
           }`}>
             {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-            <span className="text-[10px] font-bold font-mono uppercase tracking-widest">{toast.msg}</span>
+            <span className="text-sm font-bold font-sans  ">{toast.msg}</span>
             <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70"><X size={14} /></button>
           </div>
         </div>

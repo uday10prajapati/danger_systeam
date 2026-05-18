@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Save, RefreshCcw, Layers, Loader } from 'lucide-react';
 
 export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     item_id: '',
     purchase_rate: '',
@@ -57,9 +59,9 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
 
   const validateForm = () => {
     const newErrors = [];
-    if (!formData.item_id) newErrors.push("Core SKU designation required");
-    if (!formData.purchase_rate || parseFloat(formData.purchase_rate) <= 0) newErrors.push("Procurement valuation invalid");
-    if (!formData.sale_rate || parseFloat(formData.sale_rate) <= 0) newErrors.push("Release yield index required");
+    if (!formData.item_id) newErrors.push(t('itemRateForm.errors.skuRequired'));
+    if (!formData.purchase_rate || parseFloat(formData.purchase_rate) <= 0) newErrors.push(t('itemRateForm.errors.procurementInvalid'));
+    if (!formData.sale_rate || parseFloat(formData.sale_rate) <= 0) newErrors.push(t('itemRateForm.errors.releaseRequired'));
     return newErrors;
   };
 
@@ -86,7 +88,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
       if (Array.isArray(backendErrors)) {
         setErrors(backendErrors);
       } else {
-        setErrors([error.response?.data?.message || error.response?.data?.error || "Registry synchronization failure"]);
+        setErrors([error.response?.data?.message || error.response?.data?.error || t('itemRateForm.errors.syncFailure')]);
       }
     } finally {
       setLoading(false);
@@ -99,9 +101,9 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
       <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
         <div>
           <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
-            {rate ? 'EDIT TARIFF RECORD' : 'ADD TARIFF RECORD'}
+            {rate ? t('itemRateForm.editTitle') : t('itemRateForm.addTitle')}
           </h2>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Configure price logic</p>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">{t('itemRateForm.subtitle')}</p>
         </div>
         <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
           <X size={18} />
@@ -123,7 +125,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
         <div className="grid grid-cols-1 gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              Item / SKU *
+              {t('itemRateForm.itemSku')} *
             </label>
             <select
               ref={itemIdRef}
@@ -132,12 +134,12 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
               onChange={handleChange}
               onKeyDown={(e) => handleKeyDown(e, purchaseRateRef)}
               disabled={loading || !!rate}
-              className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase disabled:bg-zinc-100 disabled:text-zinc-400 font-prompt"
             >
-              <option value="">-- SELECT SKU --</option>
+              <option value="">{t('itemRateForm.selectSku')}</option>
               {items.filter(i => i.is_active === 1).map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.item_name} ({item.item_code})
+                <option key={item.id} value={item.id} className="font-prompt">
+                  {item.item_name_gu || item.item_name} ({item.item_code})
                 </option>
               ))}
             </select>
@@ -146,7 +148,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Procurement Rate *
+                {t('itemRateForm.procurementRate')} *
               </label>
               <input
                 ref={purchaseRateRef}
@@ -157,13 +159,13 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, saleRateRef)}
                 placeholder="0.00"
-                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono force-en"
               />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Release Rate *
+                {t('itemRateForm.releaseRate')} *
               </label>
               <input
                 ref={saleRateRef}
@@ -174,7 +176,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, mrpRef)}
                 placeholder="0.00"
-                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono force-en"
               />
             </div>
           </div>
@@ -182,7 +184,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Market Ceiling (MRP)
+                {t('itemRateForm.marketCeiling')}
               </label>
               <input
                 ref={mrpRef}
@@ -193,13 +195,13 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, effectiveFromRef)}
                 placeholder="0.00"
-                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono force-en"
               />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Activation Date *
+                {t('itemRateForm.activationDate')} *
               </label>
               <input
                 ref={effectiveFromRef}
@@ -208,7 +210,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
                 value={formData.effective_from}
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, null)}
-                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono"
+                className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 font-mono force-en"
               />
             </div>
           </div>
@@ -220,14 +222,14 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
             onClick={onClose}
             className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px] tracking-widest shadow-sm"
           >
-            Cancel
+            {t('common.cancel') || 'Cancel'}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm"
           >
-            {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {rate ? 'Update' : 'Save'}</>}
+            {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {rate ? t('common.update') || 'Update' : t('common.save') || 'Save'}</>}
           </button>
         </div>
       </div>

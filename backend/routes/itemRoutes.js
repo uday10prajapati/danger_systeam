@@ -353,7 +353,15 @@ router.put('/:id', validateUpdateItem, handleValidationErrors, async (req, res) 
     const addUpdate = (field, value) => {
       if (value !== undefined) {
         updates.push(`${field} = ?`);
-        values.push(value);
+        let finalValue = value;
+        if (value === '') {
+          if (['purchase_account_id', 'sales_account_id', 'effective_date', 'hsn_code', 'unit_gu', 'desc_en', 'desc_gu', 'category', 'p_code'].includes(field)) {
+            finalValue = null;
+          } else if (['purchase_price', 'sale_price', 'opening_stock', 'opening_stock_value', 'minimum_stock', 'loss_per_kg', 'sgst_percent', 'cgst_percent', 'igst_percent', 'cess_percent', 'tax_percentage', 'reorder_level'].includes(field)) {
+            finalValue = 0;
+          }
+        }
+        values.push(finalValue);
       }
     };
 

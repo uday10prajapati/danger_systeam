@@ -147,7 +147,7 @@ export default function LedgerReport() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
         <div className="text-center font-black uppercase tracking-widest text-slate-300">
-          <p className="text-xs mb-6 italic tracking-[0.4em]">Establishing Audit Connectivity...</p>
+          <p className="text-xs mb-6 italic tracking-[0.4em]">{t('ledgerReport.loading')}</p>
           <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
           </div>
@@ -165,18 +165,16 @@ export default function LedgerReport() {
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
               <Database size={12} />
-              <span>Financial Core / Ledger Audit Registry</span>
+              <span>{t('ledgerReport.eyebrow')}</span>
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Statement of Account</h1>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{t('ledgerReport.title')}</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 bg-white border border-slate-100 px-6 py-3 rounded-lg text-sm font-bold text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95"
             >
-              <Printer size={18} />
-              Print Statement
-            </button>
+              <Printer size={18} />{t('common.printStatement')}</button>
             <button
               onClick={fetchReportData}
               className="flex items-center gap-2 bg-blue-600 px-6 py-3 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
@@ -190,10 +188,10 @@ export default function LedgerReport() {
         {/* Dynamic Metric Grid - Premium Shards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
           {[
-            { label: 'Baseline Exposure', val: formatBalance(data[0]?.opening_balance || 0), icon: <ShieldCheck size={18} />, color: 'blue' },
-            { label: 'Aggregate Debit', val: `₹${parseFloat(totals.debit || 0).toLocaleString('en-IN')}`, icon: <TrendingUp size={18} />, color: 'indigo' },
-            { label: 'Aggregate Credit', val: `₹${parseFloat(totals.credit || 0).toLocaleString('en-IN')}`, icon: <TrendingDown size={18} />, color: 'amber' },
-            { label: 'Closing Position', val: formatBalance(data[data.length - 1]?.running_balance || 0), icon: <CheckCircle2 size={18} />, color: 'emerald' }
+            { label: t('ledgerReport.baselineExposure'), val: formatBalance(data[0]?.opening_balance || 0), icon: <ShieldCheck size={18} />, color: 'blue' },
+            { label: t('ledgerReport.aggregateDebit'), val: `₹${parseFloat(totals.debit || 0).toLocaleString('en-IN')}`, icon: <TrendingUp size={18} />, color: 'indigo' },
+            { label: t('ledgerReport.aggregateCredit'), val: `₹${parseFloat(totals.credit || 0).toLocaleString('en-IN')}`, icon: <TrendingDown size={18} />, color: 'amber' },
+            { label: t('ledgerReport.closingPosition'), val: formatBalance(data[data.length - 1]?.running_balance || 0), icon: <CheckCircle2 size={18} />, color: 'emerald' }
           ].map((stat, i) => (
             <div key={i} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm group hover:border-slate-200 transition-all">
               <div className="flex justify-between items-start mb-4">
@@ -212,7 +210,7 @@ export default function LedgerReport() {
 
               {/* Member ID Input */}
               <div className="w-full md:w-32 lg:w-40">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Node ID</span>
+                <span className="block text-sm font-bold text-slate-400   mb-2 px-1 ">Node ID</span>
                 <div className="relative group">
                   <Hash size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                   <input
@@ -232,7 +230,7 @@ export default function LedgerReport() {
 
               {/* Member Name Search */}
               <div className="flex-1 min-w-[300px]">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Identity Nomenclature</span>
+                <span className="block text-sm font-bold text-slate-400   mb-2 px-1 ">Identity Nomenclature</span>
                 <div className="relative group">
                   <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                   <input
@@ -254,7 +252,7 @@ export default function LedgerReport() {
               {showMemberDropdown && (filteredAccounts.length > 0) && (
                 <div className="absolute top-[85px] left-0 right-0 bg-white border border-slate-100 shadow-2xl rounded-lg overflow-hidden z-[100] animate-in zoom-in-95 duration-200">
                   <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center italic">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Identified Nodes in Registry</span>
+                    <span className="text-sm font-bold text-slate-400  ">Identified Nodes in Registry</span>
                     <X size={12} className="text-slate-300 cursor-pointer" onClick={() => setShowMemberDropdown(false)} />
                   </div>
                   <div className="max-h-56 overflow-y-auto scroller-airy">
@@ -264,8 +262,8 @@ export default function LedgerReport() {
                         onClick={() => handleSelectAccount(acc)}
                         className="px-8 py-4 hover:bg-blue-50 flex justify-between items-center cursor-pointer group transition-colors border-b border-slate-50 last:border-none"
                       >
-                        <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 uppercase italic">{acc.account_name}</span>
-                        <span className="text-[10px] font-bold text-slate-300 group-hover:text-blue-300 tracking-[0.2em]">NODE_#{acc.id}</span>
+                        <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600  ">{acc.account_name}</span>
+                        <span className="text-sm font-bold text-slate-300 group-hover:text-blue-300 tracking-[0.2em]">NODE_#{acc.id}</span>
                       </div>
                     ))}
                   </div>
@@ -276,11 +274,11 @@ export default function LedgerReport() {
 
               <div className="flex flex-wrap items-end gap-4">
                 <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal Start</span>
+                  <span className="block text-sm font-bold text-slate-400   mb-2 px-1 ">Temporal Start</span>
                   <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50/50 border border-slate-100 rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono" />
                 </div>
                 <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">Temporal End</span>
+                  <span className="block text-sm font-bold text-slate-400   mb-2 px-1 ">Temporal End</span>
                   <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50/50 border border-slate-100 rounded-lg px-6 py-3.5 text-xs font-bold text-slate-600 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono" />
                 </div>
               </div>
@@ -292,7 +290,7 @@ export default function LedgerReport() {
                   <input type="checkbox" checked={printSubAmount} onChange={e => setPrintSubAmount(e.target.checked)} className="hidden" />
                   {printSubAmount && <X size={12} className="text-white rotate-45" />}
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors italic">Sub-Amounts</span>
+                <span className="text-sm font-black text-slate-400   group-hover:text-slate-900 transition-colors ">Sub-Amounts</span>
               </label>
               <div className="w-px h-6 bg-slate-200"></div>
               <label className="flex items-center gap-3 px-4 py-2 cursor-pointer group transition-all">
@@ -300,7 +298,7 @@ export default function LedgerReport() {
                   <input type="checkbox" checked={showAccountNumber} onChange={e => setShowAccountNumber(e.target.checked)} className="hidden" />
                   {showAccountNumber && <X size={12} className="text-white rotate-45" />}
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors italic">Registry ID</span>
+                <span className="text-sm font-black text-slate-400   group-hover:text-slate-900 transition-colors ">Registry ID</span>
               </label>
             </div>
           </div>
@@ -320,7 +318,7 @@ export default function LedgerReport() {
               <h2 className="text-4xl font-bold text-slate-900 tracking-tight uppercase italic">{company?.company_name}</h2>
               <div className="flex items-center justify-center gap-4 py-2">
                 <div className="h-0.5 w-16 bg-blue-600/20"></div>
-                <span className="text-2xl font-bold text-slate-800 tracking-tight uppercase">{accountName || 'AWAITING IDENTITY'}</span>
+                <span className="text-2xl font-bold text-slate-800 tracking-tight ">{accountName || 'AWAITING IDENTITY'}</span>
                 <div className="h-0.5 w-16 bg-blue-600/20"></div>
               </div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic">Post Window: {formatDate(dateRange.startDate)} To {formatDate(dateRange.endDate)}</p>
@@ -332,12 +330,12 @@ export default function LedgerReport() {
               <thead className="bg-[#F8FAFC]">
                 <tr>
                   {[
-                    { h: 'Post Epoch', w: '120px' },
-                    { h: 'Manifest Shard', w: '150px' },
-                    { h: 'Particulars / Descriptor', w: 'auto' },
-                    { h: 'Credit (-)', w: '140px', al: 'right' },
-                    { h: 'Debit (+)', w: '140px', al: 'right' },
-                    { h: 'Running Position', w: '160px', al: 'right' }
+                    { h: t('ledgerReport.postEpoch'), w: '120px' },
+                    { h: t('ledgerReport.manifestShard'), w: '150px' },
+                    { h: t('ledgerReport.particulars'), w: 'auto' },
+                    { h: t('ledgerReport.credit'), w: '140px', al: 'right' },
+                    { h: t('ledgerReport.debit'), w: '140px', al: 'right' },
+                    { h: t('ledgerReport.runningPosition'), w: '160px', al: 'right' }
                   ].map((col, i) => (
                     <th key={i} style={{ width: col.w }} className={`px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest ${col.al === 'right' ? 'text-right' : ''}`}>
                       {col.h}
@@ -350,7 +348,7 @@ export default function LedgerReport() {
                   <tr>
                     <td colSpan="6" className="px-10 py-32 text-center">
                       <RefreshCcw className="animate-spin text-blue-100 mx-auto" size={40} />
-                      <p className="mt-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest italic">Synchronizing Ledger Archives...</p>
+                      <p className="mt-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest italic">{t('ledgerReport.syncing')}</p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
@@ -364,20 +362,20 @@ export default function LedgerReport() {
                   <>
                     {data.map((row, idx) => (
                       <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                        <td className="px-8 py-5 text-[11px] font-bold text-slate-400 font-mono italic">{formatDate(row.transaction_date)}</td>
-                        <td className="px-8 py-5 text-[10px] font-bold text-slate-300 uppercase tracking-tight italic">{row.reference_no}</td>
-                        <td className="px-8 py-5 font-bold text-slate-700 text-sm uppercase tracking-tight">{row.description}</td>
-                        <td className="px-8 py-5 text-right font-bold text-slate-400 italic">₹{parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="px-8 py-5 text-right font-black text-slate-900 italic">₹{parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="px-8 py-5 text-right font-black text-slate-800 italic underline decoration-slate-100 underline-offset-4">{formatBalance(row.running_balance)}</td>
+                        <td className="px-8 py-5 text-[11px] font-bold text-slate-400 font-sans ">{formatDate(row.transaction_date)}</td>
+                        <td className="px-8 py-5 text-sm font-bold text-slate-300  tracking-tight ">{row.reference_no}</td>
+                        <td className="px-8 py-5 font-bold text-slate-700 text-sm  tracking-tight">{row.description}</td>
+                        <td className="px-8 py-5 text-right font-bold text-slate-400 ">₹{parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td className="px-8 py-5 text-right font-black text-slate-900 ">₹{parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td className="px-8 py-5 text-right font-black text-slate-800  underline decoration-slate-100 underline-offset-4">{formatBalance(row.running_balance)}</td>
                       </tr>
                     ))}
                     {/* Consolidated Total Shard */}
                     <tr className="bg-slate-900 text-white font-bold italic border-t-8 border-white">
-                      <td colSpan="3" className="px-8 py-8 text-xs font-black uppercase tracking-[0.5em] text-blue-500">Aggregate Integrity Total</td>
-                      <td className="px-8 py-8 text-right text-base font-black italic tracking-tighter">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="px-8 py-8 text-right text-base font-black italic tracking-tighter">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="px-8 py-8 text-right opacity-30 text-[10px] uppercase font-black tracking-widest">End_of_Window</td>
+                      <td colSpan="3" className="px-8 py-8 text-sm font-black  tracking-[0.5em] text-blue-500">{t('ledgerReport.aggregateIntegrity')}</td>
+                      <td className="px-8 py-8 text-right text-base font-black  tracking-tighter">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-8 py-8 text-right text-base font-black  tracking-tighter">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-8 py-8 text-right opacity-30 text-sm  font-black ">End_of_Window</td>
                     </tr>
                   </>
                 )}
@@ -394,7 +392,7 @@ export default function LedgerReport() {
             <div className="flex items-center gap-3">
               <span>{company?.company_name} / Registry Auth</span>
               <div className="w-px h-3 bg-slate-200"></div>
-              <span>ID: {new Date().getTime().toString(36).toUpperCase()}</span>
+              <span>ID: {new Date().getTime().toString(36)}</span>
             </div>
           </div>
         </div>

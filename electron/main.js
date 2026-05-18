@@ -1,7 +1,8 @@
-const { app, BrowserWindow, Menu, ipcMain, globalShortcut, utilityProcess } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, globalShortcut, utilityProcess, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
+const { createBackup, restoreLatestBackup } = require('./backup');
 
 const isDev = !app.isPackaged;
 let mainWindow;
@@ -96,18 +97,51 @@ function startBackend() {
   }
 }
 
+// IPC Handlers for Backup & Restore
+ipcMain.handle('backup-db', async () => {
+  try {
+    const result = await createBackup();
+    return { success: true, message: `Backup created: ${result.filename}` };
+  } catch (error) {
+    console.error('IPC Backup Error:', error);
+    return { success: false, message: `Backup failed: ${error.message}` };
+  }
+});
+
+ipcMain.handle('restore-db', async () => {
+  try {
+    const result = await restoreLatestBackup();
+    
+    // Relaunch the app after 1 second
+    setTimeout(() => {
+      app.relaunch();
+      app.exit(0);
+    }, 1000);
+
+    return { success: true, message: `Restore successful from ${result.filename}. Restarting...` };
+  } catch (error) {
+    console.error('IPC Restore Error:', error);
+    return { success: false, message: `Restore failed: ${error.message}` };
+  }
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1366,
     height: 768,
-    title: "Danger Systeam Pro", // Updated title
+    show: false, // Hidden until maximized to prevent flicker
+    title: "Danger Systeam Pro",
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true
     },
-    icon: path.join(__dirname, '../frontend/public/image.png') // Custom Icon
+    icon: path.join(__dirname, '../frontend/public/image.png')
   });
+
+  // Maximize immediately
+  mainWindow.maximize();
+  mainWindow.show();
 
   if (isDev) {
     mainWindow.loadURL('http://127.0.0.1:5173');
@@ -117,29 +151,6 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
-  });
-
-  // Clear session on close to force logout
-  mainWindow.on('close', (e) => {
-    // Only perform the wipe once
-    if (app.isQuitting) return;
-
-    e.preventDefault(); // Pause the close
-    const { session } = require('electron');
-    
-    console.log('🧹 Checking if Deep Clean is needed...');
-    
-      console.log('🧹 Performing Mandatory Deep Clean...');
-      session.defaultSession.clearStorageData({
-        storages: ['localstorage', 'cookies', 'sessionstorage', 'indexdb']
-      }).then(() => {
-        console.log('✅ Deep Clean Complete');
-        app.isQuitting = true;
-        app.quit();
-      }).catch(() => {
-        app.isQuitting = true;
-        app.quit();
-      });
   });
 }
 
@@ -151,8 +162,11 @@ app.on('ready', async () => {
   // 1. Database Setup
   await checkAndSetupDatabase();
 
-  // 2. Start Backend
-  startBackend();
+  // 2. Start Backend with a short delay to let PG service breathe
+  console.log('⏳ Waiting for database service to stabilize...');
+  setTimeout(() => {
+    startBackend();
+  }, 2000);
 
   // 3. Launch UI
   createWindow();

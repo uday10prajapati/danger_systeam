@@ -16,11 +16,12 @@ export default function AccountForm({
   onCancel,
   existingAccounts = [] 
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState(initialData || {
     account_code: '',
     p_code: '',
     account_name: '',
+    account_name_gu: '',
     account_type: 'customer',
     phone: '',
     email: '',
@@ -39,6 +40,7 @@ export default function AccountForm({
   const accountCodeRef = useRef(null);
   const pCodeRef = useRef(null);
   const accountNameRef = useRef(null);
+  const accountNameGURef = useRef(null);
   const accountTypeRef = useRef(null);
   const phoneRef = useRef(null);
   const emailRef = useRef(null);
@@ -52,6 +54,7 @@ export default function AccountForm({
       const opBal = parseFloat(initialData.opening_balance || 0);
       setFormData({
         ...initialData,
+        account_name_gu: initialData.account_name_gu || '',
         opening_balance: Math.abs(opBal),
         opening_balance_type: opBal < 0 ? 'credit' : 'debit',
         is_subledger: initialData.is_subledger === true || initialData.is_subledger === 1
@@ -103,18 +106,18 @@ export default function AccountForm({
   }, [initialData, companyId, formData.account_type]);
 
   const accountTypes = [
-    { value: 'customer', label: 'Customer' },
-    { value: 'vendor', label: 'Vendor' },
-    { value: 'supplier', label: 'Supplier' },
-    { value: 'bank', label: 'Bank' },
-    { value: 'cash', label: 'Cash' },
-    { value: 'assets', label: 'Assets' },
-    { value: 'liabilities', label: 'Liabilities' },
-    { value: 'capital', label: 'Capital' },
-    { value: 'revenue', label: 'Revenue' },
-    { value: 'expense', label: 'Expense' },
-    { value: 'purchase', label: 'Purchase' },
-    { value: 'sales', label: 'Sales' }
+    { value: 'customer', label: t('accountTypes.customer') },
+    { value: 'vendor', label: t('accountTypes.vendor') },
+    { value: 'supplier', label: t('accountTypes.supplier') },
+    { value: 'bank', label: t('accountTypes.bank') },
+    { value: 'cash', label: t('accountTypes.cash') },
+    { value: 'assets', label: t('accountTypes.assets') },
+    { value: 'liabilities', label: t('accountTypes.liabilities') },
+    { value: 'capital', label: t('accountTypes.capital') },
+    { value: 'revenue', label: t('accountTypes.revenue') },
+    { value: 'expense', label: t('accountTypes.expense') },
+    { value: 'purchase', label: t('accountTypes.purchase') },
+    { value: 'sales', label: t('accountTypes.sales') }
   ];
 
   const handleChange = (e) => {
@@ -143,7 +146,7 @@ export default function AccountForm({
     setMessage(null);
 
     if (!formData.account_name || !formData.account_name.trim()) {
-      setMessage({ type: 'error', text: 'Account name is required.' });
+      setMessage({ type: 'error', text: t('accountMaster.errors.nameRequired') });
       return;
     }
 
@@ -153,7 +156,7 @@ export default function AccountForm({
     );
 
     if (isDuplicate) {
-      setMessage({ type: 'error', text: 'Account name already exists. Please use a unique name.' });
+      setMessage({ type: 'error', text: t('accountMaster.errors.nameExists') });
       return;
     }
 
@@ -163,14 +166,14 @@ export default function AccountForm({
       const submitData = { company_id: companyId, ...formData };
 
       if (initialData?.id) {
-        await api.put(`/accounts/${initialData.id}`, formData);
-        onSuccess?.('Account updated successfully.');
+        await api.put(`/accounts/${initialData.id}`, submitData);
+        onSuccess?.(t('accountMaster.messages.accountUpdatedSuccessfully'));
       } else {
         await api.post('/accounts', submitData);
-        onSuccess?.('Account registered successfully.');
+        onSuccess?.(t('accountMaster.messages.accountRegisteredSuccessfully'));
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to save account.' });
+      setMessage({ type: 'error', text: error.response?.data?.error || t('accountMaster.errors.failedSave') });
     } finally {
       setLoading(false);
     }
@@ -181,9 +184,9 @@ export default function AccountForm({
       <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
         <div>
           <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
-            {initialData?.id ? 'EDIT ACCOUNT' : 'INITIALIZE ACCOUNT'}
+            {initialData?.id ? t('accountForm.editTitle') : t('accountForm.initTitle')}
           </h2>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">Configure ledger registry node</p>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">{t('accountForm.subtitle')}</p>
         </div>
         {onCancel && (
           <button onClick={onCancel} className="p-1 text-zinc-400 hover:text-red-600 transition">
@@ -209,12 +212,12 @@ export default function AccountForm({
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
                 <User size={15} className="text-zinc-500" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Basic Information</h3>
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('accountForm.basicInfo')}</h3>
               </div>
               
               <div className="grid grid-cols-5 gap-3">
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Code</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('accountForm.code')}</label>
                   <input
                     ref={accountCodeRef}
                     type="text"
@@ -222,11 +225,14 @@ export default function AccountForm({
                     value={formData.account_code || ''}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, pCodeRef)}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
+                    translate="no"
+                    lang="en"
+                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none transition font-bold text-zinc-800 force-en notranslate ${formData.is_system ? 'opacity-50 cursor-not-allowed bg-zinc-100' : 'focus:bg-white focus:border-zinc-600'}`}
+                    disabled={formData.is_system}
                   />
                 </div>
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">P-Code</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('accountForm.pCode')}</label>
                   <input
                     ref={pCodeRef}
                     type="text"
@@ -234,43 +240,72 @@ export default function AccountForm({
                     value={formData.p_code || ''}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, accountNameRef)}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
+                    translate="no"
+                    lang="en"
+                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none transition font-bold text-zinc-800 force-en notranslate ${formData.is_system ? 'opacity-50 cursor-not-allowed bg-zinc-100' : 'focus:bg-white focus:border-zinc-600'}`}
+                    disabled={formData.is_system}
                   />
                 </div>
                 <div className="col-span-3 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Account Name</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.accountNameENG')} *</label>
                   <input
                     ref={accountNameRef}
                     type="text"
                     name="account_name"
                     value={formData.account_name || ''}
-                    onChange={handleChange}
-                    onKeyDown={(e) => handleKeyDown(e, accountTypeRef)}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        account_name: val,
+                        // Automatically sync to Gujarati field if it's currently empty or was previously synced
+                        account_name_gu: (prev.account_name_gu === prev.account_name || !prev.account_name_gu) ? val : prev.account_name_gu
+                      }));
+                    }}
+                    onKeyDown={(e) => handleKeyDown(e, accountNameGURef)}
                     required
-                    placeholder="ENTER LEDGER NAME"
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-sans font-bold text-zinc-800"
+                    placeholder={t('accountForm.enterLedgerName')}
+                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 force-en notranslate"
                   />
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1 mb-2">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.accountNameGUJ')}</label>
+                <input
+                  ref={accountNameGURef}
+                  type="text"
+                  name="account_name_gu"
+                  value={formData.account_name_gu || ''}
+                  onChange={handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, accountTypeRef)}
+                  required={i18n.language === 'gu'}
+                  placeholder={t('accountForm.enterLedgerNameGuj')}
+                  translate="no"
+                  className={`w-full px-2.5 py-1.5 bg-zinc-50 border rounded-none outline-none transition font-bold text-zinc-800 ${i18n.language === 'gu' && !formData.account_name_gu ? 'border-orange-400 bg-orange-50' : 'border-zinc-300 focus:bg-white focus:border-zinc-600'}`}
+                  style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Account Type</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.accountType')}</label>
                   <select
                     ref={accountTypeRef}
                     name="account_type"
                     value={formData.account_type}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, phoneRef)}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 cursor-pointer uppercase tracking-widest"
+                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none transition font-bold text-zinc-700 cursor-pointer uppercase tracking-widest ${formData.is_system ? 'opacity-50 cursor-not-allowed bg-zinc-100' : 'focus:bg-white focus:border-zinc-600'}`}
+                    disabled={formData.is_system}
                   >
                     {accountTypes.map(type => (
-                      <option key={type.value} value={type.value}>{type.label.toUpperCase()}</option>
+                      <option key={type.value} value={type.value}>{t(`accountMaster.types.${type.value}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Mobile Number</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.mobile')}</label>
                   <input
                     ref={phoneRef}
                     type="tel"
@@ -278,14 +313,14 @@ export default function AccountForm({
                     value={formData.phone || ''}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, emailRef)}
-                    placeholder="10-DIGIT PRIMARY"
+                    placeholder={t('accountForm.mobilePlaceholder')}
                     className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 font-mono"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Email / Handle</label>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.emailHandle')}</label>
                 <input
                   ref={emailRef}
                   type="email"
@@ -293,13 +328,13 @@ export default function AccountForm({
                   value={formData.email || ''}
                   onChange={handleChange}
                   onKeyDown={(e) => handleKeyDown(e, openingBalanceRef)}
-                  placeholder="FINANCE@NODE.SH"
+                  placeholder={t('accountForm.emailPlaceholder')}
                   className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
                 />
               </div>
 
               <div className="flex flex-col gap-1 pt-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Advanced Logic</label>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.advancedLogic')}</label>
                 <div className="flex items-center gap-4 bg-zinc-50 p-2 border border-zinc-300">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
@@ -309,7 +344,7 @@ export default function AccountForm({
                       onChange={handleChange}
                       className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
                     />
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${formData.is_subledger ? 'text-zinc-800' : 'text-zinc-400'}`}>Enable Sub-Ledger Registry</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${formData.is_subledger ? 'text-zinc-800' : 'text-zinc-400'}`}>{t('accountForm.enableSubLedger')}</span>
                   </label>
                 </div>
               </div>
@@ -319,13 +354,13 @@ export default function AccountForm({
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
                 <TrendingUp size={15} className="text-zinc-500" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">Financial Configuration</h3>
+                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('accountForm.financialConfig')}</h3>
               </div>
 
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Opening Balance</label>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('accountForm.openingBalance')}</label>
                     <input
                       ref={openingBalanceRef}
                       type="number"
@@ -338,7 +373,7 @@ export default function AccountForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Balance Type</label>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('accountForm.balanceType')}</label>
                     <select
                       ref={openingBalanceTypeRef}
                       name="opening_balance_type"
@@ -347,15 +382,15 @@ export default function AccountForm({
                       onKeyDown={(e) => handleKeyDown(e, gstNoRef)}
                       className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 uppercase tracking-widest cursor-pointer"
                     >
-                      <option value="credit">Jama (Cr)</option>
-                      <option value="debit">Udhar (Dr)</option>
+                      <option value="credit">{t('accountMaster.jamaCr')}</option>
+                      <option value="debit">{t('accountMaster.udharDr')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">GST Number</label>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase label-gst-gu notranslate" translate="no"></label>
                     <input
                       ref={gstNoRef}
                       type="text"
@@ -363,12 +398,14 @@ export default function AccountForm({
                       value={formData.gst_no || ''}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, tinNoRef)}
-                      placeholder="GSTIN STRING"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold uppercase"
+                      translate="no"
+                      lang="en"
+                      placeholder={t('accountForm.gstPlaceholder')}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold uppercase force-en notranslate"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">TIN / PAN String</label>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase label-tin-gu notranslate" translate="no"></label>
                     <input
                       ref={tinNoRef}
                       type="text"
@@ -376,8 +413,10 @@ export default function AccountForm({
                       value={formData.tin_no || ''}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, null)}
-                      placeholder="TIN DETAILS"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold"
+                      translate="no"
+                      lang="en"
+                      placeholder={t('accountForm.tinPlaceholder')}
+                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-mono text-zinc-700 font-bold force-en notranslate"
                     />
                   </div>
                 </div>
@@ -387,7 +426,7 @@ export default function AccountForm({
                     <Database size={18} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Internal Shard ID</p>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('accountForm.internalShardId')}</p>
                     <p className="text-base font-bold text-zinc-800">#{initialData?.id || nextId || '...'}</p>
                   </div>
                 </div>
@@ -401,14 +440,14 @@ export default function AccountForm({
               onClick={onCancel}
               className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
             >
-              Cancel
+              {t('accountForm.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
             >
-              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {initialData?.id ? 'Update' : 'Save'}</>}
+              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {initialData?.id ? t('accountForm.update') : t('accountForm.save')}</>}
             </button>
           </div>
         </form>

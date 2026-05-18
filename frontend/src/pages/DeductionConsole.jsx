@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
    Plus, X, Database, Layout, CheckCircle, UserCheck,
    ArrowRight, User, TrendingUp, Save, Search, RefreshCcw, Calendar, FileText
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import api, { sabhasadMasterApi } from '../api';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
+import { formatBilingualText } from '../utils/textUtils';
 
 export default function DeductionConsole() {
+   const { t } = useTranslation();
    const [showMembersModal, setShowMembersModal] = useState(false);
    const [loading, setLoading] = useState(false);
    const [members, setMembers] = useState([]);
@@ -83,9 +86,12 @@ export default function DeductionConsole() {
    const loadIdentities = async () => {
       try {
          setLoading(true);
+         const user = JSON.parse(localStorage.getItem('user') || '{}');
+         if (!user.company_id) return;
+         
          const [memRes, accRes, targetsRes, narrRes] = await Promise.all([
             sabhasadMasterApi.getAllSabhasad(),
-            api.get('/accounts?type=ledger'),
+            api.get(`/accounts/company/${user.company_id}?type=ledger`),
             api.get('/deductions/targets'),
             api.get('/narrations?type=JV')
          ]);
@@ -218,68 +224,134 @@ export default function DeductionConsole() {
       }
    };
 
-   const handleExportPDF = () => {
-      if (!selectedIdentities.length) { alert('No valid data to export.'); return; }
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      const W = doc.internal.pageSize.getWidth();
-      const H = doc.internal.pageSize.getHeight();
-      const M = 32;
-      const navy = [15, 23, 42], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
-      const cName = (() => { try { const u = JSON.parse(localStorage.getItem('company')); return u?.company_name || 'Company'; } catch (e) { return 'Company'; } })();
+   const toGujaratiDigits = (value) => {
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      return String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
+   };
 
-      const hdr = () => {
-         doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
-         doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-         doc.text(cName.toUpperCase(), M, 17);
-         doc.setFontSize(7); doc.setTextColor(148, 163, 184);
-         doc.text('KAPAT EXTRACTION MANIFEST', W / 2, 17, { align: 'center' });
-         doc.setFontSize(7); doc.setTextColor(239, 68, 68);
-         doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
-      };
+   const handleExportPDF = async () => {
+      if (!selectedIdentities.length) { 
+         setMessage({ type: 'error', text: t('kapatConsole.modal.noMembers') || 'No records to export.' }); 
+         return; 
+      }
 
-      const ftr = (pg, tot) => {
-         doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
-         doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-         doc.text(cName + ' - Kapat Extraction', M, H - 9);
-         doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-         doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
-      };
+      setLoading(true);
+      try {
 
-      hdr();
-      let y = 45;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...navy);
-      doc.text('Kapat (Deduction) Console Matrix', M, y);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
-      doc.text('Targeted Identities: ' + selectedIdentities.length + '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-      y += 28;
+         const company = JSON.parse(localStorage.getItem('company') || '{}');
+         const cName = company.company_name_gu || company.company_name || 'Company';
+         const reportTitle = 'કપાત (Deduction) રજીસ્ટ્રી';
+         const fy = localStorage.getItem('financial_year') || '2026-27';
 
-      const bodyRows = selectedIdentities.map(item => [
-         item.type === 'member' ? 'Member' : 'Account',
-         item.name || '-',
-         item.code || '-',
-         item.is_auto !== false ? 'Auto' : 'Manual',
-         parseFloat(item.deduction_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-      ]);
+         const tempWrap = document.createElement('div');
+         tempWrap.style.position = 'fixed';
+         tempWrap.style.left = '-10000px';
+         tempWrap.style.top = '0';
+         tempWrap.style.width = '1000px';
+         tempWrap.style.background = '#fff';
+         tempWrap.style.color = '#111827';
+         tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif';
+         tempWrap.style.padding = '24px';
 
-      const totalDeductions = selectedIdentities.reduce((s, r) => s + (parseFloat(r.deduction_amount) || 0), 0);
+         const tableRows = selectedIdentities.map((item, idx) => `
+            <tr>
+               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
+               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${item.type === 'member' ? 'સભ્ય' : 'ખાતું'}</td>
+               <td style="padding:8px 10px;border:1px solid #d1d5db;font-weight:700;">${item.name || ''}</td>
+               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;font-family:Arial, sans-serif;">${item.code || ''}</td>
+               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${item.is_auto !== false ? 'ઓટો' : 'મેન્યુઅલ'}</td>
+               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;font-weight:700;">${toGujaratiDigits(parseFloat(item.deduction_amount || 0).toFixed(2))}</td>
+            </tr>
+         `).join('');
 
-      autoTable(doc, {
-         startY: y,
-         head: [['Type', 'Target Name', 'Code', 'Calculation Mode', 'Amount (₹)']],
-         body: bodyRows,
-         styles: { font: 'helvetica', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-         headStyles: { font: 'helvetica', fillColor: navy, textColor: white, fontStyle: 'normal' },
-         footStyles: { font: 'helvetica', fillColor: [30, 41, 59], textColor: white },
-         alternateRowStyles: { fillColor: stripe },
-         theme: 'grid',
-         foot: [['', '', '', 'TOTAL', totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2 })]],
-         margin: { left: M, right: M }
-      });
+         const totalAmount = selectedIdentities.reduce((sum, item) => sum + (parseFloat(item.deduction_amount) || 0), 0);
 
-      const tot = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-      doc.save('Kapat_Console_' + new Date().toISOString().split('T')[0] + '.pdf');
+         tempWrap.innerHTML = `
+            <div style="border:1px solid #cbd5e1;">
+               <div style="background:#2563eb;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
+                  <div style="font-size:18px;font-weight:700;">${cName}</div>
+                  <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
+               </div>
+               <div style="padding:18px;">
+                  <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
+                  <div style="font-size:12px;color:#6b7280;margin-bottom:16px;display:flex;justify-content:space-between;">
+                     <span>નાણાકીય વર્ષ: ${toGujaratiDigits(fy)} | કુલ કપાત પાત્રો: ${toGujaratiDigits(selectedIdentities.length)}</span>
+                     <span>બનાવેલ: ${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</span>
+                  </div>
+                  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                     <thead>
+                        <tr style="background:#f8fafc;">
+                           <th style="padding:8px 10px;border:1px solid #d1d5db;">ક્રમ</th>
+                           <th style="padding:8px 10px;border:1px solid #d1d5db;">પ્રકાર</th>
+                           <th style="padding:8px 10px;border:1px solid #d1d5db;">નામ</th>
+                           <th style="padding:8px 10px;border:1px solid #d1d5db;">કોડ</th>
+                           <th style="padding:8px 10px;border:1px solid #d1d5db;">ગણતરી</th>
+                           <th style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">કપાત રકમ (₹)</th>
+                        </tr>
+                     </thead>
+                     <tbody>${tableRows}</tbody>
+                     <tfoot>
+                        <tr style="background:#f1f5f9;font-weight:900;color:#111827;">
+                           <td colspan="5" style="padding:10px;border:1px solid #d1d5db;text-align:right;font-size:14px;">કુલ કપાત રકમ:</td>
+                           <td style="padding:10px;border:1px solid #d1d5db;text-align:right;font-size:14px;">${toGujaratiDigits(totalAmount.toFixed(2))}</td>
+                        </tr>
+                     </tfoot>
+                  </table>
+               </div>
+            </div>
+         `;
+
+         document.body.appendChild(tempWrap);
+
+         // Wait for fonts to render
+         await new Promise(resolve => setTimeout(resolve, 500));
+
+         const canvas = await html2canvas(tempWrap, { 
+            scale: 3, 
+            backgroundColor: '#ffffff', 
+            useCORS: true,
+            allowTaint: false,
+            logging: false
+         });
+         document.body.removeChild(tempWrap);
+
+         const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+         const pageW = doc.internal.pageSize.getWidth();
+         const pageH = doc.internal.pageSize.getHeight();
+         const margin = 32;
+         const imgW = pageW - margin * 2;
+         const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
+
+         let y = 0;
+         let pageIndex = 0;
+         while (y < canvas.height) {
+            const sliceHeight = Math.min(pageHpx, canvas.height - y);
+            const pageCanvas = document.createElement('canvas');
+            pageCanvas.width = canvas.width;
+            pageCanvas.height = sliceHeight;
+            const ctx = pageCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+            ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+            const imgData = pageCanvas.toDataURL('image/png');
+            const imgH = (sliceHeight * imgW) / canvas.width;
+
+            if (pageIndex > 0) doc.addPage();
+            doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+
+            y += sliceHeight;
+            pageIndex += 1;
+         }
+
+         doc.save(`Kapat_Registry_${new Date().toISOString().split('T')[0]}.pdf`);
+         setMessage({ type: 'success', text: 'PDF report generated successfully.' });
+      } catch (err) {
+         console.error('PDF Export Error:', err);
+         setMessage({ type: 'error', text: 'Operational failure during PDF generation.' });
+      } finally {
+         setLoading(false);
+      }
    };
 
    const activeTarget = selectedIdentities.find(i => `${i.type}-${i.id}` === deductionPayload.target_identifier);
@@ -312,9 +384,9 @@ export default function DeductionConsole() {
                <div>
                   <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
                      <Database size={20} className="text-zinc-600" />
-                     Kapat (Deduction) Console
+                     {t('kapatConsole.title')}
                   </h1>
-                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Financial Operations / Extraction</p>
+                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('kapatConsole.eyebrow')}</p>
                </div>
                
                <div className="flex flex-wrap items-center gap-2">
@@ -322,7 +394,7 @@ export default function DeductionConsole() {
                      onClick={handleExportPDF}
                      className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
                   >
-                     <FileText size={14} /> Export PDF
+                     <FileText size={14} /> {t('kapatConsole.exportPDF')}
                   </button>
 
                   <button
@@ -330,51 +402,35 @@ export default function DeductionConsole() {
                         setIsSmartFilling(true);
                         try {
                            if (!deductionPayload.sabhasad_id) {
-                              if (!window.confirm('Global Scan: Automatically find all members with outstanding balances?')) {
-                                 setIsSmartFilling(false);
-                                 return;
+                              let currentIdentities = [...selectedIdentities];
+                              
+                              if (currentIdentities.length === 0 && accounts.length > 0) {
+                                 currentIdentities = accounts.map(acc => ({
+                                    id: acc.id,
+                                    type: 'account',
+                                    name: acc.account_name,
+                                    code: acc.account_code || `ACC-${acc.id}`,
+                                    is_auto: true
+                                 }));
                               }
-                              const ledgerAccounts = selectedIdentities.filter(i => i.type === 'account');
-                              if (ledgerAccounts.length === 0) {
-                                 setMessage({ type: 'error', text: 'Please add at least one account to the matrix first.' });
-                                 setIsSmartFilling(false);
-                                 return;
-                              }
-                              const globalRes = await api.get('/account-ledger/global-balances', {
-                                 params: {
-                                    accountIds: ledgerAccounts.map(a => a.id).join(','),
-                                    endDate: deductionPayload.date
-                                 }
+
+                              const freshIdentities = await preloadIdentityInsights(currentIdentities);
+                              
+                              const updated = freshIdentities.map(item => {
+                                 if (item.is_auto === false) return item;
+                                 const bal = parseFloat(item.balance) || 0;
+                                 if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                 return item;
                               });
-                              if (globalRes.data.success) {
-                                 const memberBalances = globalRes.data.data;
-                                 const membersToAdd = [];
-                                 memberBalances.forEach(mb => {
-                                    if (mb.balance < -0.01) {
-                                       const member = members.find(m => m.id === mb.member_id);
-                                       if (member) {
-                                          membersToAdd.push({
-                                             id: member.id, type: 'member',
-                                             name: member.member_name, code: member.member_code,
-                                             deduction_amount: Math.abs(mb.balance).toFixed(2),
-                                             is_auto: true
-                                         });
-                                       }
-                                    }
-                                 });
-                                 setSelectedIdentities(prev => {
-                                    const existingIds = new Set(prev.map(p => `${p.type}-${p.id}`));
-                                    const filteredNew = membersToAdd.filter(m => !existingIds.has(`${m.type}-${m.id}`));
-                                    return [...prev, ...filteredNew];
-                                 });
-                              }
+                              
+                              setSelectedIdentities(updated);
                            } else {
                               const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
                               const updated = freshIdentities.map(item => {
                                  if (item.is_auto === false) return item;
                                  const udhar = parseFloat(item.total_debit) || 0;
                                  const jama = parseFloat(item.dangar_amount) || 0;
-                                 const bal = jama - udhar;
+                                 const payAmount = Math.min(udhar, jama);
                                  if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                  return item;
                               });
@@ -386,7 +442,7 @@ export default function DeductionConsole() {
                      disabled={isSmartFilling}
                      className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none disabled:opacity-50"
                   >
-                     <TrendingUp size={14} /> Smart Fill
+                     <TrendingUp size={14} /> {t('kapatConsole.smartFill')}
                   </button>
 
                   <button
@@ -395,53 +451,33 @@ export default function DeductionConsole() {
                         try {
                            let updatedIdentities = [];
                            if (!deductionPayload.sabhasad_id) {
-                              const ledgerAccounts = selectedIdentities.filter(i => i.type === 'account');
-                              const globalRes = await api.get('/account-ledger/global-balances', {
-                                 params: { accountIds: ledgerAccounts.map(a => a.id).join(','), endDate: deductionPayload.date }
+                              // 1. Refresh balances for all items in matrix
+                              const freshIdentities = await preloadIdentityInsights(selectedIdentities);
+                              
+                              // 2. Populate deduction amounts for any item with a debit balance (Udhar)
+                              updatedIdentities = freshIdentities.map(item => {
+                                  if (item.is_auto === false) return item;
+                                 const bal = parseFloat(item.balance) || 0;
+                                 if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                 return item;
                               });
-                              if (globalRes.data.success) {
-                                 const balancesMap = new Map(globalRes.data.data.map(mb => [mb.member_id, mb.balance]));
-                                 
-                                  // 1. Update existing members in list (Match by both member and account)
-                                  updatedIdentities = selectedIdentities.map(item => {
-                                     if (item.type !== 'member' || item.is_auto === false) return item;
-                                     const bal = globalRes.data.data.find(mb => mb.member_id === item.id && mb.account_id === item.target_account_id)?.balance || 0;
-                                     if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
-                                     return item;
-                                  });
-
-                                  // 2. Add new entries for members with debt in specific accounts
-                                  globalRes.data.data.forEach(mb => {
-                                     const exists = updatedIdentities.some(i => i.type === 'member' && i.id === mb.member_id && i.target_account_id === mb.account_id);
-                                     
-                                     if (mb.balance < -0.01 && !exists) {
-                                        const member = members.find(m => m.id === mb.member_id);
-                                        const account = accounts.find(a => a.id === mb.account_id);
-                                        if (member) {
-                                           updatedIdentities.push({
-                                              id: member.id, type: 'member', 
-                                              name: `${member.member_name} (${account?.account_name || 'Debt'})`, 
-                                              code: member.member_code,
-                                              deduction_amount: Math.abs(mb.balance).toFixed(2), 
-                                              target_account_id: mb.account_id,
-                                              is_auto: true
-                                           });
-                                        }
-                                     }
-                                  });
-                                 setSelectedIdentities(updatedIdentities);
-                              }
+                              setSelectedIdentities(updatedIdentities);
                            } else {
+                              // Member-specific mode: settle debt using available credit (e.g., Dangar Jama)
                               const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
                               updatedIdentities = freshIdentities.map(item => {
                                  if (item.is_auto === false) return item;
-                                 const udhar = parseFloat(item.total_debit) || 0; const dangar = parseFloat(item.dangar_amount) || 0; const payAmount = Math.min(udhar, dangar);
+                                 const udhar = parseFloat(item.total_debit) || 0; 
+                                 const jama = parseFloat(item.dangar_amount) || 0; 
+                                 const payAmount = Math.min(udhar, jama);
                                  if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                  return item;
                               });
                               setSelectedIdentities(updatedIdentities);
                            }
-                           if (updatedIdentities.length > 0) {
+                           
+                           const identitiesToPay = updatedIdentities.filter(i => parseFloat(i.deduction_amount) > 0);
+                           if (identitiesToPay.length > 0) {
                               await handleExecuteBatch(updatedIdentities);
                            } else {
                               setMessage({ type: 'error', text: 'No outstanding balances found to pay.' });
@@ -451,14 +487,14 @@ export default function DeductionConsole() {
                      disabled={isSmartFilling}
                      className="flex items-center gap-1.5 bg-emerald-600 border border-emerald-500 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 select-none disabled:opacity-50"
                   >
-                     <CheckCircle size={14} /> Smart Pay
+                     <CheckCircle size={14} /> {t('kapatConsole.smartPay')}
                   </button>
 
                   <button
                      onClick={() => setShowMembersModal(true)}
                      className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
                   >
-                     <Plus size={14} /> Add Targets
+                     <Plus size={14} /> {t('kapatConsole.addTargets')}
                   </button>
 
                   <button
@@ -470,7 +506,7 @@ export default function DeductionConsole() {
                      disabled={selectedIdentities.length === 0}
                      className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold px-3 py-1.5 select-none disabled:opacity-50"
                   >
-                     <Database size={14} /> Process Kapat
+                     <Database size={14} /> {t('kapatConsole.processKapat')}
                   </button>
                </div>
             </div>
@@ -481,10 +517,10 @@ export default function DeductionConsole() {
                   <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
                      <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                           Deduction List
+                           {t('kapatConsole.listTitle')}
                         </span>
                         <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                           {selectedIdentities.length} RECORDS
+                           {selectedIdentities.length} {t('kapatConsole.records')}
                         </span>
                      </div>
                   </div>
@@ -492,11 +528,11 @@ export default function DeductionConsole() {
                      <table className="min-w-full divide-y divide-zinc-200">
                         <thead className="bg-zinc-50 select-none">
                            <tr>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Type</th>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Name</th>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Code</th>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Auto-Calc</th>
-                              <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider w-24">Action</th>
+                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.type')}</th>
+                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.name')}</th>
+                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.code')}</th>
+                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.autoCalc')}</th>
+                              <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider w-24">{t('kapatConsole.table.action')}</th>
                            </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-zinc-200 text-xs select-none">
@@ -507,11 +543,16 @@ export default function DeductionConsole() {
                                        item.type === 'member' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-zinc-50 border-zinc-300 text-zinc-700'
                                     }`}>
                                        {item.type === 'member' ? <User size={11} /> : <Layout size={11} />}
-                                       {item.type === 'member' ? 'Member' : 'Account'}
+                                       {item.type === 'member' ? t('kapatConsole.addTargetModal.members') : t('kapatConsole.addTargetModal.accounts')}
                                     </span>
                                  </td>
-                                 <td className="px-4 py-3.5 font-bold text-zinc-800 uppercase tracking-tight">{item.name}</td>
-                                 <td className="px-4 py-3.5 font-mono font-bold text-zinc-500">#{item.code}</td>
+                                 <td className="px-4 py-3.5 font-bold text-zinc-800 tracking-tight">
+                                    {item.type === 'member'
+                                       ? <span className="font-prompt-sm">{item.name}</span>
+                                       : formatBilingualText(item.name)
+                                    }
+                                 </td>
+                                 <td className="px-4 py-3.5 font-sans font-bold text-zinc-500 force-en">{item.code}</td>
                                  <td className="px-4 py-3.5">
                                     <button 
                                        onClick={() => toggleAutoCalc(item.id, item.type)}
@@ -519,7 +560,7 @@ export default function DeductionConsole() {
                                           item.is_auto !== false ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-zinc-100 border-zinc-300 text-zinc-600'
                                        }`}
                                     >
-                                       {item.is_auto !== false ? 'Auto' : 'Manual'}
+                                       {item.is_auto !== false ? (t('kapatConsole.table.auto') || 'Auto') : (t('kapatConsole.table.manual') || 'Manual')}
                                     </button>
                                  </td>
                                  <td className="px-4 py-3.5 text-right select-none">
@@ -534,7 +575,7 @@ export default function DeductionConsole() {
             ) : (
                <div className="bg-white border border-zinc-300 p-12 flex flex-col items-center justify-center select-none">
                   <div className="w-12 h-12 bg-zinc-100 border border-zinc-300 flex items-center justify-center text-zinc-400 mb-4"><Database size={24} /></div>
-                  <p className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest">No identities added to matrix</p>
+                  <p className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest">{t('kapatConsole.modal.noMembers')}</p>
                </div>
             )}
          </div>
@@ -559,11 +600,11 @@ export default function DeductionConsole() {
                   <div className="bg-zinc-50 border border-zinc-300 p-4 mb-4 space-y-3">
                      <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
-                           <label className="text-[10px] font-bold text-zinc-500 uppercase">Voucher No</label>
+                           <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('kapatConsole.modal.voucherNo')}</label>
                            <div className="px-3 py-1.5 bg-zinc-100 border border-zinc-300 text-xs font-mono font-bold text-zinc-500 select-none">000001</div>
                         </div>
                         <div className="flex flex-col gap-1">
-                           <label className="text-[10px] font-bold text-zinc-500 uppercase">Process Date</label>
+                           <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('kapatConsole.modal.processDate')}</label>
                            <input 
                               ref={dateInputRef}
                               type="date" 
@@ -614,12 +655,14 @@ export default function DeductionConsole() {
                      </div>
 
                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase">{isSubledger ? 'Member (Sabhasad) Identity' : 'Narration / Description'}</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase">{isSubledger ? t('kapatConsole.modal.memberIdentity') : t('kapatConsole.modal.narration')}</label>
                         <div className="flex gap-2">
                            <input
                               ref={codeInputRef}
                               type="text"
                               value={deductionPayload.sabhasad_code || ''}
+                              translate="no"
+                              lang="en"
                               onChange={async (e) => {
                                  const code = e.target.value;
                                  let match = null;
@@ -641,8 +684,8 @@ export default function DeductionConsole() {
                                  }
                               }}
                               onKeyDown={e => handleKeyDown(e, nameInputRef)}
-                              className="w-24 px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold text-center"
-                              placeholder="Code"
+                              className="w-24 px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold text-center notranslate"
+                              placeholder={t('kapatConsole.table.code') || 'Code'}
                            />
                            <input
                               ref={nameInputRef}
@@ -650,8 +693,9 @@ export default function DeductionConsole() {
                               value={deductionPayload.sabhasad_name || ''}
                               onChange={e => setDeductionPayload(p => ({ ...p, sabhasad_name: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, null)}
-                              className="flex-1 px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold"
-                              placeholder={isSubledger ? "Enter Member Name..." : "Enter Narration Text..."}
+                              lang={isSubledger ? 'gu' : 'en'}
+                              className={`flex-1 px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-sans font-bold ${isSubledger ? 'font-prompt' : ''}`}
+                              placeholder={isSubledger ? (t('kapatConsole.modal.enterMemberName') || 'Enter Member Name...') : (t('kapatConsole.modal.enterNarration') || 'Enter Narration Text...')}
                            />
                         </div>
                      </div>
@@ -675,19 +719,19 @@ export default function DeductionConsole() {
                         </div>
                         <div className="flex items-center gap-3">
                            <div className="flex flex-col items-end px-3 py-1 bg-white border border-zinc-300">
-                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">Dangar Jama</span>
+                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">{t('kapatConsole.modal.dangarJama')}</span>
                               <span className="text-emerald-700 font-mono font-bold text-xs leading-none">
                                  {parseFloat(activeAccountStats.dangar_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                            </div>
                            <div className="flex flex-col items-end px-3 py-1 bg-white border border-zinc-300">
-                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">Udhar</span>
+                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">{t('kapatConsole.modal.udhar')}</span>
                               <span className="text-rose-700 font-mono font-bold text-xs leading-none">
                                  {parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                            </div>
                            <div className="flex flex-col items-end px-4 py-1 bg-zinc-800 text-white border border-zinc-800">
-                              <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest">Balance</span>
+                              <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest">{t('kapatConsole.modal.balance')}</span>
                               <span className="text-white font-mono font-bold text-sm leading-none">
                                  {parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
@@ -700,14 +744,14 @@ export default function DeductionConsole() {
                   <div className="flex-1 overflow-y-auto border border-zinc-300 mb-4 select-none bg-white">
                      <div className="grid border-b border-zinc-300 bg-zinc-50"
                         style={{ gridTemplateColumns: '40px 80px 1fr 120px 110px' }}>
-                        {['No.', 'Code', 'Account Name', 'Udhar', 'Amount'].map((h, i) => (
+                        {[t('kapatConsole.modal.no'), t('kapatConsole.table.code'), t('kapatConsole.modal.accountName'), t('kapatConsole.modal.udhar'), t('kapatConsole.modal.amount')].map((h, i) => (
                            <div key={h} className={`py-1.5 text-[10px] font-bold text-zinc-500 uppercase ${i < 4 ? 'border-r border-zinc-300' : ''} ${i >= 3 ? 'text-right px-3' : 'text-center'}`}>{h}</div>
                         ))}
                      </div>
 
                      <div className="divide-y divide-zinc-200">
                         {selectedIdentities.length === 0 ? (
-                           <div className="py-10 text-center text-xs text-zinc-400 font-bold">No members added to deduction list.</div>
+                           <div className="py-10 text-center text-xs text-zinc-400 font-bold">{t('kapatConsole.modal.noMembers')}</div>
                         ) : selectedIdentities.map((item, idx) => {
                            const key = `${item.type}-${item.id}-${idx}`;
                            const isActive = key === deductionPayload.target_identifier;
@@ -727,8 +771,13 @@ export default function DeductionConsole() {
                                  className={`grid cursor-pointer transition-colors ${isActive ? 'bg-zinc-100' : idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}`}
                                  style={{ gridTemplateColumns: '40px 80px 1fr 120px 110px' }}>
                                  <div className="border-r border-zinc-200 py-2 text-center text-xs font-mono font-bold text-zinc-400">{idx + 1}</div>
-                                 <div className="border-r border-zinc-200 py-2 text-center text-xs font-mono font-bold text-zinc-700">{String(item.code || '').padStart(4, '0')}</div>
-                                 <div className="border-r border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-800 uppercase tracking-tight truncate">{item.name}</div>
+                                 <div className="border-r border-zinc-200 py-2 text-center text-xs font-sans font-bold text-zinc-700 force-en">{String(item.code || '').padStart(4, '0')}</div>
+                                 <div className="border-r border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-800 tracking-tight truncate">
+                                    {item.type === 'member'
+                                       ? <span className="font-prompt-sm">{item.name}</span>
+                                       : formatBilingualText(item.name)
+                                    }
+                                 </div>
                                  <div className="border-r border-zinc-200 px-3 py-2 flex flex-col items-end justify-center select-none">
                                     <div className={`text-xs font-mono font-bold text-rose-600`}>
                                        {bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -755,7 +804,7 @@ export default function DeductionConsole() {
 
                   <div className="flex justify-between items-center bg-zinc-50 border border-zinc-300 p-3 select-none">
                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-600 uppercase">Total:</span>
+                        <span className="text-xs font-bold text-zinc-600 uppercase">{t('kapatConsole.total')}</span>
                         <span className="text-base font-mono font-bold text-zinc-800 bg-white border border-zinc-300 px-4 py-1 min-w-[120px] text-right">
                            {Number(totalDeductionAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
@@ -764,7 +813,7 @@ export default function DeductionConsole() {
                      <div className="flex gap-2">
                         <button onClick={() => setShowDeductionModal(false)} className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold select-none">Cancel</button>
                         <button onClick={handleExecuteBatch} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold select-none transition flex items-center gap-1">
-                           <CheckCircle size={14} /> Commit Batch
+                           <CheckCircle size={14} /> {t('kapatConsole.modal.commitBatch')}
                         </button>
                      </div>
                   </div>
@@ -778,15 +827,15 @@ export default function DeductionConsole() {
                <div className="bg-white border border-zinc-300 p-5 w-full max-w-lg flex flex-col max-h-[85vh] animate-none">
                   <div className="flex justify-between items-center border-b border-zinc-300 pb-3 mb-4">
                      <div>
-                        <h3 className="text-base font-bold text-zinc-900">Add Targets Matrix</h3>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Select accounts or members for extraction</p>
+                        <h3 className="text-base font-bold text-zinc-900">{t('kapatConsole.addTargetModal.title')}</h3>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase">{t('kapatConsole.addTargetModal.subtitle')}</p>
                      </div>
                      <button onClick={() => setShowMembersModal(false)} className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-700 transition"><X size={16} /></button>
                   </div>
 
                   <div className="flex gap-1 bg-zinc-100 border border-zinc-300 p-1 mb-4 select-none">
-                     <button onClick={() => setIdentityTab('member')} className={`flex-1 py-1.5 text-xs font-bold transition-all select-none ${identityTab === 'member' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-600'}`}>Members</button>
-                     <button onClick={() => setIdentityTab('account')} className={`flex-1 py-1.5 text-xs font-bold transition-all select-none ${identityTab === 'account' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-600'}`}>Accounts</button>
+                     <button onClick={() => setIdentityTab('member')} className={`flex-1 py-1.5 text-xs font-bold transition-all select-none ${identityTab === 'member' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-600'}`}>{t('kapatConsole.addTargetModal.members')}</button>
+                     <button onClick={() => setIdentityTab('account')} className={`flex-1 py-1.5 text-xs font-bold transition-all select-none ${identityTab === 'account' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-600'}`}>{t('kapatConsole.addTargetModal.accounts')}</button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto divide-y divide-zinc-200 border border-zinc-300 mb-4 select-none bg-white">
@@ -802,7 +851,7 @@ export default function DeductionConsole() {
                                     {isSelected ? <CheckCircle size={14} /> : (identityTab === 'member' ? <User size={14} /> : <Layout size={14} />)}
                                  </div>
                                  <div>
-                                    <p className="text-xs font-bold text-zinc-800 uppercase tracking-tight">{name}</p>
+                                    <p className="text-xs font-bold text-zinc-800 tracking-tight">{identityTab === 'member' ? <span className="font-prompt-sm">{name}</span> : formatBilingualText(name)}</p>
                                     <p className="text-[10px] font-mono text-zinc-500 font-bold">#{code}</p>
                                  </div>
                               </div>

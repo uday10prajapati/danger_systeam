@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
   Plus, AlertCircle, Edit2, Trash2, CheckCircle,
-  MapPin, Search, RefreshCw, Save, X, Loader
+  MapPin, Search, RefreshCw, Save, X, Loader, FileText, Download
 } from 'lucide-react';
 import Toast from '../components/Toast';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Loading from '../components/Loading';
 
 export default function VillageMaster() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [villages, setVillages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +31,7 @@ export default function VillageMaster() {
     villageName: '',
     talukaName: '',
     districtName: '',
+    engName: '',
     noOfVillage: 0
   });
 
@@ -36,6 +39,14 @@ export default function VillageMaster() {
   const villageNameRef = useRef(null);
   const talukaNameRef = useRef(null);
   const districtNameRef = useRef(null);
+  const engNameRef = useRef(null);
+
+  const guDigits = {
+    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
+    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  };
+
+  const toGujaratiDigits = (value) => String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
 
   useEffect(() => { loadVillages(); }, []);
 
@@ -49,11 +60,12 @@ export default function VillageMaster() {
         villageName: r.village_name,
         talukaName: r.taluka_name,
         districtName: r.district_name,
+        engName: r.eng_name || '',
         noOfVillage: r.no_of_villages
       }));
       setVillages(mapped);
     } catch {
-      setMessage({ type: 'error', text: 'Failed to load villages.' });
+      setMessage({ type: 'error', text: t('villageMaster.loadFailed') });
     } finally {
       setLoading(false);
     }
@@ -84,6 +96,7 @@ export default function VillageMaster() {
       villageName: '', 
       talukaName: '', 
       districtName: '', 
+      engName: '',
       noOfVillage: villages.length + 1 
     });
     setIsEditing(false);
@@ -98,7 +111,7 @@ export default function VillageMaster() {
     if (e && e.preventDefault) e.preventDefault();
 
     if (!formData.villageName || !formData.villageName.trim()) {
-      setModalMessage({ type: 'error', text: 'Village name is required.' });
+      setModalMessage({ type: 'error', text: t('villageMaster.nameRequired') });
       return;
     }
     
@@ -108,7 +121,7 @@ export default function VillageMaster() {
     );
 
     if (isDuplicate) {
-      setModalMessage({ type: 'error', text: 'Village name already exists. Please use a unique name.' });
+      setModalMessage({ type: 'error', text: t('villageMaster.alreadyExists') });
       return;
     }
 
@@ -116,15 +129,15 @@ export default function VillageMaster() {
       setLoading(true);
       if (isEditing) {
         await api.put(`/village/${formData.id}`, formData);
-        setMessage({ type: 'success', text: 'Village updated successfully.' });
+        setMessage({ type: 'success', text: t('villageMaster.updateSuccess') });
       } else {
         await api.post('/village', formData);
-        setMessage({ type: 'success', text: 'Village registered successfully.' });
+        setMessage({ type: 'success', text: t('villageMaster.registerSuccess') });
       }
       setShowModal(false);
       loadVillages();
     } catch {
-      setModalMessage({ type: 'error', text: 'Save failed. Please try again.' });
+      setModalMessage({ type: 'error', text: t('villageMaster.saveFailed') });
     } finally {
       setLoading(false);
     }
@@ -140,12 +153,12 @@ export default function VillageMaster() {
     try {
       setLoading(true);
       await api.delete(`/village/${villageToDelete.id}`);
-      setMessage({ type: 'success', text: 'Village deleted successfully.' });
+      setMessage({ type: 'success', text: t('villageMaster.deleteSuccess') });
       setDeleteModalOpen(false);
       setVillageToDelete(null);
       loadVillages();
     } catch {
-      setMessage({ type: 'error', text: 'Delete failed.' });
+      setMessage({ type: 'error', text: t('villageMaster.deleteFailed') });
     } finally {
       setLoading(false);
     }
@@ -168,6 +181,111 @@ export default function VillageMaster() {
     (v.talukaName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleExportPDF = async () => {
+    const rows = filteredVillages.length ? filteredVillages : villages;
+    if (!rows.length) {
+      setMessage({ type: 'error', text: t('villageMaster.noRecords') });
+      return;
+    }
+
+    const company = JSON.parse(localStorage.getItem('company') || '{}');
+    const cName = company.company_name_gu || company.company_name || 'Company';
+    const reportTitle = 'ગામ રજીસ્ટ્રી માસ્ટર';
+
+    const tempWrap = document.createElement('div');
+    tempWrap.style.position = 'fixed';
+    tempWrap.style.left = '-10000px';
+    tempWrap.style.top = '0';
+    tempWrap.style.width = '1100px';
+    tempWrap.style.background = '#fff';
+    tempWrap.style.color = '#111827';
+    tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif';
+    tempWrap.style.padding = '24px';
+
+    const tableRows = rows.map((v, idx) => `
+      <tr>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(String(v.villageCode || '').padStart(4, '0'))}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${v.villageName || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${v.talukaName || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${v.districtName || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(v.noOfVillage ?? '')}</td>
+      </tr>
+    `).join('');
+
+    tempWrap.innerHTML = `
+      <div style="border:1px solid #cbd5e1;">
+        <div style="background:#2563eb;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:18px;font-weight:700;">${cName}</div>
+          <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
+        </div>
+        <div style="padding:18px;">
+          <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">કુલ નોંધાયેલા ગામો: ${toGujaratiDigits(rows.length)} | શોધ: ${searchQuery || 'બધા'}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">ક્રમ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">ગામનો કોડ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">ગામનું નામ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">તાલુકાનું નામ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">જિલ્લાનું નામ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">ગામોની સંખ્યા</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(tempWrap);
+
+    // Wait for fonts to render properly
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const canvas = await html2canvas(tempWrap, { 
+      scale: 3, 
+      backgroundColor: '#ffffff', 
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      fontEmbedCSS: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap'
+    });
+    document.body.removeChild(tempWrap);
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 24;
+    const imgW = pageW - margin * 2;
+    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
+
+    let y = 0;
+    let pageIndex = 0;
+    while (y < canvas.height) {
+      const sliceHeight = Math.min(pageHpx, canvas.height - y);
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceHeight;
+      const ctx = pageCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+      const imgData = pageCanvas.toDataURL('image/png');
+      const imgH = (sliceHeight * imgW) / canvas.width;
+
+      if (pageIndex > 0) doc.addPage();
+      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+
+      y += sliceHeight;
+      pageIndex += 1;
+    }
+
+    doc.save('Village_Master_Report.pdf');
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -183,20 +301,28 @@ export default function VillageMaster() {
         {/* Top title and actions header - Minimal Accounting Style */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
-              <MapPin size={20} className="text-zinc-600" />
-              Village Registry Master
+            <h1 className={`text-2xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+              <MapPin size={24} className="text-zinc-600" />
+              {t('villageMaster.title')}
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">Master Data / Villages</p>
+            <p className="text-sm font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">{t('villageMaster.masterDataVillages')}</p>
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-sm font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
+            >
+              <FileText size={16} />
+              <Download size={14} />
+              {t('common.pdf')}
+            </button>
+            <button
               onClick={handleCreateNew}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-sm font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
               <Plus size={16} />
-              NEW VILLAGE
+              {t('villageMaster.newVillage')}
             </button>
           </div>
         </div>
@@ -204,19 +330,19 @@ export default function VillageMaster() {
         {/* Dense Minimalist Accounting Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 select-none">
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Registered Villages</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{villages.length}</span>
+            <span className="text-sm font-sans text-zinc-500 ">{t('villageMaster.totalVillages')}</span>
+            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{toGujaratiDigits(villages.length)}</span>
           </div>
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Talukas</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
-              {[...new Set(villages.map(v => v.talukaName).filter(Boolean))].length}
+            <span className="text-sm font-sans text-zinc-500 ">{t('villageMaster.totalTalukas')}</span>
+            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">
+              {toGujaratiDigits([...new Set(villages.map(v => v.talukaName).filter(Boolean))].length)}
             </span>
           </div>
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Districts</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">
-              {[...new Set(villages.map(v => v.districtName).filter(Boolean))].length}
+            <span className="text-sm font-sans text-zinc-500 ">{t('villageMaster.totalDistricts')}</span>
+            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">
+              {toGujaratiDigits([...new Set(villages.map(v => v.districtName).filter(Boolean))].length)}
             </span>
           </div>
         </div>
@@ -225,11 +351,11 @@ export default function VillageMaster() {
         <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
           <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider select-none">
-                Village Registry List
+              <span className="text-sm font-bold text-zinc-700   select-none">
+                {t('villageMaster.registryList')}
               </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 select-none">
-                {filteredVillages.length} RECORDS
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 select-none">
+                {filteredVillages.length} {t('villageMaster.records')}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -239,14 +365,14 @@ export default function VillageMaster() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or code..."
-                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                  placeholder={t('villageMaster.searchPlaceholder')}
+                  className="bg-transparent border-none outline-none text-sm text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
                 />
               </div>
               <button
                 onClick={loadVillages}
                 className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                title="Refresh Registry"
+                title={t('villageMaster.refresh')}
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
@@ -257,62 +383,64 @@ export default function VillageMaster() {
             {loading && villages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
                 <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">LOADING REGISTRY DATA...</p>
+                <p className="text-sm font-mono">{t('villageMaster.loading')}</p>
               </div>
             ) : filteredVillages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500">
                 <MapPin size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">NO VILLAGE RECORDS FOUND</p>
+                <p className="text-sm font-mono">{t('villageMaster.noRecords')}</p>
                 <button 
                   onClick={handleCreateNew} 
-                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold select-none mt-2 transition"
+                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm font-bold select-none mt-2 transition"
                 >
-                  ADD FIRST VILLAGE
+                  {t('villageMaster.addFirst')}
                 </button>
               </div>
             ) : (
               <table className="w-full text-left border-collapse select-none">
                 <thead>
-                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 font-mono text-xs">
-                    <th className="px-4 py-2 border-r border-zinc-200 w-12 text-center">#</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Village Name</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 w-28 text-center">Village Code</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Taluka Name</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">District Name</th>
-                    <th className="px-4 py-2 text-center w-28">Actions</th>
+                  <tr className={`bg-zinc-50 border-b border-zinc-300 text-zinc-600 text-base ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}>
+                    <th className="px-4 py-3 border-r border-zinc-200 w-16 text-center">#</th>
+                    <th className="px-4 py-3 border-r border-zinc-200">
+                      {t('villageMaster.villageName')} <span className="text-[10px] font-sans opacity-70">({i18n.language === 'gu' ? 'ગુજ' : 'Guj'})</span>
+                    </th>
+                    <th className="px-4 py-3 border-r border-zinc-200 w-32 text-center">{t('villageMaster.villageCode')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200">{t('villageMaster.talukaName')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200">{t('villageMaster.districtName')}</th>
+                    <th className="px-4 py-3 text-center w-32">{t('villageMaster.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
                   {filteredVillages.map((v, idx) => (
-                    <tr key={v.id} className="hover:bg-zinc-50/60 font-mono text-xs transition-colors">
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center text-zinc-400">
-                        {idx + 1}
+                    <tr key={v.id} className="hover:bg-zinc-50/60 font-mono text-base transition-colors">
+                      <td className="px-4 py-3 border-r border-zinc-200 text-center text-zinc-500 font-bold">
+                        {toGujaratiDigits(idx + 1)}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 font-sans font-bold tracking-tight text-zinc-800 uppercase">
-                        {v.villageName}
+                      <td className={`px-4 py-3 border-r border-zinc-200 font-black text-zinc-900 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                        {i18n.language === 'en' ? (v.engName || v.villageName) : v.villageName}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 font-mono font-bold text-center text-zinc-700 tracking-wider">
-                        {v.villageCode.toString().padStart(4, '0')}
+                      <td className={`px-4 py-3 border-r border-zinc-200 font-black text-center text-zinc-800 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans'}`}>
+                        {toGujaratiDigits(v.villageCode.toString().padStart(4, '0'))}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-zinc-600">
-                        {v.talukaName ? v.talukaName.toUpperCase() : '—'}
+                      <td className={`px-4 py-3 border-r border-zinc-200 text-zinc-700 font-bold ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                        {v.talukaName ? v.talukaName : '—'}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-zinc-600">
-                        {v.districtName ? v.districtName.toUpperCase() : '—'}
+                      <td className={`px-4 py-3 border-r border-zinc-200 text-zinc-700 font-bold ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                        {v.districtName ? v.districtName : '—'}
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleEdit(v)}
                             className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                            title="Edit"
+                            title={t('villageMaster.edit')}
                           >
                             <Edit2 size={13} />
                           </button>
                           <button
                             onClick={() => confirmDelete(v)}
                             className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
-                            title="Delete"
+                            title={t('villageMaster.delete')}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -340,7 +468,7 @@ export default function VillageMaster() {
               <div className="flex items-center gap-2">
                 {isEditing ? <Edit2 size={16} className="text-zinc-600" /> : <Plus size={16} className="text-zinc-600" />}
                 <h2 className="text-sm font-bold tracking-tight text-zinc-800 uppercase font-mono">
-                  {isEditing ? 'EDIT VILLAGE RECORD' : 'REGISTER NEW VILLAGE'}
+                  {isEditing ? t('villageMaster.editRecord') : t('villageMaster.registerNew')}
                 </h2>
               </div>
               <button 
@@ -351,10 +479,10 @@ export default function VillageMaster() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-5 space-y-4 font-mono text-xs">
+            <form onSubmit={handleSave} className="p-5 space-y-4 font-mono text-sm">
               {/* Modal local validation message */}
               {modalMessage && (
-                <div className={`p-2 border text-xs font-mono select-none mb-1 ${
+                <div className={`p-2 border text-sm font-mono select-none mb-1 ${
                   modalMessage.type === 'error'
                     ? 'bg-red-50 border-red-300 text-red-800'
                     : 'bg-emerald-50 border-emerald-300 text-emerald-800'
@@ -368,7 +496,7 @@ export default function VillageMaster() {
 
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">Village Code</label>
+                  <label className={`block font-bold text-zinc-500 uppercase ${i18n.language === 'gu' ? 'text-xs font-prompt' : 'text-[10px]'}`}>{t('villageMaster.villageCode')}</label>
                   <input
                     ref={villageCodeRef}
                     type="text"
@@ -380,23 +508,43 @@ export default function VillageMaster() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">Village Name</label>
+                  <label className={`block font-bold text-zinc-500 uppercase ${i18n.language === 'gu' ? 'text-xs font-prompt' : 'text-[10px]'}`}>
+                    {t('villageMaster.villageName')} <span className="text-[10px] font-sans lowercase opacity-70">({i18n.language === 'gu' ? 'ગુજ' : 'Guj'})</span>
+                  </label>
                   <input
                     ref={villageNameRef}
                     type="text"
                     value={formData.villageName}
                     onChange={(e) => setFormData({ ...formData, villageName: e.target.value })}
-                    onKeyDown={(e) => handleKeyDown(e, talukaNameRef)}
+                    onKeyDown={(e) => handleKeyDown(e, engNameRef)}
                     className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-sans font-bold text-zinc-800"
-                    placeholder="ENTER VILLAGE NAME"
+                    placeholder={t('villageMaster.enterVillageName')}
                     required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={`block font-bold text-zinc-500 uppercase ${i18n.language === 'gu' ? 'text-xs font-prompt' : 'text-[10px]'}`}>{t('villageMaster.villageNameEn')}</label>
+                  <input
+                    ref={engNameRef}
+                    type="text"
+                    value={formData.engName}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^ -~]/g, '').toUpperCase();
+                      setFormData({ ...formData, engName: val });
+                    }}
+                    onKeyDown={(e) => handleKeyDown(e, talukaNameRef)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase force-en font-sans"
+                    placeholder={t('villageMaster.enterVillageNameEn')}
+                    lang="en"
+                    spellCheck="false"
+                    translate="no"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">Taluka</label>
+                  <label className={`block font-bold text-zinc-500 uppercase ${i18n.language === 'gu' ? 'text-xs font-prompt' : 'text-[10px]'}`}>{t('villageMaster.taluka')}</label>
                   <input
                     ref={talukaNameRef}
                     type="text"
@@ -404,11 +552,11 @@ export default function VillageMaster() {
                     onChange={(e) => setFormData({ ...formData, talukaName: e.target.value })}
                     onKeyDown={(e) => handleKeyDown(e, districtNameRef)}
                     className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700"
-                    placeholder="TALUKA"
+                    placeholder={t('villageMaster.taluka')}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase">District</label>
+                  <label className={`block font-bold text-zinc-500 uppercase ${i18n.language === 'gu' ? 'text-xs font-prompt' : 'text-[10px]'}`}>{t('villageMaster.district')}</label>
                   <input
                     ref={districtNameRef}
                     type="text"
@@ -416,7 +564,7 @@ export default function VillageMaster() {
                     onChange={(e) => setFormData({ ...formData, districtName: e.target.value })}
                     onKeyDown={(e) => handleKeyDown(e, null)}
                     className="w-full px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700"
-                    placeholder="DISTRICT"
+                    placeholder={t('villageMaster.district')}
                   />
                 </div>
               </div>
@@ -428,7 +576,7 @@ export default function VillageMaster() {
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold tracking-tight select-none rounded-none transition"
                 >
-                  CANCEL
+                  {t('villageMaster.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -442,7 +590,7 @@ export default function VillageMaster() {
                   ) : (
                     <Save size={14} />
                   )}
-                  {isEditing ? 'UPDATE' : 'SAVE'}
+                  {isEditing ? t('villageMaster.update') : t('villageMaster.save')}
                 </button>
               </div>
             </form>
@@ -453,8 +601,8 @@ export default function VillageMaster() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
-        title="DELETE VILLAGE RECORD"
-        message={`ARE YOU SURE YOU WANT TO DELETE THE VILLAGE RECORD FOR "${villageToDelete?.villageName?.toUpperCase() || ''}"? THIS ACTION CANNOT BE UNDONE.`}
+        title={t('villageMaster.deleteConfirmTitle')}
+        message={`${t('villageMaster.deleteConfirmMessage')} "${villageToDelete?.villageNam || ''}"${t('villageMaster.deleteConfirmSuffix')}`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalOpen(false)}
       />

@@ -53,12 +53,12 @@ router.get("/:id", async (req, res) => {
 // CREATE
 router.post("/", async (req, res) => {
   try {
-    const { villageCode, villageName, talukaName, districtName, noOfVillage } = req.body;
+    const { villageCode, villageName, engName, talukaName, districtName, noOfVillage } = req.body;
     const result = await query(
-      "INSERT INTO village (village_code, village_name, taluka_name, district_name, no_of_villages) VALUES (?, ?, ?, ?, ?)",
-      [villageCode, villageName, talukaName, districtName, noOfVillage || 0]
+      "INSERT INTO village (village_code, village_name, eng_name, taluka_name, district_name, no_of_villages) VALUES (?, ?, ?, ?, ?, ?)",
+      [villageCode, villageName, engName, talukaName, districtName, noOfVillage || 0]
     );
-    res.json({ id: result.insertId, villageCode, villageName });
+    res.json({ id: result.insertId, villageCode, villageName, engName });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -67,10 +67,10 @@ router.post("/", async (req, res) => {
 // UPDATE
 router.put("/:id", async (req, res) => {
   try {
-    const { villageCode, villageName, talukaName, districtName, noOfVillage } = req.body;
+    const { villageCode, villageName, engName, talukaName, districtName, noOfVillage } = req.body;
     await query(
-      "UPDATE village SET village_code = ?, village_name = ?, taluka_name = ?, district_name = ?, no_of_villages = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [villageCode, villageName, talukaName, districtName, noOfVillage || 0, req.params.id]
+      "UPDATE village SET village_code = ?, village_name = ?, eng_name = ?, taluka_name = ?, district_name = ?, no_of_villages = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [villageCode, villageName, engName, talukaName, districtName, noOfVillage || 0, req.params.id]
     );
     res.json({ success: true });
   } catch (err) {

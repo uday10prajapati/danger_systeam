@@ -7,15 +7,17 @@ import {
   X, Shield, AlertCircle, CheckCircle,
   Loader, Globe, Hash, FileText
 } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas';
 import api, { sabhasadMasterApi } from '../api'
 import MemberForm from '../components/MemberForm'
 import Toast from '../components/Toast'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import Loading from '../components/Loading'
+import { useTranslation } from 'react-i18next'
 
 export default function MemberMaster() {
+  const { t, i18n } = useTranslation()
   const [members, setMembers] = useState([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [villageFilter, setVillageFilter] = useState('all')
@@ -58,7 +60,7 @@ export default function MemberMaster() {
         setMembers(response.data.data || [])
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load members.' })
+      setMessage({ type: 'error', text: t('memberMaster.failedToLoadMembers') })
     } finally {
       setLoading(false)
     }
@@ -105,10 +107,10 @@ export default function MemberMaster() {
       };
 
       await sabhasadMasterApi.updateSabhasad(member.id, payload);
-      setMessage({ type: 'success', text: `Member ${member.is_active ? 'deactivated' : 'activated'} successfully` })
+      setMessage({ type: 'success', text: member.is_active ? t('memberMaster.userDeactivated') : t('memberMaster.userActivated') })
       loadMembers()
     } catch (error) {
-      setMessage({ type: 'error', text: 'Status update failed.' })
+      setMessage({ type: 'error', text: t('memberMaster.statusUpdateFailed') })
     }
   }
 
@@ -122,17 +124,17 @@ export default function MemberMaster() {
     try {
       setLoading(true)
       await sabhasadMasterApi.deleteSabhasad(memberToDelete.id);
-      setMessage({ type: 'success', text: 'Member deleted successfully.' });
+      setMessage({ type: 'success', text: t('memberMaster.memberSaved') });
       setDeleteModalOpen(false);
       setMemberToDelete(null);
       loadMembers();
     } catch (error) {
       if (error.response?.status === 404) {
-        setMessage({ type: 'success', text: 'Member already deleted.' });
+        setMessage({ type: 'success', text: t('memberMaster.memberAlreadyDeleted') });
         loadMembers();
         return;
       }
-      setMessage({ type: 'error', text: 'Delete failed.' });
+      setMessage({ type: 'error', text: t('memberMaster.deleteFailed') });
     } finally {
       setLoading(false)
     }
@@ -147,95 +149,125 @@ export default function MemberMaster() {
     setEditingMember(member)
     setShowModal(true)
   }
-
   const handleFormSuccess = () => {
     setShowModal(false)
     setEditingMember(null)
     loadMembers()
   }
 
-  const addGujaratiFont = async (doc) => {
-    try {
-      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf')
-      const blob = await res.blob()
-      return new Promise((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1]
-          doc.addFileToVFS('NotoSansGujarati.ttf', base64)
-          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal')
-          resolve()
-        }
-        reader.readAsDataURL(blob)
-      })
-    } catch (e) {
-      console.warn('Could not load Gujarati font', e)
-    }
-  }
+  const guDigits = {
+    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
+    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  };
+
+  const toGujaratiDigits = (value) => String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
 
   const handleExportPDF = async () => {
-    const cName = company ? (company.company_name || 'Company') : 'Company'
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-    await addGujaratiFont(doc)
-    const W = doc.internal.pageSize.getWidth()
-    const H = doc.internal.pageSize.getHeight()
-    const M = 32
-    const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139];
-    const dark = [30, 41, 59], stripe = [241, 245, 249];
+    setLoading(true);
 
-    const hdr = () => {
-      doc.setFillColor(...navy); doc.rect(0, 0, W, 40, 'F');
-      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...white);
-      doc.text(cName.toUpperCase(), M, 25);
-      doc.setFontSize(8); doc.setTextColor(191, 219, 254);
-      doc.text('SABHASAD MASTER REGISTRY', W - M, 25, { align: 'right' });
-    };
+    const cName = company ? (company.company_name || t('common.organization')) : t('common.organization');
+    const reportTitle = 'સભ્યતા માસ્ટર';
+    const rows = filteredMembers.length ? filteredMembers : members;
 
-    const ftr = (pg, tot) => {
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
-      doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.text(cName + ' - Member Master', M, H - 9);
-      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
-    };
+    if (!rows.length) {
+      setMessage({ type: 'error', text: t('memberMaster.noRecords') });
+      return;
+    }
 
-    hdr();
-    let y = 70;
+    const tempWrap = document.createElement('div');
+    tempWrap.style.position = 'fixed';
+    tempWrap.style.left = '-10000px';
+    tempWrap.style.top = '0';
+    tempWrap.style.width = '1200px';
+    tempWrap.style.background = '#fff';
+    tempWrap.style.color = '#111827';
+    tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif';
+    tempWrap.style.padding = '24px';
 
-    doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...navy);
-    doc.text('Sabhasad Master Registry', M, y);
-    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
-    doc.text('Filter: ' + (statusFilter === 'all' ? 'All Members' : statusFilter.toUpperCase()) +
-      '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-    y += 28;
+    const tableRows = rows.map((m, idx) => `
+      <tr>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${m.member_name || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(String(m.member_code || '').padStart(4, '0'))}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${m.village_name || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${m.address_no || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: Arial, sans-serif !important;">${m.bank_name || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${m.is_active ? 'સક્રિય' : 'નિષ્ક્રિય'}</td>
+      </tr>
+    `).join('');
 
-    const bodyRows = filteredMembers.map(m => [
-      m.member_name || '-',
-      m.p_code || m.member_code || '-',
-      m.village_name || '-',
-      m.address_no || '-',
-      m.bank_name || '-',
-      m.is_active ? 'Active' : 'Inactive'
-    ]);
+    tempWrap.innerHTML = `
+      <div style="border:1px solid #cbd5e1;">
+        <div style="background:#2563eb;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:18px;font-weight:700;">${cName}</div>
+          <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
+        </div>
+        <div style="padding:18px;">
+          <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">કુલ સભ્યો: ${toGujaratiDigits(rows.length)} | ફિલ્ટર: ${statusFilter === 'all' ? 'બધા' : (statusFilter === 'active' ? 'સક્રિય' : 'નિષ્ક્રિય')}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">ક્રમ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">સભ્યનું નામ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">કોડ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">ગામ</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">સરનામું</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">બેંક</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">સ્થિતિ</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
 
-    autoTable(doc, {
-      startY: y,
-      head: [['Member Name', 'Code', 'Village', 'Address', 'Bank', 'Status']],
-      body: bodyRows,
-      foot: [['', '', '', '', 'TOTAL MEMBERS', filteredMembers.length + ' Nodes']],
-      styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
-      footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: stripe },
-      theme: 'grid',
-      margin: { left: M, right: M }
+    document.body.appendChild(tempWrap);
+
+    // Wait for fonts to render properly
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const canvas = await html2canvas(tempWrap, { 
+      scale: 3, 
+      backgroundColor: '#ffffff', 
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      fontEmbedCSS: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap'
     });
+    document.body.removeChild(tempWrap);
 
-    const tot = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-    doc.save('Member_Master_' + new Date().toISOString().split('T')[0] + '.pdf');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 24;
+    const imgW = pageW - margin * 2;
+    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
+
+    let y = 0;
+    let pageIndex = 0;
+    while (y < canvas.height) {
+      const sliceHeight = Math.min(pageHpx, canvas.height - y);
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceHeight;
+      const ctx = pageCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+      const imgData = pageCanvas.toDataURL('image/png');
+      const imgH = (sliceHeight * imgW) / canvas.width;
+
+      if (pageIndex > 0) doc.addPage();
+      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+
+      y += sliceHeight;
+      pageIndex += 1;
+    }
+
+    doc.save(`Member_Master_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   if (loading || !company) {
@@ -253,11 +285,11 @@ export default function MemberMaster() {
         {/* Top Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4 select-none">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-              <Users size={20} className="text-zinc-600" />
-              Sabhasad Master Registry
+            <h1 className={`text-2xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+              <Users size={24} className="text-zinc-600" />
+              {t('memberMaster.title')}
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Management / Members</p>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('memberMaster.managementMembers')}</p>
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -265,7 +297,7 @@ export default function MemberMaster() {
               onClick={handleExportPDF}
               className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
             >
-              <FileText size={14} /> PDF
+              <FileText size={14} /> {t('common.pdf')}
             </button>
             
             <button
@@ -273,28 +305,24 @@ export default function MemberMaster() {
               className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
               <Plus size={16} />
-              ADD MEMBER
+              {t('memberMaster.addMember')}
             </button>
           </div>
         </div>
 
         {/* Dense Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 select-none">
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Organization</span>
-            <span className="text-base font-bold font-mono text-zinc-800 mt-1 uppercase truncate">{company?.company_name || 'N/A'}</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('memberMaster.activeMembers')}</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{toGujaratiDigits(members.filter(m => m.is_active).length)}</span>
           </div>
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Active Members</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{members.filter(m => m.is_active).length}</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('memberMaster.inactive')}</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{toGujaratiDigits(members.filter(m => !m.is_active).length)}</span>
           </div>
           <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Inactive</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{members.filter(m => !m.is_active).length}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Members</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{members.length}</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('memberMaster.totalMembers')}</span>
+            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{toGujaratiDigits(members.length)}</span>
           </div>
         </div>
 
@@ -303,10 +331,10 @@ export default function MemberMaster() {
           <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                Sabhasad List
+                {t('memberMaster.listTitle')}
               </span>
               <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                {filteredMembers.length} RECORDS
+                {filteredMembers.length} {t('memberMaster.records')}
               </span>
             </div>
             
@@ -317,7 +345,7 @@ export default function MemberMaster() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name, code or village..."
+                  placeholder={t('memberMaster.searchPlaceholder')}
                   className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
                 />
               </div>
@@ -328,7 +356,7 @@ export default function MemberMaster() {
                     onClick={() => setStatusFilter(filt)}
                     className={`px-3 py-1 text-[10px] font-bold uppercase transition select-none ${statusFilter === filt ? 'bg-white text-zinc-800 font-mono font-bold border border-zinc-300' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
-                    {filt}
+                    {t(`memberMaster.${filt}`)}
                   </button>
                 ))}
               </div>
@@ -336,28 +364,28 @@ export default function MemberMaster() {
               <select
                 value={villageFilter}
                 onChange={(e) => setVillageFilter(e.target.value)}
-                className="bg-white border border-zinc-300 px-2 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-zinc-500 min-w-[120px]"
+                className={`bg-white border border-zinc-300 px-2 py-1.5 outline-none focus:border-zinc-500 min-w-[120px] ${i18n.language === 'gu' ? 'font-prompt text-xs' : 'text-[10px] font-bold uppercase'}`}
               >
-                <option value="all">ALL VILLAGES</option>
+                <option value="all">{t('memberMaster.allVillages')}</option>
                 {uniqueVillages.map(v => (
-                  <option key={v} value={v}>{v.toUpperCase()}</option>
+                  <option key={v} value={v}>{v}</option>
                 ))}
               </select>
 
               <select
                 value={bankFilter}
                 onChange={(e) => setBankFilter(e.target.value)}
-                className="bg-white border border-zinc-300 px-2 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-zinc-500 min-w-[120px]"
+                className="bg-white border border-zinc-300 px-2 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-zinc-500 min-w-[120px] force-en font-sans"
               >
-                <option value="all">ALL BANKS</option>
+                <option value="all">{t('memberMaster.allBanks')}</option>
                 {uniqueBanks.map(b => (
-                  <option key={b} value={b}>{b.toUpperCase()}</option>
+                  <option key={b} value={b}>{b}</option>
                 ))}
               </select>
               <button
                 onClick={loadMembers}
                 className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                title="Refresh Registry"
+                title={t('memberMaster.refreshRegistry')}
               >
                 <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
@@ -368,75 +396,91 @@ export default function MemberMaster() {
             {loading && members.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
                 <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">LOADING REGISTRY DATA...</p>
+                <p className="text-xs font-mono">{t('memberMaster.loadingData')}</p>
               </div>
             ) : filteredMembers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
                 <UserMinus size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">NO MEMBERS REGISTERED</p>
+                <p className="text-xs font-mono">{t('memberMaster.noMembers')}</p>
                 <button 
                   onClick={handleCreateMember} 
                   className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition"
                 >
-                  REGISTER FIRST MEMBER
+                  {t('memberMaster.registerFirst')}
                 </button>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse select-none font-mono text-xs">
+              <table className={`w-full text-left border-collapse select-none text-sm ${i18n.language === 'gu' ? 'font-sans' : 'font-mono'}`}>
                 <thead>
                   <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                    <th className="px-4 py-2 border-r border-zinc-200">Member Info</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Village / Address</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Bank Details</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-center w-24">Status</th>
-                    <th className="px-4 py-2 text-center w-28">Actions</th>
+                    <th className="px-4 py-3 border-r border-zinc-200">{t('memberMaster.memberInfo')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200">{t('memberMaster.villageAddress')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200">{t('memberMaster.bankDetails')}</th>
+                    <th className="px-4 py-3 border-r border-zinc-200 text-center w-24">{t('memberMaster.status')}</th>
+                    <th className="px-4 py-3 text-center w-28">{t('memberMaster.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
                   {filteredMembers.map((member) => (
                     <tr key={member.id} className="hover:bg-zinc-50/60 transition-colors">
-                      <td className="px-4 py-2 border-r border-zinc-200">
+                      <td className="px-4 py-3 border-r border-zinc-200">
                         <div className="flex flex-col">
-                          <p className="text-xs font-bold text-zinc-800 font-sans uppercase tracking-tight italic">
-                            {member.member_name}
+                          <p className={`text-base font-bold text-zinc-900 leading-normal ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase italic'}`}>
+                            {i18n.language === 'en' ? (member.eng_name || member.member_name) : (member.member_name_gu || member.member_name)}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {member.p_code ? (
-                              <span className="inline-flex items-center bg-zinc-100 text-zinc-800 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300">
-                                {member.p_code}
-                              </span>
+                              <span 
+                                className="inline-flex items-center bg-zinc-100 text-zinc-800 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300 dynamic-en"
+                                style={{ '--en-text': `"${member.p_code}"` }}
+                                translate="no"
+                              ></span>
                             ) : (
-                              <span className="inline-flex items-center bg-zinc-100 text-zinc-700 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300">
-                                {member.member_code}
-                              </span>
+                              <span 
+                                className="inline-flex items-center bg-zinc-100 text-zinc-700 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300 dynamic-en"
+                                style={{ '--en-text': `"${member.member_code}"` }}
+                                translate="no"
+                              ></span>
                             )}
                             {member.p_code && (
-                              <span className="text-[9px] text-zinc-400">#{member.member_code}</span>
+                              <span 
+                                className="text-[9px] text-zinc-400 dynamic-en"
+                                style={{ '--en-text': `"#${member.member_code}"` }}
+                                translate="no"
+                              ></span>
                             )}
-                            <span className="text-[10px] text-zinc-400 font-sans italic">{member.eng_name || '-'}</span>
+                            <span className="text-[10px] text-zinc-400 italic force-en notranslate" translate="no">{member.eng_name || '-'}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200">
                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 text-xs text-zinc-700 font-sans font-bold uppercase">
+                          <div className="flex items-center gap-1.5 text-xs text-zinc-700 font-bold">
                             <MapPin size={12} className="text-zinc-500" />
-                            {member.village_name || 'Unassigned'}
+                            {member.village_name || t('memberMaster.unassigned')}
                           </div>
-                          <div className="text-[10px] font-bold text-zinc-400 uppercase leading-none">
-                            {member.address_no || 'NO ADDRESS'}
+                          <div className="text-[10px] font-bold text-zinc-400 leading-none">
+                            {member.address_no || t('memberMaster.noAddress')}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200">
+                      <td className="px-4 py-2 border-r border-zinc-200 notranslate google-notranslate force-en" translate="no">
                         <div className="flex flex-col">
-                          <p className="text-[10px] font-bold text-zinc-700 uppercase tracking-tight leading-none mb-0.5">{member.bank_name || 'NO BANK'}</p>
-                          <p className="text-[10px] font-bold text-zinc-400">{member.full_ac_number || 'N/A'}</p>
+                          <span 
+                            className="text-[10px] font-bold text-zinc-700 uppercase tracking-tight leading-none mb-0.5 dynamic-en" 
+                            style={{ '--en-text': `"${member.bank_name || 'N/A'}"` }}
+                            translate="no"
+                          ></span>
+                          <span 
+                            className="text-[10px] font-bold text-zinc-400 dynamic-en" 
+                            style={{ '--en-text': `"${member.full_ac_number || 'N/A'}"` }}
+                            translate="no"
+                          ></span>
                         </div>
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200 text-center">
                         <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${member.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                          {member.is_active ? 'ACTIVE' : 'INACTIVE'}
+                           {member.is_active ? t('memberMaster.active') : t('memberMaster.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-2">
@@ -444,21 +488,21 @@ export default function MemberMaster() {
                           <button
                             onClick={() => handleEditMember(member)}
                             className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                            title="Edit"
+                            title={t('memberMaster.edit')}
                           >
                             <Edit3 size={13} />
                           </button>
                           <button
                             onClick={() => handleStatusToggle(member)}
                             className={`p-1 border border-zinc-300 bg-zinc-50 transition shadow-sm ${member.is_active ? 'text-red-600 hover:bg-red-50 hover:border-red-300' : 'text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300'}`}
-                            title={member.is_active ? 'Deactivate' : 'Activate'}
+                            title={member.is_active ? t('memberMaster.deactivate') : t('memberMaster.activate')}
                           >
                             <Power size={13} />
                           </button>
                           <button
                             onClick={() => confirmDelete(member)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
-                            title="Delete"
+                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:red-700 transition shadow-sm"
+                            title={t('memberMaster.delete')}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -481,7 +525,7 @@ export default function MemberMaster() {
             <MemberForm
               companyId={company?.id}
               onSuccess={(msg) => {
-                setMessage({ type: 'success', text: msg || 'Member saved successfully.' });
+                setMessage({ type: 'success', text: msg || t('memberMaster.memberSaved') });
                 handleFormSuccess();
               }}
               editingMember={editingMember}
@@ -495,8 +539,8 @@ export default function MemberMaster() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
-        title="DELETE MEMBER RECORD"
-        message={`ARE YOU SURE YOU WANT TO DELETE "${memberToDelete?.member_name?.toUpperCase() || ''}"? THIS ACTION CANNOT BE UNDONE.`}
+        title={t('memberMaster.deleteTitle')}
+        message={t('memberMaster.deleteConfirm', { name: memberToDelete?.member_name || '' })}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalOpen(false)}
       />

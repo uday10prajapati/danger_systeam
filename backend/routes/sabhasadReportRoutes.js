@@ -71,6 +71,7 @@ router.get('/', async (req, res) => {
         m.id AS member_id,
         m.member_code,
         m.member_name,
+        m.village_name,
         m.bardan_opening,
         COALESCE(a.account_name, 'Subledger Member') as account_name,
         
@@ -160,25 +161,28 @@ router.get('/', async (req, res) => {
       if (accs.length > 0) selectedAcc = accs[0];
     }
 
-    const dangarAcc = await query("SELECT id FROM accounts WHERE (account_code = 'DS0001' OR account_name ILIKE '%DANGAR SYSTEM%') AND company_id = ?", [companyId]);
+    const dangarAcc = await query("SELECT id FROM accounts WHERE (account_code = 'DS0001' OR account_name ILIKE '%DANGAR SYSTEM%' OR account_name ILIKE '%dangar%') AND company_id = ?", [companyId]);
     const isDangar = dangarAcc.some(a => String(a.id) === String(accountId));
 
-    const purchaseAcc = await query("SELECT id FROM accounts WHERE (account_name ILIKE '%PURCHES%' OR account_name ILIKE '%PURCHASE%') AND company_id = ?", [companyId]);
+    const purchaseAcc = await query(`SELECT id FROM accounts WHERE (account_name ILIKE '%PURCHES%' OR account_name ILIKE '%PURCHASE%' OR account_name ILIKE '%qrldi%' OR account_name ILIKE '%\u0a96\u0ab0\u0ac0\u0aa6\u0ac0%') AND company_id = ?`, [companyId]);
     const isPurchase = purchaseAcc.some(a => String(a.id) === String(accountId));
 
-    const saleAcc = await query("SELECT id FROM accounts WHERE account_name ILIKE '%SALE%' AND company_id = ?", [companyId]);
+    const saleAcc = await query(`SELECT id FROM accounts WHERE (account_name ILIKE '%SALE%' OR account_name ILIKE '%veca%' OR account_name ILIKE '%\u0ab5\u0ac7\u0a9a\u0abe\u0aa3%') AND company_id = ?`, [companyId]);
     const isSale = saleAcc.some(a => String(a.id) === String(accountId));
 
     const bardanSysAcc = await query("SELECT id FROM accounts WHERE account_name ILIKE '%Bardan System%' AND company_id = ?", [companyId]);
     const isBardan = bardanSysAcc.some(a => String(a.id) === String(accountId));
 
-    const isInterest = selectedAcc?.account_code === 'IK0001' || selectedAcc?.account_name?.toLowerCase().includes('interest khate');
+    const isInterest = selectedAcc?.account_code === 'IK0001' || 
+                       selectedAcc?.account_name?.toLowerCase().includes('interest khate') ||
+                       selectedAcc?.account_name?.toLowerCase().includes('vyaj');
 
     if (accountId && isBardan) {
       const bardanSql = `
         SELECT 
           m.member_code,
           m.member_name,
+          m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
           CASE 
@@ -249,6 +253,7 @@ router.get('/', async (req, res) => {
         SELECT 
           m.member_code,
           m.member_name,
+          m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
           al.description,
@@ -258,8 +263,8 @@ router.get('/', async (req, res) => {
           'Sale Account' as account_name,
           s.payment_type
         FROM account_ledger al
-        LEFT JOIN member_master m ON al.member_id = m.id
-        LEFT JOIN sales s ON (('SALE-' || CAST(s.id AS TEXT)) = al.reference_no OR s.invoice_no = al.reference_no)
+        LEFT JOIN sales s ON (('SALE-' || CAST(s.id AS TEXT)) = al.reference_no OR s.invoice_no = al.reference_no OR ((al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') AND al.reference_id = s.id))
+        LEFT JOIN member_master m ON COALESCE(al.member_id, s.member_id) = m.id
         WHERE al.company_id = ? AND al.account_id = ?
         AND al.transaction_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
@@ -304,6 +309,7 @@ router.get('/', async (req, res) => {
         SELECT 
           m.member_code,
           m.member_name,
+          m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
           al.description,
@@ -311,7 +317,8 @@ router.get('/', async (req, res) => {
           COALESCE(al.credit, al.credit_amount, 0) as credit,
           'Purchase Account' as account_name
         FROM account_ledger al
-        LEFT JOIN member_master m ON al.member_id = m.id
+        LEFT JOIN dangar_entry de ON (al.reference_type = 'dangar_entry' AND al.reference_id = de.id)
+        LEFT JOIN member_master m ON COALESCE(al.member_id, de.member_id) = m.id
         WHERE al.company_id = ? AND al.account_id = ?
         AND al.transaction_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
@@ -360,6 +367,7 @@ router.get('/', async (req, res) => {
         SELECT 
           m.member_code,
           m.member_name,
+          m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
           CASE 
@@ -390,7 +398,9 @@ router.get('/', async (req, res) => {
           al.interest_amount as raw_interest_amount,
           al.interest_account_id
         FROM account_ledger al
-        LEFT JOIN member_master m ON al.member_id = m.id
+        LEFT JOIN dangar_entry de ON (al.reference_type = 'dangar_entry' AND al.reference_id = de.id)
+        LEFT JOIN sales s ON ((al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') AND al.reference_id = s.id)
+        LEFT JOIN member_master m ON COALESCE(al.member_id, de.member_id, s.member_id) = m.id
         LEFT JOIN accounts a ON al.account_id = a.id
         WHERE al.company_id = ? 
         AND (
@@ -477,6 +487,7 @@ router.get('/', async (req, res) => {
         SELECT 
           COALESCE(m.member_code, 'SYSTEM') as member_code,
           COALESCE(m.member_name, 'GENERAL COLLECTION') as member_name,
+          m.village_name,
           al.transaction_date as entry_date,
           al.reference_no as invoice_no,
           al.description,
@@ -507,6 +518,7 @@ router.get('/', async (req, res) => {
         SELECT 
           COALESCE(m.member_code, 'SYSTEM') as member_code,
           COALESCE(m.member_name, 'GENERAL LABOUR') as member_name,
+          m.village_name,
           al.transaction_date as entry_date,
           al.reference_no as invoice_no,
           al.description,
@@ -546,6 +558,7 @@ router.get('/', async (req, res) => {
         member_id: row.member_id,
         member_code: row.member_code,
         member_name: row.member_name,
+        village_name: row.village_name,
         account_name: row.account_name,
         last_activity_date: row.last_activity_date,
         opening_balance: openingBalance.toFixed(2),

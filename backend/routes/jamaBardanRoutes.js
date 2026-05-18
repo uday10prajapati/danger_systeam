@@ -35,7 +35,11 @@ router.get('/', async (req, res) => {
 // GET one jama bardan entry with items
 router.get('/:id', async (req, res) => {
   try {
-    const entry = await queryOne(`SELECT * FROM jama_bardan_entry WHERE id = ?`, [req.params.id]);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID format' });
+    }
+    const entry = await queryOne(`SELECT * FROM jama_bardan_entry WHERE id = ?`, [id]);
 
     if (!entry) {
       return res.status(404).json({ success: false, message: 'Entry not found' });
@@ -142,6 +146,10 @@ router.post('/', async (req, res) => {
 // PUT update jama bardan entry
 router.put('/:id', async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID format' });
+    }
     const companyId = req.headers['x-company-id'] || req.body.company_id;
     const financialYear = req.headers['x-financial-year'] || req.body.financial_year || '2026-27';
     
@@ -149,7 +157,7 @@ router.put('/:id', async (req, res) => {
       bookType, pavtiNo, date, memNominal, code, name, qty, option, remark, dayQty, totalQty, gridRows 
     } = req.body;
 
-    console.log('🔄 Updating Jama Bardan Entry:', { id: req.params.id, code, qty });
+    console.log('🔄 Updating Jama Bardan Entry:', { id, code, qty });
     await execute(`
       UPDATE jama_bardan_entry SET 
         book_type = ?, pavti_no = ?, entry_date = ?, 
@@ -159,7 +167,7 @@ router.put('/:id', async (req, res) => {
       WHERE id = ?
     `, [
       bookType, pavtiNo, date, memNominal, code, name, qty || 0, 
-      option, remark, dayQty || 0, totalQty || 0, req.params.id
+      option, remark, dayQty || 0, totalQty || 0, id
     ]);
 
     // --- Sync with Account Ledger (Update) ---
@@ -189,20 +197,20 @@ router.put('/:id', async (req, res) => {
           `, [
              companyId, financialYear, bardanAccount.id, member.id,
              date, pavtiNo, ledgerDesc,
-             0, qty || 0, 'jama_bardan_entry', req.params.id
+             0, qty || 0, 'jama_bardan_entry', id
           ]);
        }
     }
 
     // Update Grid Items (Delete and Re-insert)
-    await execute('DELETE FROM jama_bardan_items WHERE entry_id = ?', [req.params.id]);
+    await execute('DELETE FROM jama_bardan_items WHERE entry_id = ?', [id]);
     
     if (gridRows && gridRows.length > 0) {
       for (const row of gridRows) {
         if (row.col1 || row.col2 || row.col3) {
           await execute(
             'INSERT INTO jama_bardan_items (entry_id, col1, col2, col3) VALUES (?, ?, ?, ?)',
-            [req.params.id, row.col1, row.col2, row.col3]
+            [id, row.col1, row.col2, row.col3]
           );
         }
       }
@@ -218,11 +226,15 @@ router.put('/:id', async (req, res) => {
 // DELETE jama bardan entry
 router.delete('/:id', async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID format' });
+    }
     // 1. Delete from ledger first
-    await execute("DELETE FROM account_ledger WHERE reference_type = 'jama_bardan_entry' AND reference_id = ?", [req.params.id]);
+    await execute("DELETE FROM account_ledger WHERE reference_type = 'jama_bardan_entry' AND reference_id = ?", [id]);
     
     // 2. Delete the entry (Foreign key with ON DELETE CASCADE will handle jama_bardan_items)
-    await execute('DELETE FROM jama_bardan_entry WHERE id = ?', [req.params.id]);
+    await execute('DELETE FROM jama_bardan_entry WHERE id = ?', [id]);
     
     res.json({ success: true, message: 'Jama Bardan entry deleted' });
   } catch (error) {

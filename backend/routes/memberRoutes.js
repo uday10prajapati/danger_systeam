@@ -163,7 +163,7 @@ router.post('/', async (req, res) => {
     const {
       sabhasadCode, sabhasadName, p_code, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
-      engName, nominalMember, ifscCode, bardanOpening, is_active
+      engName, nominalMember, ifscCode, bardanOpening, is_active, member_name_gu
     } = req.body;
 
     // Check for duplicate name
@@ -177,11 +177,11 @@ router.post('/', async (req, res) => {
 
     const result = await execute(
       `INSERT INTO member_master 
-      (company_id, financial_year, member_code, member_name, p_code, phone, village_code, village_name, 
+      (company_id, financial_year, member_code, member_name, member_name_gu, p_code, phone, village_code, village_name, 
        full_ac_number, bank_name, branch_name, account_type, address_no, eng_name, nominal_member, ifsc_code, bardan_opening, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        company_id, financial_year, sabhasadCode, sabhasadName, p_code || null, phoneNo || null, 
+        company_id, financial_year, sabhasadCode, sabhasadName, member_name_gu || null, p_code || null, phoneNo || null, 
         villageCode || null, villageName || null, fullAcNumber || null, bankName || null, 
         branchName || null, accountType || null, addressNo || null, engName || null, nominalMember || null, ifscCode || null, bardanOpening || 0, is_active !== undefined ? is_active : 1
       ]
@@ -209,7 +209,7 @@ router.put('/:id', async (req, res) => {
     const {
       sabhasadCode, sabhasadName, p_code, phoneNo, villageCode, villageName,
       fullAcNumber, bankName, branchName, accountType, addressNo,
-      engName, nominalMember, ifscCode, bardanOpening, is_active
+      engName, nominalMember, ifscCode, bardanOpening, is_active, member_name_gu
     } = req.body;
 
     // Check for duplicate name
@@ -223,13 +223,13 @@ router.put('/:id', async (req, res) => {
 
     await execute(
       `UPDATE member_master SET 
-        member_code = ?, member_name = ?, p_code = ?, phone = ?, village_code = ?, 
+        member_code = ?, member_name = ?, member_name_gu = ?, p_code = ?, phone = ?, village_code = ?, 
         village_name = ?, full_ac_number = ?, bank_name = ?, branch_name = ?, 
         account_type = ?, address_no = ?, eng_name = ?, nominal_member = ?,
         ifsc_code = ?, bardan_opening = ?, is_active = ?, financial_year = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND company_id = ?`,
       [
-        sabhasadCode, sabhasadName, p_code || null, phoneNo, villageCode, villageName,
+        sabhasadCode, sabhasadName, member_name_gu || null, p_code || null, phoneNo, villageCode, villageName,
         fullAcNumber, bankName, branchName, accountType, addressNo,
         engName, nominalMember, ifscCode, bardanOpening || 0, is_active !== undefined ? is_active : 1, financial_year, req.params.id, company_id
       ]

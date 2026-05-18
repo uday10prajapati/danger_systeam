@@ -71,8 +71,9 @@ export function registerCompanyRoutes(app) {
         });
       }
 
-      const {
+        const {
         company_name,
+        company_name_gu,
         address,
         phone,
         email,
@@ -86,11 +87,12 @@ export function registerCompanyRoutes(app) {
 
       const result = await execute(
         `INSERT INTO company (
-          company_name, address, phone, email, gst_number, company_account_no,
+          company_name, company_name_gu, address, phone, email, gst_number, company_account_no,
           financial_year_start, financial_year_end, currency, logo_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           company_name.trim(),
+          company_name_gu ? company_name_gu.trim() : null,
           address.trim(),
           phone,
           email.toLowerCase(),
@@ -154,6 +156,7 @@ export function registerCompanyRoutes(app) {
 
       const {
         company_name,
+        company_name_gu,
         address,
         phone,
         email,
@@ -167,13 +170,14 @@ export function registerCompanyRoutes(app) {
 
       await execute(
         `UPDATE company SET
-          company_name = ?, address = ?, phone = ?, email = ?,
+          company_name = ?, company_name_gu = ?, address = ?, phone = ?, email = ?,
           gst_number = ?, company_account_no = ?,
           financial_year_start = ?, financial_year_end = ?,
           currency = ?, logo_url = ?
         WHERE id = ?`,
         [
           company_name.trim(),
+          company_name_gu ? company_name_gu.trim() : null,
           address.trim(),
           phone,
           email.toLowerCase(),

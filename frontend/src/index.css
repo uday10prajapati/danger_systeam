@@ -1,9 +1,147 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+@font-face {
+  font-family: 'Prompt';
+  src: url('/fonts/Prompt.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-body {
-  font-family: var(--font-sans);
+@font-face {
+  font-family: 'NotoGujarati';
+  src: url('/fonts/NotoSansGujarati-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Noto Sans Gujarati", "NotoGujarati", "Inter", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Prompt", ui-monospace, SFMono-Regular, monospace !important;
+}
+
+html {
+  font-size: 16px;
+}
+
+/* Global increase for Gujarati language mode */
+html[lang="gu"] {
+  font-size: 17.5px;
+}
+
+/* Default Font for App (Unicode UI) */
+body,
+#root {
+  font-family: "Noto Sans Gujarati", "NotoGujarati", sans-serif !important;
+}
+
+/* Legacy Style Font for specific data entry/display */
+.font-prompt {
+  font-family: 'Prompt', sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 1.2em !important; 
+  line-height: 1.5 !important;
+}
+
+/* Prompt font without size override — for small UI elements like navbar, badges, table cells */
+.font-prompt-sm {
+  font-family: 'Prompt', sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+}
+
+/* Target small Tailwind utilities when in Gujarati mode to prevent them from being too tiny */
+html[lang="gu"] .text-xs {
+  font-size: 0.9rem !important;
+}
+
+html[lang="gu"] .text-sm {
+  font-size: 1rem !important;
+}
+
+html[lang="gu"] .text-\[10px\],
+html[lang="gu"] .text-\[9px\] {
+  font-size: 0.75rem !important;
+}
+
+/* Specific exclusion for inputs in general */
+html:not([lang="en"]) input:not([type="password"]):not([type="email"]):not(.force-en),
+html:not([lang="en"]) textarea:not(.force-en),
+html:not([lang="en"]) select:not(.force-en) {
+  font-family: inherit;
+}
+
+/* Force standard system fonts for English mode and sensitive fields */
+html[lang="en"] *,
+.force-en,
+.login-page *,
+input[type="email"],
+input[type="password"],
+input[name="username"],
+input[name="password"] {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Optimize text size inside all input boxes */
+input,
+textarea,
+select {
+  font-size: 0.85rem !important;
+}
+
+/* Larger inputs for Gujarati mode to ensure legibility */
+html[lang="gu"] input,
+html[lang="gu"] textarea,
+html[lang="gu"] select {
+  font-size: 0.95rem !important;
+}
+
+/* 
+  Language Switcher Protection 
+  We use CSS content injection because translators (Google Translate) 
+  cannot "see" or translate text defined in CSS.
+*/
+.lang-label-en::before {
+  content: "EN" !important;
+}
+
+.lang-label-gu::before {
+  content: "GU" !important;
+}
+
+.label-ifsc-gu {
+  display: inline-block;
+  min-height: 1em;
+}
+
+.label-ifsc-gu::before {
+  content: "IFSC Code" !important;
+  font-family: ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.label-gst-gu::before {
+  content: "GST Number" !important;
+  font-family: ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.label-tin-gu::before {
+  content: "TIN/PAN Details" !important;
+  font-family: ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.dynamic-en::before {
+  content: var(--en-text) !important;
+  font-family: ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.notranslate,
+.google-notranslate,
+.force-en {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-style: normal !important;
 }

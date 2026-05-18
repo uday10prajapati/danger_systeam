@@ -1,16 +1,16 @@
 import { query, execute } from './db.js';
 
 const newSystemAccounts = [
-  { code: 'DS0001', name: 'Dangar System', type: 'System Account', is_system: 1, is_subledger: 1 },
-  { code: 'BS0001', name: 'Bardan System', type: 'System Account', is_system: 1, is_subledger: 1 },
-  { code: 'L0001', name: 'Member Advance Account', type: 'liabilities', is_system: 1, is_subledger: 1 },
-  { code: 'P0001', name: 'Dangar Purchase', type: 'purchase', is_system: 1, is_subledger: 0 },
-  { code: 'S0001', name: 'Dangar Sale', type: 'sales', is_system: 1, is_subledger: 0 },
-  { code: 'IK0001', name: 'Interest Account', type: 'System Account', is_system: 1, is_subledger: 1 },
-  { code: 'BK0001', name: 'Brokerage Account', type: 'System Account', is_system: 1, is_subledger: 1 },
-  { code: 'RK0001', name: 'Rounding Account', type: 'System Account', is_system: 1, is_subledger: 1 },
-  { code: 'LK0001', name: 'Labour Account', type: 'System Account', is_system: 1, is_subledger: 1 },
-  { code: 'CS0001', name: 'Cash Account', type: 'System Account', is_system: 1, is_subledger: 0 }
+  { code: 'DS0001', name: 'ડાંગર સિસ્ટમ ખાતું', type: 'System Account', is_system: 1, is_subledger: 1 },
+  { code: 'BS0001', name: 'બારદાન સિસ્ટમ ખાતું', type: 'System Account', is_system: 1, is_subledger: 1 },
+  { code: 'L0001', name: 'સભાસદ એડવાન્સ ખાતું', type: 'liabilities', is_system: 1, is_subledger: 1 },
+  { code: 'P0001', name: 'ડાંગર ખરીદ ખાતું', type: 'purchase', is_system: 1, is_subledger: 0 },
+  { code: 'S0001', name: 'ડાંગર વેચાણ ખાતું', type: 'sales', is_system: 1, is_subledger: 0 },
+  { code: 'IK0001', name: 'વ્યાજ ખાતું', type: 'System Account', is_system: 1, is_subledger: 1 },
+  { code: 'BK0001', name: 'દલાલી ખાતું', type: 'System Account', is_system: 1, is_subledger: 1 },
+  { code: 'RK0001', name: 'રાઉન્ડિંગ ખાતું', type: 'System Account', is_system: 1, is_subledger: 1 },
+  { code: 'LK0001', name: 'મજૂરી ખાતું', type: 'System Account', is_system: 1, is_subledger: 1 },
+  { code: 'CS0001', name: 'રોકડ ખાતું', type: 'System Account', is_system: 1, is_subledger: 0 }
 ];
 
 async function resetSystemAccounts() {

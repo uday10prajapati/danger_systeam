@@ -48,8 +48,8 @@ export function validateUser(data) {
   }
 
   // is_active validation
-  if (data.is_active !== undefined && typeof data.is_active !== 'boolean') {
-    errors.is_active = 'is_active must be a boolean value';
+  if (data.is_active !== undefined && typeof data.is_active !== 'boolean' && data.is_active !== 0 && data.is_active !== 1) {
+    errors.is_active = 'is_active must be a boolean or integer (0/1) value';
   }
 
   return {

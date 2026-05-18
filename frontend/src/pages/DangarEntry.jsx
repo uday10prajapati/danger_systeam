@@ -5,17 +5,20 @@ import {
   Calendar, Info, AlertCircle, FileText,
   User, Box, Calculator, Truck,
   CheckCircle, History, Edit3, ChevronRight, Eye,
-  TrendingDown, CreditCard, TrendingUp
+  TrendingDown, CreditCard, TrendingUp, Package
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
+import html2canvas from 'html2canvas';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { sabhasadMasterApi, dangarEntryApi, bardanEntryApi } from '../api';
 import Toast from '../components/Toast';
+import { formatBilingualText } from '../utils/textUtils';
 
 const DangarEntry = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -253,8 +256,11 @@ const DangarEntry = () => {
   };
 
   useEffect(() => {
-    const bagCountFromWeights = weightRows.length;
-    let totalKG = weightRows.reduce((acc, row) => acc + (parseFloat(row.wgt) || 0), 0);
+    // Only count rows that have a valid weight entry > 0
+    const validWeightRows = weightRows.filter(r => parseFloat(r.wgt) > 0);
+    const bagCountFromWeights = validWeightRows.length;
+    
+    let totalKG = validWeightRows.reduce((acc, row) => acc + (parseFloat(row.wgt) || 0), 0);
 
     const totalMan = totalKG / 20;
     const grossQuintal = totalKG / 100;
@@ -348,93 +354,661 @@ const DangarEntry = () => {
     } catch (e) { console.warn('Gujarati font load failed', e); }
   };
 
-  const handleExportSlipPDF = async () => {
-    const cName = company ? (company.company_name || 'Company') : 'Company';
-    if (!formData.member_id || !formData.item_id) {
-      alert('Please fill in the member and item first.');
+  const handleExportSlipPDF = async (record = null) => {
+    setLoading(true);
+    try {
+      let data = record || formData;
+      
+      // If it's a history record, fetch full details to ensure weights are present
+      if (record && record.id) {
+        try {
+          const detailRes = await dangarEntryApi.getById(record.id);
+          if (detailRes.data.success) {
+            data = { 
+              ...detailRes.data.data, 
+              member_name: record.member_name, 
+              member_code: record.member_code,
+              item_name_gu: record.item_name_gu || record.item_name
+            };
+          }
+        } catch (err) {
+          console.warn('Full detail fetch failed, using list data', err);
+        }
+      }
+
+      const weightsArray = record ? (data.weights || []) : weightRows;
+      const filteredWeights = weightsArray.filter(w => {
+        const val = w.weight || w.wgt || 0;
+        return parseFloat(val) > 0;
+      });
+
+      if (!data.member_id) {
+        setMessage({ type: 'error', text: 'Required information missing for export' });
+        setLoading(false);
+        return;
+      }
+
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+
+      const memberObj = record ? { member_name: data.member_name, member_code: data.member_code } : members.find(m => m.id === parseInt(data.member_id));
+      const itemObj = record ? { item_name_gu: data.item_name_gu || data.item_name, item_name: data.item_name } : items.find(i => i.id === parseInt(data.item_id));
+      const companyData = company || {};
+      const cName = companyData.company_name_gu || companyData.company_name || 'ડાન્ગેર સ્યસ્તેમ';
+
+      const tempWrap = document.createElement('div');
+      tempWrap.style.position = 'fixed';
+      tempWrap.style.left = '-10000px';
+      tempWrap.style.top = '0';
+      tempWrap.style.width = '750px';
+      tempWrap.style.background = '#fff';
+      tempWrap.style.padding = '40px';
+      tempWrap.className = 'notranslate';
+
+      let weightRowsHtml = '';
+      for (let i = 0; i < filteredWeights.length; i += 5) {
+        const chunk = filteredWeights.slice(i, i + 5);
+        weightRowsHtml += `
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            ${chunk.map((w, idx) => `
+              <td style="border-right:1px solid #e2e8f0; padding:10px; text-align:center; width:20%;">
+                <div style="font-size:10px; color:#64748b; font-family:Arial; font-weight:bold;">BARDAN ${i + idx + 1}</div>
+                <div style="font-weight:900; font-size:18px; font-family:Arial; color:#1e293b; margin-top:2px;">${toGujaratiDigits(w.weight || w.wgt)}</div>
+              </td>
+            `).join('')}
+            ${Array(5 - chunk.length).fill('<td style="border-right:1px solid #e2e8f0; width:20%;"></td>').join('')}
+          </tr>
+        `;
+      }
+
+      tempWrap.innerHTML = `
+        <div style="border:5px solid #2563eb; padding:30px; background:#fff; font-family:'Noto Sans Gujarati', sans-serif;">
+          <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <tr>
+              <td style="text-align:center; border-bottom:3px solid #2563eb; padding-bottom:15px;">
+                <div style="font-size:36px; font-weight:900; color:#2563eb; font-family:'Prompt', sans-serif !important;">${cName}</div>
+                <div style="font-size:22px; font-weight:700; color:#1e293b; margin-top:5px;">ડાંગેર પાકી પહોંચ</div>
+              </td>
+            </tr>
+          </table>
+
+          <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:16px;">
+            <tr>
+              <td style="width:65%; vertical-align:top;">
+                <div style="color:#64748b; font-size:12px; font-weight:bold; text-transform:uppercase;">MEMBER / સભાસદ</div>
+                <div style="font-size:26px; font-weight:900; color:#0f172a; margin:5px 0; font-family:'Prompt', sans-serif !important;">${memberObj?.member_name || '-'}</div>
+                <div style="color:#2563eb; font-weight:bold; font-family:Arial;">CODE: ${toGujaratiDigits(memberObj?.member_code || '-')}</div>
+              </td>
+              <td style="width:35%; text-align:right; vertical-align:top;">
+                <div style="color:#64748b; font-size:12px; font-weight:bold; text-transform:uppercase;">DETAILS / વિગત</div>
+                <div style="font-weight:bold; margin:5px 0; font-family:Arial;">DATE: ${toGujaratiDigits(new Date(data.date || data.entry_date).toLocaleDateString('en-GB'))}</div>
+                <div style="color:#2563eb; font-weight:bold; font-family:Arial;">BILL: #${data.srNo || data.sr_no}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="background:#f8fafc; padding:15px; border:1px solid #e2e8f0; margin-bottom:25px;">
+            <table style="width:100%; border-collapse:collapse;">
+              <tr>
+                <td style="width:50%;">
+                  <div style="color:#64748b; font-size:11px; font-weight:bold;">ITEM / આઇટમ</div>
+                  <div style="font-size:18px; font-weight:bold; font-family:'Prompt', sans-serif !important;">${itemObj?.item_name_gu || itemObj?.item_name || '-'}</div>
+                </td>
+                <td style="width:25%; text-align:center;">
+                  <div style="color:#64748b; font-size:11px; font-weight:bold;">QUALITY / ક્વોલિટી</div>
+                  <div style="font-size:18px; font-weight:bold; color:#2563eb;">${data.quality_class}</div>
+                </td>
+                <td style="width:25%; text-align:right;">
+                  <div style="color:#64748b; font-size:11px; font-weight:bold;">VEHICLE / વાહન</div>
+                  <div style="font-size:18px; font-weight:bold; font-family:Arial;">${data.vehicleNo || '-'}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="margin-bottom:25px; border:2px solid #e2e8f0; border-bottom:none;">
+            <div style="background:#f1f5f9; padding:8px 15px; border-bottom:1px solid #e2e8f0; font-size:11px; font-weight:bold; color:#475569;">ITEMIZED WEIGHT REGISTRY / વજન વિગત</div>
+            <table style="width:100%; border-collapse:collapse; background:#fff;">
+              ${weightRowsHtml}
+            </table>
+          </div>
+
+          <table style="width:100%; border-collapse:collapse; margin-bottom:30px;">
+            <tr>
+              <td style="width:48%; vertical-align:top;">
+                <table style="width:100%; border-collapse:collapse; background:#f1f5f9; border-radius:8px; overflow:hidden;">
+                  <tr>
+                    <td style="padding:12px; border-bottom:1px solid #cbd5e1; font-weight:bold;">કુલ વજન (TOTAL KG)</td>
+                    <td style="padding:12px; border-bottom:1px solid #cbd5e1; text-align:right; font-family:Arial; font-weight:900;">${toGujaratiDigits(data.total_kg)} KG</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px; border-bottom:1px solid #cbd5e1; font-weight:bold;">કુલ બારદાન (TOTAL GUN)</td>
+                    <td style="padding:12px; border-bottom:1px solid #cbd5e1; text-align:right; font-family:Arial; font-weight:900;">${toGujaratiDigits(data.returned_bags)} GUN</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px; font-weight:bold;">નેટ વજન (NET QNTL)</td>
+                    <td style="padding:12px; text-align:right; font-family:Arial; font-weight:900;">${toGujaratiDigits(data.net_quintal)} QT</td>
+                  </tr>
+                </table>
+              </td>
+              <td style="width:4%;"></td>
+              <td style="width:48%; vertical-align:top;">
+                <table style="width:100%; border-collapse:collapse; background:#fff; border:2px solid #2563eb;">
+                  <tr style="background:#2563eb; color:#fff;">
+                    <td style="padding:12px; font-weight:bold;">વિગત</td>
+                    <td style="padding:12px; text-align:right; font-weight:bold;">રકમ (₹)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px; border-bottom:1px solid #e2e8f0;">કુલ રકમ (GROSS)</td>
+                    <td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-family:Arial;">${toGujaratiDigits(data.gross_amount || (parseFloat(data.total_kg) * parseFloat(data.rate) / 100))}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px; border-bottom:1px solid #e2e8f0;">કપાત (DEDUCTION)</td>
+                    <td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; color:#dc2626; font-family:Arial;">- ${toGujaratiDigits(data.total_deduction || 0)}</td>
+                  </tr>
+                  <tr style="background:#eff6ff; color:#1e40af; font-size:20px; font-weight:900;">
+                    <td style="padding:15px;">ચૂકવવા પાત્ર</td>
+                    <td style="padding:15px; text-align:right; font-family:Arial;">₹${toGujaratiDigits(data.amount)}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <table style="width:100%; border-collapse:collapse; margin-top:50px;">
+            <tr>
+              <td style="width:33.3%; text-align:center;">
+                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:11px; font-weight:bold; color:#475569;">તૈયાર કરનાર</div>
+              </td>
+              <td style="width:33.3%; text-align:center;">
+                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:11px; font-weight:bold; color:#475569;">રિસીવર સહી</div>
+              </td>
+              <td style="width:33.3%; text-align:center;">
+                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:11px; font-weight:bold; color:#475569;">સભાસદ સહી</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+
+      document.body.appendChild(tempWrap);
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const canvas = await html2canvas(tempWrap, {
+        scale: 2.5,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      document.body.removeChild(tempWrap);
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 30;
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, imgH);
+      doc.save(`Dangar_Slip_${data.srNo || data.sr_no}.pdf`);
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      setMessage({ type: 'error', text: 'Failed to generate PDF' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportBardanPDF = async (record = null) => {
+    setLoading(true);
+    try {
+      let data = record || formData;
+
+      // If it's a history record, fetch full details to ensure weights are present
+      if (record && record.id) {
+        try {
+          const detailRes = await dangarEntryApi.getById(record.id);
+          if (detailRes.data.success) {
+            data = { 
+              ...detailRes.data.data, 
+              member_name: record.member_name, 
+              member_code: record.member_code,
+              item_name_gu: record.item_name_gu || record.item_name
+            };
+          }
+        } catch (err) {
+          console.warn('Full detail fetch failed, using list data', err);
+        }
+      }
+
+      const weightsArray = record ? (data.weights || []) : weightRows;
+      const filteredWeights = weightsArray.filter(w => {
+        const val = w.weight || w.wgt || 0;
+        return parseFloat(val) > 0;
+      });
+
+      if (!data.member_id) {
+        setMessage({ type: 'error', text: 'Member information required' });
+        setLoading(false);
+        return;
+      }
+
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+
+      const companyData = company || {};
+      const cName = companyData.company_name_gu || companyData.company_name || 'ડાન્ગેર સ્યસ્તેમ';
+      const reportTitle = 'બારદાન જમા સ્લિપ';
+
+      const memberObj = record ? { member_name: data.member_name, member_code: data.member_code } : members.find(m => m.id === parseInt(data.member_id));
+      const itemObj = record ? { item_name_gu: data.item_name_gu || data.item_name, item_name: data.item_name } : items.find(i => i.id === parseInt(data.item_id));
+
+      const tempWrap = document.createElement('div');
+      tempWrap.style.position = 'fixed';
+      tempWrap.style.left = '-10000px';
+      tempWrap.style.top = '0';
+      tempWrap.style.width = '700px';
+      tempWrap.style.background = '#fff';
+      tempWrap.style.padding = '30px';
+      tempWrap.className = 'notranslate';
+      tempWrap.setAttribute('translate', 'no');
+
+      let weightRowsHtml = '';
+      for (let i = 0; i < filteredWeights.length; i += 5) {
+        const chunk = filteredWeights.slice(i, i + 5);
+        weightRowsHtml += `
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            ${chunk.map((w, idx) => `
+              <td style="border-right:1px solid #e2e8f0; padding:15px; text-align:center; width:20%;">
+                <div style="font-size:11px; color:#64748b; font-family:Arial; font-weight:bold;">BARDAN ${i + idx + 1}</div>
+                <div style="font-weight:900; font-size:22px; font-family:Arial; color:#2563eb; margin-top:4px;">${toGujaratiDigits(w.weight || w.wgt)}</div>
+              </td>
+            `).join('')}
+            ${Array(5 - chunk.length).fill('<td style="border-right:1px solid #e2e8f0; width:20%;"></td>').join('')}
+          </tr>
+        `;
+      }
+
+      tempWrap.innerHTML = `
+        <div style="border:5px solid #2563eb; padding:25px; background:#fff; font-family:'Noto Sans Gujarati', sans-serif;">
+          <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <tr>
+              <td style="text-align:center; border-bottom:3px solid #2563eb; padding-bottom:15px;">
+                <div style="font-size:32px; font-weight:900; color:#2563eb; font-family:'Prompt', sans-serif !important;">${cName}</div>
+                <div style="font-size:20px; font-weight:700; color:#1e293b; margin-top:5px;">${reportTitle}</div>
+              </td>
+            </tr>
+          </table>
+
+          <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:16px;">
+            <tr>
+              <td style="width:60%; vertical-align:top;">
+                <div style="color:#64748b; font-size:12px; font-weight:bold;">સભાસદ વિગત</div>
+                <div style="font-size:24px; font-weight:900; color:#0f172a; margin:5px 0; font-family:'Noto Sans Gujarati', sans-serif !important;">${memberObj?.member_name || '-'}</div>
+                <div style="color:#2563eb; font-weight:bold; font-family:Arial, sans-serif !important;">કોડ: ${toGujaratiDigits(memberObj?.member_code || '-')}</div>
+              </td>
+              <td style="width:40%; text-align:right; vertical-align:top;">
+                <div style="color:#64748b; font-size:12px; font-weight:bold;">એન્ટ્રી વિગત</div>
+                <div style="font-weight:bold; margin:5px 0; font-family:Arial, sans-serif !important;">તારીખ: ${toGujaratiDigits(new Date(data.entry_date || data.date).toLocaleDateString('en-GB'))}</div>
+                <div style="color:#2563eb; font-weight:bold; font-family:Arial, sans-serif !important;">SR: #${data.sr_no || data.srNo}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="background:#f1f5f9; padding:15px; border-left:6px solid #2563eb; margin-bottom:25px;">
+            <div style="color:#64748b; font-size:12px; font-weight:bold;">આઇટમ</div>
+            <div style="font-size:20px; font-weight:bold; color:#0f172a; font-family:'Noto Sans Gujarati', sans-serif !important;">${itemObj?.item_name_gu || itemObj?.item_name || '-'}</div>
+          </div>
+
+          <div style="margin-bottom:30px; border:2px solid #e2e8f0; border-bottom:none;">
+            <div style="background:#f8fafc; padding:10px 15px; border-bottom:1px solid #e2e8f0; font-size:13px; font-weight:900; color:#1e293b;">બારદાન વાઈઝ વજન વિગત (BARDAN WISE WEIGHT)</div>
+            <table style="width:100%; border-collapse:collapse; background:#fff;">
+              ${weightRowsHtml}
+            </table>
+          </div>
+
+          <table style="width:100%; border-collapse:collapse; margin-top:20px; background:#f8fafc; border:2px solid #e2e8f0;">
+            <tr>
+              <td style="padding:20px; width:50%;">
+                <div style="color:#64748b; font-size:12px; font-weight:bold;">કુલ વજન (TOTAL KG)</div>
+                <div style="font-size:32px; font-weight:900; color:#2563eb; font-family:Arial, sans-serif;">${toGujaratiDigits(record ? record.total_kg : data.total_kg)} <span style="font-size:16px;">KG</span></div>
+              </td>
+              <td style="padding:20px; width:50%; text-align:right;">
+                <div style="color:#64748b; font-size:12px; font-weight:bold;">કુલ બારદાન (TOTAL GUN)</div>
+                <div style="font-size:32px; font-weight:900; color:#0f172a; font-family:Arial, sans-serif;">${toGujaratiDigits(record ? record.returned_bags : data.returned_bags)} <span style="font-size:16px;">GUN</span></div>
+              </td>
+            </tr>
+          </table>
+
+          <table style="width:100%; border-collapse:collapse; margin-top:60px;">
+            <tr>
+              <td style="width:50%; text-align:center;">
+                <div style="width:200px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:12px; font-weight:bold; color:#475569;">રિસીવર સહી</div>
+              </td>
+              <td style="width:50%; text-align:center;">
+                <div style="width:200px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:12px; font-weight:bold; color:#475569;">સભાસદ સહી</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+
+      document.body.appendChild(tempWrap);
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 800));
+      
+      const canvas = await html2canvas(tempWrap, { 
+        scale: 2.5, 
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      document.body.removeChild(tempWrap);
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const imgData = canvas.toDataURL('image/png');
+      const margin = 30;
+      const docW = doc.internal.pageSize.getWidth();
+      const printW = docW - (margin * 2);
+      const printH = (canvas.height * printW) / canvas.width;
+
+      doc.addImage(imgData, 'PNG', margin, margin, printW, printH);
+      doc.save(`Bardan_Receipt_${data.srNo || data.sr_no}.pdf`);
+    } catch (e) {
+      console.error(e);
+      setMessage({ type: 'error', text: 'Bardan Slip generation failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportBardanSummaryPDF = async () => {
+    if (history.length === 0) {
+      setMessage({ type: 'error', text: 'No history data to export' });
       return;
     }
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    await addGujaratiFont(doc);
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 40;
-    const navy = [15,23,42], white = [255,255,255], gray = [100,116,139], dark = [30,41,59];
 
-    doc.setFillColor(...navy); doc.rect(0,0,W,30,'F');
-    doc.setFont('NotoGujarati','normal'); doc.setFontSize(9); doc.setTextColor(...white);
-    doc.text(cName.toUpperCase(), M, 20);
-    doc.setFontSize(7.5); doc.setTextColor(148,163,184);
-    doc.text('DANGAR ENTRY SLIP', W/2, 20, {align:'center'});
-    doc.setFontSize(7); doc.setTextColor(239,68,68);
-    doc.text('CONFIDENTIAL', W-M, 20, {align:'right'});
+    setLoading(true);
+    try {
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+      const companyData = company || {};
+      const cName = companyData.company_name_gu || companyData.company_name || 'ડાન્ગેર સ્યસ્તેમ';
 
-    let y = 50;
-    doc.setFont('NotoGujarati','normal'); doc.setFontSize(16); doc.setTextColor(...navy);
-    doc.text('Dangar Entry Slip', M, y);
-    doc.setFontSize(8); doc.setTextColor(...gray);
-    doc.text('SR: ' + (formData.srNo === 'AUTO' ? 'Auto-Generate' : '#' + formData.srNo) + '   |   Date: ' + new Date(formData.date).toLocaleDateString('en-GB') + '   |   Generated: ' + new Date().toLocaleString('en-IN'), M, y+14);
-    doc.setDrawColor(226,232,240); doc.setLineWidth(0.5); doc.line(M, y+20, W-M, y+20);
-    y += 32;
+      const tempWrap = document.createElement('div');
+      tempWrap.style.position = 'fixed';
+      tempWrap.style.left = '-10000px';
+      tempWrap.style.top = '0';
+      tempWrap.style.width = '1200px';
+      tempWrap.style.background = '#fff';
+      tempWrap.style.padding = '40px';
+      tempWrap.className = 'notranslate';
 
-    const member = members.find(m => m.id === parseInt(formData.member_id));
-    const item = items.find(i => i.id === parseInt(formData.item_id));
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Field','Details','Field','Details']],
-      body: [
-        ['Member', member ? member.member_name + ' [' + member.member_code + ']' : '-', 'Item', item ? item.item_name : '-'],
-        ['Book Type', formData.bookType, 'Quality Class', formData.quality_class + ' Class'],
-        ['Vehicle No', formData.vehicleNo || '-', 'Season', (formData.season||'').toUpperCase()],
-        ['Remark', formData.remark || '-', 'Date', new Date(formData.date).toLocaleDateString('en-GB')]
-      ],
-      styles: { font:'helvetica', fontSize:8, cellPadding:[5,8], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
-      headStyles: { font:'helvetica', fillColor:navy, textColor:white },
-      alternateRowStyles: { fillColor:[248,250,252] },
-      theme: 'grid', margin: { left:M, right:M }
-    });
-
-    y = doc.lastAutoTable.finalY + 16;
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Measurement','Value']],
-      body: [
-        ['Total Gross KG', parseFloat(formData.total_kg||0).toFixed(2) + ' kg'],
-        ['Bardan Bags', formData.returned_bags || 0],
-        ['Gun Weight Deduction', parseFloat(formData.less_bardan||0).toFixed(2) + ' kg'],
-        ['Net Quintal', parseFloat(formData.net_quintal||0).toFixed(2) + ' Qt'],
-        ['Rate per Quintal', parseFloat(formData.rate||0).toFixed(2)],
-        ['Gross Amount', parseFloat(formData.gross_amount||0).toLocaleString('en-IN', {minimumFractionDigits:2})],
-        ['Total Deduction (Kapat)', '- ' + parseFloat(formData.total_deduction||0).toLocaleString('en-IN', {minimumFractionDigits:2})],
-        ['NET PAYABLE', parseFloat(formData.amount||0).toLocaleString('en-IN', {minimumFractionDigits:2})]
-      ],
-      styles: { font:'helvetica', fontSize:8, cellPadding:[5,8], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
-      headStyles: { font:'helvetica', fillColor:navy, textColor:white },
-      alternateRowStyles: { fillColor:[248,250,252] },
-      didParseCell: (data) => {
-        if (data.row.index === 7) {
-          data.cell.styles.fillColor = navy;
-          data.cell.styles.textColor = white;
+      const tableRows = history.map((row, idx) => {
+        const weights = row.weights || [];
+        const filteredWeights = weights.filter(w => w.weight > 0);
+        
+        let weightGridHtml = '';
+        for (let i = 0; i < filteredWeights.length; i += 10) {
+          const chunk = filteredWeights.slice(i, i + 10);
+          weightGridHtml += `
+            <div style="display:flex; border-top:1px solid #e2e8f0;">
+              ${chunk.map((w, cIdx) => `
+                <div style="flex:1; border-right:1px solid #e2e8f0; padding:4px; text-align:center;">
+                  <div style="font-size:7px; color:#64748b; font-family:Arial;">${i + cIdx + 1}</div>
+                  <div style="font-weight:bold; font-size:11px; font-family:Arial;">${toGujaratiDigits(w.weight)}</div>
+                </div>
+              `).join('')}
+              ${Array(10 - chunk.length).fill('<div style="flex:1; border-right:1px solid #e2e8f0;"></div>').join('')}
+            </div>
+          `;
         }
-      },
-      theme: 'grid', columnStyles: { 0: { cellWidth: 200 } },
-      margin: { left:M, right:M }
-    });
 
-    const totPg = doc.internal.getNumberOfPages();
-    for (let i=1; i<=totPg; i++) {
-      doc.setPage(i);
-      doc.setDrawColor(226,232,240); doc.setLineWidth(0.4);
-      doc.line(M, H-18, W-M, H-18);
-      doc.setFont('NotoGujarati','normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.text(cName + ' - Dangar Entry', M, H-9);
-      doc.text('Page ' + i + ' of ' + totPg, W-M, H-9, {align:'right'});
+        return `
+          <div style="margin-bottom:20px; border:1px solid #2563eb; break-inside:avoid;">
+            <div style="background:#eff6ff; padding:10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #2563eb;">
+              <div>
+                <span style="font-weight:900; font-size:16px;">${row.member_name}</span>
+                <span style="margin-left:15px; color:#2563eb; font-weight:bold; font-family:Arial;">(CODE: ${toGujaratiDigits(row.member_code)})</span>
+              </div>
+              <div style="font-family:Arial; font-weight:bold;">
+                DATE: ${toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))} | BILL: #${row.sr_no}
+              </div>
+            </div>
+            
+            <div style="padding:10px;">
+              <div style="font-size:10px; color:#64748b; margin-bottom:5px; font-weight:bold; text-transform:uppercase;">વજન વિગત (BARDAN WISE WEIGHTS)</div>
+              <div style="border:1px solid #e2e8f0; border-right:none; border-top:none;">
+                ${weightGridHtml || '<div style="padding:10px; color:#94a3b8;">No weights recorded</div>'}
+              </div>
+            </div>
+
+            <div style="background:#f8fafc; padding:10px; border-top:1px solid #2563eb; display:flex; justify-content:flex-end; gap:30px;">
+              <div><span style="font-size:11px; color:#64748b;">TOTAL BARDAN:</span> <span style="font-weight:900; font-family:Arial;">${toGujaratiDigits(row.returned_bags)}</span></div>
+              <div><span style="font-size:11px; color:#64748b;">TOTAL WEIGHT:</span> <span style="font-weight:900; font-family:Arial; color:#2563eb;">${toGujaratiDigits(row.total_kg)} KG</span></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      tempWrap.innerHTML = `
+        <div style="font-family:'Noto Sans Gujarati', sans-serif; color:#1e293b;">
+          <div style="text-align:center; border-bottom:4px solid #2563eb; padding-bottom:20px; margin-bottom:30px;">
+            <div style="font-size:36px; font-weight:900; color:#2563eb; font-family:'Prompt', sans-serif !important;">${cName}</div>
+            <div style="font-size:22px; font-weight:bold; color:#64748b; margin-top:5px;">વિગતવાર સભાસદ બારદાન રિપોર્ટ (Detailed Member Bardan Statement)</div>
+          </div>
+          ${tableRows}
+        </div>
+      `;
+
+      document.body.appendChild(tempWrap);
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const canvas = await html2canvas(tempWrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      document.body.removeChild(tempWrap);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const imgW = doc.internal.pageSize.getWidth() - 60;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      doc.addImage(canvas.toDataURL('image/png'), 'PNG', 30, 30, imgW, imgH);
+      doc.save(`Bardan_Detailed_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Report generation failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportHistoryPDF = async () => {
+    if (history.length === 0) {
+      setMessage({ type: 'error', text: 'No history data to export' });
+      return;
     }
 
-    doc.save('Dangar_Slip_' + (formData.srNo !== 'AUTO' ? formData.srNo + '_' : '') + new Date().toISOString().split('T')[0] + '.pdf');
+    setLoading(true);
+    try {
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+      const companyData = company || {};
+      const cName = companyData.company_name_gu || companyData.company_name || 'ડાન્ગેર સ્યસ્તેમ';
+
+      const tempWrap = document.createElement('div');
+      tempWrap.style.position = 'fixed';
+      tempWrap.style.left = '-10000px';
+      tempWrap.style.top = '0';
+      tempWrap.style.width = '1000px';
+      tempWrap.style.background = '#fff';
+      tempWrap.style.padding = '40px';
+      tempWrap.className = 'notranslate';
+
+      const tableRows = history.map((row, idx) => `
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:12px; text-align:center;">${toGujaratiDigits(idx + 1)}</td>
+          <td style="padding:12px;">${toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))}</td>
+          <td style="padding:12px; font-weight:bold;">${row.sr_no}</td>
+          <td style="padding:12px; font-weight:bold; font-family:'Prompt', sans-serif !important;">${row.member_name}</td>
+          <td style="padding:12px; text-align:center;">${toGujaratiDigits(row.returned_bags)}</td>
+          <td style="padding:12px; text-align:right; font-weight:900; color:#2563eb;">${toGujaratiDigits(row.total_kg)} KG</td>
+          <td style="padding:12px; text-align:right; font-weight:900; color:#1e293b;">₹${toGujaratiDigits(row.amount)}</td>
+        </tr>
+      `).join('');
+
+      tempWrap.innerHTML = `
+        <div style="font-family:'Noto Sans Gujarati', sans-serif; color:#1e293b;">
+          <div style="text-align:center; border-bottom:4px solid #2563eb; padding-bottom:20px; margin-bottom:30px;">
+            <div style="font-size:36px; font-weight:900; color:#2563eb; font-family:'Prompt', sans-serif !important;">${cName}</div>
+            <div style="font-size:22px; font-weight:bold; color:#64748b; margin-top:5px;">ડાંગેર વ્યવહાર ઇતિહાસ (Transaction History)</div>
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <thead>
+              <tr style="background:#1e293b; color:#fff;">
+                <th style="padding:15px;">ક્રમ</th>
+                <th style="padding:15px;">તારીખ</th>
+                <th style="padding:15px;">બિલ</th>
+                <th style="padding:15px; text-align:left;">સભાસદ</th>
+                <th style="padding:15px;">બારદાન</th>
+                <th style="padding:15px; text-align:right;">કુલ વજન</th>
+                <th style="padding:15px; text-align:right;">ચૂકવવા પાત્ર</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      `;
+
+      document.body.appendChild(tempWrap);
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const canvas = await html2canvas(tempWrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      document.body.removeChild(tempWrap);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const imgW = doc.internal.pageSize.getWidth() - 60;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      doc.addImage(canvas.toDataURL('image/png'), 'PNG', 30, 30, imgW, imgH);
+      doc.save(`Dangar_History_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'History PDF failed' });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleExportAllBardanSlipsPDF = async () => {
+    if (history.length === 0) {
+      setMessage({ type: 'error', text: 'No history records' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+      const companyData = company || {};
+      const cName = companyData.company_name_gu || companyData.company_name || 'ડાન્ગેર સ્યસ્તેમ';
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 40;
+      const contentW = pageW - margin * 2;
+
+      for (let idx = 0; idx < history.length; idx++) {
+        const row = history[idx];
+        const weights = row.weights || [];
+        const filteredWeights = weights.filter(w => w.weight > 0);
+
+        const tempWrap = document.createElement('div');
+        tempWrap.style.width = '800px';
+        tempWrap.style.padding = '40px';
+        tempWrap.style.background = '#fff';
+        tempWrap.className = 'notranslate';
+
+        let weightRowsHtml = '';
+        for (let i = 0; i < filteredWeights.length; i += 5) {
+          const chunk = filteredWeights.slice(i, i + 5);
+          weightRowsHtml += `
+            <tr>
+              ${chunk.map((w, cIdx) => `
+                <td style="border:1px solid #e2e8f0; padding:12px; text-align:center; width:20%;">
+                  <div style="font-size:10px; color:#64748b; font-family:Arial;">GUN ${i + cIdx + 1}</div>
+                  <div style="font-weight:bold; font-size:18px; font-family:Arial;">${toGujaratiDigits(w.weight)}</div>
+                </td>
+              `).join('')}
+              ${Array(5 - chunk.length).fill('<td style="border:1px solid #e2e8f0; width:20%;"></td>').join('')}
+            </tr>
+          `;
+        }
+
+        tempWrap.innerHTML = `
+          <div style="border:4px solid #2563eb; padding:30px; font-family:'Noto Sans Gujarati', sans-serif;">
+            <div style="text-align:center; border-bottom:3px solid #2563eb; padding-bottom:15px; margin-bottom:20px;">
+              <div style="font-size:36px; font-weight:900; color:#2563eb; font-family:'Prompt', sans-serif !important;">${cName}</div>
+              <div style="font-size:22px; font-weight:700; color:#1e293b;">બારદાન જમા સ્લિપ</div>
+            </div>
+
+            <table style="width:100%; margin-bottom:20px;">
+              <tr>
+                <td style="width:60%;">
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">સભાસદ</div>
+                  <div style="font-size:26px; font-weight:900; color:#0f172a;">${row.member_name}</div>
+                  <div style="color:#2563eb; font-weight:bold; font-family:Arial;">CODE: ${toGujaratiDigits(row.member_code)}</div>
+                </td>
+                <td style="width:40%; text-align:right;">
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">એન્ટ્રી વિગત</div>
+                  <div style="font-weight:bold; font-family:Arial;">તારીખ: ${toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))}</div>
+                  <div style="color:#2563eb; font-weight:bold; font-family:Arial;">SR: #${row.sr_no}</div>
+                </td>
+              </tr>
+            </table>
+
+            <div style="margin-bottom:25px;">
+              <div style="color:#64748b; font-size:12px; font-weight:bold; margin-bottom:10px;">વજન રજિસ્ટ્રી</div>
+              <table style="width:100%; border-collapse:collapse;">
+                ${weightRowsHtml}
+              </table>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; background:#f8fafc; border:2px solid #e2e8f0;">
+              <tr>
+                <td style="padding:20px; width:50%;">
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">કુલ વજન (TOTAL KG)</div>
+                  <div style="font-size:36px; font-weight:900; color:#2563eb; font-family:Arial;">${toGujaratiDigits(row.total_kg)} KG</div>
+                </td>
+                <td style="padding:20px; width:50%; text-align:right;">
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">કુલ બારદાન (TOTAL GUN)</div>
+                  <div style="font-size:36px; font-weight:900; color:#0f172a; font-family:Arial;">${toGujaratiDigits(row.returned_bags)} GUN</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        `;
+
+        document.body.appendChild(tempWrap);
+        await document.fonts.ready;
+        const canvas = await html2canvas(tempWrap, { scale: 2, useCORS: true });
+        document.body.removeChild(tempWrap);
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgH = (canvas.height * contentW) / canvas.width;
+
+        if (idx > 0) doc.addPage();
+        doc.addImage(imgData, 'PNG', margin, margin, contentW, imgH);
+      }
+
+      doc.save(`All_Bardan_Slips_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Bulk Export failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleAddRow = () => {
     setWeightRows([...weightRows, { id: Date.now(), wgt: '' }]);
@@ -468,7 +1042,7 @@ const DangarEntry = () => {
         financial_year: user.financial_year || '2026-27',
         entry_date: formData.date,
         created_by: user.id || 1,
-        weights: weightRows,
+        weights: weightRows.filter(r => r.wgt && parseFloat(r.wgt) > 0),
         deductions: deductions,
         weight_unit: 'kg'
       };
@@ -479,6 +1053,10 @@ const DangarEntry = () => {
 
       if (res.data.success) {
         setMessage({ type: 'success', text: id ? 'Transaction node updated successfully' : `Transaction committed. Node SR: ${res.data.data.srNo}` });
+        
+        // Auto-download PDF on new entry or update
+        handleExportSlipPDF(res.data.data);
+        
         if (!id) resetForm();
         setTimeout(() => {
           setMessage(null);
@@ -555,7 +1133,7 @@ const DangarEntry = () => {
   };
 
   const handleHistoryPrint = () => {
-    const cName = company?.company_name || 'Company';
+    const cName = company?.company_name_gu || company?.company_name || 'Company';
     const filteredHistory = history.filter(row => {
       const rowDate = new Date(row.entry_date).toISOString().split('T')[0];
       const matchesDate = (!historyFilters.startDate || rowDate >= historyFilters.startDate) &&
@@ -568,23 +1146,26 @@ const DangarEntry = () => {
       return matchesDate && matchesMember;
     });
 
+    const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+    const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+
     const totalQt = filteredHistory.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
     const rows = filteredHistory.map((row, i) => `
       <tr style="background:${i%2===0?'#fff':'#f1f5f9'}">
-        <td>${new Date(row.entry_date).toLocaleDateString('en-GB')}</td>
-        <td>#${row.sr_no}<br/><span style="font-size:9px;color:#94a3b8">${row.book_type}</span></td>
-        <td><strong>${row.member_name}</strong><br/><span style="font-size:9px;color:#94a3b8">CODE: ${row.member_code}</span></td>
-        <td>${row.item_name || '-'}</td>
-        <td>${row.quality_class || '1st'}</td>
-        <td>${row.vehicle_no || '-'}</td>
-        <td style="text-align:right">${parseFloat(row.net_quintal||0).toFixed(2)} Qt</td>
+        <td style="font-family:Arial, sans-serif;">${toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))}</td>
+        <td style="font-family:Arial, sans-serif;" translate="no">#${String(row.sr_no || '')}<br/><span style="font-size:9px;color:#94a3b8">${t('dangarEntry.form.' + row.book_type.toLowerCase()) || row.book_type}</span></td>
+        <td><strong style="font-family:'Prompt', sans-serif;">${row.member_name}</strong><br/><span style="font-size:9px;color:#94a3b8">${t('memberMaster.code') || 'CODE'}: ${toGujaratiDigits(row.member_code)}</span></td>
+        <td style="font-family:'Prompt', sans-serif;">${row.item_name || '-'}</td>
+        <td style="font-family:Arial, sans-serif;">${row.quality_class === '1st' ? t('dangarMaster.filters.first') : row.quality_class === '2nd' ? t('dangarMaster.filters.second') : row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st')}</td>
+        <td style="font-family:Arial, sans-serif;">${row.vehicle_no || '-'}</td>
+        <td style="text-align:right;font-family:Arial, sans-serif;">${toGujaratiDigits(parseFloat(row.net_quintal||0).toFixed(2))} ${t('dangarMaster.table.unit')}</td>
       </tr>`);
     const win = window.open('', '_blank', 'width=1100,height=800');
-    win.document.write(`<html><head><title>${cName} - Transaction History</title>
+    win.document.write(`<html><head><title>${cName} - ${t('dangarEntry.historyTitle')}</title>
       <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:20px}
         .logo-bar{background:#0f172a;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-        .logo-bar h1{font-size:13px;font-weight:900;text-transform:uppercase}.logo-bar span{font-size:9px;color:#94a3b8}
-        h2{font-size:18px;font-weight:900;text-transform:uppercase;margin-bottom:2px}
+        .logo-bar h1{font-size:13px;font-weight:900;font-family:'Prompt', sans-serif;}.logo-bar span{font-size:9px;color:#94a3b8}
+        h2{font-size:18px;font-weight:900;margin-bottom:2px}
         p.sub{font-size:9px;color:#64748b;margin-bottom:10px}
         hr{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
         table{width:100%;border-collapse:collapse}
@@ -594,70 +1175,22 @@ const DangarEntry = () => {
         tfoot tr{background:#1e293b;color:#fff;font-weight:700}
         @media print{@page{size:A4 portrait;margin:1.5cm}}
       </style></head><body>
-      <div class='logo-bar'><h1>${cName}</h1><span>Dangar Transaction History &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
-      <h2>Transaction History</h2>
-      <p class='sub'>Dangar &middot; Tuver &middot; Divela Manifest &nbsp;|&nbsp; Records: ${filteredHistory.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
-      ${historyFilters.startDate || historyFilters.fromMember ? `<p class='sub'>Filters: ${historyFilters.startDate||'--'} to ${historyFilters.endDate||'--'} | Member: ${historyFilters.fromMember||'--'} to ${historyFilters.toMember||'--'}</p>` : ''}
+      <div class='logo-bar'><h1>${cName}</h1><span>${t('dangarEntry.historyTitle')} &nbsp;|&nbsp; ${toGujaratiDigits(new Date().toLocaleDateString('en-IN'))}</span></div>
+      <h2>${t('dangarEntry.historyTitle')}</h2>
+      <p class='sub'>${t('common.records')}: ${toGujaratiDigits(filteredHistory.length)} &nbsp;|&nbsp; ${t('dangarMaster.pdfReport.generated')}: ${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</p>
+      ${historyFilters.startDate || historyFilters.fromMember ? `<p class='sub'>${t('dangarEntry.historyFilter')}: ${toGujaratiDigits(historyFilters.startDate||'--')} થી ${toGujaratiDigits(historyFilters.endDate||'--')} | ${t('dangarEntry.historyMemberRange')}: ${toGujaratiDigits(historyFilters.fromMember||'--')} થી ${toGujaratiDigits(historyFilters.toMember||'--')}</p>` : ''}
       <hr/>
       <table>
-        <thead><tr><th>Date</th><th>Reference</th><th>Member</th><th>Item</th><th>Class</th><th>Vehicle</th><th style='text-align:right'>Net Quintal</th></tr></thead>
+        <thead><tr><th>${t('common.date')}</th><th>${t('common.billNumber')}</th><th>${t('dangarEntry.form.memberNode')}</th><th>${t('dangarEntry.form.itemStructure')}</th><th>${t('dangarEntry.form.qualityVector')}</th><th>${t('dangarEntry.form.vehicle')}</th><th style='text-align:right'>${t('dangarEntry.stats.netVol')}</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
-        <tfoot><tr><td colspan='6'>TOTALS &mdash; ${filteredHistory.length} Records</td><td style='text-align:right'>${totalQt.toFixed(2)} Qt</td></tr></tfoot>
+        <tfoot><tr><td colspan='6'>${t('dangarMaster.table.totals')} &mdash; ${toGujaratiDigits(filteredHistory.length)} ${t('common.records')}</td><td style='text-align:right'>${toGujaratiDigits(totalQt.toFixed(2))} ${t('dangarMaster.table.unit')}</td></tr></tfoot>
       </table></body></html>`);
     win.document.close(); win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
   const handleHistoryExportPDF = async () => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 32;
-    const navy = [15,23,42], white = [255,255,255], gray = [100,116,139], dark = [30,41,59], stripe = [241,245,249];
-    const cName = company?.company_name || 'Company';
-
-    try {
-      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-      const blob = await res.blob();
-      await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          doc.addFileToVFS('NotoSansGujarati.ttf', reader.result.split(',')[1]);
-          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-          resolve();
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) { console.warn('Could not load font', e); }
-
-    const hdr = () => {
-       doc.setFillColor(...navy); doc.rect(0,0,W,26,'F');
-       doc.setFont('NotoGujarati','normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-       doc.text(cName.toUpperCase(), M, 17);
-       doc.setFontSize(7); doc.setTextColor(148,163,184);
-       doc.text('TRANSACTION HISTORY', W/2, 17, {align:'center'});
-       doc.setFontSize(7); doc.setTextColor(239,68,68);
-       doc.text('CONFIDENTIAL', W-M, 17, {align:'right'});
-    };
-
-    const ftr = (pg, tot) => {
-       doc.setDrawColor(226,232,240); doc.setLineWidth(0.4); doc.line(M, H-18, W-M, H-18);
-       doc.setFont('NotoGujarati','normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-       doc.text(cName + ' - Transaction History', M, H-9);
-       doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W/2, H-9, {align:'center'});
-       doc.text('Page ' + pg + ' of ' + tot, W-M, H-9, {align:'right'});
-    };
-
-    hdr();
-    let y = 40;
-    doc.setFont('NotoGujarati','normal'); doc.setFontSize(15); doc.setTextColor(...navy);
-    doc.text('Dangar Transaction History', M, y);
-    doc.setFontSize(7.5); doc.setTextColor(...gray);
-    doc.text('Records: ' + history.length + '  |  Generated: ' + new Date().toLocaleString('en-IN'), M, y+13);
-    doc.setDrawColor(226,232,240); doc.setLineWidth(0.4); doc.line(M, y+18, W-M, y+18);
-    y += 28;
-
-    const filteredHistory = history.filter(row => {
+    const rows = history.filter(row => {
       const rowDate = new Date(row.entry_date).toISOString().split('T')[0];
       const matchesDate = (!historyFilters.startDate || rowDate >= historyFilters.startDate) &&
                          (!historyFilters.endDate || rowDate <= historyFilters.endDate);
@@ -669,33 +1202,112 @@ const DangarEntry = () => {
       return matchesDate && matchesMember;
     });
 
-    const totalQt = filteredHistory.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
-    const bodyRows = filteredHistory.map(row => [
-        new Date(row.entry_date).toLocaleDateString('en-GB'),
-        '#' + row.sr_no + ' (' + row.book_type + ')',
-        row.member_name,
-        row.item_name || '-',
-        row.quality_class || '1st',
-        row.vehicle_no || '-',
-        parseFloat(row.net_quintal||0).toFixed(2)
-    ]);
+    if (!rows.length) {
+      setMessage({ type: 'error', text: t('dangarMaster.noRecords') });
+      return;
+    }
 
-    autoTable(doc, {
-       startY: y,
-       head: [['Date', 'Reference', 'Member', 'Item', 'Class', 'Vehicle', 'Net Quintal']],
-       body: bodyRows,
-       foot: [['', '', '', '', '', 'TOTAL', totalQt.toFixed(2)]],
-       styles: { font: 'helvetica', fontSize:8, cellPadding:[4,5], textColor:dark, lineColor:[226,232,240], lineWidth:0.3 },
-       headStyles: { font: 'helvetica', fillColor:navy, textColor:white, fontStyle: 'normal' },
-       footStyles: { font: 'helvetica', fillColor:[30,41,59], textColor:white },
-       alternateRowStyles: { fillColor:stripe },
-       theme: 'grid',
-       margin: { left:M, right:M }
-    });
+    setLoading(true);
+    try {
+      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+      const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
 
-    const tot = doc.internal.getNumberOfPages();
-    for (let i=1; i<=tot; i++) { doc.setPage(i); ftr(i,tot); }
-    doc.save('Transaction_History.pdf');
+      const companyData = company || {};
+      const cName = companyData.company_name_gu || companyData.company_name || 'Company';
+      const reportTitle = t('dangarEntry.historyTitle') || 'Transaction History';
+
+      const tempWrap = document.createElement('div');
+      tempWrap.style.position = 'fixed';
+      tempWrap.style.left = '-10000px';
+      tempWrap.style.top = '0';
+      tempWrap.style.width = '1100px';
+      tempWrap.style.background = '#fff';
+      tempWrap.style.color = '#111827';
+      tempWrap.style.fontFamily = '"Noto Sans Gujarati", "NotoGujarati", Arial, sans-serif';
+      tempWrap.style.padding = '30px';
+
+      const totalQt = rows.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
+
+      const tableRows = rows.map((r, idx) => `
+        <tr>
+          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;">${toGujaratiDigits(idx + 1)}</td>
+          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;">${toGujaratiDigits(new Date(r.entry_date).toLocaleDateString('en-GB'))}</td>
+          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;" translate="no">#${String(r.sr_no || '')}<br/><span style="font-size:10px;color:#64748b;">${t('dangarEntry.form.' + r.book_type.toLowerCase()) || r.book_type}</span></td>
+          <td style="padding:10px;border:1px solid #cbd5e1;font-weight:700;font-family:'Prompt',sans-serif !important;">${r.member_name} <br/><span style="font-size:10px;color:#64748b;font-family:Arial,sans-serif !important;">${t('memberMaster.code') || 'CODE'}: ${toGujaratiDigits(r.member_code)}</span></td>
+          <td style="padding:10px;border:1px solid #cbd5e1;font-family:'Prompt',sans-serif !important;">${r.item_name || '-'}</td>
+          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;">${r.quality_class === '1st' ? t('dangarMaster.filters.first') : r.quality_class === '2nd' ? t('dangarMaster.filters.second') : r.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(r.quality_class || '1st')}</td>
+          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;">${r.vehicle_no || '-'}</td>
+          <td style="padding:10px;border:1px solid #cbd5e1;text-align:right;font-weight:700;font-family:Arial,sans-serif !important;">${toGujaratiDigits(parseFloat(r.net_quintal).toFixed(2))}</td>
+        </tr>
+      `).join('');
+
+      tempWrap.innerHTML = `
+        <div style="border:2px solid #2563eb; border-radius:0;">
+          <div style="background:#2563eb;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:22px;font-weight:800;font-family:'Prompt', sans-serif;">${cName}</div>
+            <div style="font-size:14px;font-weight:700;opacity:0.9;">${reportTitle}</div>
+          </div>
+          <div style="padding:30px;">
+            <div style="font-size:28px;font-weight:800;color:#0f172a;margin-bottom:8px;">${reportTitle}</div>
+            <div style="font-size:14px;color:#64748b;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
+              ${t('common.from')}: <b>${toGujaratiDigits(historyFilters.startDate || '--')}</b> ${t('common.to')}: <b>${toGujaratiDigits(historyFilters.endDate || '--')}</b> | 
+              ${t('dangarEntry.historyMemberRange')}: <b>${toGujaratiDigits(historyFilters.fromMember || '--')}</b> થી <b>${toGujaratiDigits(historyFilters.toMember || '--')}</b> | 
+              ${t('dangarMaster.pdfReport.generated')}: <b>${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</b>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <thead>
+                <tr style="background:#f1f5f9;color:#475569;">
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:center;">${t('sabhasadLedgerSummary.srNo')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('common.date')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('common.billNumber')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('dangarEntry.form.memberNode')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('dangarEntry.form.itemStructure')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:center;">${t('dangarEntry.form.qualityVector')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:center;">${t('dangarEntry.form.vehicle')}</th>
+                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:right;">${t('dangarEntry.stats.netQuintal')} (${t('dangarMaster.table.unit')})</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+              <tfoot>
+                <tr style="background:#f8fafc;font-weight:800;color:#0f172a;">
+                  <td colspan="7" style="padding:15px;border:1px solid #cbd5e1;text-align:right;">${t('dangarMaster.table.totals')} (${toGujaratiDigits(rows.length)} ${t('common.records')})</td>
+                  <td style="padding:15px;border:1px solid #cbd5e1;text-align:right;font-size:16px;">${toGujaratiDigits(totalQt.toFixed(2))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(tempWrap);
+
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      const canvas = await html2canvas(tempWrap, {
+        scale: 2.5,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        fontEmbedCSS: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap'
+      });
+
+      document.body.removeChild(tempWrap);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 30;
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, imgH);
+      doc.save(`Transaction_History_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      setMessage({ type: 'error', text: 'Failed to generate PDF' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fieldRefs = [
@@ -730,8 +1342,13 @@ const DangarEntry = () => {
   const handleWeightKeyDown = (e, idx) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      const currentRow = weightRows[idx];
       if (idx === weightRows.length - 1) {
-        handleAddRow();
+        if (currentRow.wgt && parseFloat(currentRow.wgt) > 0) {
+          handleAddRow();
+        } else {
+          handleSave(e);
+        }
       } else {
         document.getElementById(`wgt-input-${idx + 1}`)?.focus();
       }
@@ -768,28 +1385,28 @@ const DangarEntry = () => {
             <div>
               <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
                 <History size={20} className="text-zinc-600" />
-                Transaction History
+                <span className={i18n.language === 'gu' ? 'font-prompt' : ''}>{t('dangarEntry.pdf.historyTitle')}</span>
               </h1>
-              <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Reports / Operational Logs</p>
+              <p className={`text-xs text-zinc-500 mt-0.5 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'font-sans'}`}>{t('dangarEntry.historyTitle') || 'Transaction History'}</p>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={handleHistoryExportPDF}
-                className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+                onClick={handleExportHistoryPDF}
+                className={`flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
               >
-                <FileText size={14} /> Export PDF
+                <FileText size={14} /> {t('common.pdf')}
               </button>
               <button
                 onClick={handleHistoryPrint}
-                className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+                className={`flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
               >
-                <Printer size={14} /> Print
+                <Printer size={14} /> {t('common.print')}
               </button>
               <button
                 onClick={() => setShowHistory(false)}
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 select-none rounded-none transition"
+                className={`flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 select-none rounded-none transition ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
               >
-                <X size={14} /> Back to Entry
+                <X size={14} /> {t('common.back')}
               </button>
             </div>
           </div>
@@ -797,7 +1414,7 @@ const DangarEntry = () => {
           <div className="bg-zinc-50 border border-zinc-300 p-4 flex flex-wrap items-center gap-4 select-none">
             <div className="flex items-center gap-2">
               <Calendar className="text-zinc-500" size={15} />
-              <span className="text-[10px] font-bold font-mono text-zinc-500 uppercase">Period Filter:</span>
+              <span className={`text-[10px] font-bold text-zinc-500 notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase font-sans'}`} translate="no">{t('dangarEntry.historyFilter') || 'Date Filter'}:</span>
             </div>
             <div className="flex items-center gap-1 border border-zinc-300 bg-white p-1">
               <input 
@@ -817,20 +1434,20 @@ const DangarEntry = () => {
 
             <div className="flex items-center gap-2 ml-4">
               <User className="text-zinc-500" size={15} />
-              <span className="text-[10px] font-bold font-mono text-zinc-500 uppercase">Member Range:</span>
+              <span className={`text-[10px] font-bold text-zinc-500 notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase font-sans'}`} translate="no">{t('dangarEntry.historyMemberRange') || 'Member Range'}:</span>
             </div>
             <div className="flex items-center gap-1 border border-zinc-300 bg-white p-1">
               <input 
                 type="text" 
-                placeholder="From"
+                placeholder={t('common.from')}
                 value={historyFilters.fromMember} 
                 onChange={e => setHistoryFilters(prev => ({ ...prev, fromMember: e.target.value }))} 
                 className="w-16 bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono px-1" 
               />
-              <span className="text-zinc-400 font-bold">to</span>
+              <span className="text-zinc-400 font-bold">{t('common.to')}</span>
               <input 
                 type="text" 
-                placeholder="To"
+                placeholder={t('common.to')}
                 value={historyFilters.toMember} 
                 onChange={e => setHistoryFilters(prev => ({ ...prev, toMember: e.target.value }))} 
                 className="w-16 bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono px-1" 
@@ -839,55 +1456,62 @@ const DangarEntry = () => {
 
             <button 
               onClick={() => setHistoryFilters({ startDate: '', endDate: '', fromMember: '', toMember: '' })} 
-              className="px-3 py-1.5 bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold text-[10px] uppercase transition rounded-none ml-auto"
+              className={`px-3 py-1.5 bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold text-[10px] uppercase transition rounded-none ml-auto ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}
             >
-              Clear Filters
+              {t('common.clear')}
             </button>
           </div>
 
           <div className="border border-zinc-300 bg-white">
-            <table className="w-full text-left font-mono text-xs select-none border-collapse">
+            <table className="w-full text-left font-sans text-xs select-none border-collapse">
               <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                  <th className="px-4 py-3 border-r border-zinc-200">Date</th>
-                  <th className="px-4 py-3 border-r border-zinc-200">Reference</th>
-                  <th className="px-4 py-3 border-r border-zinc-200">Member</th>
-                  <th className="px-4 py-3 border-r border-zinc-200 text-center">Class</th>
-                  <th className="px-4 py-3 border-r border-zinc-200 text-right">Net Man</th>
-                  <th className="px-4 py-3 border-r border-zinc-200 text-right">Net Quintal</th>
-                  <th className="px-4 py-3 text-center">Actions</th>
+                <tr className={`bg-zinc-50 border-b border-zinc-300 text-zinc-600 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                  <th className="px-4 py-3 border-r border-zinc-200">{t('common.date')}</th>
+                  <th className="px-4 py-3 border-r border-zinc-200">{t('common.billNumber')}</th>
+                  <th className="px-4 py-3 border-r border-zinc-200">{t('dangarEntry.form.memberNode')}</th>
+                  <th className="px-4 py-3 border-r border-zinc-200 text-center">{t('dangarEntry.form.qualityVector')}</th>
+                  <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('dangarEntry.form.volume')}</th>
+                  <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('dangarEntry.stats.netVol')}</th>
+                  <th className="px-4 py-3 text-center">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 bg-white">
-                {filteredHistory.map((row) => (
+                {filteredHistory.map((row) => {
+                  const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+                  const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+                  return (
                   <tr key={row.id} className="hover:bg-zinc-50/60 transition-colors">
                     <td className="px-4 py-3 border-r border-zinc-200 font-bold">
-                      {new Date(row.entry_date).toLocaleDateString('en-GB')}
+                      {toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))}
                     </td>
                     <td className="px-4 py-3 border-r border-zinc-200">
-                      <span className="text-blue-600 font-bold">#{row.sr_no}</span>
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold mt-0.5">{row.book_type}</p>
+                      <span className="text-blue-600 font-bold font-sans" translate="no">#{String(row.sr_no || '')}</span>
+                      <p className={`text-[10px] text-zinc-400 uppercase font-bold mt-0.5 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.form.' + row.book_type.toLowerCase()) || row.book_type}</p>
                     </td>
                     <td className="px-4 py-3 border-r border-zinc-200">
-                      <p className="font-sans font-bold tracking-tight text-zinc-800 uppercase italic leading-none">{row.member_name}</p>
-                      <p className="text-[10px] text-zinc-400 mt-1 uppercase font-bold font-mono">CODE: {row.member_code}</p>
+                      <p className={`font-bold tracking-tight text-zinc-800 leading-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono uppercase italic'}`} style={i18n.language === 'gu' ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(row.member_name)}</p>
+                      <p className={`text-[10px] text-zinc-400 mt-1 font-bold ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans uppercase'}`}>{t('memberMaster.code') || 'CODE'}: <span className="notranslate" translate="no">{toGujaratiDigits(row.member_code)}</span></p>
                     </td>
                     <td className="px-4 py-3 border-r border-zinc-200 text-center">
-                      <span className={`px-2 py-0.5 text-[10px] font-bold border ${row.quality_class === '1st' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : row.quality_class === '2nd' ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
-                        {row.quality_class || '1st'}
+                      <span className={`px-2 py-0.5 text-[10px] font-bold border notranslate ${i18n.language === 'gu' ? 'font-prompt' : ''} ${row.quality_class === '1st' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : row.quality_class === '2nd' ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-rose-50 border-rose-200 text-rose-600'}`} translate="no">
+                        {row.quality_class === '1st' ? t('dangarMaster.filters.first') : 
+                         row.quality_class === '2nd' ? t('dangarMaster.filters.second') : 
+                         row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st')}
                       </span>
                     </td>
                     <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-amber-600">
-                      {(parseFloat(row.net_quintal) * 5).toFixed(2)}
+                      {toGujaratiDigits((parseFloat(row.net_quintal) * 5).toFixed(2))}
                     </td>
                     <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800">
-                      {row.net_quintal}
+                      {toGujaratiDigits(row.net_quintal)}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center space-x-1 flex items-center justify-center">
+                      <button onClick={() => handleExportSlipPDF(row)} className="p-1 border border-zinc-300 bg-blue-50 hover:bg-blue-100 text-blue-600 transition" title="Transaction Slip"><FileText size={13} /></button>
+                      <button onClick={() => handleExportBardanPDF(row)} className="p-1 border border-zinc-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition" title="Bardan Receipt"><Package size={13} /></button>
                       <button onClick={() => handleDelete(row.id)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-red-600 transition" title="Delete record"><Trash2 size={13} /></button>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -907,31 +1531,37 @@ const DangarEntry = () => {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
               <Database size={20} className="text-zinc-600" />
-              {id ? "Edit Transaction Node" : "Dangar Entry Registration"}
+              <span className={i18n.language === 'gu' ? 'font-prompt' : ''}>{id ? t('dangarEntry.form.updateNode') : t('dangarEntry.title')}</span>
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Registry Management / Dangar Operations</p>
+            <p className={`text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.eyebrow')}</p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={loadHistory}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+              className={`flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
-              <History size={14} /> History
+              <History size={14} /> {t('common.history')}
             </button>
             <button
               onClick={resetForm}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
+              className={`flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
-              <X size={14} /> Reset
+              <X size={14} /> {t('common.reset')}
+            </button>
+            <button
+              onClick={() => handleExportBardanPDF()}
+              className={`flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
+            >
+              <Package size={14} /> {t('dangarEntry.pdf.bardanDepositSlip') || 'Bardan Slip'}
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="flex items-center gap-1.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
+              className={`flex items-center gap-1.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
             >
               {id ? <Edit3 size={15} /> : <Save size={15} />}
-              {id ? 'UPDATE NODE' : 'COMMIT ENTRY'}
+              {id ? t('dangarEntry.form.updateNode') : t('dangarEntry.form.commitEntry')}
             </button>
           </div>
         </div>
@@ -941,31 +1571,31 @@ const DangarEntry = () => {
           <div className="lg:col-span-8 bg-zinc-50 border border-zinc-300 p-5 flex flex-col gap-5">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Book Type</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.bookType')}</label>
                 <select
                   ref={bookTypeRef}
                   value={formData.bookType}
                   onChange={(e) => setFormData({ ...formData, bookType: e.target.value })}
                   onKeyDown={(e) => handleKeyDown(e, bookTypeRef)}
-                  className="w-full px-3 py-2 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 font-bold focus:bg-white focus:border-zinc-600 transition"
+                  className={`w-full px-3 py-2 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 font-bold focus:bg-white focus:border-zinc-600 transition ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
                 >
-                  <option value="Tuver">TUVER</option>
-                  <option value="Dangar">DANGAR</option>
-                  <option value="Divela">DIVELA</option>
+                  <option value="Tuver">{t('dangarEntry.form.tuver')}</option>
+                  <option value="Dangar">{t('dangarEntry.form.dangar')}</option>
+                  <option value="Divela">{t('dangarEntry.form.divela')}</option>
                 </select>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">SR Number</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.srNumber')}</label>
                 <div className="flex items-center h-[34px] px-3 bg-zinc-100 border border-zinc-300 font-mono text-xs select-none">
-                  <span className={`font-bold tracking-widest ${formData.srNo === 'AUTO' ? 'text-zinc-400' : 'text-blue-600'}`}>
-                    {formData.srNo === 'AUTO' ? 'Auto' : `#${formData.srNo}`}
+                  <span className={`font-bold tracking-widest notranslate ${formData.srNo === 'AUTO' ? 'text-zinc-400 font-prompt uppercase-none' : 'text-blue-600'}`} translate="no">
+                    {formData.srNo === 'AUTO' ? t('dangarEntry.form.auto') : `#${formData.srNo}`}
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Entry Date</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.entryDate')}</label>
                 <input
                   ref={dateRef}
                   type="date"
@@ -984,7 +1614,7 @@ const DangarEntry = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-4 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Protocol Season</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.protocolSeason')}</label>
                 <div className="flex gap-1.5 p-1 bg-zinc-200 border border-zinc-300">
                   {['winter', 'summer'].map(s => (
                     <button
@@ -994,23 +1624,24 @@ const DangarEntry = () => {
                       className={`flex-1 py-1 text-[10px] font-bold uppercase transition ${formData.season === s
                         ? 'bg-white text-zinc-800 border border-zinc-300'
                         : 'text-zinc-500 hover:text-zinc-700'
-                        }`}
+                        } ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''} notranslate`}
+                      translate="no"
                     >
-                      {s}
+                      {t(`dangarEntry.form.${s}`)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="md:col-span-8 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Member Node</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.memberNode')}</label>
                 <div className="flex gap-2">
                   <div className="w-1/4">
                     <input
                       ref={memberCodeRef}
                       type="text"
-                      placeholder="Code"
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-300 outline-none text-xs font-mono font-bold text-zinc-700 uppercase focus:border-zinc-600"
+                      placeholder={t('common.code')}
+                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-300 outline-none text-xs font-bold text-zinc-700 uppercase focus:border-zinc-600 force-en notranslate" translate="no" lang="en"
                       value={selectedMember?.member_code || ''}
                       onChange={(e) => handleMemberCodeChange(e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, memberCodeRef)}
@@ -1019,14 +1650,17 @@ const DangarEntry = () => {
                   <div className="w-3/4">
                     <select
                       ref={memberIdRef}
-                      className="w-full px-3 py-2 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 focus:border-zinc-600 appearance-none font-bold italic"
+                      className="w-full px-3 py-2 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 focus:border-zinc-600 appearance-none font-bold font-prompt"
+                      style={{ fontFamily: "'Prompt', sans-serif" }}
                       value={formData.member_id}
                       onChange={(e) => handleMemberChange(e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, memberIdRef)}
                     >
-                      <option value="">Select Member...</option>
+                      <option value="" className="font-sans">{t('dangarEntry.form.selectMember')}</option>
                       {members.map(m => (
-                        <option key={m.id} value={m.id}>{m.member_code} - {m.member_name.toUpperCase()}</option>
+                        <option key={m.id} value={m.id} className="font-prompt" style={{ fontFamily: "'Prompt', sans-serif" }}>
+                          {m.member_code} - {m.member_name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1036,7 +1670,7 @@ const DangarEntry = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-4 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Quality Vector</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.qualityVector')}</label>
                 <div className="flex gap-1 p-1 bg-zinc-200 border border-zinc-300">
                   {['1st', '2nd', '3rd'].map(q => (
                     <button
@@ -1047,23 +1681,26 @@ const DangarEntry = () => {
                       className={`flex-1 py-1 text-[10px] font-bold uppercase transition ${formData.quality_class === q
                         ? 'bg-white text-zinc-800 border border-zinc-300'
                         : 'text-zinc-500 hover:text-zinc-700'
-                        }`}
+                        } ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''} notranslate`}
+                      translate="no"
                     >
-                      {q}
+                      {q === '1st' ? t('dangarMaster.filters.first') : 
+                       q === '2nd' ? t('dangarMaster.filters.second') : 
+                       q === '3rd' ? t('dangarMaster.filters.third') : q}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="md:col-span-8 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Item Structure Vector</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.itemStructure')}</label>
                 <div className="flex gap-2">
                   <div className="w-1/4">
                     <input
                       ref={itemCodeRef}
                       type="text"
-                      placeholder="Code"
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-300 outline-none text-xs font-mono font-bold text-zinc-700 uppercase focus:border-zinc-600"
+                      placeholder={t('common.code')}
+                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-300 outline-none text-xs font-bold text-zinc-700 uppercase focus:border-zinc-600 force-en notranslate" translate="no" lang="en"
                       value={items.find(i => i.id === parseInt(formData.item_id))?.item_code || ''}
                       onChange={(e) => handleItemCodeChange(e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, itemCodeRef)}
@@ -1072,14 +1709,26 @@ const DangarEntry = () => {
                   <div className="w-3/4">
                     <select
                       ref={itemIdRef}
-                      className="w-full px-3 py-2 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 focus:border-zinc-600 appearance-none font-bold"
+                      className="w-full px-3 py-2 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 focus:border-zinc-600 appearance-none font-bold font-prompt"
+                      style={{ 
+                        fontFamily: items.find(i => i.id === parseInt(formData.item_id))?.item_name_gu 
+                          ? '"Noto Sans Gujarati", sans-serif' 
+                          : "'Prompt', sans-serif" 
+                      }}
                       value={formData.item_id}
                       onChange={(e) => setFormData({ ...formData, item_id: e.target.value })}
                       onKeyDown={(e) => handleKeyDown(e, itemIdRef)}
                     >
-                      <option value="">Select Resource Type...</option>
+                      <option value="" className="font-sans">{t('dangarEntry.form.selectResource')}</option>
                       {items.map(i => (
-                        <option key={i.id} value={i.id}>{i.item_code} - {i.item_name.toUpperCase()}</option>
+                        <option 
+                          key={i.id} 
+                          value={i.id} 
+                          className={i.item_name_gu ? 'font-sans' : 'font-prompt'}
+                          style={{ fontFamily: i.item_name_gu ? '"Noto Sans Gujarati", sans-serif' : "'Prompt', sans-serif" }}
+                        >
+                          {i.item_code} - {i.item_name_gu || i.item_name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1089,7 +1738,7 @@ const DangarEntry = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase">Vehicle No</label>
+                <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.vehicle')}</label>
                 <input
                   ref={vehicleNoRef}
                   type="text"
@@ -1103,11 +1752,11 @@ const DangarEntry = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Remark Context</label>
+              <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('dangarEntry.form.remark')}</label>
               <textarea
                 ref={remarkRef}
-                className="w-full px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 min-h-[70px] focus:border-zinc-600 transition"
-                placeholder="ADDITIONAL TRANSACTION CONTEXT..."
+                className={`w-full px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs text-zinc-800 min-h-[70px] focus:border-zinc-600 transition ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
+                placeholder={t('dangarEntry.form.remarkPlaceholder')}
                 value={formData.remark}
                 onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
                 onKeyDown={(e) => handleKeyDown(e, remarkRef)}
@@ -1117,23 +1766,23 @@ const DangarEntry = () => {
             <div className="bg-zinc-100 border border-zinc-300 p-3 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <select
-                  className="bg-white border border-zinc-300 px-2 py-1 outline-none text-[10px] font-bold uppercase tracking-wider text-zinc-700"
+                  className={`bg-white border border-zinc-300 px-2 py-1 outline-none text-[10px] font-bold uppercase tracking-wider text-zinc-700 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}
                   value={display_unit}
                   onChange={(e) => setDisplayUnit(e.target.value)}
                 >
-                  <option value="kg">Per KG</option>
-                  <option value="man">Per MAN (20kg)</option>
-                  <option value="quintal">Per QUINTAL</option>
+                  <option value="kg">{t('dangarEntry.units.kg')}</option>
+                  <option value="man">{t('dangarEntry.units.man')}</option>
+                  <option value="quintal">{t('dangarEntry.units.quintal')}</option>
                 </select>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Node Calculation Metric</span>
+                <span className={`text-[10px] font-bold uppercase tracking-widest text-zinc-500 notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`} translate="no">{t('dangarEntry.form.metric')}</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-bold font-mono">
-                <span className="text-zinc-500">Volume:</span>
-                <span className="text-zinc-800">{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)} {display_unit.toUpperCase()}</span>
+              <div className={`flex items-center gap-2 text-xs font-bold font-mono ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>
+                <span className="text-zinc-500">{t('dangarEntry.form.volume')}:</span>
+                <span className="text-zinc-800 notranslate" translate="no">{display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)} <span className="text-[10px] uppercase">{display_unit}</span></span>
                 <span className="text-zinc-400 font-normal">x</span>
-                <span className="text-zinc-800">₹{display_unit === 'man' ? (parseFloat(formData.rate) / 5).toFixed(2) : (display_unit === 'quintal' ? parseFloat(formData.rate).toFixed(2) : (parseFloat(formData.rate) / 100).toFixed(2))}</span>
+                <span className="text-zinc-800 notranslate" translate="no">₹{display_unit === 'man' ? (parseFloat(formData.rate) / 5).toFixed(2) : (display_unit === 'quintal' ? parseFloat(formData.rate).toFixed(2) : (parseFloat(formData.rate) / 100).toFixed(2))}</span>
                 <span className="text-zinc-400 font-normal">=</span>
-                <span className="text-base text-blue-600 font-black">₹{formData.gross_amount}</span>
+                <span className="text-base text-blue-600 font-black notranslate" translate="no">₹{formData.gross_amount}</span>
               </div>
             </div>
           </div>
@@ -1144,8 +1793,8 @@ const DangarEntry = () => {
             {/* Weights Matrix */}
             <div className="bg-zinc-50 border border-zinc-300 flex flex-col h-[400px] select-none">
               <div className="p-3 border-b border-zinc-300 bg-zinc-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <Calculator size={15} /> Weight Registry Matrix
+                <span className={`text-xs font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>
+                  <Calculator size={15} /> {t('dangarEntry.form.weightMatrix')}
                 </span>
                 <button
                   onClick={handleAddRow}
@@ -1156,9 +1805,9 @@ const DangarEntry = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 space-y-2 select-none bg-white">
-                <div className="grid grid-cols-12 gap-3 text-[10px] font-bold text-zinc-400 font-mono uppercase">
+                <div className={`grid grid-cols-12 gap-3 text-[10px] font-bold text-zinc-400 font-mono uppercase notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`} translate="no">
                   <div className="col-span-2 text-center">#</div>
-                  <div className="col-span-10">Entry Volume (KG)</div>
+                  <div className="col-span-10">{t('dangarEntry.form.entryVolume')}</div>
                 </div>
 
                 {weightRows.map((row, idx) => (
@@ -1170,7 +1819,7 @@ const DangarEntry = () => {
                       <input
                         id={`wgt-input-${idx}`}
                         type="number"
-                        className="w-full bg-white border border-zinc-300 rounded-none px-3 py-1.5 text-xs font-mono font-bold text-zinc-800 outline-none focus:bg-white focus:border-zinc-600 transition-all select-none"
+                        className="w-full bg-white border border-zinc-300 rounded-none px-3 py-1.5 text-xs font-mono font-bold text-zinc-800 outline-none focus:bg-white focus:border-zinc-600 transition-all select-none force-en notranslate" translate="no" lang="en"
                         value={row.wgt}
                         autoFocus={idx === weightRows.length - 1 && idx > 0}
                         onChange={(e) => handleWeightChange(row.id, e.target.value)}
@@ -1191,8 +1840,8 @@ const DangarEntry = () => {
               </div>
 
               <div className="p-3 border-t border-zinc-300 bg-zinc-50 flex justify-between items-center select-none">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 font-mono">Gross Total Vol</p>
-                <p className="text-xl font-bold font-mono text-zinc-800 leading-none">
+                <p className={`text-[10px] font-bold uppercase tracking-widest text-zinc-400 font-mono ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.stats.grossVol')}</p>
+                <p className="text-xl font-bold font-mono text-zinc-800 leading-none notranslate" translate="no">
                   {formData.total_kg} <span className="text-[10px] font-bold text-zinc-400 uppercase">KG</span>
                 </p>
               </div>
@@ -1200,38 +1849,38 @@ const DangarEntry = () => {
 
             {/* Overall Calculation Manifest Summary */}
             <div className="bg-white border border-zinc-300 p-4 space-y-4 flex-1">
-              <h3 className="text-xs font-bold text-zinc-700 uppercase tracking-wider border-b border-zinc-200 pb-1.5">Calculation Manifest</h3>
+              <h3 className={`text-xs font-bold text-zinc-700 uppercase tracking-wider border-b border-zinc-200 pb-1.5 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.form.manifest')}</h3>
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono leading-none">Bardan Bal</p>
-                  <input type="number" readOnly className="w-full bg-zinc-50 border border-zinc-300 p-1 font-mono font-bold text-zinc-700 outline-none text-xs cursor-not-allowed select-none" value={formData.bardan} />
+                  <p className={`text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.stats.bardanBal')}</p>
+                  <input type="number" readOnly className="w-full bg-zinc-50 border border-zinc-300 p-1 font-mono font-bold text-zinc-700 outline-none text-xs cursor-not-allowed select-none notranslate" translate="no" value={formData.bardan} />
                   {selectedMember && (
-                    <div className="text-[8px] font-bold text-blue-600 uppercase">Balan: {bardanBalance}</div>
+                    <div className={`text-[8px] font-bold text-blue-600 uppercase ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.stats.balan')}: <span className="notranslate" translate="no">{bardanBalance}</span></div>
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono leading-none">Net Vol</p>
-                  <input type="number" readOnly className="w-full bg-zinc-50 border border-zinc-300 p-1 font-mono font-bold text-zinc-700 outline-none text-xs cursor-not-allowed select-none" value={formData.total_kg} />
+                  <p className={`text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.stats.netVol')}</p>
+                  <input type="number" readOnly className="w-full bg-zinc-50 border border-zinc-300 p-1 font-mono font-bold text-zinc-700 outline-none text-xs cursor-not-allowed select-none notranslate" translate="no" value={formData.total_kg} />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono leading-none">Rate / Qt</p>
-                  <input type="number" readOnly className="w-full bg-zinc-50 border border-zinc-300 p-1 font-mono font-bold text-zinc-700 outline-none text-xs cursor-not-allowed select-none" value={formData.rate} />
+                  <p className={`text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('dangarEntry.stats.rateQt')}</p>
+                  <input type="number" readOnly className="w-full bg-zinc-50 border border-zinc-300 p-1 font-mono font-bold text-zinc-700 outline-none text-xs cursor-not-allowed select-none notranslate" translate="no" value={formData.rate} />
                 </div>
               </div>
 
               <div className="divide-y divide-zinc-200 font-mono border border-zinc-300">
                 {[
-                  { label: 'Gross Net Vol', val: `${(formData.total_kg - formData.less_bardan).toFixed(2)} kg`, color: 'text-zinc-600' },
-                  { label: 'Gross Amount', val: `₹${formData.gross_amount}`, color: 'text-blue-600 font-bold' },
-                  { label: 'Bardan Weight Less', val: `- ${formData.less_bardan} kg`, color: 'text-red-500' },
-                  { label: 'Kapat (Deductions)', val: `- ₹${formData.total_deduction}`, color: 'text-red-500' },
-                  { label: 'Bardan Penalty', val: `- ₹${formData.remaining_bardan_deduction}`, color: 'text-red-600' },
-                  { label: 'Net Payable', val: `₹${formData.amount}`, color: 'text-emerald-600 font-black', size: 'text-xl bg-zinc-50 p-3 flex justify-between' }
+                  { label: t('dangarEntry.stats.grossNetVol'), val: `${(formData.total_kg - formData.less_bardan).toFixed(2)} kg`, color: 'text-zinc-600' },
+                  { label: t('dangarEntry.stats.grossAmount'), val: `₹${formData.gross_amount}`, color: 'text-blue-600 font-bold' },
+                  { label: t('dangarEntry.stats.bardanWeightLess'), val: `- ${formData.less_bardan} kg`, color: 'text-red-500' },
+                  { label: t('dangarEntry.stats.kapat'), val: `- ₹${formData.total_deduction}`, color: 'text-red-500' },
+                  { label: t('dangarEntry.stats.bardanPenalty'), val: `- ₹${formData.remaining_bardan_deduction}`, color: 'text-red-600' },
+                  { label: t('dangarEntry.stats.netPayable'), val: `₹${formData.amount}`, color: 'text-emerald-600 font-black', size: 'text-xl bg-zinc-50 p-3 flex justify-between' }
                 ].map((calc, i) => (
                   <div key={i} className={`flex justify-between items-center p-2.5 ${calc.size ? 'border-t border-zinc-300 bg-zinc-50' : ''}`}>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{calc.label}</p>
-                    <p className={`${calc.size || 'text-xs'} font-bold ${calc.color}`}>{calc.val}</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest text-zinc-400 notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`} translate="no">{calc.label}</p>
+                    <p className={`${calc.size || 'text-xs'} font-bold ${calc.color} notranslate`} translate="no">{calc.val}</p>
                   </div>
                 ))}
               </div>
@@ -1241,7 +1890,7 @@ const DangarEntry = () => {
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 py-3 text-xs select-none mt-2 shadow-sm"
               >
-                <Save size={16} /> Save Node Entry
+                <Save size={16} /> {t('dangarEntry.form.saveNode')}
               </button>
             </div>
           </div>

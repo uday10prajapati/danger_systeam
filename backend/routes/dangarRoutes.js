@@ -55,7 +55,8 @@ router.get('/', async (req, res) => {
     }
 
     let sql = `
-      SELECT de.*, mm.member_name, mm.member_code, mm.village_name, mm.nominal_member, im.item_name 
+      SELECT de.*, de.bardan as returned_bags, mm.member_name, mm.member_code, mm.village_name, mm.nominal_member, im.item_name,
+      (SELECT JSON_AGG(dw.* ORDER BY dw.sr_no ASC) FROM dangar_weights dw WHERE dw.entry_id = de.id) as weights
       FROM dangar_entry de
       LEFT JOIN member_master mm ON de.member_id = mm.id
       LEFT JOIN item_master im ON de.item_id = im.id
@@ -123,17 +124,19 @@ router.get('/payment-report', async (req, res) => {
         mm.bank_name,
         mm.branch_name,
         mm.ifsc_code,
-        mm.village_name,
+        COALESCE(v.village_name, mm.village_name) AS village_name,
+        mm.member_name_gu,
         SUM(al.credit) AS total_credit,
         SUM(al.debit)  AS total_debit,
         COUNT(al.id)   AS entry_count
       FROM account_ledger al
       JOIN member_master mm ON al.member_id = mm.id
+      LEFT JOIN village v ON mm.village_code = v.village_code
       LEFT JOIN dangar_entry de ON al.reference_id = de.id AND al.reference_type = 'dangar_entry'
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, COALESCE(de.quality_class, '1st'), mm.member_code, COALESCE(mm.member_name, mm.eng_name, ''), mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code, mm.village_name
+      GROUP BY mm.id, COALESCE(de.quality_class, '1st'), mm.member_code, COALESCE(mm.member_name, mm.eng_name, ''), mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code, COALESCE(v.village_name, mm.village_name), mm.member_name_gu
       ORDER BY mm.member_code ASC, COALESCE(de.quality_class, '1st') ASC
     `, [companyId, ...dateParams]);
 
@@ -310,10 +313,15 @@ router.get('/payment-report', async (req, res) => {
                  } else if (Math.abs(bal) > 0.01) {
                     const accRow = await queryOne('SELECT account_name FROM accounts WHERE id = ?', [entry.account_id]);
                     const accName = accRow?.account_name || 'Uncategorized';
-                    const existing = otherDeductionsList.find(d => d.account_name === accName);
-                    if (existing) existing.amount += bal;
-                    else otherDeductionsList.push({ account_name: accName, amount: bal });
-                    otherUdhar += bal;
+                    
+                    // Filter out accounts requested by user
+                    const excludedNames = ['uncategorized', 'sale account', 'purches account', 'purchase account', 'sales account'];
+                    if (!excludedNames.includes(accName.toLowerCase())) {
+                       const existing = otherDeductionsList.find(d => d.account_name === accName);
+                       if (existing) existing.amount += bal;
+                       else otherDeductionsList.push({ account_name: accName, amount: bal });
+                       otherUdhar += bal;
+                    }
                  }
     
                  if (parseFloat(entry.interest_amount || 0) > 0) {
@@ -345,8 +353,8 @@ router.get('/payment-report', async (req, res) => {
       report.push({
         member_id:        row.member_id,
         member_code:      row.member_code,
-        member_name:      row.member_name,
-        village_name:     row.village_name || '',
+        member_name: row.member_name, member_name_gu: row.member_name_gu,
+        village_name: row.village_name || '',
         dangar_name:      dangarNameGu,
         quality_class:    row.quality_class || '1st',
         full_ac_number:   row.full_ac_number || '',
@@ -921,7 +929,7 @@ router.post('/recalculate', async (req, res) => {
         [newNetMemberDebit, newDesc, entry.id, entry.member_id, company_id]
       );
       
-      console.log(`✅ Recalculated entry ${entry.sr_no}: Net Credit ${newNetMemberCredit}`);
+      console.log(`✅ Recalculated entry ${entry.sr_no}: Net Debit ${newNetMemberDebit}`);
     }
 
     res.json({ success: true, message: `Successfully synchronized ${entries.length} transaction nodes.` });

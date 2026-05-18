@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     if (!company_id) return res.status(400).json({ success: false, error: 'Company ID required' });
 
     const sql = `
-       SELECT id, account_code, p_code, account_name, account_type, is_active, is_subledger, is_system FROM accounts 
+       SELECT id, account_code, p_code, account_name, account_name_gu, account_type, is_active, is_subledger, is_system FROM accounts 
        WHERE company_id = ? AND is_deleted = 0
        ORDER BY account_name ASC
     `;
@@ -93,7 +93,7 @@ router.get('/next-id', async (req, res) => {
 // ==================== CREATE ACCOUNT ====================
 router.post('/', async (req, res) => {
   try {
-    let { company_id, account_code, p_code, account_name, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+    let { company_id, account_code, p_code, account_name, account_name_gu, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     // Auto-generate account code if missing
     if (!account_code || account_code === '') {
@@ -126,9 +126,9 @@ router.post('/', async (req, res) => {
 
     // Insert account
     const result = await execute(
-      `INSERT INTO accounts (company_id, account_code, p_code, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, is_subledger)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company_id, account_code || null, p_code || null, account_name, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? true : false]
+      `INSERT INTO accounts (company_id, account_code, p_code, account_name, account_name_gu, account_type, phone, email, gst_no, tin_no, opening_balance, is_active, is_subledger)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company_id, account_code || null, p_code || null, account_name, account_name_gu || null, account_type, phone || null, email || null, gst_no || null, tin_no || null, final_opening_balance, 1, is_subledger ? true : false]
     );
 
     // If it's a cash account, inject the opening balance directly into Cashbook
@@ -188,7 +188,7 @@ router.get('/company/:company_id', async (req, res) => {
 
     let sql = `
        SELECT 
-         CAST(a.id AS CHAR) as id, a.account_code, a.p_code, m.member_code, a.company_id, a.account_name, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
+         CAST(a.id AS CHAR) as id, a.account_code, a.p_code, m.member_code, a.company_id, a.account_name, a.account_name_gu, a.account_type, a.phone, a.email, a.gst_no, a.tin_no, 
          a.opening_balance, a.is_active, a.is_subledger, a.is_system, a.created_at, a.updated_at,
          COALESCE((SELECT SUM(COALESCE(debit, debit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_debit,
          COALESCE((SELECT SUM(COALESCE(credit, credit_amount, 0)) FROM account_ledger WHERE account_id = a.id AND company_id = a.company_id), 0) as total_credit
@@ -199,8 +199,12 @@ router.get('/company/:company_id', async (req, res) => {
     let params = [company_id];
 
     if (type && type !== 'all') {
-      sql += ' AND a.account_type = ?';
-      params.push(type);
+      if (type === 'ledger') {
+        sql += " AND a.account_type NOT IN ('customer', 'supplier')";
+      } else {
+        sql += ' AND a.account_type = ?';
+        params.push(type);
+      }
     }
 
     sql += ' ORDER BY account_type ASC, account_name ASC';
@@ -269,7 +273,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
     const account = await queryOne(
-      `SELECT id, account_code, p_code, company_id, account_name, account_type, phone, email, gst_no, tin_no, opening_balance, 
+      `SELECT id, account_code, p_code, company_id, account_name, account_name_gu, account_type, phone, email, gst_no, tin_no, opening_balance, 
               is_active, created_at, updated_at
        FROM accounts 
        WHERE id = ? AND is_deleted = 0`,
@@ -291,7 +295,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { account_code, p_code, account_name, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+    const { account_code, p_code, account_name, account_name_gu, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     let final_opening_balance = undefined;
     if (opening_balance !== undefined) {
@@ -342,6 +346,7 @@ router.put('/:id', async (req, res) => {
     if (account_code !== undefined) { updateFields.push('account_code = ?'); queryParams.push(account_code || null); }
     if (p_code !== undefined) { updateFields.push('p_code = ?'); queryParams.push(p_code || null); }
     if (account_name !== undefined) { updateFields.push('account_name = ?'); queryParams.push(account_name || null); }
+    if (account_name_gu !== undefined) { updateFields.push('account_name_gu = ?'); queryParams.push(account_name_gu || null); }
     if (phone !== undefined) { updateFields.push('phone = ?'); queryParams.push(phone || null); }
     if (email !== undefined) { updateFields.push('email = ?'); queryParams.push(email || null); }
     if (gst_no !== undefined) { updateFields.push('gst_no = ?'); queryParams.push(gst_no || null); }

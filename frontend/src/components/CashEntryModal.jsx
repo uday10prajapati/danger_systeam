@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X, Search, Calendar, Hash, Plus, Check, ArrowDownLeft, ArrowUpRight,
   RefreshCcw, Layout, Database, Info, Trash2, Save
 } from 'lucide-react';
 import api from '../api';
+import { formatBilingualText } from '../utils/textUtils';
 
 export default function CashEntryModal({ company, type = 'debit', editId = null, onSubmit, onClose }) {
+  const { t } = useTranslation();
   const isCredit = type === 'credit';
-  const title = isCredit ? 'Jama (Receipts)' : 'Udhar (Payments)';
-  const subtitle = isCredit ? 'Incoming Capital Stream' : 'Outgoing Capital Stream';
+  const titleKey = isCredit ? 'cashEntry.jama' : 'cashEntry.udhar';
+  const title = t(titleKey);
+  const subtitle = isCredit ? t('cashEntry.jamaSubtitle') : t('cashEntry.udharSubtitle');
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -66,6 +70,13 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     setSubEntries(prev => [...prev, { id: newId, description: '', amount: '', code: '', member_id: null }]);
   };
 
+  const guDigits = {
+    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
+    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  };
+  const toGujaratiDigits = (value) => String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
+  const toEnglishDigits = (value) => String(value ?? '').replace(/[૦-૯]/g, (d) => '0123456789'['૦૧૨૩૪૫૬૭૪૯'.indexOf(d)] || d);
+
   useEffect(() => {
     if (subEntries.length > 0) {
       const lastRow = subEntries[subEntries.length - 1];
@@ -80,9 +91,9 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
       setLoading(true);
       const narrationType = isCredit ? 'Credit' : 'Debit';
       const [accRes, memRes, narrRes] = await Promise.all([
-        api.get(`/accounts?type=ledger`),
+        api.get(`/accounts/company/${company.id}`),
         api.get('/members'),
-        api.get(`/narrations?type=${narrationType}`)
+        api.get('/narrations')
       ]);
 
       setAccounts(accRes.data.success ? accRes.data.data : []);
@@ -94,7 +105,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
       }
     } catch (err) {
       console.error('Fetch initial data error', err);
-      setError('Failed to load dependency data.');
+      setError(t('cashEntry.errors.dependency'));
     } finally {
       setLoading(false);
     }
@@ -134,7 +145,12 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
               const m = loadedMembers.find(mem => String(mem.member_code) === code || mem.member_name === description);
               if (m) {
                 m_id = m.id;
-                description = m.member_name;
+                description = m.member_name_gu || m.member_name;
+              }
+            } else {
+              const narr = narrationsList.find(n => n.narration_text === description || n.narration_text_gu === description);
+              if (narr) {
+                description = narr.narration_text_gu || narr.narration_text;
               }
             }
 
@@ -150,16 +166,16 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
         } else {
           setSubEntries([{
             id: Date.now(),
-            description: entry.member_name || entry.description || '',
+            description: entry.member_name_gu || entry.member_name || entry.narration_text_gu || entry.narration_text || entry.description || '',
             amount: (parseFloat(entry.cash_in || 0) + parseFloat(entry.cash_out || 0)).toFixed(2),
-            code: entry.member_code || '',
+            code: entry.member_code || entry.narration_code || '',
             member_id: entry.member_id || null
           }]);
         }
       }
     } catch (err) {
       console.error('Fetch edit entry error', err);
-      setError('Failed to load entry details.');
+      setError(t('cashEntry.errors.loadEntry'));
     } finally {
       setLoading(false);
     }
@@ -169,19 +185,25 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     setSelectedAccount(acc);
     setFormData(prev => ({ ...prev, account_id: acc.id }));
     setSearchCode(String(acc.account_code || acc.id));
-    setSearchText(acc.account_name);
+    setSearchText(acc.account_name_gu || acc.account_name);
     setShowDropdown(false);
   };
 
   const filteredAccounts = accounts.filter(a => {
-    const codeMatch = searchCode ? (String(a.account_code || a.id).includes(searchCode)) : true;
-    const nameMatch = searchText ? a.account_name.toLowerCase().includes(searchText.toLowerCase()) : true;
+    const searchCodeEn = toEnglishDigits(searchCode);
+    const accCodeEn = toEnglishDigits(String(a.account_code || a.id));
+    const codeMatch = searchCode ? (accCodeEn.includes(searchCodeEn)) : true;
+    
+    const nameMatch = searchText ? (
+      (a.account_name && a.account_name.toLowerCase().includes(searchText.toLowerCase())) || 
+      (a.account_name_gu && a.account_name_gu.toLowerCase().includes(searchText.toLowerCase()))
+    ) : true;
     return codeMatch && nameMatch;
   });
 
   const handleSave = async () => {
     if (!formData.account_id || parseFloat(formData.amount) <= 0) {
-      setError('Please select an account and enter a valid amount.');
+      setError(t('cashEntry.errors.validation'));
       return;
     }
 
@@ -235,7 +257,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           <div className="flex items-center gap-2">
             {isCredit ? <ArrowUpRight size={16} className="text-emerald-700" /> : <ArrowDownLeft size={16} className="text-red-700" />}
             <h2 className="text-sm font-bold tracking-tight text-zinc-800 uppercase font-mono">
-              {editId ? `EDIT ${title} RECORD` : `NEW ${title} RECORD`}
+              {editId ? t('cashEntry.editTitle', { title }) : t('cashEntry.newTitle', { title })}
             </h2>
           </div>
           <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
@@ -255,7 +277,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white border border-zinc-300 p-3">
             <div className="flex flex-col">
               <label className="text-[10px] font-bold font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                Transaction Date *
+                {t('cashEntry.transactionDate')} *
               </label>
               <div className="relative flex items-center border border-zinc-300 bg-white px-2.5 h-9 focus-within:border-zinc-500">
                 <Calendar className="text-zinc-400 mr-2" size={14} />
@@ -270,13 +292,13 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
             <div className="flex flex-col">
               <label className="text-[10px] font-bold font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                Reference / Voucher #
+                {t('cashEntry.reference')}
               </label>
               <div className="relative flex items-center border border-zinc-300 bg-white px-2.5 h-9 focus-within:border-zinc-500">
                 <Hash className="text-zinc-400 mr-2" size={14} />
                 <input
                   type="text"
-                  placeholder="AUTO"
+                  placeholder={t('cashEntry.autoPlaceholder')}
                   value={formData.reference_no}
                   onChange={e => setFormData({ ...formData, reference_no: e.target.value })}
                   className="bg-transparent text-xs font-mono font-bold text-zinc-700 outline-none w-full placeholder:text-zinc-300"
@@ -286,7 +308,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
             <div className="flex flex-col md:col-span-2 relative" ref={dropdownRef}>
               <label className="text-[10px] font-bold font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                Target Account Node *
+                {t('cashEntry.targetAccount')} *
               </label>
               <div className="flex gap-2">
                 <input
@@ -299,17 +321,18 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    placeholder="SEARCH ACCOUNT NAME..."
+                    placeholder={t('cashEntry.searchAccountPlaceholder')}
                     value={searchText}
                     onChange={e => { setSearchText(e.target.value); setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}
-                    className="w-full border border-zinc-300 bg-white px-2.5 py-1.5 focus:border-zinc-500 text-xs font-mono font-bold text-zinc-700 outline-none h-9 placeholder:text-zinc-300 uppercase"
+                    className="w-full border border-zinc-300 bg-white px-2.5 py-1.5 focus:border-zinc-500 text-xs font-bold text-zinc-700 outline-none h-9 placeholder:text-zinc-300"
+                    style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
                   />
                   {showDropdown && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-zinc-200">
                       {filteredAccounts.length === 0 ? (
                         <div className="p-2 text-center text-[10px] font-bold font-mono text-zinc-400 uppercase">
-                          No Nodes Isolated
+                          {t('cashEntry.noNodesIsolated')}
                         </div>
                       ) : filteredAccounts.map(acc => (
                         <div
@@ -318,8 +341,8 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                           className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center select-none"
                         >
                           <div>
-                            <span className="text-xs font-bold text-zinc-800 uppercase tracking-tight leading-tight block">
-                              {acc.account_name}
+                            <span className="text-xs font-bold text-zinc-800 leading-tight block">
+                              {formatBilingualText(acc.account_name_gu || acc.account_name)}
                             </span>
                             <span className="text-[9px] font-bold font-mono text-zinc-400 uppercase tracking-widest mt-0.5">
                               {acc.account_type || 'Ledger Node'}
@@ -340,13 +363,13 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           {/* Matrix Ledger Subentries */}
           <div className="bg-white border border-zinc-300 overflow-hidden flex flex-col min-h-[260px]">
             <div className="bg-zinc-100 px-3 py-2 border-b border-zinc-300 flex justify-between items-center">
-              <span className="text-[10px] font-bold text-zinc-700 font-mono uppercase tracking-widest">Entry Allocation Matrix</span>
+              <span className="text-[10px] font-bold text-zinc-700 font-mono uppercase tracking-widest">{t('cashEntry.allocationMatrix')}</span>
               <button
                 disabled={!selectedAccount}
                 onClick={addNewRow}
                 className="flex items-center gap-1 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-2 py-1 select-none uppercase tracking-widest shadow-sm disabled:opacity-30 disabled:hover:bg-white"
               >
-                <Plus size={12} /> Add Row
+                <Plus size={12} /> {t('cashEntry.addRow')}
               </button>
             </div>
 
@@ -354,12 +377,12 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
               <table className="w-full text-left font-sans text-xs select-none">
                 <thead>
                   <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                    <th className="w-24 px-3 py-2 border-r border-zinc-200 text-center">Code</th>
+                    <th className="w-24 px-3 py-2 border-r border-zinc-200 text-center">{t('cashEntry.code')}</th>
                     <th className="px-3 py-2 border-r border-zinc-200">
-                      {selectedAccount?.is_subledger ? 'Subledger (Member)' : 'Narration / Description'}
+                      {selectedAccount?.is_subledger ? t('cashEntry.subledger') : t('cashEntry.description')}
                     </th>
                     <th className="w-40 px-3 py-2 border-r border-zinc-200 text-right">
-                      {isCredit ? 'Jama' : 'Udhar'} Amount
+                      {t('cashEntry.amount')}
                     </th>
                     <th className="w-12 px-3 py-2 text-center"></th>
                   </tr>
@@ -389,12 +412,12 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             const updated = subEntries.map(r => r.id === row.id ? {
                               ...r,
                               code: val,
-                              description: matched ? (selectedAccount?.is_subledger ? matched.member_name : matched.narration_text) : r.description,
+                              description: matched ? (selectedAccount?.is_subledger ? (matched.member_name_gu || matched.member_name) : (matched.narration_text_gu || matched.narration_text)) : r.description,
                               member_id: matched && selectedAccount?.is_subledger ? matched.id : (matched ? null : r.member_id)
                             } : r);
                             setSubEntries(updated);
                           }}
-                          placeholder="0000"
+                          placeholder={t('cashEntry.codePlaceholder')}
                           className="w-full bg-white border border-zinc-300 py-1 px-2 text-center text-xs font-mono font-bold text-zinc-700 focus:border-zinc-500 outline-none uppercase"
                         />
                       </td>
@@ -418,25 +441,39 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             setActiveRowId(row.id);
                             setShowMemberDropdown(true);
                           }}
-                          placeholder={selectedAccount?.is_subledger ? "SEARCH MEMBER..." : "ENTER DETAIL..."}
-                          className="w-full bg-transparent border-none py-1 px-1 text-xs font-bold text-zinc-800 outline-none placeholder:text-zinc-300 uppercase"
+                          placeholder={selectedAccount?.is_subledger ? t('cashEntry.searchMemberPlaceholder') : t('cashEntry.enterDetailPlaceholder')}
+                          className="w-full bg-transparent border-none py-1 px-1 text-xs font-bold text-zinc-800 outline-none placeholder:text-zinc-300"
+                          style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
                         />
 
                         {showMemberDropdown && activeRowId === row.id && row.description.length > 0 && (
                           <div className="absolute top-full left-1 right-1 mt-0.5 bg-white border border-zinc-300 shadow-2xl z-[100] max-h-40 overflow-y-auto divide-y divide-zinc-200">
-                            {(selectedAccount?.is_subledger ? members : narrationsList)
-                              .filter(m => {
-                                const target = selectedAccount?.is_subledger ? m.member_name : m.narration_text;
-                                const code = selectedAccount?.is_subledger ? m.member_code : m.narration_code;
-                                return target.toLowerCase().includes(row.description.toLowerCase()) || (code && String(code).includes(row.description));
-                              })
-                              .map(m => (
+                            {(() => {
+                              const list = (selectedAccount?.is_subledger ? members : narrationsList)
+                                .filter(m => {
+                                  const target = selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : m.narration_text;
+                                  const targetEng = selectedAccount?.is_subledger ? m.member_name : '';
+                                  const code = selectedAccount?.is_subledger ? m.member_code : m.narration_code;
+                                  return target.toLowerCase().includes(row.description.toLowerCase()) || 
+                                         (targetEng && targetEng.toLowerCase().includes(row.description.toLowerCase())) ||
+                                         (code && String(code).includes(row.description));
+                                });
+                              
+                              if (list.length === 0) {
+                                return (
+                                  <div className="p-2 text-center text-[10px] font-bold font-mono text-zinc-400 uppercase">
+                                    {t('cashEntry.noNodesIsolated')}
+                                  </div>
+                                );
+                              }
+
+                              return list.map(m => (
                                 <div
                                   key={m.id}
                                   onClick={() => {
                                     const updated = subEntries.map(r => r.id === row.id ? {
                                       ...r,
-                                      description: selectedAccount?.is_subledger ? m.member_name : m.narration_text,
+                                      description: selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : (m.narration_text_gu || m.narration_text),
                                       code: selectedAccount?.is_subledger ? m.member_code : m.narration_code,
                                       member_id: selectedAccount?.is_subledger ? m.id : null
                                     } : r);
@@ -446,15 +483,15 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                                   }}
                                   className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center select-none"
                                 >
-                                  <span className="text-xs font-bold text-zinc-700 uppercase leading-tight">
-                                    {selectedAccount?.is_subledger ? m.member_name : m.narration_text}
+                                  <span className="text-xs font-bold text-zinc-700 leading-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>
+                                    {selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : (m.narration_text_gu || m.narration_text)}
                                   </span>
                                   <span className="text-[9px] font-bold font-mono text-zinc-400 uppercase tracking-widest border border-zinc-200 px-1.5 py-0.5 bg-zinc-50">
                                     #{selectedAccount?.is_subledger ? m.member_code : (m.narration_code || 'UNC')}
                                   </span>
                                 </div>
-                              ))
-                            }
+                              ));
+                            })()}
                           </div>
                         )}
                       </td>
@@ -499,7 +536,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
             {/* Matrix Footer */}
             <div className="bg-zinc-100 border-t border-zinc-300 px-3 py-2 flex justify-between items-center">
-              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Aggregate Verified</span>
+              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">{t('cashEntry.aggregate')}</span>
               <span className="text-sm font-bold font-mono text-zinc-800">
                 ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
@@ -514,7 +551,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
             onClick={onClose}
             className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs tracking-tight"
           >
-            CANCEL
+            {t('common.cancel') || 'CANCEL'}
           </button>
           <button
             onClick={handleSave}
@@ -522,7 +559,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
             className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs tracking-tight disabled:opacity-50 disabled:hover:bg-blue-600"
           >
             {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Save size={14} />}
-            {editId ? 'UPDATE' : 'SAVE'}
+            {editId ? t('common.update') || 'UPDATE' : t('common.save') || 'SAVE'}
           </button>
         </div>
       </div>

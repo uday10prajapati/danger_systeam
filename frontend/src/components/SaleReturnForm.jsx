@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
-import GSTSelector from './GSTSelector';
 
 const FormLabel = ({ children, icon: Icon, className = "" }) => (
   <div className={`flex items-center gap-2 mb-3 select-none ${className}`}>
@@ -25,7 +24,7 @@ const FormInput = ({ className = "", error, icon: Icon, ...props }) => (
     <div className="relative">
       {Icon && <Icon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />}
       <input
-        className={`w-full h-14 ${Icon ? 'pl-12' : 'px-6'} pr-6 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50/80 transition-all rounded-lg font-bold text-slate-700 placeholder:text-slate-200 ${className}`}
+        className={`w-full h-14 ${Icon ? 'pl-12' : 'px-6'} pr-6 text-sm border ${error ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 bg-slate-50/50'} focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none focus:bg-white hover:bg-slate-50/80 transition-all rounded-lg font-bold text-slate-700 placeholder:text-slate-200 font-prompt ${className}`}
         {...props}
       />
     </div>
@@ -34,7 +33,7 @@ const FormInput = ({ className = "", error, icon: Icon, ...props }) => (
 );
 
 export default function SaleReturnForm({ onClose, onSuccess, company }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -97,7 +96,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
       const response = await api.get('/sale-returns/available-sales');
       setAvailableSales(response.data.data);
     } catch (err) {
-      setError('Connection Failure: Pipeline unreachable');
+      setError(t('saleReturnForm.errors.connectionFailure'));
     } finally {
       setLoading(false);
     }
@@ -117,7 +116,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
       );
       setError('');
     } catch (err) {
-      setError('Sync Failure: Transaction shard corrupted');
+      setError(t('saleReturnForm.errors.syncFailure'));
     } finally {
       setLoading(false);
     }
@@ -134,7 +133,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
 
   const handleSubmit = async () => {
     const itemsToReturn = returnItems.filter(item => item.return_quantity > 0);
-    if (itemsToReturn.length === 0) return setError('Mandatory: One component required for reversal');
+    if (itemsToReturn.length === 0) return setError(t('saleReturnForm.errors.mandatoryItem'));
 
     try {
       setLoading(true);
@@ -152,11 +151,11 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
       });
 
       if (response.data.success) {
-        setSuccess('Reversal protocol committed successfully');
+        setSuccess(t('saleReturnForm.messages.success'));
         setTimeout(() => { onSuccess?.(); }, 1500);
       }
     } catch (err) {
-      setError('Registry Error: Protocol rejected');
+      setError(t('saleReturnForm.errors.registryError'));
     } finally {
       setLoading(false);
     }
@@ -180,14 +179,14 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
-              <div className="w-8 h-0.5 bg-blue-600"></div> Initialize Reversal Manifest
+              <div className="w-8 h-0.5 bg-blue-600"></div> {t('saleReturnForm.initManifest')}
             </h3>
             {selectedSale && (
               <button
                 onClick={() => setSelectedSale(null)}
                 className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1.5"
               >
-                <RefreshCcw size={12} /> Change Source
+                <RefreshCcw size={12} /> {t('saleReturnForm.changeSource')}
               </button>
             )}
           </div>
@@ -197,7 +196,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
               {/* Member Lookup Row */}
               <div className="flex flex-col md:flex-row gap-4 relative">
                 <div className="w-full md:w-32 lg:w-40 space-y-2">
-                  <FormLabel icon={Hash}>Member Code</FormLabel>
+                  <FormLabel icon={Hash}>{t('saleReturnForm.memberCode')}</FormLabel>
                   <FormInput
                     placeholder="ID"
                     value={searchCode}
@@ -211,10 +210,10 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                   />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <FormLabel icon={User}>Member Name</FormLabel>
+                  <FormLabel icon={User}>{t('saleReturnForm.memberName')}</FormLabel>
                   <FormInput
                     icon={Search}
-                    placeholder="SEARCH BY NAME..."
+                    placeholder={t('saleReturnForm.searchName')}
                     value={searchText}
                     onChange={(e) => {
                       setSearchText(e.target.value);
@@ -228,7 +227,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                 {showMemberDropdown && (
                   <div className="absolute top-full left-0 right-0 bg-white border border-slate-100 shadow-2xl rounded-lg overflow-hidden z-[100] mt-1 animate-in zoom-in-95 duration-200">
                     <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center italic">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Identified Entity Nodes</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('saleReturnForm.identifiedNodes')}</span>
                       <X size={12} className="text-slate-300 cursor-pointer" onClick={() => setShowMemberDropdown(false)} />
                     </div>
                     <div className="max-h-56 overflow-y-auto">
@@ -248,12 +247,12 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
               </div>
 
               <div className="relative group">
-                <FormLabel icon={ShoppingCart}>Source Manifest Identifier</FormLabel>
+                <FormLabel icon={ShoppingCart}>{t('saleReturnForm.sourceManifest')}</FormLabel>
                 <div className="relative">
                   <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600" />
                   <input
                     type="text"
-                    placeholder="SELECT RELEVANT TRANSACTION SHARD..."
+                    placeholder={t('saleReturnForm.selectTransaction')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full h-14 pl-14 pr-6 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black uppercase text-xs tracking-widest placeholder:text-slate-200"
@@ -279,7 +278,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                   </button>
                 ))}
                 {filteredSales.length === 0 && (
-                  <div className="col-span-2 py-10 text-center text-slate-200 italic font-black uppercase text-[10px] tracking-[0.3em]">No Shards Detected</div>
+                  <div className="col-span-2 py-10 text-center text-slate-200 italic font-black uppercase text-[10px] tracking-[0.3em]">{t('saleReturnForm.noShards')}</div>
                 )}
               </div>
             </div>
@@ -288,11 +287,11 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
               <div className="absolute inset-0 bg-linear-to-br from-blue-600/10 to-transparent"></div>
               <div className="relative z-10 flex justify-between items-end">
                 <div>
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2 block italic">Source Registry Shard</span>
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2 block italic">{t('saleReturnForm.sourceRegistry')}</span>
                   <h4 className="text-3xl font-black italic tracking-tighter">{selectedSale.invoice_no}</h4>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Entity Auth</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">{t('saleReturnForm.entityAuth')}</p>
                   <p className="text-sm font-black uppercase truncate max-w-[250px]">{selectedSale.customer_name || 'WALK_IN_AUTHENTICATION'}</p>
                 </div>
               </div>
@@ -304,7 +303,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
         {selectedSale && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom duration-500">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
-              <div className="w-8 h-0.5 bg-emerald-500"></div> Component Shard Configuration
+              <div className="w-8 h-0.5 bg-emerald-500"></div> {t('saleReturnForm.componentConfig')}
             </h3>
 
             <div className="space-y-4">
@@ -312,11 +311,11 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                 <div key={item.item_id} className={`p-8 rounded-lg border transition-all ${item.return_quantity > 0 ? 'bg-white border-blue-200 shadow-xl ring-1 ring-blue-50' : 'bg-slate-50/50 border-slate-100'}`}>
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <p className="text-base font-black text-slate-800 tracking-tight uppercase italic">{item.item_name}</p>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Source: {item.quantity} Units @ ₹{parseFloat(item.sale_rate).toFixed(2)}</p>
+                      <p className={`text-base font-black text-slate-800 tracking-tight italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{item.item_name}</p>
+                      <p className={`text-[9px] font-black text-slate-400 tracking-widest italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('saleReturnForm.sourceUnits', { qty: item.quantity, rate: parseFloat(item.sale_rate).toFixed(2) })}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Impact Value</p>
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">{t('saleReturnForm.impactValue')}</p>
                       <p className="text-xl font-black italic text-slate-900 tracking-tighter">₹{item.return_amount.toFixed(2)}</p>
                     </div>
                   </div>
@@ -347,31 +346,31 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-slate-50">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <FormLabel icon={Calendar}>Protocol Epoch</FormLabel>
+                  <FormLabel icon={Calendar}>{t('saleReturnForm.protocolEpoch')}</FormLabel>
                   <FormInput type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} icon={Calendar} />
                 </div>
                 <div className="space-y-2">
-                  <FormLabel icon={ShieldCheck}>Settlement Logic</FormLabel>
+                  <FormLabel icon={ShieldCheck}>{t('saleReturnForm.settlementLogic')}</FormLabel>
                   <div className="flex gap-2 p-1.5 bg-slate-50 border border-slate-100 rounded-lg">
-                    {['cash', 'credit'].map(t => (
+                    {['cash', 'credit'].map(t_mode => (
                       <button
-                        key={t}
-                        onClick={() => setRefundType(t)}
-                        className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${refundType === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                        key={t_mode}
+                        onClick={() => setRefundType(t_mode)}
+                        className={`flex-1 py-3 rounded-lg text-[10px] font-black transition-all ${i18n.language === 'gu' ? 'font-sans' : 'uppercase tracking-widest'} ${refundType === t_mode ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                           }`}
                       >
-                        {t}
+                        {t_mode === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
               <div className="space-y-2">
-                <FormLabel icon={FileText}>Auditor Dashboard Notes</FormLabel>
+                <FormLabel icon={FileText}>{t('saleReturnForm.auditorNotes')}</FormLabel>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="ISOLATE REASON FOR REVERSAL..."
+                  placeholder={t('saleReturnForm.isolateReason')}
                   className="w-full px-6 py-5 bg-slate-50/50 border border-slate-100 focus:bg-white focus:border-blue-500 outline-none rounded-lg font-black uppercase text-[10px] tracking-widest placeholder:text-slate-200 h-full resize-none transition-all italic"
                 />
               </div>
@@ -394,7 +393,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
             <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:rotate-12 transition-transform duration-700"><TrendingDown size={150} /></div>
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
-                <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.5em] mb-2 italic">Net Reversal Value Shard</p>
+                <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.5em] mb-2 italic">{t('saleReturnForm.netReversalValue')}</p>
                 <div className="flex items-start justify-center md:justify-start gap-1">
                   <span className="text-2xl mt-2 font-black text-blue-600 italic">₹</span>
                   <span className="text-7xl font-black italic tracking-tighter drop-shadow-2xl">{totalReturnAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -406,13 +405,13 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                   disabled={loading || totalReturnAmount <= 0}
                   className="flex-1 md:flex-none bg-blue-600 hover:bg-white hover:text-blue-600 text-white font-black py-6 px-12 rounded-lg transition-all shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-3 uppercase text-xs tracking-widest italic"
                 >
-                  {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> Commit Manifest</>}
+                  {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> {t('saleReturnForm.commitManifest')}</>}
                 </button>
                 <button
                   onClick={onClose}
                   className="px-8 py-6 bg-slate-800 text-slate-500 hover:text-white rounded-lg font-black uppercase text-[10px] tracking-widest transition-all"
                 >
-                  Cancel
+                  {t('saleForm.cancel')}
                 </button>
               </div>
             </div>

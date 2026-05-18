@@ -4,9 +4,11 @@ import {
   CreditCard, Info, Trash2, Save, ShoppingCart,
   Loader, Package, TrendingUp, AlertCircle, CheckCircle
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 
 export default function PurchaseForm({ onSubmit, onCancel }) {
+  const { t, i18n } = useTranslation();
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -93,7 +95,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
         setCompany(comp);
         const accRes = await api.get(`/accounts/company/${comp.id}`);
         if (accRes.data.success) {
-          const supplierList = (accRes.data.data || []).filter(acc => acc.account_type === 'supplier');
+          const supplierList = (accRes.data.data || []).filter(acc => ['supplier', 'vendor', 'customer'].includes(acc.account_type));
           setAvailableSuppliers(supplierList);
         }
         const itemRes = await api.get(`/items/company/${comp.id}?active=true`);
@@ -172,9 +174,9 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   };
 
   const handleSave = async () => {
-    if (purchaseItems.length === 0) { setError("Please add at least one item."); return; }
-    if (paymentType === 'credit' && !selectedSupplier) { setError("Please select a Party for Credit Purchases."); return; }
-    if (!billNo.trim()) { setError("Please enter the Bill No."); return; }
+    if (purchaseItems.length === 0) { setError(t('purchaseForm.errorNoItems')); return; }
+    if (paymentType === 'credit' && !selectedSupplier) { setError(t('purchaseForm.errorNoSupplier')); return; }
+    if (!billNo.trim()) { setError(t('purchaseForm.errorNoBill')); return; }
     setLoading(true); setError(null);
     try {
       const payload = {
@@ -189,11 +191,11 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
       };
       const res = await api.post('/purchases/with-gst', payload);
       if (res.data.success) {
-        setSuccess("Registry Synchronization Successful.");
+        setSuccess(t('purchaseForm.successMsg'));
         setTimeout(() => { if (onSubmit) onSubmit(res.data.data); }, 1000);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save purchase');
+      setError(err.response?.data?.error || t('common.errorDefault'));
     } finally { setLoading(false); }
   };
 
@@ -212,7 +214,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           <div className="flex items-center gap-2">
             <ShoppingCart size={16} className="text-blue-600" />
             <h2 className="text-sm font-bold tracking-tight text-zinc-800 uppercase">
-              NEW PROCUREMENT REGISTRY (PURCHASE)
+              {t('purchaseForm.title')}
             </h2>
           </div>
           <button onClick={onCancel} className="p-1 text-zinc-400 hover:text-red-600 transition">
@@ -231,38 +233,38 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           {success && (
             <div className="p-3 border border-emerald-300 bg-emerald-50 text-emerald-800 flex items-center gap-2 animate-none">
               <CheckCircle size={15} />
-              <span className="font-bold uppercase tracking-widest leading-none">• {success}</span>
+              <span className="font-bold tracking-widest leading-none">• {success}</span>
             </div>
           )}
 
           {/* Primary Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white border border-zinc-300 p-4">
             <div className="flex flex-col gap-1" ref={supplierDropdownRef}>
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Target Party (Supplier) *</label>
+              <label className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{t('purchaseForm.supplierIdentity')}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="CODE"
+                  placeholder={t('common.pCode')}
                   ref={supplierRef}
                   onKeyDown={e => e.key === 'Enter' && focusNext(billNoRef)}
                   value={supplierCodeSearch}
                   onChange={e => { setSupplierCodeSearch(e.target.value); setShowSupplierDropdown(true); }}
-                  className="w-20 text-center border border-zinc-300 bg-zinc-50 px-2 py-1.5 focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase h-9"
+                  className="w-20 text-center border border-zinc-300 bg-zinc-50 px-2 py-1.5 focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9"
                 />
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    placeholder="SEARCH SUPPLIER NAME..."
+                    placeholder={t('purchaseForm.searchSupplierPlaceholder')}
                     value={supplierNameSearch}
                     onChange={e => { setSupplierNameSearch(e.target.value); setShowSupplierDropdown(true); }}
-                    className="w-full border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9 uppercase"
+                    className="w-full border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9"
                   />
                   {showSupplierDropdown && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-zinc-200">
                       {availableSuppliers.filter(s => s.account_name.toLowerCase().includes(supplierNameSearch.toLowerCase())).map(s => (
                         <div key={s.id} onClick={() => handleSupplierSelect(s)} className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center">
-                          <span className="text-xs font-bold text-zinc-800 uppercase">{s.account_name}</span>
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase">#{s.account_code || s.id}</span>
+                          <span className="text-xs font-bold text-zinc-800">{s.account_name}</span>
+                          <span className="text-[10px] font-bold text-zinc-400">#{s.account_code || s.id}</span>
                         </div>
                       ))}
                     </div>
@@ -272,16 +274,16 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Bill No / Date *</label>
+              <label className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{t('purchaseForm.billNoDate')}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="BILL #"
+                  placeholder={t('common.billNo')}
                   ref={billNoRef}
                   onKeyDown={e => e.key === 'Enter' && focusNext(dateRef)}
                   value={billNo}
                   onChange={e => setBillNo(e.target.value)}
-                  className="w-1/3 border border-zinc-300 bg-blue-50 text-blue-700 px-2.5 py-1.5 focus:bg-white outline-none transition font-bold h-9 uppercase"
+                  className="w-1/3 border border-zinc-300 bg-blue-50 text-blue-700 px-2.5 py-1.5 focus:bg-white outline-none transition font-bold h-9"
                 />
                 <input
                   type="date"
@@ -295,11 +297,11 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Logistics Context</label>
+              <label className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{t('purchaseForm.logisticsContext')}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="GADI #"
+                  placeholder={t('common.gadi')}
                   ref={gadiRef}
                   onKeyDown={e => e.key === 'Enter' && focusNext(driverRef)}
                   value={gadiNumber}
@@ -308,7 +310,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                 />
                 <input
                   type="text"
-                  placeholder="DRIVER"
+                  placeholder={t('common.driver')}
                   ref={driverRef}
                   onKeyDown={e => e.key === 'Enter' && focusNext(mobileRef)}
                   value={driverName}
@@ -321,17 +323,17 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
              <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Payment Strategy</label>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('purchaseForm.paymentStrategy')}</label>
                 <div className="flex border border-zinc-200 p-1 bg-zinc-50">
-                   <button onClick={() => setPaymentType('credit')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase transition ${paymentType === 'credit' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>Credit</button>
-                   <button onClick={() => setPaymentType('cash')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase transition ${paymentType === 'cash' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>Cash</button>
+                   <button onClick={() => setPaymentType('credit')} className={`flex-1 py-1.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${paymentType === 'credit' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>{t('saleForm.credit')}</button>
+                   <button onClick={() => setPaymentType('cash')} className={`flex-1 py-1.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${paymentType === 'cash' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>{t('saleForm.cash')}</button>
                 </div>
              </div>
              <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fiscal Logic (Tax)</label>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('purchaseForm.taxLogic')}</label>
                 <select value={taxType} onChange={e => setTaxType(e.target.value)} className="w-full border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 focus:bg-white outline-none transition font-bold text-zinc-700 h-9 uppercase">
-                   <option value="CGST/SGST">LOCAL (CGST/SGST)</option>
-                   <option value="IGST">INTERSTATE (IGST)</option>
+                   <option value="CGST/SGST">{t('common.localTax')}</option>
+                   <option value="IGST">{t('common.interstateTax')}</option>
                 </select>
              </div>
              <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1 md:col-span-2">

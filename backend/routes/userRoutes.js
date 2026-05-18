@@ -21,10 +21,10 @@ export function registerUserRoutes(app) {
         });
       }
 
-      const { company_id, username, email, password, role, is_active } = req.body;
+      const { company_id, username, full_name_gu, email, password, role, is_active, module_access } = req.body;
 
       // Verify company exists
-      const company = await queryOne('SELECT id FROM company WHERE id = ?', [company_id]);
+      const company = await queryOne('SELECT id FROM company WHERE id = ?', [parseInt(company_id)]);
       if (!company) {
         return res.status(404).json({
           success: false,
@@ -35,7 +35,7 @@ export function registerUserRoutes(app) {
       // Check if username already exists in this company
       const existingUsername = await queryOne(
         'SELECT id FROM users WHERE company_id = ? AND username = ?',
-        [company_id, username.trim()]
+        [parseInt(company_id), username.trim()]
       );
       if (existingUsername) {
         return res.status(400).json({
@@ -47,7 +47,7 @@ export function registerUserRoutes(app) {
       // Check if email already exists in this company
       const existingEmail = await queryOne(
         'SELECT id FROM users WHERE company_id = ? AND email = ?',
-        [company_id, email.toLowerCase().trim()]
+        [parseInt(company_id), email.toLowerCase().trim()]
       );
       if (existingEmail) {
         return res.status(400).json({
@@ -60,15 +60,17 @@ export function registerUserRoutes(app) {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const result = await execute(
-        `INSERT INTO users (company_id, username, email, password, role, is_active)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (company_id, username, full_name_gu, email, password, role, is_active, module_access)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          company_id,
+          parseInt(company_id),
           username.trim(),
+          full_name_gu ? full_name_gu.trim() : null,
           email.toLowerCase().trim(),
           hashedPassword,
           role,
-          is_active !== undefined ? (is_active ? 1 : 0) : 1
+          is_active !== undefined ? (is_active ? 1 : 0) : 1,
+          JSON.stringify(module_access || [])
         ]
       );
 
@@ -103,11 +105,11 @@ export function registerUserRoutes(app) {
 
       // Get users, excluding password field
       const users = await query(
-        `SELECT id, company_id, username, email, role, is_active, created_at, updated_at
+        `SELECT id, company_id, username, full_name_gu, email, role, is_active, module_access, created_at, updated_at
          FROM users
          WHERE company_id = ?
          ORDER BY created_at DESC`,
-        [company_id]
+        [parseInt(company_id)]
       );
 
       res.json({
@@ -128,10 +130,10 @@ export function registerUserRoutes(app) {
   app.get('/api/users/:id', async (req, res) => {
     try {
       const user = await queryOne(
-        `SELECT id, company_id, username, email, role, is_active, created_at, updated_at
+        `SELECT id, company_id, username, full_name_gu, email, role, is_active, module_access, created_at, updated_at
          FROM users
          WHERE id = ?`,
-        [req.params.id]
+        [parseInt(req.params.id)]
       );
 
       if (!user) {
@@ -159,12 +161,15 @@ export function registerUserRoutes(app) {
   app.put('/api/users/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, email, role, is_active } = req.body;
+      console.log(`[USER] Attempting update for ID: ${id}`);
+      const { username, full_name_gu, email, role, is_active, password, module_access } = req.body;
+      console.log('[USER] PUT Body:', { username, email, role, is_active, password_provided: !!password, module_access_provided: !!module_access });
+      const userId = parseInt(id);
 
       // Get existing user
       const existingUser = await queryOne(
-        'SELECT company_id FROM users WHERE id = ?',
-        [id]
+        'SELECT company_id, password FROM users WHERE id = ?',
+        [userId]
       );
 
       if (!existingUser) {
@@ -174,28 +179,30 @@ export function registerUserRoutes(app) {
         });
       }
 
-      // Validate update data (without password)
+      // Validate update data
       const validation = validateUser({
         company_id: existingUser.company_id,
         username: username || '',
         email: email || '',
         role: role || 'cashier',
         is_active: is_active !== undefined ? is_active : true,
-        id: id // Indicate this is an update, not create
+        password: password || undefined, // Only validate if provided
+        id: userId
       });
 
       if (!validation.isValid) {
+        console.warn('[USER] Validation failed:', validation.errors);
         return res.status(400).json({
           success: false,
           errors: validation.errors
         });
       }
 
-      // Check if new username already exists in this company (excluding current user)
+      // Check if new username already exists in this company
       if (username) {
         const duplicateUsername = await queryOne(
           'SELECT id FROM users WHERE company_id = ? AND username = ? AND id != ?',
-          [existingUser.company_id, username.trim(), id]
+          [existingUser.company_id, username.trim(), userId]
         );
         if (duplicateUsername) {
           return res.status(400).json({
@@ -205,11 +212,11 @@ export function registerUserRoutes(app) {
         }
       }
 
-      // Check if new email already exists in this company (excluding current user)
+      // Check if new email already exists in this company
       if (email) {
         const duplicateEmail = await queryOne(
           'SELECT id FROM users WHERE company_id = ? AND email = ? AND id != ?',
-          [existingUser.company_id, email.toLowerCase().trim(), id]
+          [existingUser.company_id, email.toLowerCase().trim(), userId]
         );
         if (duplicateEmail) {
           return res.status(400).json({
@@ -227,6 +234,10 @@ export function registerUserRoutes(app) {
         updates.push('username = ?');
         params.push(username.trim());
       }
+      if (full_name_gu !== undefined) {
+        updates.push('full_name_gu = ?');
+        params.push(full_name_gu ? full_name_gu.trim() : null);
+      }
       if (email) {
         updates.push('email = ?');
         params.push(email.toLowerCase().trim());
@@ -239,6 +250,15 @@ export function registerUserRoutes(app) {
         updates.push('is_active = ?');
         params.push(is_active ? 1 : 0);
       }
+      if (module_access !== undefined) {
+        updates.push('module_access = ?');
+        params.push(JSON.stringify(module_access));
+      }
+      if (password && password.trim() !== '') {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        updates.push('password = ?');
+        params.push(hashedPassword);
+      }
 
       if (updates.length === 0) {
         return res.status(400).json({
@@ -248,7 +268,7 @@ export function registerUserRoutes(app) {
       }
 
       updates.push('updated_at = CURRENT_TIMESTAMP');
-      params.push(id);
+      params.push(userId);
 
       const result = await execute(
         `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
@@ -257,8 +277,7 @@ export function registerUserRoutes(app) {
 
       res.json({
         success: true,
-        message: 'User updated successfully',
-        changes: result.changes
+        message: 'User updated successfully'
       });
     } catch (error) {
       console.error('Update user error:', error.message);
@@ -422,7 +441,7 @@ export function registerUserRoutes(app) {
 
       // Find user by email (search across all companies)
       const user = await queryOne(
-        `SELECT id, company_id, username, email, role, is_active, password
+        `SELECT id, company_id, username, full_name_gu, email, role, is_active, password
          FROM users
          WHERE email = ?`,
         [email.toLowerCase().trim()]
@@ -495,6 +514,7 @@ export function registerUserRoutes(app) {
         user: {
           id: user.id,
           username: user.username,
+          full_name_gu: user.full_name_gu,
           email: user.email,
           role: user.role,
           company_id: user.company_id,

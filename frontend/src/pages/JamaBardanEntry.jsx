@@ -11,9 +11,10 @@ import { useTranslation } from 'react-i18next';
 import api, { jamaBardanEntryApi, sabhasadMasterApi, bardanEntryApi } from '../api';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
+import { formatBilingualText } from '../utils/textUtils';
 
 const JamaBardanEntry = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState({
     id: null,
     bookType: 'Combo1',
@@ -164,6 +165,7 @@ const JamaBardanEntry = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!id) return;
     if (!window.confirm('Decommission this transaction node?')) return;
     try {
       setLoading(true);
@@ -181,6 +183,7 @@ const JamaBardanEntry = () => {
   };
 
   const handleEdit = async (entryId) => {
+    if (!entryId) return;
     try {
       setLoading(true);
       const res = await jamaBardanEntryApi.getEntryById(entryId);
@@ -264,15 +267,15 @@ const JamaBardanEntry = () => {
                 {history.map((row) => (
                   <tr key={row.id} className="group hover:bg-slate-50/50 transition-all">
                     <td className="px-10 py-6">
-                      <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">{row.name}</p>
-                      <p className="text-[10px] font-bold text-slate-400 tracking-widest">CODE: {row.code}</p>
+                      <p className={`text-sm text-slate-800 tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'font-bold uppercase'}`} style={i18n.language === 'gu' ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(row.name)}</p>
+                      <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">CODE: {row.code}</p>
                     </td>
                     <td className="px-10 py-6">
-                      <p className="text-sm font-bold text-slate-600 font-mono">{new Date(row.entry_date).toLocaleDateString()}</p>
-                      <p className="text-[10px] font-bold text-blue-500 uppercase"># {row.pavti_no || 'N/A'}</p>
+                      <p className="text-sm font-bold text-slate-600 font-mono">{new Date(row.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-')}</p>
+                      <p className="text-[10px] font-bold text-blue-500 uppercase font-prompt"># {row.pavti_no || 'N/A'}</p>
                     </td>
                     <td className="px-10 py-6 text-right">
-                      <p className="text-2xl font-black text-slate-800">{row.qty}</p>
+                      <p className="text-2xl font-black text-slate-800 font-mono">{row.qty}</p>
                       <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Bags Recorded</p>
                     </td>
                     <td className="px-10 py-6">
@@ -360,7 +363,7 @@ const JamaBardanEntry = () => {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('bardanEntry.pavti_no')}</label>
                   <input
                     name="pavtiNo"
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300 font-prompt"
                     placeholder="ENTER PVT NO."
                     value={formData.pavtiNo}
                     onChange={handleChange}
@@ -402,12 +405,17 @@ const JamaBardanEntry = () => {
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                     <select
                       name="name"
-                      className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 appearance-none uppercase"
+                      className={`w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm text-slate-700 appearance-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-bold uppercase'}`}
+                      style={i18n.language === 'gu' ? { fontFamily: "'Prompt', sans-serif" } : {}}
                       value={formData.name}
                       onChange={handleChange}
                     >
-                      <option value="">NAME REFERENCE...</option>
-                      {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
+                      <option value="">{i18n.language === 'gu' ? 'નામ પસંદ કરો...' : 'NAME REFERENCE...'}</option>
+                      {members.map(m => (
+                        <option key={m.id} value={m.member_name} style={{ fontFamily: "'Prompt', sans-serif" }}>
+                          {m.member_name_gu || m.member_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -421,7 +429,7 @@ const JamaBardanEntry = () => {
                     <input
                       type="number"
                       name="qty"
-                      className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300 font-prompt"
                       placeholder="0.00"
                       value={formData.qty}
                       onChange={handleChange}
@@ -452,7 +460,8 @@ const JamaBardanEntry = () => {
                   <Info className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                   <textarea
                     name="remark"
-                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all font-bold text-sm text-slate-700 min-h-[100px] placeholder:text-slate-300"
+                    className={`w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all text-sm text-slate-700 min-h-[100px] placeholder:text-slate-300 ${i18n.language === 'gu' ? 'font-prompt' : 'font-bold uppercase'}`}
+                    style={i18n.language === 'gu' ? { fontFamily: "'Prompt', sans-serif" } : {}}
                     placeholder="ADDITIONAL CONTEXT..."
                     value={formData.remark}
                     onChange={handleChange}
@@ -470,7 +479,7 @@ const JamaBardanEntry = () => {
                   <TrendingUp size={16} className="text-blue-600" />
                   <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Asset Load</p>
                 </div>
-                <p className="text-lg font-black text-slate-900 tracking-tight">#{balanceData.taken}</p>
+                <p className="text-lg font-black text-slate-900 tracking-tight font-mono">#{balanceData.taken}</p>
               </div>
 
               <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
@@ -478,7 +487,7 @@ const JamaBardanEntry = () => {
                   <TrendingDown size={16} className="text-emerald-600" />
                   <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Return Reg</p>
                 </div>
-                <p className="text-lg font-black text-emerald-700 tracking-tight">#{balanceData.returned}</p>
+                <p className="text-lg font-black text-emerald-700 tracking-tight font-mono">#{balanceData.returned}</p>
               </div>
 
               <div className="p-5 bg-white rounded-lg border-2 border-blue-600 shadow-lg shadow-blue-50 relative overflow-hidden group">
@@ -487,11 +496,11 @@ const JamaBardanEntry = () => {
                 </div>
                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest relative z-10">Net Position</p>
                 <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <p className="text-3xl font-black text-slate-900 tracking-tight">#{balanceData.balance}</p>
+                  <p className="text-3xl font-black text-slate-900 tracking-tight font-mono">#{balanceData.balance}</p>
                   <span className="text-[8px] text-blue-600 font-bold uppercase tracking-widest">Outstanding</span>
                 </div>
                 {bardanPrice > 0 && (
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-3 relative z-10 pt-3 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-3 relative z-10 pt-3 border-t border-slate-100 font-mono">
                     VALUATION: ₹{(balanceData.balance * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </p>
                 )}
@@ -522,7 +531,7 @@ const JamaBardanEntry = () => {
                         <td className="text-center font-bold text-slate-300">{i + 1}</td>
                         <td className="px-1 py-1.5">
                           <input
-                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-prompt"
                             value={row.col1}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
@@ -531,7 +540,7 @@ const JamaBardanEntry = () => {
                         </td>
                         <td className="px-1 py-1.5">
                           <input
-                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-prompt"
                             value={row.col2}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
@@ -540,7 +549,7 @@ const JamaBardanEntry = () => {
                         </td>
                         <td className="px-1 py-1.5">
                           <input
-                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                            className="w-full bg-slate-50 border border-transparent rounded-lg px-2 py-2 font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all font-prompt"
                             value={row.col3}
                             onChange={(e) => {
                               const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);

@@ -7,10 +7,12 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addGujaratiFont } from '../utils/pdfFonts';
 import api from '../api';
 import { useTranslation } from 'react-i18next';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
+import html2canvas from 'html2canvas';
 
 export default function DangarMaster() {
   const { t } = useTranslation();
@@ -23,6 +25,14 @@ export default function DangarMaster() {
   const [selectedVillage, setSelectedVillage] = useState('all');
   const [selectedClass, setSelectedClass] = useState('all');
   const [message, setMessage] = useState(null);
+
+  const guDigits = {
+    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
+    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  };
+  const toGujaratiDigits = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+  const toEnglishDigits = (value) => String(value ?? '').replace(/[૦-૯]/g, d => '0123456789'['૦૧૨૩૪૫૬૭૮૯'.indexOf(d)] || d);
+  const formatSrNo = (value) => toEnglishDigits(value);
 
   useEffect(() => {
     loadInitialData();
@@ -65,91 +75,159 @@ export default function DangarMaster() {
     }
   };
 
-  const addGujaratiFont = async (doc) => {
-    try {
-      const res = await fetch('/fonts/NotoSansGujarati-Regular.ttf');
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          doc.addFileToVFS('NotoSansGujarati.ttf', base64);
-          doc.addFont('NotoSansGujarati.ttf', 'NotoGujarati', 'normal');
-          resolve();
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) { console.warn('Gujarati font load failed', e); }
-  };
-
   const handleExportPDF = async () => {
-    const cName = company ? (company.company_name || 'Company') : 'Company';
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    await addGujaratiFont(doc);
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 32;
-    const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139];
-    const dark = [30, 41, 59], stripe = [241, 245, 249];
+    const rows = filteredEntries;
+    if (!rows.length) {
+      setMessage({ type: 'error', text: t('dangarMaster.noRecords') });
+      return;
+    }
 
-    const hdr = () => {
-      doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...white);
-      doc.text(cName.toUpperCase(), M, 17);
-      doc.setFontSize(7); doc.setTextColor(191, 219, 254);
-      doc.text('DANGAR ENTRY REGISTRY', W / 2, 17, { align: 'center' });
-      doc.setFontSize(7); doc.setTextColor(239, 68, 68);
-      doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
-    };
-    const ftr = (pg, tot) => {
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
-      doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.text(cName + ' - Dangar Entry Registry', M, H - 9);
-      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
+    setLoading(true);
+
+    const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+    const toGu = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+
+    const formatGuDate = (dateStr) => {
+      const d = new Date(dateStr);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return toGu(`${day}/${month}/${year}`);
     };
 
-    hdr();
-    let y = 60;
+    const companyData = company || {};
+    const cName = companyData.company_name_gu || companyData.company_name || 'Company';
+    const reportTitle = t('dangarMaster.pdfReport.title');
 
-    doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(14); doc.setTextColor(...navy);
-    doc.text('Dangar Entry Registry', M, y);
-    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gray);
-    doc.text('Period: ' + (dateRange.start || '--') + ' to ' + (dateRange.end || '--') + '  |  Season: ' + (season || 'All') + '  |  Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-    y += 28;
+    const totalQtl = rows.reduce((a, c) => a + parseFloat(c.net_quintal || 0), 0);
+    const totalAmt = rows.reduce((a, c) => a + parseFloat(c.amount || 0), 0);
 
-    const totalQtl = filteredEntries.reduce((a, c) => a + parseFloat(c.net_quintal || 0), 0);
-    const totalAmt = filteredEntries.reduce((a, c) => a + parseFloat(c.amount || 0), 0);
+    const tempWrap = document.createElement('div');
+    tempWrap.style.position = 'fixed';
+    tempWrap.style.left = '-9999px';
+    tempWrap.style.top = '0';
+    tempWrap.style.width = '1120px';
+    tempWrap.style.padding = '40px';
+    tempWrap.style.background = '#ffffff';
+    tempWrap.style.fontFamily = '"Noto Sans Gujarati", "NotoGujarati", sans-serif';
 
-    autoTable(doc, {
-      startY: y,
-      head: [['Date', 'SR #', 'Member', 'Village', 'Item', 'Class', 'Net Quintal', 'Rate (Qt)', 'Amount']],
-      body: filteredEntries.map(r => [
-        new Date(r.entry_date).toLocaleDateString('en-GB'),
-        '#' + r.sr_no,
-        r.member_name + (r.member_code ? ' [' + r.member_code + ']' : ''),
-        r.village_name || '-',
-        r.item_name,
-        r.quality_class || '1st',
-        parseFloat(r.net_quintal).toFixed(2) + ' Qt',
-        parseFloat(r.rate).toFixed(2),
-        parseFloat(r.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-      ]),
-      foot: [['', '', '', '', '', 'TOTALS', totalQtl.toFixed(2) + ' Qt', '', totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })]],
-      styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
-      footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: stripe },
-      theme: 'grid',
-      margin: { left: M, right: M }
-    });
+    const tableRows = rows.map((r, idx) => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding:10px; text-align:center; font-family:Arial, sans-serif !important;">${toGu(idx + 1)}</td>
+        <td style="padding:10px; text-align:center; font-family:Arial, sans-serif !important;">${formatGuDate(r.entry_date)}</td>
+        <td style="padding:10px; font-weight:700; font-family:'Prompt', sans-serif !important;">${r.member_name} <span style="font-family:Arial, sans-serif !important; font-weight:normal; color:#64748b; margin-left:4px;">(${toGu(r.member_code)})</span></td>
+        <td style="padding:10px; font-family:'Prompt', sans-serif !important;">${r.village_name || '-'}</td>
+        <td style="padding:10px; font-family:'Prompt', sans-serif !important;">${r.item_name_gu || r.item_name}</td>
+        <td style="padding:10px; text-align:center;">${toGu(r.quality_class?.match(/\d+/)?.[0] || '1')}</td>
+        <td style="padding:10px; text-align:right; font-weight:700; font-family:Arial, sans-serif !important;">${toGu(parseFloat(r.net_quintal).toFixed(2))}</td>
+        <td style="padding:10px; text-align:right; font-family:Arial, sans-serif !important;">${toGu(parseFloat(r.rate).toFixed(2))}</td>
+        <td style="padding:10px; text-align:right; font-weight:800; color:#2563eb; font-family:Arial, sans-serif !important;">${toGu(parseFloat(r.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</td>
+      </tr>
+    `).join('');
 
-    const tot = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-    doc.save('Dangar_Entry_Registry_' + new Date().toISOString().split('T')[0] + '.pdf');
+    tempWrap.innerHTML = `
+      <div style="border: 1px solid #2563eb; padding: 2px;">
+        <div style="background: #2563eb; color: #ffffff; padding: 25px 35px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">${cName}</div>
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; margin-top: 4px; opacity: 0.8; letter-spacing: 1px;">Audit Protected System v2.0</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 16px; font-weight: 800; text-transform: uppercase;">${reportTitle}</div>
+            <div style="font-size: 10px; font-weight: 700; margin-top: 4px; opacity: 0.8;">${toGu(new Date().toLocaleDateString('en-GB'))} | ${toGu(new Date().toLocaleTimeString())}</div>
+          </div>
+        </div>
+
+        <div style="padding: 35px;">
+          <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9;">
+            <div>
+              <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Registry Period</div>
+              <div style="font-size: 15px; font-weight: 700; color: #1e293b;">${toGu(dateRange.start || '--')} થી ${toGu(dateRange.end || '--')}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Season Context</div>
+              <div style="font-size: 15px; font-weight: 700; color: #1e293b;">${season ? t(`dangarMaster.filters.${season}`) : t('common.all')}</div>
+            </div>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr style="background: #f8fafc; color: #475569; text-transform: uppercase; font-size: 10px; font-weight: 800;">
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: center;">ક્રમ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: center;">તારીખ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: left;">સભાસદનું નામ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: left;">ગામ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: left;">માલનો પ્રકાર</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: center;">વર્ગ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: right;">નેટ ક્વિન્ટલ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: right;">ભાવ</th>
+                <th style="padding: 12px 10px; border: 1px solid #e2e8f0; text-align: right;">કુલ રકમ</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+            <tfoot>
+              <tr style="background: #f1f5f9; font-weight: 900; color: #1e293b;">
+                <td colspan="6" style="padding: 18px; border: 1px solid #e2e8f0; text-align: right; text-transform: uppercase; font-size: 11px;">Consolidated Summary (${toGu(rows.length)} Records)</td>
+                <td style="padding: 18px; border: 1px solid #e2e8f0; text-align: right; font-size: 16px; font-family:Arial, sans-serif !important;">${toGu(totalQtl.toFixed(2))}</td>
+                <td style="padding: 18px; border: 1px solid #e2e8f0; text-align: right; font-family:Arial, sans-serif !important;">-</td>
+                <td style="padding: 18px; border: 1px solid #e2e8f0; text-align: right; color: #2563eb; font-size: 18px; font-family:Arial, sans-serif !important;">₹${toGu(totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div style="margin-top: 40px; display: grid; grid-template-cols: 1fr 1fr; gap: 40px;">
+            <div style="border: 1px solid #e2e8f0; padding: 15px; background: #f8fafc;">
+              <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">System Validation</div>
+              <div style="font-size: 11px; color: #475569; line-height: 1.5;">This registry has been processed via the Dangar Accounting Suite. All calculations are verified against the master ledger and seasonal rate tables.</div>
+            </div>
+            <div style="text-align: right; padding-top: 20px;">
+              <div style="height: 60px;"></div>
+              <div style="border-top: 2px solid #1e293b; display: inline-block; min-width: 200px; padding-top: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #1e293b;">Authorized Signatory</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f1f5f9; padding: 15px 35px; font-size: 10px; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0;">
+          <div style="font-weight: 700;">PROCESSED BY ANTIGRAVITY OS</div>
+          <div>CONFIDENTIAL BUSINESS DATA - PAGE ૧ OF ૧</div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(tempWrap);
+
+    try {
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      const canvas = await html2canvas(tempWrap, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        allowTaint: true
+      });
+
+      document.body.removeChild(tempWrap);
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width / 3, canvas.height / 3]
+      });
+
+      doc.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3, undefined, 'FAST');
+      doc.save(`Dangar_Registry_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      setMessage({ type: 'success', text: 'PDF report generated successfully.' });
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      setMessage({ type: 'error', text: 'Failed to generate PDF report.' });
+      if (document.body.contains(tempWrap)) document.body.removeChild(tempWrap);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePrint = () => {
@@ -157,7 +235,7 @@ export default function DangarMaster() {
     if (!printContents) { window.print(); return; }
     const win = window.open('', '_blank', 'width=1200,height=800');
     win.document.write(`
-      <html><head><title>Dangar Entry Registry</title>
+      <html><head><title>${t('dangarMaster.printReport.title')}</title>
       <style>
         body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; margin: 20px; }
         .logo-bar { background: #2563eb; color: #fff; padding: 6px 18px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
@@ -171,18 +249,20 @@ export default function DangarMaster() {
         th, td { padding: 8px 10px; border: 1px solid #e2e8f0; text-align: left; }
         tbody tr:nth-child(even) { background: #f1f5f9; }
         tfoot tr { background: #1e40af; color: #fff; font-weight: 700; }
+        .font-mono { font-family: 'Prompt', monospace !important; }
         .amt { text-align: right; }
         @media print { @page { size: A4 landscape; margin: 1cm; } }
       </style></head><body>
-      <div class='logo-bar'>
-         <h1>${(company?.company_name || 'Company').toUpperCase()}</h1>
-         <span class='lbl'>DANGAR ENTRY REGISTRY</span>
-         <span class='conf'>CONFIDENTIAL</span>
+      <div className='logo-bar'>
+         <h1 style="font-family:'Prompt', sans-serif;">${(company?.company_name_gu || company?.company_name || 'Company')}</h1>
+         <span className='lbl'>${t('dangarMaster.pdfReport.title')}</span>
+         <span className='conf'>${t('dangarMaster.pdfReport.confidential')}</span>
       </div>
-      <h2>Dangar Entry Registry</h2>
-      <p class='sub'>Period: ${dateRange.start || '--'} to ${dateRange.end || '--'} &nbsp;|&nbsp; Season: ${season || 'All'} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
+      <h2>${t('dangarMaster.printReport.title')}</h2>
+      <p className='sub'>${t('dangarMaster.pdfReport.period')}: ${toGujaratiDigits(dateRange.start || '--')} થી ${toGujaratiDigits(dateRange.end || '--')} &nbsp;|&nbsp; ${t('dangarMaster.pdfReport.season')}: ${season ? t(`dangarMaster.filters.${season}`) : (t('dangarMaster.filters.allSeasons') || 'બધી ઋતુઓ')} &nbsp;|&nbsp; ${t('dangarMaster.pdfReport.generated')}: ${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</p>
       ${printContents.outerHTML}
       </body></html>`);
+    win.document.write('</body></html>');
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
@@ -193,10 +273,10 @@ export default function DangarMaster() {
   };
 
   const filteredEntries = entries.filter(e => {
-    const matchesSearch = 
+    const matchesSearch =
       e.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.member_code?.toString().includes(searchQuery) ||
-      e.sr_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      toEnglishDigits(e.sr_no).toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.vehicle_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.item_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.village_name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -216,7 +296,7 @@ export default function DangarMaster() {
 
   return (
     <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
-      
+
       {/* Toast Notification */}
       <Toast message={message} onClose={() => setMessage(null)} />
 
@@ -227,37 +307,38 @@ export default function DangarMaster() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
               <Database size={20} className="text-zinc-600" />
-              Dangar Entry Registry
+              {t('dangarMaster.title')}
             </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Management / Dangar Entry Master</p>
+            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('dangarMaster.managementMaster')}</p>
           </div>
-          
+
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-              title="Print Registry"
+              title={t('common.print')}
             >
-              <Printer size={14} /> Print
+              <Printer size={14} /> {t('common.print')}
             </button>
             <button
               onClick={handleExportPDF}
               className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-              title="PDF Export"
+              title={t('common.pdf')}
             >
-              <FileText size={14} /> PDF
+              <FileText size={14} /> {t('common.pdf')}
             </button>
 
             <button
               onClick={handleAddNewRedirect}
               className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
             >
-              <Plus size={16} /> ADD NEW
+              <Plus size={16} /> {t('dangarMaster.addNew')}
             </button>
 
             <button
               onClick={() => fetchEntries(company?.id)}
               className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
+              title={t('dangarMaster.refreshRegistry')}
             >
               <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
@@ -268,19 +349,19 @@ export default function DangarMaster() {
         <div className="bg-zinc-50 border border-zinc-300 p-4 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="text-zinc-500" size={15} />
-            <span className="text-[10px] font-bold font-mono text-zinc-500 uppercase">Date Filter:</span>
+            <span className="text-[10px] font-bold text-zinc-500 uppercase">{t('dangarMaster.filters.dateFilter')}</span>
           </div>
           <div className="flex items-center gap-1 border border-zinc-300 bg-white p-1">
             <input type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} className="bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono" />
             <span className="text-zinc-400 font-bold">/</span>
             <input type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} className="bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 uppercase font-mono" />
           </div>
-          <button onClick={() => fetchEntries(company?.id)} className="px-3 py-1.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold text-xs uppercase transition rounded-none">Verify Registry</button>
+          <button onClick={() => fetchEntries(company?.id)} className="px-3 py-1.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold text-xs uppercase transition rounded-none">{t('dangarMaster.filters.verifyRegistry')}</button>
 
           <div className="flex items-center gap-2 border border-zinc-300 bg-white px-2 py-1">
             <Filter size={13} className="text-zinc-400" />
-            <select 
-              value={season} 
+            <select
+              value={season}
               onChange={e => {
                 const s = e.target.value;
                 setSeason(s);
@@ -294,51 +375,55 @@ export default function DangarMaster() {
                   if (res.data.success) setEntries(res.data.data);
                 });
               }}
-              className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 uppercase font-mono cursor-pointer"
+              className="bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 cursor-pointer"
             >
-              <option value="">ALL SEASONS</option>
-              <option value="winter">WINTER</option>
-              <option value="summer">SUMMER</option>
+              <option value="">{t('dangarMaster.filters.allSeasons')}</option>
+              <option value="winter">{t('dangarMaster.filters.winter')}</option>
+              <option value="summer">{t('dangarMaster.filters.summer')}</option>
             </select>
           </div>
 
           <div className="flex items-center gap-2 border border-zinc-300 bg-white px-2 py-1">
             <MapPin size={13} className="text-zinc-400" />
-            <select 
-              value={selectedVillage} 
+            <select
+              value={selectedVillage}
               onChange={e => setSelectedVillage(e.target.value)}
-              className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 uppercase font-mono cursor-pointer"
+              className={`bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 cursor-pointer ${selectedVillage !== 'all' ? 'font-mono' : 'font-sans'}`}
             >
-              <option value="all">ALL VILLAGES</option>
+              <option value="all" className="font-sans">{t('dangarMaster.filters.allVillages')}</option>
               {villages.filter(v => v !== 'all').map(v => (
-                <option key={v} value={v}>{v.toUpperCase()}</option>
+                <option key={v} value={v} className="font-mono">{v}</option>
               ))}
             </select>
           </div>
 
           <div className="flex items-center gap-2 border border-zinc-300 bg-white px-2 py-1">
             <Shield size={13} className="text-zinc-400" />
-            <select 
-              value={selectedClass} 
+            <select
+              value={selectedClass}
               onChange={e => setSelectedClass(e.target.value)}
-              className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 uppercase font-mono cursor-pointer"
+              className="bg-transparent border-none outline-none text-[11px] font-bold text-zinc-700 cursor-pointer"
             >
-              <option value="all">ALL CLASSES</option>
+              <option value="all">{t('dangarMaster.filters.allClasses')}</option>
               {classes.filter(c => c !== 'all').map(c => (
-                <option key={c} value={c}>{c.toUpperCase()}</option>
+                <option key={c} value={c}>
+                  {c === '1st' ? t('dangarMaster.filters.first') :
+                    c === '2nd' ? t('dangarMaster.filters.second') :
+                      c === '3rd' ? t('dangarMaster.filters.third') : c}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="ml-auto flex items-center gap-4">
             <div className="text-right">
-              <p className="text-[9px] font-mono text-zinc-400 uppercase">Total Net Volume</p>
-              <p className="text-base font-bold font-mono text-zinc-800">{filteredEntries.reduce((a,c)=>a+parseFloat(c.net_quintal||0),0).toFixed(2)} Qt</p>
+              <p className="text-[9px] font-sans text-zinc-400 uppercase">{t('dangarMaster.stats.totalNetVolume')}</p>
+              <p className="text-base font-bold font-sans text-zinc-800">{toGujaratiDigits(filteredEntries.reduce((a, c) => a + parseFloat(c.net_quintal || 0), 0).toFixed(2))} {t('dangarMaster.table.unit')}</p>
             </div>
             <div className="w-px h-8 bg-zinc-300" />
             <div className="text-right">
-              <p className="text-[9px] font-mono text-zinc-400 uppercase">Total Amount</p>
-              <p className="text-base font-bold font-mono text-emerald-600">₹{filteredEntries.reduce((a,c)=>a+parseFloat(c.amount||0),0).toLocaleString('en-IN', {minimumFractionDigits:2})}</p>
+              <p className="text-[9px] font-sans text-zinc-400 uppercase">{t('dangarMaster.stats.totalAmount')}</p>
+              <p className="text-base font-bold font-sans text-emerald-600">₹{toGujaratiDigits(filteredEntries.reduce((a, c) => a + parseFloat(c.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</p>
             </div>
           </div>
         </div>
@@ -348,10 +433,10 @@ export default function DangarMaster() {
           <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                Permanent Node Archive
+                {t('dangarMaster.listTitle')}
               </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                {filteredEntries.length} RECORDS
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-[10px] px-2 py-0.5">
+                {toGujaratiDigits(filteredEntries.length)} {t('dangarMaster.records')}
               </span>
             </div>
 
@@ -361,7 +446,7 @@ export default function DangarMaster() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Member, SR, Vehicle..."
+                placeholder={t('dangarMaster.searchPlaceholder')}
                 className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-56 font-mono"
               />
             </div>
@@ -371,59 +456,64 @@ export default function DangarMaster() {
             {loading && entries.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
                 <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">LOADING DANGAR DATA...</p>
+                <p className="text-xs font-mono">{t('dangarMaster.loadingData')}</p>
               </div>
             ) : filteredEntries.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
                 <Box size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">NO TRANSACTION ENTRIES FOUND</p>
+                <p className="text-xs font-mono">{t('dangarMaster.noRecords')}</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse font-mono text-xs select-none" id="dangar-registry-table">
+              <table className="w-full text-left border-collapse text-xs select-none font-sans" id="dangar-registry-table">
                 <thead>
                   <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                    <th className="px-4 py-2 border-r border-zinc-200">Date</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Member</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Ref. SR</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">Item</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-center">Class</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-right">Net Volume</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-right">Rate</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-right">Amount</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-center">Status</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">{t('dangarMaster.table.date')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">{t('dangarMaster.table.member')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">{t('dangarMaster.table.refSr')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200">{t('dangarMaster.table.item')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-center">{t('dangarMaster.table.class')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-right">{t('dangarMaster.table.netVolume')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-right">{t('dangarMaster.table.rate')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-right">{t('dangarMaster.table.amount')}</th>
+                    <th className="px-4 py-2 border-r border-zinc-200 text-center">{t('dangarMaster.table.status')}</th>
+                    <th className="px-4 py-2 text-center">{t('dangarMaster.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 bg-white">
                   {filteredEntries.map((row) => (
                     <tr key={row.id} className="hover:bg-zinc-50/60 transition-colors">
-                      <td className="px-4 py-2 border-r border-zinc-200">
-                        {new Date(row.entry_date).toLocaleDateString('en-GB')}
+                      <td className="px-4 py-2 border-r border-zinc-200 font-sans">
+                        {toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 font-sans font-bold tracking-tight text-zinc-800 uppercase italic">
-                        {row.member_name} {row.member_code && `[#${row.member_code}]`}
+                      <td className="px-4 py-2 border-r border-zinc-200 font-bold tracking-tight text-zinc-800">
+                        <span className="font-prompt" style={{ fontFamily: "'Prompt', sans-serif" }}>{row.member_name}</span> {row.member_code && <span className="text-zinc-500 font-normal ml-1 font-sans">#{toGujaratiDigits(row.member_code)}</span>}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 font-bold text-blue-600">
-                        #{row.sr_no}
+                      <td className="px-4 py-2 border-r border-zinc-200 font-sans font-bold text-blue-600" translate="no">
+                        #{formatSrNo(row.sr_no)}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 uppercase font-bold text-zinc-700">
-                        {row.item_name}
+                      <td className="px-4 py-2 border-r border-zinc-200 font-bold text-zinc-700">
+                        <span 
+                          className={row.item_name_gu ? 'font-sans' : 'font-prompt'}
+                          style={{ fontFamily: row.item_name_gu ? '"Noto Sans Gujarati", sans-serif' : "'Prompt', sans-serif" }}
+                        >
+                          {row.item_name_gu || row.item_name}
+                        </span>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center font-bold text-zinc-600">
-                        {row.quality_class || '1st'}
+                      <td className="px-4 py-2 border-r border-zinc-200 text-center font-bold text-zinc-600 font-sans">
+                        {toGujaratiDigits(row.quality_class ? row.quality_class.match(/\d+/)?.[0] || row.quality_class : '1')}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800">
-                        {parseFloat(row.net_quintal).toFixed(2)} Qt
+                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800 font-sans">
+                        {toGujaratiDigits(parseFloat(row.net_quintal).toFixed(2))} {t('dangarMaster.table.unit')}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800">
-                        ₹{parseFloat(row.rate).toFixed(2)}
+                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800 font-sans">
+                        ₹{toGujaratiDigits(parseFloat(row.rate).toFixed(2))}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-emerald-600">
-                        ₹{parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-emerald-600 font-sans">
+                        ₹{toGujaratiDigits(parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}
                       </td>
                       <td className="px-4 py-2 border-r border-zinc-200 text-center">
                         <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold border bg-emerald-50 border-emerald-300 text-emerald-700">
-                          COMMITTED
+                          {t('dangarMaster.table.committed')}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-center">

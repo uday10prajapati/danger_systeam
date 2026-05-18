@@ -125,14 +125,16 @@ function createWindow() {
 }
 
 app.on('ready', async () => {
-  // 1. Database Setup
+  // 1. Database Setup (Awaited for safety, but fast if already set up)
   await checkAndSetupDatabase();
 
   // 2. Start Backend
   startBackend();
 
-  // 3. Launch UI
-  createWindow();
+  // 3. Launch UI (Wait a moment for backend to initialize)
+  setTimeout(() => {
+    createWindow();
+  }, 2000);
 
   // 4. Register Shortcuts
   const shortcuts = [

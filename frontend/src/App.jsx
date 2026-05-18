@@ -36,6 +36,7 @@ import DangarSummaryReport from './pages/DangarSummaryReport'
 import JamaBardanEntry from './pages/JamaBardanEntry'
 import InterestCalculator from './pages/InterestCalculator'
 import Navbar from './components/Navbar'
+import Settings from './pages/Settings'
 
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem('user');
@@ -45,7 +46,9 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+import { useTranslation } from 'react-i18next'
 function AppContent() {
+  const { i18n } = useTranslation()
   const [backendStatus, setBackendStatus] = useState('Checking...')
   const [products, setProducts] = useState([])
   const [sales, setSales] = useState([])
@@ -60,6 +63,9 @@ function AppContent() {
         navigate(path);
       });
     }
+
+    // Sync HTML lang attribute with i18n for CSS targeting
+    document.documentElement.lang = i18n.language || 'gu';
 
     // Add Browser-level shortcut for Alt + Key
     const handleGlobalKeyDown = (e) => {
@@ -84,7 +90,7 @@ function AppContent() {
         };
 
         if (routes[key]) {
-          console.log(`⌨️ Web Shortcut Triggered: Alt+${key.toUpperCase()} -> Navigating to ${routes[key]}`);
+          console.log(`⌨️ Web Shortcut Triggered: Alt+${key} -> Navigating to ${routes[key]}`);
           e.preventDefault();
           navigate(routes[key]);
         }
@@ -185,6 +191,7 @@ function AppContent() {
           <Route path="/stock" element={<ProtectedRoute><StockReport /></ProtectedRoute>} />
           <Route path="/purchase-report" element={<ProtectedRoute><PurchaseReport /></ProtectedRoute>} />
           <Route path="/sale-report" element={<ProtectedRoute><SaleReport /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         </Routes>
       </div>
     </div>
