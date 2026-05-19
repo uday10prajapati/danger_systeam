@@ -16,35 +16,70 @@ router.get('/account/:accountId', async (req, res) => {
     if (!startDate || !endDate) return res.status(400).json({ success: false, error: 'Start and End dates required' });
 
     const isMember  = String(rawId).toUpperCase().startsWith('M');
-    const numericId = isMember ? parseInt(rawId.slice(1), 10) : parseInt(rawId, 10);
+    const isAll     = String(rawId).toUpperCase() === 'ALL';
+    const numericId = (isMember || isAll) ? 0 : parseInt(rawId, 10);
 
     let entityName     = '';
+    let entityNameGu   = null;
     let openingBalance = 0;
     let whereClause    = '';
     let whereParams    = [];
 
-    if (isMember) {
-      // ── Member account ────────────────────────────────
+    if (isAll) {
+      entityName     = 'All Accounts';
+      openingBalance = 0;
+      whereClause    = 'company_id = ?';
+      whereParams    = [companyId];
+      
+      if (req.query.memberId) {
+        const member = await queryOne(
+          `SELECT member_name FROM member_master WHERE id = ?`,
+          [req.query.memberId]
+        );
+        if (member) {
+          entityName += ` - ${member.member_name}`;
+        }
+        whereClause += ' AND member_id = ?';
+        whereParams.push(req.query.memberId);
+      }
+    } else if (isMember) {
+      const memberNumId = parseInt(rawId.slice(1), 10);
       const member = await queryOne(
         `SELECT member_name FROM member_master WHERE id = ?`,
-        [numericId]
+        [memberNumId]
       );
       if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
       entityName     = member.member_name;
+      entityNameGu   = member.member_name;
       openingBalance = 0;
       whereClause    = 'member_id = ? AND company_id = ?';
-      whereParams    = [numericId, companyId];
+      whereParams    = [memberNumId, companyId];
     } else {
-      // ── Ledger account ────────────────────────────────
       const account = await queryOne(
-        `SELECT account_name, opening_balance FROM accounts WHERE id = ? AND company_id = ?`,
+        `SELECT account_name, account_name_gu, opening_balance FROM accounts WHERE id = ? AND company_id = ?`,
         [numericId, companyId]
       );
       if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
       entityName     = account.account_name;
+      entityNameGu   = account.account_name_gu;
       openingBalance = parseFloat(account.opening_balance || 0);
       whereClause    = 'account_id = ? AND company_id = ?';
       whereParams    = [numericId, companyId];
+
+      if (req.query.memberId) {
+        const member = await queryOne(
+          `SELECT member_name FROM member_master WHERE id = ?`,
+          [req.query.memberId]
+        );
+        if (member) {
+          entityName += ` - ${member.member_name}`;
+          if (entityNameGu) {
+            entityNameGu += ` - ${member.member_name}`;
+          }
+        }
+        whereClause += ' AND member_id = ?';
+        whereParams.push(req.query.memberId);
+      }
     }
 
     // ── Historical totals before startDate (for opening row) ──
@@ -115,6 +150,7 @@ router.get('/account/:accountId', async (req, res) => {
     return res.json({
       success:      true,
       account_name: entityName,
+      account_name_gu: entityNameGu,
       is_member:    isMember,
       data:         [openingRow, ...formattedTransactions],
       totals: {

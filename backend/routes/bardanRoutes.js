@@ -71,7 +71,8 @@ router.get('/ledger/:code', async (req, res) => {
           credit: 0, 
           remark: item.remark, 
           name: item.name,
-          particulars: ''
+          particulars: '',
+          type: item.type
         };
       }
       grouped[key].debit += parseFloat(item.debit || 0);

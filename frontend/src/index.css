@@ -38,16 +38,16 @@ body,
 
 /* Legacy Style Font for specific data entry/display */
 .font-prompt {
-  font-family: 'Prompt', sans-serif !important;
+  font-family: 'Prompt', 'Noto Sans Gujarati', sans-serif !important;
   text-transform: none !important;
   letter-spacing: normal !important;
-  font-size: 1.2em !important; 
+  font-size: 1.2em !important;
   line-height: 1.5 !important;
 }
 
 /* Prompt font without size override — for small UI elements like navbar, badges, table cells */
 .font-prompt-sm {
-  font-family: 'Prompt', sans-serif !important;
+  font-family: 'Prompt', 'Noto Sans Gujarati', sans-serif !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   line-height: 1.4 !important;
@@ -144,4 +144,8 @@ html[lang="gu"] select {
   text-transform: none !important;
   letter-spacing: normal !important;
   font-style: normal !important;
+}
+
+button:hover {
+  cursor: pointer !important;
 }

@@ -466,4 +466,35 @@ router.get('/categories/:companyId', async (req, res) => {
   }
 });
 
+/**
+ * DELETE ITEM
+ * DELETE /api/items/:id
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if the item exists
+    const existing = await query('SELECT item_name FROM item_master WHERE id = ?', [id]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ success: false, error: 'Item not found' });
+    }
+
+    // Attempt to delete
+    await execute('DELETE FROM item_master WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Item deleted successfully' });
+  } catch (error) {
+    console.error('Delete item error:', error);
+    // Handle foreign key constraint error in PostgreSQL (23503)
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cannot delete this item as it is already referenced in transactions (purchases/sales/stock). Please deactivate it instead.' 
+      });
+    }
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;
+

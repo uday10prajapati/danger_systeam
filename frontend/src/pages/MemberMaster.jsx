@@ -5,7 +5,7 @@ import {
   ChevronRight, Phone, MapPin,
   RefreshCcw, Building2, CreditCard,
   X, Shield, AlertCircle, CheckCircle,
-  Loader, Globe, Hash, FileText
+  Loader, Globe, Hash, FileText, Wallet
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas';
@@ -32,6 +32,13 @@ export default function MemberMaster() {
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, villageFilter, bankFilter]);
 
   useEffect(() => {
     loadCompany()
@@ -274,238 +281,180 @@ export default function MemberMaster() {
     return <Loading />;
   }
 
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredMembers.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredMembers.length);
+  const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+
   return (
-    <div className="min-h-screen bg-zinc-50 p-6 font-sans text-zinc-900 select-none">
+    <div className="min-h-screen bg-white font-sans text-slate-800 select-none pb-12">
       
       {/* Toast Component */}
       <Toast message={message} onClose={() => setMessage(null)} />
 
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-        
-        {/* Top Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4 select-none">
-          <div>
-            <h1 className={`text-2xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
-              <Users size={24} className="text-zinc-600" />
-              {t('memberMaster.title')}
-            </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('memberMaster.managementMembers')}</p>
+      <div className="w-full">
+        {/* Mock Global Search Header (Optional, mimicking the image top bar) */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center gap-3 text-gray-400">
+            <Search size={18} />
+            <span className="text-sm font-medium">{t('memberMaster.searchPlaceholder') || 'Search'}</span>
           </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <FileText size={14} /> {t('common.pdf')}
+          <div className="flex items-center gap-4 text-gray-500">
+            <button><Wallet size={20} /></button>
+            <button className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-blue-600 font-bold border border-slate-200">
+              <Users size={16} />
             </button>
+          </div>
+        </div>
+
+        {/* Page Title */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h1 className={`text-xl font-bold text-gray-900 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+            {t('memberMaster.title')}
+          </h1>
+        </div>
+
+        <div className="px-6 py-6 space-y-6 max-w-[1500px]">
+          
+          {/* Action Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2 border border-gray-200 rounded px-3 py-2 bg-white">
+              <Wallet size={16} className="text-gray-400" />
+              <span className="text-sm font-medium text-gray-500">{t('memberMaster.totalMembers')}:</span>
+              <span className="text-sm font-bold text-yellow-500">{toGujaratiDigits(members.length)}</span>
+            </div>
             
             <button
               onClick={handleCreateMember}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded shadow-sm transition tracking-wide uppercase"
             >
-              <Plus size={16} />
+              <Plus size={14} />
               {t('memberMaster.addMember')}
             </button>
           </div>
-        </div>
 
-        {/* Dense Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('memberMaster.activeMembers')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{toGujaratiDigits(members.filter(m => m.is_active).length)}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('memberMaster.inactive')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{toGujaratiDigits(members.filter(m => !m.is_active).length)}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('memberMaster.totalMembers')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{toGujaratiDigits(members.length)}</span>
-          </div>
-        </div>
+          {/* Filter Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative border border-gray-200 rounded bg-white px-3 py-1.5 flex items-center text-sm font-medium text-gray-600">
+                <span className="text-gray-400 mr-2">{t('memberMaster.status') || 'Status'}:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-transparent border-none outline-none cursor-pointer appearance-none pr-4 text-gray-700 font-bold"
+                >
+                  <option value="all">{t('memberMaster.all') || 'All'}</option>
+                  <option value="active">{t('memberMaster.active') || 'Active'}</option>
+                  <option value="inactive">{t('memberMaster.inactive') || 'Inactive'}</option>
+                </select>
+              </div>
 
-        {/* Table List Section */}
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                {t('memberMaster.listTitle')}
-              </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                {filteredMembers.length} {t('memberMaster.records')}
-              </span>
+              <div className="relative border border-gray-200 rounded bg-white px-3 py-1.5 flex items-center text-sm font-medium text-gray-600">
+                <span className="text-gray-400 mr-2">{t('memberMaster.village') || 'Village'}:</span>
+                <select
+                  value={villageFilter}
+                  onChange={(e) => setVillageFilter(e.target.value)}
+                  className="bg-transparent border-none outline-none cursor-pointer appearance-none pr-4 text-gray-700 font-bold"
+                >
+                  <option value="all">{t('memberMaster.allVillages')}</option>
+                  {uniqueVillages.map(v => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            
-            <div className="flex items-center flex-wrap gap-3">
-              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-                <Search size={16} className="text-zinc-400" />
+
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex items-center border border-gray-200 rounded bg-white px-3 py-1.5 w-full sm:w-64">
+                <Search size={14} className="text-gray-400 mr-2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('memberMaster.searchPlaceholder')}
-                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                  className="bg-transparent border-none outline-none text-sm text-gray-800 placeholder:text-gray-400 w-full font-medium"
                 />
               </div>
-               <div className="flex items-center p-0.5 bg-zinc-200 border border-zinc-300">
-                {['all', 'active', 'inactive'].map((filt) => (
-                  <button
-                    key={filt}
-                    onClick={() => setStatusFilter(filt)}
-                    className={`px-3 py-1 text-[10px] font-bold uppercase transition select-none ${statusFilter === filt ? 'bg-white text-zinc-800 font-mono font-bold border border-zinc-300' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  >
-                    {t(`memberMaster.${filt}`)}
-                  </button>
-                ))}
+              
+              <div className="relative border border-gray-200 rounded bg-white px-3 py-1.5 flex items-center text-sm font-medium text-gray-600">
+                <span className="text-gray-400 mr-2">{t('memberMaster.bank') || 'Bank'}:</span>
+                <select
+                  value={bankFilter}
+                  onChange={(e) => setBankFilter(e.target.value)}
+                  className="bg-transparent border-none outline-none cursor-pointer appearance-none pr-4 text-gray-700 font-bold"
+                >
+                  <option value="all">{t('memberMaster.allBanks')}</option>
+                  {uniqueBanks.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
               </div>
-
-              <select
-                value={villageFilter}
-                onChange={(e) => setVillageFilter(e.target.value)}
-                className={`bg-white border border-zinc-300 px-2 py-1.5 outline-none focus:border-zinc-500 min-w-[120px] ${i18n.language === 'gu' ? 'font-prompt text-xs' : 'text-[10px] font-bold uppercase'}`}
-              >
-                <option value="all">{t('memberMaster.allVillages')}</option>
-                {uniqueVillages.map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-
-              <select
-                value={bankFilter}
-                onChange={(e) => setBankFilter(e.target.value)}
-                className="bg-white border border-zinc-300 px-2 py-1.5 text-[10px] font-bold uppercase outline-none focus:border-zinc-500 min-w-[120px] force-en font-sans"
-              >
-                <option value="all">{t('memberMaster.allBanks')}</option>
-                {uniqueBanks.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-              <button
-                onClick={loadMembers}
-                className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                title={t('memberMaster.refreshRegistry')}
-              >
-                <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
-              </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-x-auto bg-white">
+          {/* Data Table */}
+          <div className="border border-gray-200 rounded overflow-hidden bg-white">
             {loading && members.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
-                <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">{t('memberMaster.loadingData')}</p>
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-400">
+                <Loader className="animate-spin text-gray-400" size={24} />
+                <p className="text-sm">{t('memberMaster.loadingData')}</p>
               </div>
             ) : filteredMembers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
-                <UserMinus size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">{t('memberMaster.noMembers')}</p>
-                <button 
-                  onClick={handleCreateMember} 
-                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition"
-                >
-                  {t('memberMaster.registerFirst')}
-                </button>
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-500">
+                <UserMinus size={32} className="text-gray-300" />
+                <p className="text-sm font-medium">{t('memberMaster.noMembers')}</p>
               </div>
             ) : (
-              <table className={`w-full text-left border-collapse select-none text-sm ${i18n.language === 'gu' ? 'font-sans' : 'font-mono'}`}>
+              <table className={`w-full text-left border-collapse ${i18n.language === 'gu' ? 'font-sans text-xs' : 'text-sm'}`}>
                 <thead>
-                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                    <th className="px-4 py-3 border-r border-zinc-200">{t('memberMaster.memberInfo')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200">{t('memberMaster.villageAddress')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200">{t('memberMaster.bankDetails')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-center w-24">{t('memberMaster.status')}</th>
-                    <th className="px-4 py-3 text-center w-28">{t('memberMaster.actions')}</th>
+                  <tr className="bg-white border-b border-gray-200 text-gray-500 font-medium text-xs">
+                    <th className="px-5 py-4 font-semibold">{t('memberMaster.memberInfo')}</th>
+                    <th className="px-5 py-4 font-semibold">{t('memberMaster.villageAddress')}</th>
+                    <th className="px-5 py-4 font-semibold">{t('memberMaster.bankDetails')}</th>
+                    <th className="px-5 py-4 font-semibold w-28">{t('memberMaster.status')}</th>
+                    <th className="px-5 py-4 font-semibold text-center w-28">{t('memberMaster.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200">
-                  {filteredMembers.map((member) => (
-                    <tr key={member.id} className="hover:bg-zinc-50/60 transition-colors">
-                      <td className="px-4 py-3 border-r border-zinc-200">
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedMembers.map((member) => (
+                    <tr key={member.id} className="bg-white hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-4">
                         <div className="flex flex-col">
-                          <p className={`text-base font-bold text-zinc-900 leading-normal ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase italic'}`}>
+                          <span className={`font-medium text-gray-800 text-[13px] ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
                             {i18n.language === 'en' ? (member.eng_name || member.member_name) : (member.member_name_gu || member.member_name)}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {member.p_code ? (
-                              <span 
-                                className="inline-flex items-center bg-zinc-100 text-zinc-800 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300 dynamic-en"
-                                style={{ '--en-text': `"${member.p_code}"` }}
-                                translate="no"
-                              ></span>
-                            ) : (
-                              <span 
-                                className="inline-flex items-center bg-zinc-100 text-zinc-700 font-bold text-[9px] px-1.5 py-0.5 border border-zinc-300 dynamic-en"
-                                style={{ '--en-text': `"${member.member_code}"` }}
-                                translate="no"
-                              ></span>
-                            )}
-                            {member.p_code && (
-                              <span 
-                                className="text-[9px] text-zinc-400 dynamic-en"
-                                style={{ '--en-text': `"#${member.member_code}"` }}
-                                translate="no"
-                              ></span>
-                            )}
-                            <span className="text-[10px] text-zinc-400 italic force-en notranslate" translate="no">{member.eng_name || '-'}</span>
-                          </div>
+                          </span>
+                          <span className="text-xs text-gray-500 mt-0.5 dynamic-en" style={{ '--en-text': `"${member.p_code || member.member_code}"` }} translate="no"></span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 text-xs text-zinc-700 font-bold">
-                            <MapPin size={12} className="text-zinc-500" />
-                            {member.village_name || t('memberMaster.unassigned')}
-                          </div>
-                          <div className="text-[10px] font-bold text-zinc-400 leading-none">
-                            {member.address_no || t('memberMaster.noAddress')}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 notranslate google-notranslate force-en" translate="no">
+
+                      <td className="px-5 py-4">
                         <div className="flex flex-col">
-                          <span 
-                            className="text-[10px] font-bold text-zinc-700 uppercase tracking-tight leading-none mb-0.5 dynamic-en" 
-                            style={{ '--en-text': `"${member.bank_name || 'N/A'}"` }}
-                            translate="no"
-                          ></span>
-                          <span 
-                            className="text-[10px] font-bold text-zinc-400 dynamic-en" 
-                            style={{ '--en-text': `"${member.full_ac_number || 'N/A'}"` }}
-                            translate="no"
-                          ></span>
+                          <span className="text-[13px] text-gray-700">{member.village_name || '-'}</span>
+                          {member.address_no && (
+                            <span className="text-xs text-gray-500 mt-0.5">{member.address_no}</span>
+                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${member.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                           {member.is_active ? t('memberMaster.active') : t('memberMaster.inactive')}
+
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] text-gray-700 dynamic-en" style={{ '--en-text': `"${member.bank_name || '-'}"` }} translate="no"></span>
+                          <span className="text-xs text-gray-500 mt-0.5 font-mono dynamic-en" style={{ '--en-text': `"${member.full_ac_number || '-'}"` }} translate="no"></span>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-bold text-white ${member.is_active ? 'bg-teal-500' : 'bg-yellow-500'}`}>
+                          {member.is_active ? t('memberMaster.active') : t('memberMaster.inactive')}
                         </span>
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleEditMember(member)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                            title={t('memberMaster.edit')}
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleStatusToggle(member)}
-                            className={`p-1 border border-zinc-300 bg-zinc-50 transition shadow-sm ${member.is_active ? 'text-red-600 hover:bg-red-50 hover:border-red-300' : 'text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300'}`}
-                            title={member.is_active ? t('memberMaster.deactivate') : t('memberMaster.activate')}
-                          >
-                            <Power size={13} />
-                          </button>
-                          <button
-                            onClick={() => confirmDelete(member)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:red-700 transition shadow-sm"
-                            title={t('memberMaster.delete')}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-center gap-3 text-gray-400">
+                          <button onClick={() => handleEditMember(member)} className="hover:text-blue-600 transition" title={t('memberMaster.edit')}><Edit3 size={15} /></button>
+                          <button onClick={() => handleStatusToggle(member)} className={`hover:text-blue-600 transition`} title={member.is_active ? t('memberMaster.deactivate') : t('memberMaster.activate')}><Power size={15} /></button>
+                          <button onClick={() => confirmDelete(member)} className="hover:text-red-500 transition" title={t('memberMaster.delete')}><Trash2 size={15} /></button>
                         </div>
                       </td>
                     </tr>
@@ -514,14 +463,61 @@ export default function MemberMaster() {
               </table>
             )}
           </div>
+          
+          {/* Pagination */}
+          {!loading && filteredMembers.length > 0 && (
+            <div className="flex items-center justify-between py-2 text-sm text-gray-500">
+              <div>
+                {i18n.language === 'gu' ? (
+                  <span>{toGujaratiDigits(startIndex + 1)} થી {toGujaratiDigits(endIndex)} (કુલ {toGujaratiDigits(filteredMembers.length)})</span>
+                ) : (
+                  <span>Showing {startIndex + 1}-{endIndex} of {filteredMembers.length} records</span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 border border-gray-200 rounded bg-white hover:bg-gray-50 disabled:opacity-50 transition"
+                >
+                  Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .map((p, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const showEllipsis = prev && p - prev > 1;
+                    return (
+                      <React.Fragment key={p}>
+                        {showEllipsis && <span className="px-2">...</span>}
+                        <button
+                          onClick={() => setCurrentPage(p)}
+                          className={`px-3 py-1.5 border rounded transition ${currentPage === p ? 'bg-blue-600 border-blue-600 text-white font-bold' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                        >
+                          {toGujaratiDigits(p)}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 border border-gray-200 rounded bg-white hover:bg-gray-50 disabled:opacity-50 transition"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Modal for Member Form */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-none border border-zinc-400 shadow-xl">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-md border border-slate-300 shadow-xl">
             <MemberForm
               companyId={company?.id}
               onSuccess={(msg) => {
@@ -538,12 +534,12 @@ export default function MemberMaster() {
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
-        isOpen={deleteModalOpen}
-        title={t('memberMaster.deleteTitle')}
-        message={t('memberMaster.deleteConfirm', { name: memberToDelete?.member_name || '' })}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteModalOpen(false)}
-      />
+          isOpen={deleteModalOpen}
+          title={t('memberMaster.deleteTitle')}
+          message={t('memberMaster.deleteConfirm', { name: memberToDelete?.member_name || '' })}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteModalOpen(false)}
+        />
     </div>
   )
 }

@@ -326,245 +326,230 @@ export default function ItemMaster() {
     link.click()
   }
 
-  if (loading) {
+  if (loading && items.length === 0) {
     return <Loading />;
   }
 
   if (!company) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
-        <Building2 className="w-16 h-16 text-slate-300 mb-4" />
-        <h2 className="text-xl font-bold text-slate-800 mb-2">{t('accountMaster.errors.noCompany')}</h2>
-        <p className="text-slate-500 mb-6 text-center max-w-md">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white p-8 border border-gray-200 text-gray-800">
+        <Building2 className="w-10 h-10 text-gray-400 mb-3 animate-pulse" />
+        <h2 className="text-base font-bold mb-1">{t('accountMaster.errors.noCompany')}</h2>
+        <p className="text-gray-500 mb-5 text-center max-w-sm text-xs">
           {t('accountMaster.errors.companyDescription')}
         </p>
-        <div className="flex gap-4">
-          <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <RefreshCcw className="w-4 h-4 mr-2" /> {t('accountMaster.errors.retry')}
-          </button>
-        </div>
+        <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white font-medium text-xs border border-[#1d5f84]">
+          <RefreshCcw className="w-3.5 h-3.5 mr-2" /> {t('accountMaster.errors.retry')}
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6 font-sans text-zinc-900 select-none animate-none">
+    <div className="min-h-screen bg-white font-sans text-gray-800 select-none pb-12">
       
       {/* Toast Notification */}
       <Toast message={message} onClose={() => setMessage(null)} />
 
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-        
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className={`text-2xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
-              <Package size={24} className="text-zinc-600" />
-              {t('itemMaster.title')}
-            </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('itemMaster.managementInventory')}</p>
-          </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <Download size={14} /> CSV
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <FileText size={14} /> {t('common.pdf')}</button>
-            <button
-              onClick={handleCreateItem}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
-            >
-              <Plus size={16} />
-              {t('itemMaster.addItem')}
-            </button>
-          </div>
+      <div className="w-full">
+
+        {/* Page Title Bar */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h1 className={`text-xl font-bold text-gray-900 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+            {t('itemMaster.title')}
+          </h1>
+          <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider">{t('itemMaster.managementInventory')}</p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-sm font-sans text-zinc-500 ">{t('itemMaster.totalItems')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{toGujaratiDigits(items.length)}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-sm font-sans text-zinc-500 ">{t('itemMaster.activeItems')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{toGujaratiDigits(items.filter(i => i.is_active).length)}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-sm font-sans text-zinc-500 ">{t('itemMaster.uniqueCategories')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{toGujaratiDigits(categories.length)}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-sm font-sans text-zinc-500 ">{t('itemMaster.inactiveItems')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{toGujaratiDigits(items.filter(i => !i.is_active).length)}</span>
-          </div>
-        </div>
+        <div className="px-6 py-6 space-y-5 max-w-[1500px]">
 
-        {/* Dense Minimal Registry Table */}
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-zinc-700  ">
-                {t('itemMaster.listTitle')}
-              </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">
-                {toGujaratiDigits(filteredItems.length)} {t('itemMaster.records')}
-              </span>
+          {/* Action Bar */}
+          <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleDownloadCSV}
+                className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-semibold px-3 py-2 select-none transition"
+              >
+                <Download size={13} className="text-gray-400" /> CSV
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-semibold px-3 py-2 select-none transition"
+              >
+                <FileText size={13} className="text-gray-400" /> {t('common.pdf')}
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-semibold px-3 py-2 select-none transition"
+              >
+                <Printer size={13} className="text-gray-400" /> Print
+              </button>
+              <button
+                onClick={handleCreateItem}
+                className="flex items-center gap-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold px-4 py-2 select-none border border-[#1d5f84] transition tracking-wide uppercase"
+              >
+                <Plus size={14} />
+                {t('itemMaster.addItem')}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter + Search Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            {/* Status filter as outline select */}
+            <div className="flex items-center gap-3">
+              <div className="border border-gray-200 bg-white px-3 py-1.5 flex items-center text-sm text-gray-600">
+                <span className="text-gray-400 mr-2 text-xs">{t('itemMaster.status')}:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-transparent border-none outline-none cursor-pointer appearance-none pr-4 text-gray-700 font-bold text-xs"
+                >
+                  <option value="all">{t('itemMaster.table.all') || 'All'}</option>
+                  <option value="active">{t('itemMaster.active')}</option>
+                  <option value="inactive">{t('itemMaster.inactive')}</option>
+                </select>
+              </div>
             </div>
 
-            <div className="flex items-center flex-wrap gap-3">
-              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-                <Search size={16} className="text-zinc-400" />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {/* Search */}
+              <div className="flex items-center border border-gray-200 bg-white px-3 py-1.5 w-full sm:w-64">
+                <Search size={13} className="text-gray-400 mr-2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('itemMaster.searchPlaceholder')}
-                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                  className="bg-transparent border-none outline-none text-sm text-gray-800 placeholder:text-gray-400 w-full font-medium"
                 />
-              </div>
-              <div className="flex items-center p-0.5 bg-zinc-200 border border-zinc-300">
-                {['all', 'active', 'inactive'].map((filt) => (
-                  <button
-                    key={filt}
-                    onClick={() => setStatusFilter(filt)}
-                    className={`px-3 py-1 text-[10px] font-bold uppercase transition select-none ${statusFilter === filt ? 'bg-white text-zinc-800 font-sans font-bold border border-zinc-300' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  >
-                    {filt === 'all' ? (t('itemMaster.table.all') || t('memberMaster.all') || 'બધા') : t(`itemMaster.${filt}`)}
-                  </button>
-                ))}
               </div>
               <button
                 onClick={loadItems}
-                className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
+                className="p-2 text-gray-500 hover:text-gray-800 bg-white border border-gray-200 transition"
                 title={t('itemMaster.refreshRegistry')}
               >
-                <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+                <RefreshCcw size={13} className={loading ? 'animate-spin text-[#1d5f84]' : ''} />
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-x-auto bg-white">
-            {loading && items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
-                <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">{t('itemMaster.loadingData')}</p>
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
-                <PackageX size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">{t('itemMaster.noRecords')}</p>
-                <button 
-                  onClick={handleCreateItem} 
-                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition"
+          {/* Items Card Grid */}
+          {loading && items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-400">
+              <Loader className="animate-spin" size={24} />
+              <p className="text-sm">{t('itemMaster.loadingData')}</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-400 border border-gray-200 bg-white">
+              <PackageX size={36} className="text-gray-300" />
+              <p className="text-sm font-medium text-gray-500">{t('itemMaster.noRecords')}</p>
+              <button
+                onClick={handleCreateItem}
+                className="bg-[#1d5f84] hover:bg-[#154662] text-white font-semibold px-4 py-2 text-xs border border-[#1d5f84] mt-1 transition"
+              >
+                {t('itemMaster.addFirstItem')}
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white border border-gray-200 hover:border-[#1d5f84]/40 hover:shadow-sm transition-all duration-150 flex flex-col"
                 >
-                  {t('itemMaster.addFirstItem')}
-                </button>
-              </div>
-            ) : (
-              <table className={`w-full text-left border-collapse select-none ${i18n.language === 'gu' ? 'font-sans text-sm' : 'text-xs'}`}>
-                <thead>
-                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                    <th className="px-4 py-2 border-r border-zinc-200">{t('itemMaster.itemName')}</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 w-32">{t('itemMaster.identity')}</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">{t('itemMaster.unitScale')}</th>
-                    <th className={`px-4 py-2 border-r border-zinc-200 text-right ${i18n.language === 'gu' ? 'font-sans' : ''}`}>
-                      {t('itemMaster.tax')} <span className="text-[10px] font-sans font-normal opacity-60">(%)</span>
-                    </th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-center w-24">{t('itemMaster.status')}</th>
-                    <th className="px-4 py-2 text-center w-28">{t('itemMaster.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200">
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-zinc-50/60 transition-colors duration-300">
-                      <td className="px-4 py-2 border-r border-zinc-200 leading-tight">
-                        <div className="flex flex-col">
-                          <span className={`font-bold text-zinc-800 text-base ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans uppercase italic'}`}>
-                            {i18n.language === 'en' ? (item.item_name || item.item_name_gu) : (item.item_name_gu || item.item_name)}
-                          </span>
-                          {item.item_name_gu && (
-                            <span className="text-[10px] font-prompt text-zinc-400 italic">
-                              {item.item_name}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200">
-                        <div className="flex flex-col leading-tight">
-                          <span 
-                            className="inline-flex bg-zinc-100 text-zinc-800 border border-zinc-300 font-bold text-sm px-1.5 py-0.5 w-fit dynamic-en"
-                            style={{ '--en-text': `"${item.p_code || item.item_code}"` }}
-                            translate="no"
-                          ></span>
-                          {item.p_code && (
-                            <span 
-                              className="text-sm text-zinc-400 mt-0.5 dynamic-en"
-                              style={{ '--en-text': `"#${item.item_code}"` }}
-                              translate="no"
-                            ></span>
-                          )}
-                          {item.category && <span className="text-sm text-zinc-500 mt-0.5">{item.category}</span>}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 font-bold text-zinc-700">
-                        {t(`units.${item.unit}`) || item.unit}
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800 notranslate" translate="no">
-                        {toGujaratiDigits((parseFloat(item.tax_percentage) || 0).toFixed(2))}
-                        <span className="text-[10px] font-sans font-normal text-zinc-400 ml-0.5">%</span>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${item.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                          {item.is_active ? t('itemMaster.active') : t('itemMaster.inactive')}
+                  {/* Card Top: Color accent bar */}
+                  <div className={`h-1 w-full ${item.is_active ? 'bg-[#1d5f84]' : 'bg-gray-200'}`} />
+
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    {/* Name + Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col min-w-0">
+                        <span className={`font-bold text-gray-900 text-sm leading-tight ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase tracking-tight'}`}>
+                          {i18n.language === 'en' ? (item.item_name || item.item_name_gu) : (item.item_name_gu || item.item_name)}
                         </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleEditItem(item)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                            title={t('itemMaster.edit')}
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleStatusToggle(item)}
-                            className={`p-1 border border-zinc-300 bg-zinc-50 transition shadow-sm ${item.is_active ? 'text-red-600 hover:bg-red-50 hover:border-red-300' : 'text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300'}`}
-                            title={item.is_active ? t('itemMaster.deactivate') : t('itemMaster.activate')}
-                          >
-                            <Power size={13} />
-                          </button>
-                          <button
-                            onClick={() => confirmDelete(item)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
-                            title={t('itemMaster.delete')}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                        {item.item_name_gu && i18n.language === 'gu' && (
+                          <span className="text-[10px] text-gray-400 font-mono mt-0.5">{item.item_name}</span>
+                        )}
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold border ${item.is_active ? 'text-[#1d5f84] border-[#1d5f84]/30 bg-[#1d5f84]/5' : 'text-gray-400 border-gray-200 bg-gray-50'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-[#1d5f84]' : 'bg-gray-300'}`}></span>
+                        {item.is_active ? t('itemMaster.active') : t('itemMaster.inactive')}
+                      </span>
+                    </div>
+
+                    {/* Code + Category */}
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="inline-flex w-fit bg-gray-100 text-gray-700 border border-gray-200 font-bold text-[10px] px-1.5 py-0.5 dynamic-en"
+                        style={{ '--en-text': `"${item.p_code || item.item_code}"` }}
+                        translate="no"
+                      ></span>
+                      {item.p_code && (
+                        <span
+                          className="text-[9px] text-gray-400 font-mono dynamic-en"
+                          style={{ '--en-text': `"#${item.item_code}"` }}
+                          translate="no"
+                        ></span>
+                      )}
+                      {item.category && (
+                        <span className="text-[11px] text-gray-500 font-medium">{item.category}</span>
+                      )}
+                    </div>
+
+                    {/* Details Row */}
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">{t('itemMaster.unitScale')}</span>
+                        <span className="text-xs font-bold text-gray-700 mt-0.5">{t(`units.${item.unit}`) || item.unit}</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">{t('itemMaster.tax')}</span>
+                        <span className="text-xs font-bold text-gray-700 font-mono mt-0.5" translate="no">
+                          {toGujaratiDigits((parseFloat(item.tax_percentage) || 0).toFixed(2))}<span className="text-[9px] font-normal text-gray-400 ml-0.5">%</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Footer: Actions */}
+                  <div className="border-t border-gray-100 px-4 py-2 flex items-center justify-end gap-2 bg-gray-50">
+                    <button
+                      onClick={() => handleEditItem(item)}
+                      className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-[#1d5f84] font-semibold transition"
+                      title={t('itemMaster.edit')}
+                    >
+                      <Edit3 size={12} /> {t('itemMaster.edit')}
+                    </button>
+                    <span className="text-gray-200">|</span>
+                    <button
+                      onClick={() => handleStatusToggle(item)}
+                      className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-[#1d5f84] font-semibold transition"
+                      title={item.is_active ? t('itemMaster.deactivate') : t('itemMaster.activate')}
+                    >
+                      <Power size={12} /> {item.is_active ? t('itemMaster.deactivate') : t('itemMaster.activate')}
+                    </button>
+                    <span className="text-gray-200">|</span>
+                    <button
+                      onClick={() => confirmDelete(item)}
+                      className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-500 font-semibold transition"
+                      title={t('itemMaster.delete')}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Item Form Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-none border border-zinc-400 shadow-xl">
+          <div className="absolute inset-0 bg-slate-900/40" onClick={() => { setShowModal(false); setEditingItem(null); }} />
+          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-md border border-slate-300 overflow-hidden transform transition-all duration-200">
             <ItemForm
               company={company}
               item={editingItem}
@@ -580,7 +565,7 @@ export default function ItemMaster() {
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
         title={t('itemMaster.deleteTitle')}
-        message={t('itemMaster.deleteConfirm', { name: itemToDelete?.item_nam || '' })}
+        message={t('itemMaster.deleteConfirm', { name: itemToDelete?.item_name || '' })}
         onConfirm={handleDeleteItem}
         onCancel={() => setDeleteModalOpen(false)}
       />

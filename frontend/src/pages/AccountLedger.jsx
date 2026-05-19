@@ -39,6 +39,126 @@ export default function AccountLedger() {
    const [showMemberDropdown, setShowMemberDropdown] = useState(false);
    const [bardanPrice, setBardanPrice] = useState(0);
 
+   // Focus navigation refs
+   const startDateRef = React.useRef(null);
+   const endDateRef = React.useRef(null);
+   const accCodeRef = React.useRef(null);
+   const accNameRef = React.useRef(null);
+   const dropdownRef = React.useRef(null);
+
+   const [accActiveIdx, setAccActiveIdx] = useState(0);
+
+   useEffect(() => {
+      setAccActiveIdx(0);
+   }, [memberCodeSearch, memberNameSearch]);
+
+   useEffect(() => {
+      const handleClickOutside = (event) => {
+         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setShowMemberDropdown(false);
+         }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+         document.removeEventListener('mousedown', handleClickOutside);
+      };
+   }, []);
+
+   const handleAccCodeKeyDown = (e) => {
+      if (showMemberDropdown && filteredAccounts.length > 0) {
+         if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setAccActiveIdx((prev) => Math.min(prev + 1, filteredAccounts.length - 1));
+         } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setAccActiveIdx((prev) => Math.max(prev - 1, 0));
+         } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            const selected = filteredAccounts[accActiveIdx];
+            if (selected) {
+               handleSelectAccount(selected);
+               if (accNameRef.current) {
+                  accNameRef.current.focus();
+               }
+            }
+         } else if (e.key === 'Escape') {
+            setShowMemberDropdown(false);
+         }
+      } else {
+         if (e.key === 'Enter') {
+            e.preventDefault();
+            if (accNameRef.current) {
+               accNameRef.current.focus();
+            }
+         }
+      }
+   };
+
+   const handleAccNameKeyDown = (e) => {
+      if (showMemberDropdown && filteredAccounts.length > 0) {
+         if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setAccActiveIdx((prev) => Math.min(prev + 1, filteredAccounts.length - 1));
+         } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setAccActiveIdx((prev) => Math.max(prev - 1, 0));
+         } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            const selected = filteredAccounts[accActiveIdx];
+            if (selected) {
+               handleSelectAccount(selected);
+            }
+         } else if (e.key === 'Escape') {
+            setShowMemberDropdown(false);
+         }
+      } else {
+         if (e.key === 'Enter') {
+            e.preventDefault();
+         }
+      }
+   };
+
+   const handleKeyDown = (e, nextRef, submitFn) => {
+      if (e.key === 'Enter') {
+         e.preventDefault();
+         if (nextRef && nextRef.current) {
+            nextRef.current.focus();
+         } else if (submitFn) {
+            submitFn();
+         }
+      }
+   };
+
+   const handleInputChangeWithAutocomplete = (e, inputRef, list, nameKey, setValue, setShowDrop) => {
+      const typedVal = e.target.value;
+      const inputType = e.nativeEvent?.inputType || '';
+
+      setValue(typedVal);
+      if (setShowDrop) setShowDrop(true);
+
+      if (inputType.startsWith('delete') || inputType === 'historyUndo') {
+         return;
+      }
+
+      if (!typedVal.trim()) return;
+
+      const match = list[0];
+
+      if (match) {
+         const rawText = match[nameKey] || '';
+         const matchText = i18n.language === 'gu' ? translateSystemText(match.account_name_gu || rawText) : rawText;
+         if (matchText.toLowerCase().startsWith(typedVal.toLowerCase())) {
+            setValue(matchText);
+            setTimeout(() => {
+               const input = inputRef.current;
+               if (input) {
+                  input.setSelectionRange(typedVal.length, matchText.length);
+               }
+            }, 0);
+         }
+      }
+   };
+
    useEffect(() => {
       loadCompany();
    }, []);
@@ -152,17 +272,23 @@ export default function AccountLedger() {
 
    const handleSelectAccount = async (account) => {
       setSelectedAccount(account);
-      setMemberCodeSearch(String(account.id));
-      setMemberNameSearch(account.account_name_gu || account.account_name);
+      setMemberCodeSearch(account ? String(account.id) : '');
+      setMemberNameSearch(account ? (i18n.language === 'gu' ? translateSystemText(account.account_name_gu || account.account_name) : account.account_name) : '');
       setShowMemberDropdown(false);
       setView('ledger');
 
-      const targetId = account.id;
-      await Promise.all([
-         fetchAccountLedger(targetId),
-         fetchAccountBalance(targetId),
-         fetchAccountBreakdown(targetId)
-      ]);
+      if (account) {
+         const targetId = account.id;
+         await Promise.all([
+            fetchAccountLedger(targetId),
+            fetchAccountBalance(targetId),
+            fetchAccountBreakdown(targetId)
+         ]);
+      } else {
+         setLedgerEntries([]);
+         setAccountBalance({ total_debit: 0, total_credit: 0, running_balance: 0 });
+         setBreakdownData([]);
+      }
    };
 
    useEffect(() => {
@@ -171,15 +297,31 @@ export default function AccountLedger() {
          if (exactMatch) {
             handleSelectAccount(exactMatch);
          }
+      } else if (!memberCodeSearch && selectedAccount) {
+         handleSelectAccount(null);
       }
    }, [memberCodeSearch, accounts]);
 
-   const filteredAccounts = accounts.filter(acc =>
-      (String(acc.id).includes(memberCodeSearch) || memberCodeSearch === '') &&
-      ((acc.account_name || '').toLowerCase().includes(memberNameSearch.toLowerCase()) || 
-       (acc.account_name_gu || '').toLowerCase().includes(memberNameSearch.toLowerCase()) ||
-       memberNameSearch === '')
-   );
+   useEffect(() => {
+      if (memberNameSearch && (!selectedAccount || (selectedAccount.account_name || '').toLowerCase() !== memberNameSearch.toLowerCase())) {
+         const exactMatch = accounts.find(acc =>
+            (acc.account_name || '').toLowerCase() === memberNameSearch.toLowerCase() ||
+            (acc.account_name_gu || '').toLowerCase() === memberNameSearch.toLowerCase()
+         );
+         if (exactMatch) {
+            handleSelectAccount(exactMatch);
+         }
+      }
+   }, [memberNameSearch, accounts]);
+
+   const filteredAccounts = accounts.filter(acc => {
+      const idStr = memberCodeSearch ? memberCodeSearch.toLowerCase() : '';
+      const nameQuery = memberNameSearch ? memberNameSearch.toLowerCase() : '';
+      return (!idStr || String(acc.id).toLowerCase().includes(idStr)) &&
+         (!nameQuery ||
+          (acc.account_name || '').toLowerCase().includes(nameQuery) || 
+          (acc.account_name_gu || '').toLowerCase().includes(nameQuery));
+   });
 
    const handleDateChange = () => {
       if (selectedAccount) {
@@ -326,159 +468,90 @@ export default function AccountLedger() {
       <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none">
          <Toast message={message} onClose={() => setMessage(null)} />
 
-         <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+         <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-4 space-y-4">
             
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-               <div>
-                  <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-                     <Database size={20} className="text-zinc-600" />
-                     {t('accountLedger.title')}
-                  </h1>
-                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">
-                     {t('accountLedger.subtitle')}
-                  </p>
-               </div>
-               
-               <div className="flex items-center gap-2 bg-zinc-50 p-0.5 border border-zinc-200">
-                  <button
-                     onClick={() => setView('ledger')}
-                     className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${view === 'ledger' ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm' : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'}`}
-                  >
-                     <Activity size={14} /> {t('accountLedger.transactions')}
-                  </button>
-                  {selectedAccount && (
-                     <button
-                        onClick={() => { setView('breakdown'); fetchAccountBreakdown(selectedAccount.id); }}
-                        className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${view === 'breakdown' ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm' : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'}`}
-                     >
-                        <ShieldCheck size={14} /> {t('accountLedger.breakdown')}
-                     </button>
-                  )}
-               </div>
-            </div>
+            {/* Compact, Redesigned Filter Console */}
+            <div className="bg-zinc-50 border border-zinc-300 p-2.5 space-y-2 print:hidden">
+               <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                  
+                  {/* Date Range */}
+                  <div className="lg:col-span-4 flex items-center gap-1">
+                     <span className="text-[10px] font-bold text-zinc-500 min-w-[30px]">{t('accountLedger.temporalStart').split(' ')[0]}</span>
+                     <input ref={startDateRef} type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onKeyDown={e => handleKeyDown(e, endDateRef)} className="flex-1 px-1.5 py-1 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[10px] text-zinc-700" />
+                     <span className="text-[10px] font-bold text-zinc-500">-</span>
+                     <input ref={endDateRef} type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onKeyDown={e => handleKeyDown(e, accCodeRef)} className="flex-1 px-1.5 py-1 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[10px] text-zinc-700" />
+                  </div>
 
-            {view === 'ledger' && (
-               <div className="flex flex-col gap-6">
-                  <div className="bg-zinc-50 p-6 border border-zinc-300 relative print:hidden">
-                     <div className="flex flex-wrap items-end justify-between gap-6">
-                        <div className="flex-1 flex flex-wrap items-end gap-6 relative">
-                           <div className="w-full md:w-32">
-                              <span className="block text-sm font-bold text-zinc-400 mb-2 px-1">{t('accountLedger.nodeId')}</span>
-                              <div className="relative group">
-                                 <Hash size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
-                                 <input
-                                    type="text"
-                                    value={memberCodeSearch}
-                                    onChange={(e) => {
-                                       setMemberCodeSearch(e.target.value);
-                                       setShowMemberDropdown(true);
-                                    }}
-                                    onFocus={() => setShowMemberDropdown(true)}
-                                    placeholder="ID"
-                                    className={`w-full pl-11 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold uppercase text-xs ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}
-                                 />
-                              </div>
-                           </div>
-
-                           <div className="flex-1 min-w-[300px]">
-                              <span className="block text-sm font-bold text-zinc-400 mb-2 px-1">{t('accountLedger.searchNomenclature')}</span>
-                              <div className="relative group">
-                                 <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
-                                 <input
-                                    type="text"
-                                    value={memberNameSearch}
-                                    onChange={(e) => {
-                                       setMemberNameSearch(e.target.value);
-                                       setShowMemberDropdown(true);
-                                    }}
-                                    onFocus={() => setShowMemberDropdown(true)}
-                                    placeholder={t('accountLedger.searchPrompt')}
-                                    className={`w-full pl-11 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold uppercase text-xs ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}
-                                 />
-                              </div>
-                           </div>
-
-                           {showMemberDropdown && accounts.length > 0 && (
-                              <div className="absolute top-[75px] left-0 right-0 bg-white border border-zinc-300 shadow-2xl overflow-hidden z-[100] animate-in zoom-in-95">
-                                 <div className="max-h-64 overflow-y-auto">
-                                    {filteredAccounts.map((acc) => (
-                                       <div
-                                          key={acc.id}
-                                          onClick={() => handleSelectAccount(acc)}
-                                          className="px-6 py-3.5 hover:bg-zinc-50 flex justify-between items-center cursor-pointer transition-all border-b border-zinc-100 last:border-none group"
-                                       >
-                                          <div>
-                                             <p className="text-xs font-bold text-zinc-800 group-hover:text-blue-600 transition-colors italic">{formatBilingualText(acc.account_name_gu || acc.account_name)}</p>
-                                             <p className="text-[9px] font-bold text-zinc-400 uppercase leading-none mt-1 group-hover:text-blue-400">{t(`accountTypes.${acc.account_type?.toLowerCase()}`)}</p>
+                  {/* Account Selection Autocomplete */}
+                  <div className="lg:col-span-6 flex items-center gap-1 relative">
+                     <span className="text-[10px] font-bold text-zinc-500 min-w-[45px]">{t('accountLedger.searchNomenclature').split(' ')[0]}</span>
+                     <div className="flex flex-1 gap-1" ref={dropdownRef}>
+                        <div className="w-16 relative">
+                           <Hash size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400" />
+                           <input ref={accCodeRef} type="text" value={memberCodeSearch} onChange={(e) => { setMemberCodeSearch(e.target.value); setShowMemberDropdown(true); }} onFocus={() => setShowMemberDropdown(true)} onKeyDown={handleAccCodeKeyDown} placeholder="ID" className="w-full pl-5 pr-1 py-1 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-mono font-bold text-[10px] text-zinc-700" />
+                        </div>
+                        <div className="flex-1 relative">
+                           <User size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400" />
+                           <input ref={accNameRef} type="text" value={memberNameSearch} onChange={(e) => handleInputChangeWithAutocomplete(e, accNameRef, filteredAccounts, 'account_name', setMemberNameSearch, setShowMemberDropdown)} onFocus={() => setShowMemberDropdown(true)} onKeyDown={handleAccNameKeyDown} placeholder={t('accountLedger.searchPrompt')} className={`w-full pl-6 pr-1.5 py-1 bg-white border border-zinc-300 rounded-none outline-none focus:border-zinc-500 transition-all font-bold text-[10px] text-zinc-700 uppercase ${i18n.language === 'gu' ? 'font-prompt text-sm' : 'font-mono'}`} />
+                           {showMemberDropdown && filteredAccounts.length > 0 && (
+                              <div className="absolute top-[26px] left-0 right-0 bg-white border border-zinc-300 shadow-xl rounded-none z-[100] overflow-hidden w-full">
+                                 <div className="max-h-48 overflow-y-auto">
+                                    {filteredAccounts.map((a, idx) => (
+                                       <div key={a.id} onClick={() => handleSelectAccount(a)} onMouseEnter={() => setAccActiveIdx(idx)} className={`px-3 py-1.5 flex justify-between items-center cursor-pointer border-b border-zinc-100 last:border-none group ${accActiveIdx === idx ? 'bg-blue-50 text-blue-700' : 'hover:bg-blue-50'}`}>
+                                          <div className="flex items-center gap-1.5 truncate">
+                                             <Search size={10} className={`transition-colors ${accActiveIdx === idx ? 'text-blue-600' : 'text-zinc-400'}`} />
+                                             <span className={`text-[11px] font-bold transition-colors ${accActiveIdx === idx ? 'text-blue-700' : 'text-zinc-700 group-hover:text-blue-600'}`}>{formatBilingualText(a.account_name_gu || a.account_name)}</span>
                                           </div>
-                                          <span className="text-sm font-black text-zinc-300 group-hover:text-blue-600">#{acc.id}</span>
+                                          <span className="text-[10px] font-sans text-zinc-400 shrink-0">#{a.id}</span>
                                        </div>
                                     ))}
                                  </div>
                               </div>
                            )}
-
-                           <div className="flex flex-wrap items-end gap-6">
-                              <div>
-                                 <span className="block text-sm font-bold text-zinc-400 mb-2 px-1">{t('accountLedger.temporalStart')}</span>
-                                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-white border border-zinc-300 px-4 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-zinc-500 transition-all font-mono" />
-                              </div>
-                              <div>
-                                 <span className="block text-sm font-bold text-zinc-400 mb-2 px-1">{t('accountLedger.temporalEnd')}</span>
-                                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-white border border-zinc-300 px-4 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-zinc-500 transition-all font-mono" />
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                           <button onClick={clearFilters} className="bg-white border border-zinc-300 text-zinc-500 px-4 py-2 rounded-none font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all flex items-center gap-2">
-                              <X size={14} /> {t('accountLedger.clear')}
-                           </button>
-                           <button onClick={handlePrint} className="bg-white border border-zinc-300 text-zinc-700 px-4 py-2 rounded-none font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all flex items-center gap-2">
-                              <Printer size={14} /> {t('accountLedger.print')}
-                           </button>
-                           <button onClick={handleExportPDF} className="bg-blue-600 text-white px-6 py-2 rounded-none font-bold text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm flex items-center gap-2 border border-blue-700">
-                              <FileText size={14} /> {t('accountLedger.exportPdf')}
-                           </button>
                         </div>
                      </div>
                   </div>
 
+                  {/* Clear button */}
+                  <div className="lg:col-span-2 flex items-center justify-end">
+                     <button
+                        onClick={clearFilters}
+                        className="w-full flex items-center justify-center gap-1 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-600 text-[10px] font-bold px-2 py-1.5 rounded-none transition cursor-pointer select-none uppercase whitespace-nowrap"
+                     >
+                        <X size={12} /> {t('accountLedger.clear')}
+                     </button>
+                  </div>
+
+               </div>
+            </div>
+
+            {view === 'ledger' && (
+               <div className="flex flex-col gap-4">
+
                   {selectedAccount ? (
                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 print:grid-cols-4 select-none">
-                           {[
-                              { label: t('accountLedger.debit'), val: parseFloat(accountBalance.total_debit || 0), color: 'zinc' },
-                              { label: t('accountLedger.credit'), val: parseFloat(accountBalance.total_credit || 0), color: 'zinc' },
-                              { label: t('accountLedger.openingBalance'), val: parseFloat(accountBalance.opening_balance || 0), color: 'zinc', type: accountBalance.opening_balance_type },
-                              { label: t('accountLedger.netPosition'), val: parseFloat(accountBalance.balance || accountBalance.running_balance || 0), color: 'blue', special: true },
-                           ].map((shard, i) => (
-                              <div key={i} className={`bg-zinc-50 p-3 border border-zinc-300 flex flex-col justify-between transition-all ${shard.special && shard.val < 0 ? 'bg-rose-50/30 border-rose-200' : ''}`}>
-                                 <span className="text-sm font-sans text-zinc-500">{shard.label}</span>
-                                 <p className={`text-2xl font-bold tracking-tight font-mono mt-1 ${shard.special ? (shard.val >= 0 ? 'text-zinc-800' : 'text-rose-600') : 'text-zinc-800'}`}>
-                                    ₹{shard.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                    {shard.label === t('accountLedger.openingBalance') && shard.val !== 0 && (
-                                       <span className="text-sm ml-2 text-zinc-400 font-bold">{shard.type === 'credit' ? t('accountLedger.jama') : t('accountLedger.udhar')}</span>
-                                    )}
-                                 </p>
-                              </div>
-                           ))}
-                        </div>
-
                         <div className="bg-white border border-zinc-300 shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
-                           <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
+                           {/* Unified Table Header Bar with Actions & Tabs */}
+                           <div className="px-3 py-1.5 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-2 select-none">
                               <div className="flex items-center gap-2">
-                                 <span className="text-sm font-bold text-zinc-700">{formatBilingualText(selectedAccount.account_name_gu || selectedAccount.account_name)}</span>
-                                 <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">
-                                    {ledgerEntries.length} {t('accountLedger.transactionsCount')}
+                                 <span className="text-xs font-bold text-zinc-800 uppercase tracking-wide">
+                                    {formatBilingualText(selectedAccount.account_name_gu || selectedAccount.account_name)}
                                  </span>
+
+
+                                 
                               </div>
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t(`accountTypes.${selectedAccount.account_type?.toLowerCase()}`)}</p>
+
+                              <div className="flex items-center gap-1.5">
+                                 <button onClick={handlePrint} className="p-1 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm select-none rounded-none" title={t('accountLedger.print')}><Printer size={12} /></button>
+                                 <button onClick={handleExportPDF} className="p-1 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm select-none rounded-none" title={t('accountLedger.exportPdf')}><FileText size={12} /></button>
+                                 <button onClick={() => fetchAccountLedger(selectedAccount.id)} className="p-1 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title="Refresh"><RefreshCcw size={12} className={loading ? 'animate-spin' : ''} /></button>
+                              </div>
                            </div>
 
                            <div className="flex-1 overflow-x-auto scroller-airy bg-white">
-                              <table className="w-full text-left font-mono text-sm border-collapse">
-                                 <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
+                              <table className="w-full text-left font-mono text-xs border-collapse">
+                                  <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-700 font-sans text-[10px]">
                                     <tr>
                                        {[
                                           t('accountLedger.date'),
@@ -489,7 +562,7 @@ export default function AccountLedger() {
                                           t('accountLedger.balance'),
                                           ...(selectedAccount?.account_code === 'BS0001' ? [t('accountLedger.bardanAmt')] : [])
                                        ].map((h, i) => (
-                                          <th key={i} className={`px-6 py-3 font-bold uppercase tracking-widest border-r border-zinc-200 last:border-none ${i > 1 ? 'text-right' : ''}`}>
+                                          <th key={i} className={`px-2 py-1.5 font-bold border-r border-zinc-200 last:border-none ${i > 1 ? 'text-right' : ''}`}>
                                              {h}
                                           </th>
                                        ))}
@@ -498,17 +571,17 @@ export default function AccountLedger() {
                                  <tbody className="divide-y divide-zinc-200">
                                     {loading ? (
                                        <tr>
-                                          <td colSpan="8" className="py-32 text-center text-zinc-300 font-bold text-sm">
-                                             <RefreshCcw className="animate-spin mx-auto mb-4 text-zinc-200" size={40} />
+                                          <td colSpan="8" className="py-24 text-center text-zinc-300 font-bold text-xs">
+                                             <RefreshCcw className="animate-spin mx-auto mb-4 text-zinc-250" size={30} />
                                              {t('accountLedger.syncing')}
                                           </td>
                                        </tr>
                                     ) : ledgerEntries.length === 0 ? (
                                        <tr>
-                                          <td colSpan="8" className="py-32 text-center">
+                                          <td colSpan="8" className="py-24 text-center">
                                              <div className="max-w-md mx-auto">
-                                                <Database size={48} className="mx-auto text-zinc-100 mb-6" strokeWidth={1} />
-                                                <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] italic">{t('accountLedger.noNodes')}</p>
+                                                <Database size={36} className="mx-auto text-zinc-150 mb-4" strokeWidth={1} />
+                                                <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[9px] italic">{t('accountLedger.noNodes')}</p>
                                              </div>
                                           </td>
                                        </tr>
@@ -516,42 +589,42 @@ export default function AccountLedger() {
                                        <>
                                           {parseFloat(accountBalance.opening_balance || 0) !== 0 && (
                                              <tr className="bg-zinc-50 border-b border-zinc-200 font-bold italic">
-                                                <td className="px-6 py-3 text-zinc-400 border-r border-zinc-100">—</td>
-                                                <td className="px-6 py-3 text-zinc-500 border-r border-zinc-100">{t('accountLedger.openingBalanceForward')}</td>
-                                                <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "credit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
-                                                <td className="px-6 py-3 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "debit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
-                                                <td className={`px-6 py-3 text-right font-black text-xs border-r border-zinc-100 ${accountBalance.opening_balance_type === "debit" ? "text-zinc-800" : "text-rose-600"}`}>₹{parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")} {accountBalance.opening_balance_type === "debit" ? "D" : "C"}</td>
+                                                <td className="px-2 py-1.5 text-zinc-400 border-r border-zinc-100">—</td>
+                                                <td className="px-2 py-1.5 text-zinc-500 border-r border-zinc-100">{t('accountLedger.openingBalanceForward')}</td>
+                                                <td className="px-2 py-1.5 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "credit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
+                                                <td className="px-2 py-1.5 text-right text-zinc-400 border-r border-zinc-100">{accountBalance.opening_balance_type === "debit" ? `₹${parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")}` : "—"}</td>
+                                                <td className={`px-2 py-1.5 text-right font-black border-r border-zinc-100 ${accountBalance.opening_balance_type === "debit" ? "text-zinc-800" : "text-rose-600"}`}>₹{parseFloat(accountBalance.opening_balance).toLocaleString("en-IN")} {accountBalance.opening_balance_type === "debit" ? "D" : "C"}</td>
                                              </tr>
                                           )}
                                           {ledgerEntries.map((row, idx) => (
                                              <tr key={idx} className="group hover:bg-zinc-50 transition-all duration-300">
-                                                <td className="px-6 py-4 text-zinc-600 border-r border-zinc-100 font-sans">{new Date(row.transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                                                <td className="px-6 py-4 font-bold text-zinc-700 text-sm border-r border-zinc-100">
+                                                <td className="px-2 py-1.5 text-zinc-600 border-r border-zinc-100 font-sans text-[10px]">{new Date(row.transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                                <td className="px-2 py-1.5 font-bold text-zinc-700 border-r border-zinc-100">
                                                    <div className="flex flex-col leading-tight">
-                                                      <span className="font-bold">{formatBilingualText(selectedAccount?.account_code === 'IK0001' ? `[INTEREST] ${row.description}` : row.description)}</span>
+                                                      <span className="font-bold text-[11px] text-zinc-800 uppercase">{formatBilingualText(selectedAccount?.account_code === 'IK0001' ? `[INTEREST] ${row.description}` : row.description)}</span>
                                                       {row.member_name && (
-                                                         <span className="text-sm text-blue-600 font-bold mt-1">
+                                                         <span className="text-[10px] text-blue-600 font-bold mt-0.5">
                                                             {t('accountLedger.node')}: {formatBilingualText(row.member_name)} {row.member_code ? `[${row.member_code}]` : ''}
                                                          </span>
                                                       )}
                                                    </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-bold text-zinc-500 border-r border-zinc-100">
+                                                <td className="px-2 py-1.5 text-right font-bold text-zinc-800 border-r border-zinc-100">
                                                    {selectedAccount?.account_code === 'IK0001' ? (parseFloat(row.credit || 0) > 0 ? `₹${parseFloat(row.credit).toLocaleString('en-IN')}` : `₹0.00`) : parseFloat(row.credit || 0) > 0 ? ((selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]')) ? parseFloat(row.company_credit || 0) > 0 ? parseFloat(row.company_credit).toLocaleString('en-IN') : '—' : `₹${parseFloat(row.credit).toLocaleString('en-IN')}`) : '—'}
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-bold text-zinc-900 border-r border-zinc-100">
+                                                <td className="px-2 py-1.5 text-right font-bold text-zinc-800 border-r border-zinc-100">
                                                    {parseFloat(row.debit || 0) > 0 ? ((selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]')) ? parseFloat(row.debit).toLocaleString('en-IN') : `₹${parseFloat(row.debit).toLocaleString('en-IN')}`) : '—'}
                                                 </td>
                                                 {selectedAccount?.account_code === 'BS0001' && (
-                                                   <td className="px-6 py-4 text-right font-bold text-emerald-600 border-r border-zinc-100">
+                                                   <td className="px-2 py-1.5 text-right font-bold text-emerald-600 border-r border-zinc-100">
                                                       {parseFloat(row.self_credit || 0) > 0 ? parseFloat(row.self_credit).toLocaleString('en-IN') : '—'}
                                                    </td>
                                                 )}
-                                                <td className={`px-6 py-4 text-right font-bold text-sm border-r border-zinc-100 ${parseFloat(row.running_balance) >= 0 ? 'text-zinc-800' : 'text-rose-600'}`}>
+                                                <td className={`px-2 py-1.5 text-right font-bold border-r border-zinc-100 ${parseFloat(row.running_balance) >= 0 ? 'text-zinc-800' : 'text-rose-600'}`}>
                                                    {(selectedAccount?.account_code === 'BS0001' || row.description?.includes('[BARDAN]')) ? `${Math.abs(parseFloat(row.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}` : `₹${Math.abs(parseFloat(row.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(row.running_balance) >= 0 ? 'D' : 'C'}`}
                                                 </td>
                                                 {selectedAccount?.account_code === 'BS0001' && (
-                                                   <td className="px-6 py-4 text-right font-bold text-sm text-blue-600">
+                                                   <td className="px-2 py-1.5 text-right font-bold text-blue-600">
                                                       ₹{Math.abs(parseFloat(row.penalty_balance || row.running_balance) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                                    </td>
                                                 )}
@@ -560,13 +633,13 @@ export default function AccountLedger() {
                                        </>
                                     )}
                                  </tbody>
-                                 <tfoot className="bg-blue-600 font-bold text-white text-sm uppercase tracking-widest border-t-2 border-blue-700">
+                                 <tfoot className="bg-zinc-200 font-bold text-blue-700 uppercase text-[10px] tracking-widest border-t-2 border-zinc-300 sticky bottom-0 z-20 shadow-[0_-1px_0_0_rgba(209,213,219,1)]">
                                     <tr>
-                                       <td colSpan="2" className="px-6 py-4 text-right">{t('accountLedger.registryTotals')}</td>
-                                       <td className="px-6 py-4 text-right text-white">₹{parseFloat(accountBalance.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                       <td className="px-6 py-4 text-right text-white">₹{parseFloat(accountBalance.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                       {selectedAccount?.account_code === 'BS0001' && <td className="px-6 py-4 text-right text-emerald-400">—</td>}
-                                       <td className="px-6 py-4 text-right font-black text-white">₹{Math.abs(parseFloat(accountBalance.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(accountBalance.running_balance) >= 0 ? 'DR' : 'CR'}</td>
+                                       <td colSpan="2" className="px-2 py-1.5 text-right">{t('accountLedger.registryTotals')}</td>
+                                       <td className="px-2 py-1.5 text-right text-blue-700">₹{parseFloat(accountBalance.total_credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                       <td className="px-2 py-1.5 text-right text-blue-700">₹{parseFloat(accountBalance.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                       {selectedAccount?.account_code === 'BS0001' && <td className="px-2 py-1.5 text-right text-blue-700">—</td>}
+                                       <td className="px-2 py-1.5 text-right font-black text-blue-700">₹{Math.abs(parseFloat(accountBalance.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(accountBalance.running_balance) >= 0 ? 'DR' : 'CR'}</td>
                                     </tr>
                                  </tfoot>
                               </table>
@@ -578,21 +651,19 @@ export default function AccountLedger() {
                         <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
                            <div className="flex items-center gap-2">
                               <span className="text-sm font-bold text-zinc-700">{t('accountLedger.institutionalRegistry')}</span>
-                              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">
-                                 {filteredAccounts.length} {t('accountLedger.nodesCount')}
-                              </span>
+                              
                            </div>
                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('accountLedger.selectNodePrompt')}</p>
                         </div>
 
                         <div className="flex-1 overflow-x-auto scroller-airy bg-white">
-                           <table className="w-full text-left font-mono text-sm border-collapse">
-                              <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
+                           <table className="w-full text-left font-mono text-xs border-collapse">
+                              <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-700 font-sans text-[10px]">
                                  <tr>
-                                    <th className="px-6 py-4 font-bold border-r border-zinc-200">{t('accountLedger.nomenclature')}</th>
-                                    <th className="px-6 py-4 font-bold border-r border-zinc-200">{t('accountLedger.registryClass')}</th>
-                                    <th className="px-6 py-4 font-bold border-r border-zinc-200 text-right">{t('accountLedger.openingBal')}</th>
-                                    <th className="px-6 py-4 font-bold text-right">{t('accountLedger.auditStatus')}</th>
+                                    <th className="px-2 py-1.5 font-bold border-r border-zinc-200">{t('accountLedger.nomenclature')}</th>
+                                    <th className="px-2 py-1.5 font-bold border-r border-zinc-200">{t('accountLedger.registryClass')}</th>
+                                    <th className="px-2 py-1.5 font-bold border-r border-zinc-200 text-right">{t('accountLedger.openingBal')}</th>
+                                    <th className="px-2 py-1.5 font-bold text-right">{t('accountLedger.auditStatus')}</th>
                                  </tr>
                               </thead>
                               <tbody className="divide-y divide-zinc-200">
@@ -601,22 +672,22 @@ export default function AccountLedger() {
                                  ) : (
                                     filteredAccounts.map(acc => (
                                        <tr key={acc.id} onClick={() => handleSelectAccount(acc)} className="group hover:bg-zinc-50 cursor-pointer transition-all duration-300">
-                                          <td className="px-6 py-4 border-r border-zinc-100">
+                                          <td className="px-2 py-1.5 border-r border-zinc-100">
                                              <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-zinc-800 group-hover:text-blue-600 transition-colors tracking-tight">{formatBilingualText(acc.account_name_gu || acc.account_name)}</span>
-                                                <span className="text-sm font-black text-zinc-400 mt-0.5">{t('accountLedger.shaId')}: #{acc.id}</span>
+                                                <span className="text-[11px] font-bold text-zinc-800 group-hover:text-blue-600 transition-colors tracking-tight uppercase">{formatBilingualText(acc.account_name_gu || acc.account_name)}</span>
+                                                <span className="text-[9px] font-black text-zinc-400 mt-0.5">{t('accountLedger.shaId')}: #{acc.id}</span>
                                              </div>
                                           </td>
-                                          <td className="px-6 py-4 border-r border-zinc-100"><span className="px-3 py-1 bg-white border border-zinc-200 text-sm font-black text-zinc-400 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">{t(`accountTypes.${acc.account_type?.toLowerCase()}`)}</span></td>
-                                          <td className="px-6 py-4 border-r border-zinc-100 text-right">
+                                          <td className="px-2 py-1.5 border-r border-zinc-100"><span className="px-1.5 py-1 bg-white border border-zinc-200 text-[10px] font-black text-zinc-400 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">{t(`accountTypes.${acc.account_type?.toLowerCase()}`)}</span></td>
+                                          <td className="px-2 py-1.5 border-r border-zinc-100 text-right">
                                              <div className="flex flex-col items-end">
-                                                <span className="text-sm font-bold text-zinc-800">₹{(Math.abs(parseFloat(acc.opening_balance)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                <span className="text-[11px] font-bold text-zinc-800">₹{(Math.abs(parseFloat(acc.opening_balance)) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                                 <span className={`text-[9px] font-black ${parseFloat(acc.opening_balance) < 0 ? 'text-blue-600' : parseFloat(acc.opening_balance) > 0 ? 'text-red-600' : 'text-zinc-400'}`}>
                                                    {parseFloat(acc.opening_balance) < 0 ? `${t('accountLedger.jama')} (CR)` : parseFloat(acc.opening_balance) > 0 ? `${t('accountLedger.udhar')} (DR)` : t('accountLedger.zero')}
                                                 </span>
                                              </div>
                                           </td>
-                                          <td className="px-6 py-4 text-right"><button className="p-2 bg-zinc-100 text-zinc-400 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:scale-110 border border-zinc-200"><ChevronRight size={18} /></button></td>
+                                          <td className="px-2 py-1.5 text-right"><button className="p-1 bg-zinc-100 text-zinc-400 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:scale-110 border border-zinc-200"><ChevronRight size={12} /></button></td>
                                        </tr>
                                     ))
                                  )}
@@ -628,89 +699,7 @@ export default function AccountLedger() {
                </div>
             )}
 
-            {selectedAccount && view === 'breakdown' && (
-               <div className="space-y-6 animate-in fade-in duration-500">
-                  <div className="bg-white border border-zinc-300 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-                     <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
-                        <div className="flex items-center gap-2">
-                           <span className="text-sm font-bold text-zinc-700">{t('accountLedger.memberBreakdown')}: {formatBilingualText(selectedAccount.account_name_gu || selectedAccount.account_name)}</span>
-                           <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5">{breakdownData.length} {t('accountLedger.membersCount')}</span>
-                        </div>
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('accountLedger.granularAnalysis')}</p>
-                     </div>
-
-                     <div className="overflow-x-auto scroller-airy bg-white">
-                        <table className="w-full text-left font-mono text-sm border-collapse">
-                           <thead className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                              <tr>
-                                 <th className="px-6 py-4 font-bold border-r border-zinc-200">{t('accountLedger.memberNomenclature')}</th>
-                                 <th className="px-6 py-4 font-bold border-r border-zinc-200">{t('accountLedger.code')}</th>
-                                 <th className="px-6 py-4 font-bold text-right border-r border-zinc-200">{t('accountLedger.openingBal')}</th>
-                                 <th className="px-6 py-4 font-bold text-right border-r border-zinc-200">{t('accountLedger.ledgerBal')}</th>
-                                 <th className="px-6 py-4 font-bold text-right border-r border-zinc-200 text-indigo-600">{t('accountLedger.dangarAmt')}</th>
-                                 <th className="px-6 py-4 font-bold text-right border-r border-zinc-200 text-amber-600">{t('accountLedger.bardanPnl')}</th>
-                                 <th className="px-6 py-4 font-bold text-right border-r border-zinc-200 text-orange-600">{t('accountLedger.interest')}</th>
-                                 <th className="px-6 py-4 font-bold text-right text-zinc-800">{t('accountLedger.netPosition')}</th>
-                              </tr>
-                           </thead>
-                           <tbody className="divide-y divide-zinc-200">
-                              {breakdownData.filter(row => (String(row.member_id).includes(memberCodeSearch) || memberCodeSearch === '') && ((row.member_name || '').toLowerCase().includes(memberNameSearch.toLowerCase()) || memberNameSearch === '')).length === 0 ? (
-                                 <tr><td colSpan="8" className="py-32 text-center"><Database size={48} className="mx-auto text-zinc-100 mb-4" strokeWidth={1} /><p className="text-zinc-300 font-bold uppercase tracking-widest text-[10px] italic">{t('accountLedger.noMemberNodes')}</p></td></tr>
-                              ) : (
-                                 breakdownData.filter(row => (String(row.member_id).includes(memberCodeSearch) || memberCodeSearch === '') && ((row.member_name || '').toLowerCase().includes(memberNameSearch.toLowerCase()) || memberNameSearch === '')).map((row, idx) => (
-                                    <React.Fragment key={idx}>
-                                       <tr className="group hover:bg-zinc-50 cursor-pointer transition-all duration-300 border-l-4 border-transparent hover:border-blue-600" onClick={() => toggleMemberExpansion(row.member_id)}>
-                                          <td className="px-6 py-4 border-r border-zinc-100">
-                                             <div className="flex items-center gap-4">
-                                                <div className="p-1.5 bg-zinc-100 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white transition-all border border-zinc-200">{expandedMembers[row.member_id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</div>
-                                                <div>
-                                                   <p className="text-sm font-bold text-zinc-800 italic group-hover:text-blue-600 transition-colors">{formatBilingualText(row.member_name || t('accountLedger.genericLedger'))}</p>
-                                                   <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-0.5">{t('accountLedger.shardId')}: #{row.member_id || t('accountLedger.system')}</p>
-                                                </div>
-                                             </div>
-                                          </td>
-                                          <td className="px-6 py-4 text-zinc-400 font-sans border-r border-zinc-100">{row.member_code || '—'}</td>
-                                          <td className={`px-6 py-4 text-right font-bold italic border-r border-zinc-100 ${parseFloat(row.opening_balance || 0) >= 0 ? 'text-zinc-900' : 'text-rose-500'}`}>₹{Math.abs(parseFloat(row.opening_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.opening_balance || 0) >= 0 ? 'D' : 'C'}</td>
-                                          <td className={`px-6 py-4 text-right font-bold italic border-r border-zinc-100 ${parseFloat(row.ledger_balance || 0) >= 0 ? 'text-zinc-900' : 'text-rose-500'}`}>₹{Math.abs(parseFloat(row.ledger_balance || 0)).toLocaleString('en-IN')} {parseFloat(row.ledger_balance || 0) >= 0 ? 'D' : 'C'}</td>
-                                          <td className="px-6 py-4 text-right font-bold text-indigo-600 border-r border-zinc-100">₹{parseFloat(row.dangar_amount || 0).toLocaleString('en-IN')}</td>
-                                          <td className="px-6 py-4 text-right font-bold text-amber-600 border-r border-zinc-100">₹{parseFloat(row.bardan_penalty || 0).toLocaleString('en-IN')}</td>
-                                          <td className="px-6 py-4 text-right font-bold text-orange-600 border-r border-zinc-100">₹{parseFloat(row.total_interest || 0).toLocaleString('en-IN')}</td>
-                                          <td className={`px-6 py-4 text-right font-bold text-sm ${parseFloat(row.net_position) >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>₹{Math.abs(parseFloat(row.net_position)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.net_position) >= 0 ? 'D' : 'C'}</td>
-                                       </tr>
-                                       {expandedMembers[row.member_id] && (
-                                          <tr>
-                                             <td colSpan="8" className="p-0 bg-zinc-50/50">
-                                                <div className="mx-6 my-4 bg-white border border-zinc-300 shadow-sm overflow-hidden">
-                                                   <table className="w-full text-left font-mono text-[10px] border-collapse">
-                                                      <thead className="bg-zinc-800 text-white"><tr className="uppercase tracking-widest"><th className="px-4 py-2 border-r border-zinc-700">{t('accountLedger.epoch')}</th><th className="px-4 py-2 border-r border-zinc-700">{t('accountLedger.reference')}</th><th className="px-4 py-2 border-r border-zinc-700">{t('accountLedger.description')}</th><th className="px-4 py-2 text-right border-r border-zinc-700">{t('accountLedger.debit')}</th><th className="px-4 py-2 text-right border-r border-zinc-700">{t('accountLedger.credit')}</th><th className="px-4 py-2 text-right">{t('accountLedger.balance')}</th></tr></thead>
-                                                      <tbody className="divide-y divide-zinc-200">
-                                                         {!memberEntries[row.member_id] ? (<tr><td colSpan="6" className="px-4 py-8 text-center text-zinc-300 font-bold text-sm"><RefreshCcw size={16} className="animate-spin mx-auto mb-2" />{t('accountLedger.fetchingShards')}</td></tr>) : memberEntries[row.member_id].length === 0 ? (<tr><td colSpan="6" className="px-4 py-8 text-center text-zinc-200 font-bold text-sm">{t('accountLedger.noDetailedNodes')}</td></tr>) : (
-                                                            memberEntries[row.member_id].map((me, mei) => (
-                                                               <tr key={mei} className="hover:bg-zinc-50 transition-colors">
-                                                                  <td className="px-4 py-2 text-zinc-600 border-r border-zinc-100 font-sans">{new Date(me.transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                                                                  <td className="px-4 py-2 text-zinc-300 border-r border-zinc-100">{me.reference_no}</td>
-                                                                  <td className="px-4 py-2 text-zinc-600 border-r border-zinc-100"><div className="flex items-center gap-2"><span className="font-bold text-sm">{formatBilingualText(selectedAccount?.account_code === 'IK0001' ? `[INTEREST] ${me.description}` : me.description)}</span></div></td>
-                                                                  <td className="px-4 py-2 text-right font-bold text-zinc-900 border-r border-zinc-100">{(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]')) ? (parseFloat(me.debit || 0).toLocaleString('en-IN')) : `₹${(parseFloat(me.debit || 0).toLocaleString('en-IN'))}`}</td>
-                                                                  <td className="px-4 py-2 text-right font-bold text-zinc-400 border-r border-zinc-100">{selectedAccount?.account_code === 'IK0001' ? (parseFloat(me.credit || 0) > 0 ? `₹${(parseFloat(me.credit).toLocaleString('en-IN'))}` : `₹0.00`) : (selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]')) ? (parseFloat(me.credit || 0).toLocaleString('en-IN')) : `₹${(parseFloat(me.credit || 0).toLocaleString('en-IN'))}`}</td>
-                                                                  <td className={`px-4 py-2 text-right font-black italic ${parseFloat(me.running_balance) >= 0 ? 'text-zinc-800' : 'text-rose-600'}`}>{(selectedAccount?.account_code === 'BS0001' || me.description?.includes('[BARDAN]')) ? `${Math.abs(parseFloat(me.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(me.running_balance) >= 0 ? 'DR' : 'CR'}` : `₹${Math.abs(parseFloat(me.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${parseFloat(me.running_balance) >= 0 ? 'DR' : 'CR'}`}</td>
-                                                               </tr>
-                                                            ))
-                                                         )}
-                                                      </tbody>
-                                                   </table>
-                                                </div>
-                                             </td>
-                                          </tr>
-                                       )}
-                                    </React.Fragment>
-                                 ))
-                              )}
-                           </tbody>
-                        </table>
-                     </div>
-                  </div>
-               </div>
-            )}
+            
          </div>
 
          <style dangerouslySetInnerHTML={{

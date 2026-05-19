@@ -71,9 +71,13 @@ router.get('/', async (req, res) => {
         m.id AS member_id,
         m.member_code,
         m.member_name,
+        m.eng_name,
+        m.bank_name,
+        (SELECT season FROM dangar_entry WHERE member_id = m.id ORDER BY id DESC LIMIT 1) AS active_season,
         m.village_name,
         m.bardan_opening,
         COALESCE(a.account_name, 'Subledger Member') as account_name,
+        COALESCE(a.account_name_gu, 'સભાસદ ખાતું') as account_name_gu,
         
         -- Opening Period Balance (Member specific entries before startDate)
         (
@@ -191,11 +195,24 @@ router.get('/', async (req, res) => {
         bParams.push(memberId);
       }
 
+      if (bankName) {
+        conditions += ' AND m.bank_name = ?';
+        bParams.push(bankName);
+      }
+
+      if (season) {
+        conditions += ` AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)`;
+        bParams.push(season, season);
+      }
+
       const bardanSql = `
         SELECT 
           m.id AS member_id,
           m.member_code,
           m.member_name,
+          m.eng_name,
+          m.bank_name,
+          (SELECT season FROM dangar_entry WHERE member_id = m.id ORDER BY id DESC LIMIT 1) AS active_season,
           m.village_name,
           
           -- Opening Balance before startDate (including base member_master.bardan_opening)
@@ -290,13 +307,17 @@ router.get('/', async (req, res) => {
           member_id: row.member_id,
           member_code: row.member_code,
           member_name: row.member_name,
+          eng_name: row.eng_name,
+          bank_name: row.bank_name,
+          active_season: row.active_season,
           village_name: row.village_name,
           opening_balance: op,
           debit: deb,
           credit: cre,
           self_credit: selfCre,
           balance: closing,
-          account_name: 'Bardan System'
+          account_name: 'Bardan System',
+          account_name_gu: 'બારદાન સિસ્ટમ'
         };
       });
 
@@ -329,6 +350,9 @@ router.get('/', async (req, res) => {
         SELECT 
           m.member_code,
           m.member_name,
+          m.eng_name,
+          m.bank_name,
+          (SELECT season FROM dangar_entry WHERE member_id = m.id ORDER BY id DESC LIMIT 1) AS active_season,
           m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
@@ -337,6 +361,7 @@ router.get('/', async (req, res) => {
           COALESCE(al.debit, al.debit_amount, 0) as debit,
           COALESCE(al.credit, al.credit_amount, 0) as credit,
           'Sale Account' as account_name,
+          'વેચાણ ખાતું' as account_name_gu,
           s.payment_type
         FROM account_ledger al
         LEFT JOIN sales s ON (('SALE-' || CAST(s.id AS TEXT)) = al.reference_no OR s.invoice_no = al.reference_no OR ((al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') AND al.reference_id = s.id))
@@ -344,10 +369,16 @@ router.get('/', async (req, res) => {
         WHERE al.company_id = ? AND al.account_id = ?
         AND al.transaction_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${village ? ' AND m.village_name = ?' : ''}
+        ${bankName ? ' AND m.bank_name = ?' : ''}
+        ${season ? ' AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)' : ''}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
       const sParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') sParams.push(memberId);
+      if (village) sParams.push(village);
+      if (bankName) sParams.push(bankName);
+      if (season) sParams.push(season, season);
 
       const opSale = await query(`
         SELECT COALESCE(SUM(credit) - SUM(debit), 0) as op_bal
@@ -385,23 +416,33 @@ router.get('/', async (req, res) => {
         SELECT 
           m.member_code,
           m.member_name,
+          m.eng_name,
+          m.bank_name,
+          (SELECT season FROM dangar_entry WHERE member_id = m.id ORDER BY id DESC LIMIT 1) AS active_season,
           m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
           al.description,
           COALESCE(al.debit, al.debit_amount, 0) as debit,
           COALESCE(al.credit, al.credit_amount, 0) as credit,
-          'Purchase Account' as account_name
+          'Purchase Account' as account_name,
+          'ખરીદી ખાતું' as account_name_gu
         FROM account_ledger al
         LEFT JOIN dangar_entry de ON (al.reference_type = 'dangar_entry' AND al.reference_id = de.id)
         LEFT JOIN member_master m ON COALESCE(al.member_id, de.member_id) = m.id
         WHERE al.company_id = ? AND al.account_id = ?
         AND al.transaction_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${village ? ' AND m.village_name = ?' : ''}
+        ${bankName ? ' AND m.bank_name = ?' : ''}
+        ${season ? ' AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)' : ''}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
       const pParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') pParams.push(memberId);
+      if (village) pParams.push(village);
+      if (bankName) pParams.push(bankName);
+      if (season) pParams.push(season, season);
 
       const opPurchase = await query(`
         SELECT COALESCE(SUM(debit) - SUM(credit), 0) as op_bal
@@ -443,6 +484,9 @@ router.get('/', async (req, res) => {
         SELECT 
           m.member_code,
           m.member_name,
+          m.eng_name,
+          m.bank_name,
+          (SELECT season FROM dangar_entry WHERE member_id = m.id ORDER BY id DESC LIMIT 1) AS active_season,
           m.village_name,
           al.member_id,
           al.transaction_date as entry_date,
@@ -470,6 +514,7 @@ router.get('/', async (req, res) => {
             ELSE al.credit 
           END, 0) as credit,
           COALESCE(a.account_name, CASE WHEN al.reference_type ILIKE '%dangar%' THEN 'Dangar System' WHEN al.reference_type ILIKE '%bardan%' THEN 'Bardan System' ELSE 'Cash Account' END) as account_name,
+          COALESCE(a.account_name_gu, CASE WHEN al.reference_type ILIKE '%dangar%' THEN 'ડાંગર સિસ્ટમ' WHEN al.reference_type ILIKE '%bardan%' THEN 'બારદાન સિસ્ટમ' ELSE 'રોકડ ખાતું' END) as account_name_gu,
           al.interest_percent,
           al.interest_amount as raw_interest_amount,
           al.interest_account_id
@@ -488,6 +533,9 @@ router.get('/', async (req, res) => {
         )
         AND al.transaction_date BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${village ? ' AND m.village_name = ?' : ''}
+        ${bankName ? ' AND m.bank_name = ?' : ''}
+        ${season ? ' AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)' : ''}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
 
@@ -520,7 +568,13 @@ router.get('/', async (req, res) => {
       
       const initialBal = parseFloat(opRes[0].op_bal || 0);
 
-      const tRows = await query(transactionalSql, [accountId, accountId, accountId, companyId, accountId, accountId, startDate, endDate, ...(memberId && memberId !== 'all' ? [memberId] : [])]);
+      const tParams = [accountId, accountId, accountId, companyId, accountId, accountId, startDate, endDate];
+      if (memberId && memberId !== 'all') tParams.push(memberId);
+      if (village) tParams.push(village);
+      if (bankName) tParams.push(bankName);
+      if (season) tParams.push(season, season);
+
+      const tRows = await query(transactionalSql, tParams);
       
       
       let runningBal = initialBal;
@@ -634,8 +688,12 @@ router.get('/', async (req, res) => {
         member_id: row.member_id,
         member_code: row.member_code,
         member_name: row.member_name,
+        eng_name: row.eng_name,
+        bank_name: row.bank_name,
+        active_season: row.active_season,
         village_name: row.village_name,
         account_name: row.account_name,
+        account_name_gu: row.account_name_gu,
         last_activity_date: row.last_activity_date,
         opening_balance: openingBalance.toFixed(2),
         debit: debit.toFixed(2),

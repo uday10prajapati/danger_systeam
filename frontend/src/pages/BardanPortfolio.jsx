@@ -5,7 +5,7 @@ import {
   AlertCircle, CheckCircle, History,
   Package, User, FileText, ChevronRight,
   Database, Info, Layout, ArrowLeftRight,
-  TrendingDown, TrendingUp, IndianRupee, Tag, Edit2
+  TrendingDown, TrendingUp, IndianRupee, Tag, Edit2, Eye
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
@@ -13,6 +13,7 @@ import html2canvas from 'html2canvas';
 import api, { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../api';
 import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
 import { formatBilingualText } from '../utils/textUtils';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const BardanPortfolio = () => {
   const { t, i18n } = useTranslation();
@@ -44,6 +45,8 @@ const BardanPortfolio = () => {
   const [priceForm, setPriceForm] = useState({ price_per_bardan: '' });
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [dropdowns, setDropdowns] = useState({ code: false, name: false });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   useEffect(() => {
     const total = gridRows.reduce((acc, row) => {
@@ -530,6 +533,38 @@ const BardanPortfolio = () => {
     }
   };
 
+  const confirmDelete = (row) => {
+    setItemToDelete(row);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete?.id) return;
+    const { id, type } = itemToDelete;
+    try {
+      setLoading(true);
+      const res = type === 'GIVEN'
+        ? await bardanEntryApi.deleteEntry(id)
+        : await jamaBardanEntryApi.deleteEntry(id);
+
+      if (res.data.success) {
+        setMessage({ type: 'success', text: 'Transaction deleted successfully' });
+        setDeleteModalOpen(false);
+        setItemToDelete(null);
+        loadData();
+        if (formData.code) fetchBalance(formData.code);
+        setTimeout(() => setMessage(null), 5000);
+      } else {
+        setMessage({ type: 'error', text: res.data.error || 'Failed to delete transaction' });
+      }
+    } catch (error) {
+      console.error('Delete transaction error:', error);
+      setMessage({ type: 'error', text: 'Operational failure during deletion' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEdit = async (item) => {
     if (!item?.id) {
       console.warn('⚠️ Missing transaction ID - Operation aborted');
@@ -656,7 +691,7 @@ const BardanPortfolio = () => {
               <div className="overflow-x-auto bg-white">
                 <table className="min-w-full divide-y divide-zinc-200 select-none">
                   <thead className="bg-zinc-50 select-none">
-                    <tr className="text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-300">
+                     <tr className="text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-300">
                       <th className="px-4 py-3">{t('bardanPortfolio.table.date')}</th>
                       <th className="px-4 py-3">{t('bardanPortfolio.table.particulars')}</th>
                       <th className="px-4 py-3 text-right">{t('bardanPortfolio.table.debit')}</th>
@@ -694,7 +729,24 @@ const BardanPortfolio = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1.5">
-                            {row.id !== 'OP' && row.type !== 'OPENING' && (
+                            {!formData.code && (
+                              <button
+                                onClick={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    code: row.code,
+                                    name: row.name
+                                  }));
+                                  fetchBalance(row.code);
+                                }}
+                                className="p-1 border border-zinc-200 hover:bg-zinc-50 text-blue-600 hover:text-blue-800 transition flex items-center gap-1 font-bold text-[9px] uppercase tracking-wide bg-white"
+                                title="View Ledger"
+                              >
+                                <Eye size={12} />
+                                <span>{t('bardanPortfolio.viewLedger') || 'View'}</span>
+                              </button>
+                            )}
+                            {(row.type === 'GIVEN' || row.type === 'RETURNED') && row.id && row.id !== 'OP' && (
                               <>
                                 <button
                                   onClick={() => handleEdit(row)}
@@ -703,7 +755,7 @@ const BardanPortfolio = () => {
                                   <Edit2 size={13} />
                                 </button>
                                 <button
-                                  onClick={() => handleVoid(row.id, row.type)}
+                                  onClick={() => confirmDelete(row)}
                                   className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-rose-600 transition"
                                 >
                                   <Trash2 size={13} />
@@ -1111,6 +1163,22 @@ const BardanPortfolio = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title={t('bardanPortfolio.deleteConfirmTitle')}
+        message={
+          itemToDelete?.type === 'GIVEN'
+            ? `${t('bardanPortfolio.deleteConfirmMessageGiven')} ${itemToDelete?.pavti_no ? `(Pavti: ${itemToDelete.pavti_no})` : ''}`
+            : `${t('bardanPortfolio.deleteConfirmMessageReturned')} ${itemToDelete?.pavti_no ? `(Pavti: ${itemToDelete.pavti_no})` : ''}`
+        }
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setItemToDelete(null);
+        }}
+      />
     </div>
   );
 };

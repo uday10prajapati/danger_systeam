@@ -601,7 +601,6 @@ export async function initializeDatabase() {
       try { await connection.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS account_name_gu VARCHAR(255)"); } catch (e) { }
       try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS p_code VARCHAR(50)"); } catch (e) { }
       try { await connection.query("ALTER TABLE member_master ADD COLUMN IF NOT EXISTS member_name_gu VARCHAR(255)"); } catch (e) { }
-      try { await connection.query("ALTER TABLE village ADD COLUMN IF NOT EXISTS eng_name VARCHAR(255)"); } catch (e) { }
 
       // Create Village table
       await connection.query(`
@@ -617,6 +616,7 @@ export async function initializeDatabase() {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+      try { await connection.query("ALTER TABLE village ADD COLUMN IF NOT EXISTS eng_name VARCHAR(255)"); } catch (e) { }
 
       // Create Dangar Entry table
       await connection.query(`
@@ -708,6 +708,28 @@ export async function initializeDatabase() {
           created_by INT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create Bardan Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS bardan_items (
+          id SERIAL PRIMARY KEY,
+          entry_id INT NOT NULL REFERENCES bardan_entry(id) ON DELETE CASCADE,
+          col1 VARCHAR(255),
+          col2 VARCHAR(255),
+          col3 VARCHAR(255)
+        )
+      `);
+
+      // Create Jama Bardan Items table
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS jama_bardan_items (
+          id SERIAL PRIMARY KEY,
+          entry_id INT NOT NULL REFERENCES jama_bardan_entry(id) ON DELETE CASCADE,
+          col1 VARCHAR(255),
+          col2 VARCHAR(255),
+          col3 VARCHAR(255)
         )
       `);
 

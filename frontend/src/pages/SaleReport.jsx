@@ -260,179 +260,233 @@ export default function SaleReport() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-8 font-sans">
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-8 font-mono">
         <div className="text-center font-bold text-zinc-400">
-          <p className="text-xs mb-4 uppercase tracking-widest font-mono">Loading Enterprise Core...</p>
-          <RefreshCcw className="animate-spin mx-auto text-blue-500" size={24} />
+          <p className="text-xs mb-4 uppercase tracking-widest">Loading Enterprise Core...</p>
+          <SyncIcon className="animate-spin mx-auto text-blue-600" size={24} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+    <div className="min-h-screen bg-zinc-100 p-6 text-zinc-900 select-none animate-none font-bold">
       <Toast message={message} onClose={() => setMessage(null)} />
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6 shadow-sm rounded-none">
 
-        <PageHeader
-          eyebrow={t('saleReport.eyebrow')}
-          eyebrowIcon={<ShoppingCart size={12} />}
-          title={t('saleReport.title')}
-          subtitle={t('saleReport.subtitle')}
-        >
-          <div className="flex gap-2">
-            <button onClick={() => setViewType('report')} className={`px-4 py-2 border text-xs font-bold uppercase tracking-widest transition-all ${viewType === 'report' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
-              <UserCheck size={14} className="inline mr-2" /> {t('common.report')}
+        {/* Top Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4 print:hidden">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
+              <ShoppingCart size={20} className="text-zinc-600" />
+              {t('saleReport.title')}
+            </h1>
+            <p className="text-[10px] font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">{t('saleReport.subtitle')}</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 select-none">
+            <button 
+              onClick={() => setViewType('report')} 
+              className={`px-3 py-1.5 border text-xs font-bold uppercase tracking-wider transition rounded-none shadow-sm flex items-center gap-1.5 ${viewType === 'report' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-50'}`}
+            >
+              <UserCheck size={13} /> {t('common.report')}
             </button>
-            <button onClick={() => setViewType('summary')} className={`px-4 py-2 border text-xs font-bold uppercase tracking-widest transition-all ${viewType === 'summary' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
-              <Tags size={14} className="inline mr-2" /> {t('common.summary')}
+            <button 
+              onClick={() => setViewType('summary')} 
+              className={`px-3 py-1.5 border text-xs font-bold uppercase tracking-wider transition rounded-none shadow-sm flex items-center gap-1.5 ${viewType === 'summary' ? 'bg-zinc-800 text-white border-zinc-900' : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-50'}`}
+            >
+              <Tags size={13} /> {t('common.summary')}
             </button>
-            <button onClick={handleExportPDF} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all flex items-center gap-2">
-              <FileText size={14} /> {t('common.pdf')}
+            <button 
+              onClick={handleExportPDF} 
+              className="px-3 py-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-wider transition rounded-none shadow-sm flex items-center gap-1.5"
+            >
+              <FileText size={13} /> {t('common.pdf')}
             </button>
-            <button onClick={handlePrint} className="px-4 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all flex items-center gap-2">
-              <Printer size={14} /> {t('common.print')}
+            <button 
+              onClick={handlePrint} 
+              className="px-3 py-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold uppercase tracking-wider transition rounded-none shadow-sm flex items-center gap-1.5"
+            >
+              <Printer size={13} /> {t('common.print')}
             </button>
-            <button onClick={exportToExcel} className="px-3 py-2 bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition-all">
-              <Download size={14} />
+            <button 
+              onClick={exportToExcel} 
+              className="p-2 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 transition rounded-none shadow-sm"
+            >
+              <Download size={13} />
             </button>
-            <button onClick={fetchData} className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-all">
-              <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+            <button 
+              onClick={fetchData} 
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-none transition shadow-sm"
+            >
+              <SyncIcon size={13} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
-        </PageHeader>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 print:hidden">
+        {/* Metric Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
           {[
-            { label: t('saleReport.totalRevenue'), val: formatCurrency(totalRevenueAudit), icon: <TrendingUp size={18} />, color: 'blue' },
-            { label: t('saleReport.settlementNodes'), val: filteredReports.length, icon: <FileText size={18} />, color: 'indigo' },
-            { label: t('saleReport.catalogThroughput'), val: itemData.length, icon: <LayoutGrid size={18} />, color: 'emerald' },
-            { label: t('saleReport.auditProtocol'), val: 'SYMMETRICAL', icon: <ShieldCheck size={18} />, color: 'slate' }
+            { label: t('saleReport.totalRevenue'), val: formatCurrency(totalRevenueAudit), icon: <TrendingUp size={16} /> },
+            { label: t('saleReport.settlementNodes'), val: filteredReports.length, icon: <FileText size={16} /> },
+            { label: t('saleReport.catalogThroughput'), val: itemData.length, icon: <LayoutGrid size={16} /> },
+            { label: t('saleReport.auditProtocol'), val: 'SYMMETRICAL', icon: <ShieldCheck size={16} /> }
           ].map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-[2.2rem] border border-slate-100 shadow-sm group hover:border-slate-200 transition-all flex justify-between items-center">
+            <div key={i} className="bg-zinc-50 border border-zinc-300 p-4 shadow-sm flex items-center justify-between rounded-none">
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-1">{stat.label}</p>
-                <h5 className="text-2xl font-bold tracking-tighter text-slate-800">{stat.val}</h5>
+                <span className="text-[10px] font-sans text-zinc-500 uppercase tracking-wider">{stat.label}</span>
+                <span className="text-lg font-bold mt-1 block font-mono text-zinc-800">{stat.val}</span>
               </div>
-              <div className={`p-4 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+              <div className="w-10 h-10 border border-zinc-200 bg-white text-zinc-600 flex items-center justify-center rounded-none shrink-0">
+                {stat.icon}
+              </div>
             </div>
           ))}
         </div>
 
         {/* Command Deck Toolbar */}
-        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm mb-10 print:hidden flex flex-wrap items-end gap-4">
-          <div className="flex-1 min-w-[350px]">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1 italic">{t('saleReport.audit')}</span>
+        <div className="bg-zinc-50 p-4 border border-zinc-300 flex flex-wrap items-end gap-4 rounded-none">
+          <div className="flex-1 min-w-[280px]">
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">{t('saleReport.searchPrompt')}</label>
             <div className="relative group">
-              <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
               <input
                 type="text"
                 placeholder={t('saleReport.searchPrompt')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-zinc-300 rounded-none focus:border-zinc-500 outline-none transition font-bold text-xs"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
-            <ArrowRight size={14} className="text-slate-200" />
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+          <div className="flex items-center gap-2 bg-white p-1.5 border border-zinc-300 rounded-none shadow-sm shrink-0">
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              className="bg-zinc-50 border border-zinc-200 rounded-none px-2 py-1 text-xs font-bold text-zinc-600 outline-none focus:border-zinc-400 font-mono" 
+            />
+            <ArrowRight size={12} className="text-zinc-400" />
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              className="bg-zinc-50 border border-zinc-200 rounded-none px-2 py-1 text-xs font-bold text-zinc-600 outline-none focus:border-zinc-400 font-mono" 
+            />
           </div>
 
-          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">{t('saleReport.syncRevenue')}</button>
+          <button 
+            onClick={fetchData} 
+            className="bg-zinc-800 hover:bg-zinc-950 text-white text-xs font-bold px-4 py-2.5 rounded-none transition shadow-sm uppercase tracking-wider shrink-0"
+          >
+            {t('saleReport.syncRevenue')}
+          </button>
         </div>
 
-        {/* Revenue Manifest Canvas */}
-        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[700px] relative">
-
-          <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic">Consolidated Revenue Manifest</p>
+        {/* Revenue Manifest Grid */}
+        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px] rounded-none">
+          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-zinc-700 select-none">
+                Revenue Manifest
+              </span>
+              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-xs px-2 py-0.5 select-none">
+                {viewType === 'report' ? 'Grouped Settlement' : 'Categorized Product'}
+              </span>
             </div>
-            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">View: {viewType === 'report' ? 'Grouped Settlement' : 'Categorized Product'}</p>
           </div>
 
-          <div className="flex-1 overflow-x-auto px-4 pb-12 scroller-airy">
-            <table className="w-full text-left">
-              <thead className="bg-[#F8FAFC]">
-                {viewType === 'report' ? (
-                  <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                    <th className="px-10 py-5 w-1/3">{t('saleReport.clientIdentity')}</th>
-                    <th className="px-8 py-5">{t('saleReport.referenceLedger')}</th>
-                    <th className="px-8 py-5 text-center">{t('saleReport.settlementType')}</th>
-                    <th className="px-8 py-5 text-right">{t('saleReport.netProceeds')}</th>
-                    <th className="px-8 py-5 text-center">{t('saleReport.audit')}</th>
-                  </tr>
-                ) : (
-                  <tr className="uppercase text-[10px] font-bold text-slate-400 tracking-widest italic">
-                    <th className="px-10 py-5 w-1/3">{t('saleReport.productTaxonomy')}</th>
-                    <th className="px-8 py-5 text-center">{t('saleReport.unit')}</th>
-                    <th className="px-8 py-5 text-right">{t('saleReport.yieldVolume')}</th>
-                    <th className="px-8 py-5 text-right">{t('saleReport.grossProceeds')}</th>
-                    <th className="px-8 py-5 text-center">{t('saleReport.status')}</th>
-                  </tr>
-                )}
+          <div className="flex-1 overflow-x-auto bg-white">
+            <table className="w-full text-left border-collapse select-none">
+              <thead>
+                <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 text-xs font-bold uppercase tracking-wider">
+                  {viewType === 'report' ? (
+                    <>
+                      <th className="px-4 py-3 border-r border-zinc-200 w-1/3">{t('saleReport.clientIdentity')}</th>
+                      <th className="px-4 py-3 border-r border-zinc-200">{t('saleReport.referenceLedger')}</th>
+                      <th className="px-4 py-3 border-r border-zinc-200 text-center">{t('saleReport.settlementType')}</th>
+                      <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('saleReport.netProceeds')}</th>
+                      <th className="px-4 py-3 text-center">{t('saleReport.audit')}</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-3 border-r border-zinc-200 w-1/3">{t('saleReport.productTaxonomy')}</th>
+                      <th className="px-4 py-3 border-r border-zinc-200 text-center">{t('saleReport.unit')}</th>
+                      <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('saleReport.yieldVolume')}</th>
+                      <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('saleReport.grossProceeds')}</th>
+                      <th className="px-4 py-3 text-center">{t('saleReport.status')}</th>
+                    </>
+                  )}
+                </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-zinc-200 font-mono text-xs text-zinc-700">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="py-32 text-center">
-                      <SyncIcon className="animate-spin text-blue-100 mx-auto" size={50} />
-                      <p className="mt-4 text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">{t('saleReport.buildingMatrix')}</p>
+                    <td colSpan="5" className="py-24 text-center">
+                      <SyncIcon className="animate-spin text-zinc-400 mx-auto mb-2" size={24} />
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('saleReport.buildingMatrix')}</p>
                     </td>
                   </tr>
                 ) : (
                   <>
                     {viewType === 'report' ? (
                       Object.values(groupedReports).length === 0 ? (
-                        <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-xs">Zero Sales Isolated</td></tr>
+                        <tr>
+                          <td colSpan="5" className="py-24 text-center text-zinc-400 uppercase tracking-widest">
+                            Zero Sales Isolated
+                          </td>
+                        </tr>
                       ) : (
                         Object.values(groupedReports).map((group, gIdx) => (
                           <React.Fragment key={gIdx}>
-                            <tr onClick={() => toggleGroup(group.name)} className="bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all border-l-[6px] border-emerald-600 group">
-                              <td className="px-10 py-6">
-                                <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg transition-all ${expandedGroups[group.name] ? 'bg-emerald-600 text-white' : 'bg-white text-slate-300 group-hover:text-emerald-600 shadow-sm'}`}>
-                                    {expandedGroups[group.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            <tr 
+                              onClick={() => toggleGroup(group.name)} 
+                              className="bg-zinc-50/60 hover:bg-zinc-100/50 cursor-pointer border-l-4 border-emerald-600 transition-colors"
+                            >
+                              <td className="px-4 py-3 border-r border-zinc-200">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-1 border border-zinc-300 bg-white text-zinc-600 shrink-0">
+                                    {expandedGroups[group.name] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                   </div>
                                   <div>
-                                    <p className={`font-bold text-slate-800 text-base tracking-tight italic ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase'}`}>{group.name}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{group.invoices.length} RECORDED SETTLEMENTS</p>
+                                    <p className={`font-bold text-zinc-800 text-sm tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase font-prompt'}`}>{group.name}</p>
+                                    <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">{group.invoices.length} settlements</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-8 py-6 text-[10px] font-bold text-slate-300 uppercase italic">BATCH_AUDIT</td>
-                              <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
-                              <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(group.total)}</td>
-                              <td className="px-8 py-6 text-center">
-                                <button onClick={(e) => exportGroupToExcel(e, group, 'report')} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-emerald-600 shadow-sm mx-auto active:scale-95">
-                                  <Download size={18} />
+                              <td className="px-4 py-3 border-r border-zinc-200 text-[10px] text-zinc-400 uppercase tracking-wide">BATCH_AUDIT</td>
+                              <td className="px-4 py-3 border-r border-zinc-200 text-center text-zinc-400 font-bold">—</td>
+                              <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-900 text-sm">{formatCurrency(group.total)}</td>
+                              <td className="px-4 py-2 text-center">
+                                <button 
+                                  onClick={(e) => exportGroupToExcel(e, group, 'report')} 
+                                  className="p-1 border border-zinc-300 bg-white hover:bg-zinc-100 text-zinc-600 transition shadow-sm"
+                                >
+                                  <Download size={13} />
                                 </button>
                               </td>
                             </tr>
                             {expandedGroups[group.name] && group.invoices.map((s, sIdx) => (
-                              <tr key={sIdx} className="group hover:bg-[#F8FAFC]/50 transition-colors">
-                                <td className="px-10 py-5 pl-24 text-[11px] font-bold text-slate-400 font-mono italic">
+                              <tr key={sIdx} className="hover:bg-zinc-50/40 transition-colors">
+                                <td className="px-4 py-2.5 pl-12 border-r border-zinc-200 text-[10px] text-zinc-400 italic">
                                   {new Date(s.invoice_date).toLocaleDateString('en-GB')}
                                 </td>
-                                <td className="px-8 py-5">
-                                  <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase italic tracking-tight">
-                                    <Hash size={14} className="text-slate-200" /> {s.invoice_no}
+                                <td className="px-4 py-2.5 border-r border-zinc-200">
+                                  <div className="flex items-center gap-1.5 font-bold text-zinc-700">
+                                    <Hash size={12} className="text-zinc-300" /> {s.invoice_no}
                                   </div>
                                 </td>
-                                <td className="px-8 py-5 text-center">
-                                  <div className={`px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest inline-block ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                <td className="px-4 py-2.5 border-r border-zinc-200 text-center">
+                                  <span className={`px-2 py-0.5 border text-[9px] font-bold uppercase tracking-wider ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-blue-50 text-blue-700 border-blue-300'}`}>
                                     {s.payment_type === 'cash' ? t('sale.cash') : t('sale.credit')}
-                                  </div>
+                                  </span>
                                 </td>
-                                <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm opacity-60 italic">
+                                <td className="px-4 py-2.5 border-r border-zinc-200 text-right font-bold text-zinc-500 font-mono">
                                   {formatCurrency(s.total_amount)}
                                 </td>
-                                <td className="px-8 py-5 text-center">
-                                  <button className="text-slate-300 hover:text-emerald-600 transition-colors"><ExternalLink size={16} /></button>
+                                <td className="px-4 py-2.5 text-center">
+                                  <button className="text-zinc-400 hover:text-zinc-700 transition"><ExternalLink size={13} /></button>
                                 </td>
                               </tr>
                             ))}
@@ -441,48 +495,58 @@ export default function SaleReport() {
                       )
                     ) : (
                       Object.values(groupedSummary).length === 0 ? (
-                        <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-xs">Zero Revenue Vectors Isolated</td></tr>
+                        <tr>
+                          <td colSpan="5" className="py-24 text-center text-zinc-400 uppercase tracking-widest">
+                            Zero Revenue Vectors Isolated
+                          </td>
+                        </tr>
                       ) : (
                         Object.values(groupedSummary).map((cat, cIdx) => (
                           <React.Fragment key={cIdx}>
-                            <tr onClick={() => toggleGroup(cat.name)} className="bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all border-l-[6px] border-slate-900 group">
-                              <td className="px-10 py-6">
-                                <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg transition-all ${expandedGroups[cat.name] ? 'bg-slate-900 text-white' : 'bg-white text-slate-300 group-hover:text-slate-900 shadow-sm'}`}>
-                                    {expandedGroups[cat.name] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            <tr 
+                              onClick={() => toggleGroup(cat.name)} 
+                              className="bg-zinc-50/60 hover:bg-zinc-100/50 cursor-pointer border-l-4 border-zinc-800 transition-colors"
+                            >
+                              <td className="px-4 py-3 border-r border-zinc-200">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-1 border border-zinc-300 bg-white text-zinc-600 shrink-0">
+                                    {expandedGroups[cat.name] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                   </div>
                                   <div>
-                                    <p className="font-bold text-slate-800 text-base tracking-tight uppercase italic">{cat.name}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cat.items.length} ACTIVE PRODUCT LINES</p>
+                                    <p className="font-bold text-zinc-800 text-sm tracking-tight uppercase font-prompt">{cat.name}</p>
+                                    <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">{cat.items.length} product lines</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
-                              <td className="px-8 py-6 text-right text-slate-300 font-bold text-xs">—</td>
-                              <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(cat.total)}</td>
-                              <td className="px-8 py-6 text-center">
-                                <button onClick={(e) => exportGroupToExcel(e, cat, 'summary')} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm mx-auto active:scale-95">
-                                  <Download size={18} />
+                              <td className="px-4 py-3 border-r border-zinc-200 text-center text-zinc-400 font-bold">—</td>
+                              <td className="px-4 py-3 border-r border-zinc-200 text-right text-zinc-400 font-bold">—</td>
+                              <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-900 text-sm">{formatCurrency(cat.total)}</td>
+                              <td className="px-4 py-2 text-center">
+                                <button 
+                                  onClick={(e) => exportGroupToExcel(e, cat, 'summary')} 
+                                  className="p-1 border border-zinc-300 bg-white hover:bg-zinc-100 text-zinc-600 transition shadow-sm"
+                                >
+                                  <Download size={13} />
                                 </button>
                               </td>
                             </tr>
                             {expandedGroups[cat.name] && cat.items.map((item, iIdx) => (
-                              <tr key={iIdx} className="group hover:bg-[#F8FAFC]/50 transition-colors">
-                                <td className="px-10 py-5 pl-24">
-                                  <div className="flex items-center gap-3">
-                                    <Package size={16} className="text-slate-100" />
+                              <tr key={iIdx} className="hover:bg-zinc-50/40 transition-colors">
+                                <td className="px-4 py-2.5 pl-12 border-r border-zinc-200">
+                                  <div className="flex items-center gap-2">
+                                    <Package size={13} className="text-zinc-400 shrink-0" />
                                     <div>
-                                      <p className="text-xs font-bold text-slate-800 uppercase italic tracking-tight leading-none mb-1">{item.item_name}</p>
-                                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] font-mono">#{item.item_code}</p>
+                                      <p className="text-xs font-bold text-zinc-800 uppercase tracking-tight leading-none mb-1 font-prompt">{item.item_name}</p>
+                                      <p className="text-[9px] text-zinc-400 tracking-wider font-mono">CODE: #{item.item_code}</p>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-8 py-5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">{item.unit || 'NOS'}</td>
-                                <td className="px-8 py-5 text-right font-bold text-slate-400 font-mono text-sm leading-none italic">{formatQty(item.outward)}</td>
-                                <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm leading-none opacity-60">
+                                <td className="px-4 py-2.5 border-r border-zinc-200 text-center text-[10px] text-zinc-400 uppercase tracking-wide font-sans">{item.unit || 'NOS'}</td>
+                                <td className="px-4 py-2.5 border-r border-zinc-200 text-right font-bold text-zinc-400 font-mono">{formatQty(item.outward)}</td>
+                                <td className="px-4 py-2.5 border-r border-zinc-200 text-right font-bold text-zinc-500 font-mono">
                                   {formatCurrency(parseFloat(item.outward || 0) * parseFloat(item.sale_price || 0))}
                                 </td>
-                                <td className="px-8 py-5 text-center">
+                                <td className="px-4 py-2.5 text-center">
                                   <span className="w-1.5 h-1.5 bg-blue-500 rounded-full inline-block"></span>
                                 </td>
                               </tr>
@@ -497,27 +561,19 @@ export default function SaleReport() {
             </table>
           </div>
 
-          {/* Dashboard Insight Footer */}
-          <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Revenue Stream: Optimal</span>
-              <span className="flex items-center gap-2"><Layout size={12} /> Repository {t('saleReport.status')}: Validated</span>
+          {/* Insight Footer */}
+          <div className="bg-zinc-100 border-t border-zinc-300 px-4 py-3 flex flex-col sm:flex-row justify-between items-center text-[9px] font-mono text-zinc-400 uppercase tracking-wider gap-2 select-none">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Revenue Stream: Optimal</span>
+              <span>Ref: validated</span>
             </div>
-            <div className="flex items-center gap-3 font-mono">
-              <span>REVENUE_CHRONO: {new Date().getTime().toString(16)}</span>
-              <div className="w-px h-3 bg-slate-200"></div>
+            <div className="flex items-center gap-2 font-mono">
+              <span>SYS_MD5: {new Date().getTime().toString(16)}</span>
               <span>REF: {company.id}</span>
             </div>
           </div>
         </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .scroller-airy::-webkit-scrollbar { width: 4px; }
-        .scroller-airy::-webkit-scrollbar-track { background: transparent; }
-        .scroller-airy::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-      `}} />
     </div>
   );
 }
