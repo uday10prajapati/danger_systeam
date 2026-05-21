@@ -77,7 +77,11 @@ router.get('/', async (req, res) => {
           al.reference_no, 
           al.reference_type, 
           al.description as description, 
+          COALESCE(acc.account_name, al.description) as description_en,
+          acc.account_name_gu as description_gu,
           COALESCE(m.member_name, acc.account_name) as sub_details, 
+          m.member_name_gu as sub_details_gu,
+          acc.account_name_gu as sub_details_acc_gu,
           al.notes, 
           al.credit as cash_in, 
           al.debit as cash_out,
@@ -97,7 +101,9 @@ router.get('/', async (req, res) => {
           MIN(al.id) as id, 
           MAX(al.reference_no) as reference_no, 
           al.reference_type, 
-          MAX(COALESCE(acc.account_name, al.description)) as description, 
+          MAX(COALESCE(acc.account_name, al.description)) as description,
+          MAX(COALESCE(acc.account_name, al.description)) as description_en,
+          MAX(acc.account_name_gu) as description_gu, 
           MAX(CASE WHEN al.member_id IS NOT NULL THEN 'Multiple Members' ELSE '' END) as sub_details,
           MAX(al.notes) as notes, 
           SUM(COALESCE(al.credit, 0)) as cash_in, 
@@ -147,10 +153,13 @@ router.get('/', async (req, res) => {
     const gstSubledger = { jama: { CGST: [], SGST: [], IGST: [] }, udhar: { CGST: [], SGST: [], IGST: [] } };
 
     // Process Ledger entries
+    // Process Ledger entries
     transactions.forEach(tx => {
       if (!tx) return;
       const refType = (tx.reference_type || '').toUpperCase();
       const desc = tx.description || 'Unknown Transaction';
+      const desc_en = tx.description_en || tx.description || 'Unknown Transaction';
+      const desc_gu = tx.description_gu || desc_en || '';
       const isJVOrContra = ['JV', 'CONTRA'].includes(refType);
       const gstType = isJVOrContra ? null : extractGSTType(desc);
       const cIn = parseFloat(tx.cash_in || 0);
@@ -177,9 +186,15 @@ router.get('/', async (req, res) => {
         if (cIn > 0) {
           jamaList.push({ 
             id: tx.id, 
-            details: desc, 
+            details: desc,
+            description: desc,
+            description_en: desc_en,
+            description_gu: desc_gu,
             sub_details: tx.sub_details || '',
+            sub_details_gu: tx.sub_details_gu || '',
+            sub_details_acc_gu: tx.sub_details_acc_gu || '',
             notes: tx.notes || '', 
+            reference_no: tx.reference_no || '',
             amount: cIn, 
             sub_amount: tx.sub_amount || cIn,
             isJV: isNonCash, 
@@ -189,9 +204,15 @@ router.get('/', async (req, res) => {
         if (cOut > 0) {
           udharList.push({ 
             id: tx.id, 
-            details: desc, 
+            details: desc,
+            description: desc,
+            description_en: desc_en,
+            description_gu: desc_gu,
             sub_details: tx.sub_details || '',
+            sub_details_gu: tx.sub_details_gu || '',
+            sub_details_acc_gu: tx.sub_details_acc_gu || '',
             notes: tx.notes || '', 
+            reference_no: tx.reference_no || '',
             amount: cOut, 
             sub_amount: tx.sub_amount || cOut,
             isJV: isNonCash, 

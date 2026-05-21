@@ -20,6 +20,27 @@ import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 export default function Rojmel() {
    const { t, i18n } = useTranslation();
 
+   // Helper function to display language-appropriate names
+   const getDisplayName = (row, isGujarati) => {
+      if (isGujarati) {
+         // For Gujarati: prefer _gu field
+         return row.description_gu || row.description || row.details || '';
+      } else {
+         // For English: use description_en or description
+         return row.description_en || row.description || row.details || '';
+      }
+   };
+
+   const getDisplaySubName = (row, isGujarati) => {
+      if (isGujarati) {
+         // For Gujarati: prefer _gu field
+         return row.sub_details_gu || row.sub_details_acc_gu || row.sub_details || '';
+      } else {
+         // For English: use original sub_details
+         return row.sub_details || '';
+      }
+   };
+
    // Date State
    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
    const [data, setData] = useState(null);
@@ -433,123 +454,146 @@ export default function Rojmel() {
                </div>
 
                {/* Ledger Registry Table */}
-               <div id="rojmel-container" className="flex flex-col min-h-[600px] print:border-black print:rounded-none select-none">
+               {/* Ledger Registry Table */}
+               <div id="rojmel-container" className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 min-h-[600px] print:border-black print:rounded-none select-none">
                   
-                  {/* Dual Column Headers */}
-                  <div className="grid grid-cols-2 text-center relative border-b border-slate-200">
-                     <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-slate-200 print:bg-black z-10"></div>
-                     <div className="py-2.5 bg-emerald-50/50 flex flex-col items-center justify-center relative">
-                        <div className="flex items-center gap-1.5">
-                           <ArrowUpRight size={14} className="text-emerald-700" />
-                           <h2 className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest font-mono">{t('rojmel.jamaBaju')}</h2>
-                        </div>
-                     </div>
-                     <div className="py-2.5 bg-blue-50/50 flex flex-col items-center justify-center relative">
-                        <div className="flex items-center gap-1.5">
-                           <ArrowDownLeft size={14} className="text-[#1d5f84]" />
-                           <h2 className="text-[11px] font-bold text-[#1d5f84] uppercase tracking-widest font-mono">{t('rojmel.udharBaju')}</h2>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Table Columns Sub-Headers */}
-                  <div className="grid grid-cols-2 bg-slate-50 border-b border-slate-200 uppercase text-[9px] font-bold text-slate-500 tracking-wider">
-                     <div className="grid grid-cols-12 border-r border-slate-200">
-                        <div className="col-span-6 px-3.5 py-2 text-left">{t('rojmel.particulars')}</div>
-                        <div className="col-span-3 px-3.5 py-2 text-right">{t('rojmel.sub')}</div>
-                        <div className="col-span-3 px-3.5 py-2 text-right bg-emerald-100/50 text-emerald-800 border-l border-emerald-100/50">{t('rojmel.amount')}</div>
-                     </div>
-                     <div className="grid grid-cols-12">
-                        <div className="col-span-6 px-3.5 py-2 text-left">{t('rojmel.particulars')}</div>
-                        <div className="col-span-3 px-3.5 py-2 text-right">{t('rojmel.sub')}</div>
-                        <div className="col-span-3 px-3.5 py-2 text-right bg-blue-100/30 text-[#1d5f84] border-l border-blue-100/30">{t('rojmel.amount')}</div>
-                     </div>
-                  </div>
-
-                  {/* Ledger Data Rows */}
-                  <div className="grid grid-cols-2 flex-1 divide-x divide-slate-200 relative bg-white font-sans text-slate-800">
-                     {/* Jama Side */}
-                     <div className="flex flex-col divide-y divide-slate-100">
-                        {normalizedJama.map((row, idx) => {
-                           const isHighNode = row.isOpening || row.isClosing;
-                           return (
-                              <div
-                                 key={idx}
-                                 className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-slate-50 font-bold' : 'hover:bg-slate-50/75 transition-colors cursor-pointer'}`}
-                                 onDoubleClick={() => handleEditEntry(row, 'jama')}
-                              >
-                                 <div className="col-span-6 px-3.5 py-2">
-                                    <div className={`font-bold text-slate-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{formatBilingualText(row.details)}</div>
-                                    {showSubledger && row.sub_details && (
-                                       <div className={`text-[10px] text-slate-500 font-semibold mt-0.5 leading-tight ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
-                                          {formatBilingualText(row.sub_details)}
-                                       </div>
-                                    )}
-                                    {printItemDetails && row.notes && (
-                                       <div className="text-[9px] text-slate-400 font-bold mt-0.5 leading-tight italic">
-                                          {row.notes}
-                                       </div>
-                                    )}
-                                 </div>
-                                 <div className="col-span-3 px-3.5 py-2 text-right text-slate-600 font-mono font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
-                                 <div className={`col-span-3 px-3.5 py-2 text-right font-mono font-bold ${isHighNode ? 'text-slate-800' : 'text-emerald-600'}`}>
-                                    {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
-                                 </div>
-                              </div>
-                           );
-                        })}
-                     </div>
-
-                     {/* Udhar Side */}
-                     <div className="flex flex-col divide-y divide-slate-100">
-                        {normalizedUdhar.map((row, idx) => {
-                           const isHighNode = row.isOpening || row.isClosing;
-                           return (
-                              <div
-                                 key={idx}
-                                 className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-slate-50 font-bold' : 'hover:bg-slate-50/75 transition-colors cursor-pointer'}`}
-                                 onDoubleClick={() => handleEditEntry(row, 'udhar')}
-                              >
-                                 <div className="col-span-6 px-3.5 py-2">
-                                    <div className={`font-bold text-slate-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{formatBilingualText(row.details)}</div>
-                                    {showSubledger && row.sub_details && (
-                                       <div className={`text-[10px] text-slate-500 font-semibold mt-0.5 leading-tight ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
-                                          {formatBilingualText(row.sub_details)}
-                                       </div>
-                                    )}
-                                    {printItemDetails && row.notes && (
-                                       <div className="text-[9px] text-slate-400 font-bold mt-0.5 leading-tight italic">
-                                          {row.notes}
-                                       </div>
-                                    )}
-                                 </div>
-                                 <div className="col-span-3 px-3.5 py-2 text-right text-slate-600 font-mono font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
-                                 <div className={`col-span-3 px-3.5 py-2 text-right font-mono font-bold ${isHighNode ? 'text-slate-800' : 'text-[#1d5f84]'}`}>
-                                    {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
-                                 </div>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-
-                  {/* Totals Footer */}
-                  {data?.totals && (
-                     <div className="grid grid-cols-2 bg-slate-100 border-t border-slate-300 uppercase text-[10px] font-bold tracking-widest">
-                        <div className="grid grid-cols-12 items-center">
-                           <div className="col-span-9 px-4 py-3 text-slate-500 text-right">{t('rojmel.grossJama')}</div>
-                           <div className="col-span-3 px-4 py-3 text-right text-emerald-600 text-sm font-bold font-mono tracking-tighter">
-                              ₹{parseFloat(data.totals.jama_total).toFixed(2)}
+                  {/* JAMA SIDE */}
+                  <div className="flex flex-col overflow-x-auto custom-scrollbar w-full">
+                     <div className="min-w-[800px] flex flex-col flex-1">
+                        {/* Header */}
+                        <div className="py-2.5 bg-emerald-50/50 flex flex-col items-center justify-center relative border-b border-slate-200">
+                           <div className="flex items-center gap-1.5">
+                              <ArrowUpRight size={14} className="text-emerald-700" />
+                              <h2 className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest font-mono">{t('rojmel.jamaBaju')}</h2>
                            </div>
                         </div>
-                        <div className="grid grid-cols-12 items-center border-l border-slate-300">
-                           <div className="col-span-9 px-4 py-3 text-slate-500 text-right">{t('rojmel.grossUdhar')}</div>
-                           <div className="col-span-3 px-4 py-3 text-right text-[#1d5f84] text-sm font-bold font-mono tracking-tighter">
-                              ₹{parseFloat(data.totals.udhar_total).toFixed(2)}
+
+                        {/* Sub Header */}
+                        <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-200 uppercase text-[9px] font-bold text-slate-500 tracking-wider">
+                           <div className="col-span-4 px-3.5 py-2 text-left">{t('rojmel.particulars')}</div>
+                           <div className="col-span-2 px-3.5 py-2 text-right">{t('rojmel.sub')}</div>
+                           <div className="col-span-2 px-3.5 py-2 text-right bg-emerald-100/50 text-emerald-800">{t('rojmel.amount')}</div>
+                           <div className={`col-span-2 px-3.5 py-2 text-right border-l border-slate-200 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{i18n.language === 'gu' ? 'રસીદ નં.' : 'RECPT NO'}</div>
+                           <div className={`col-span-1 px-3.5 py-2 text-right border-l border-slate-200 ${i18n.language === 'gu' ? 'font-prompt tracking-normal' : ''}`}>{i18n.language === 'gu' ? 'રોકડ' : 'ROKAD'}</div>
+                           <div className={`col-span-1 px-3.5 py-2 text-right border-l border-slate-200 ${i18n.language === 'gu' ? 'font-prompt tracking-normal' : ''}`}>{i18n.language === 'gu' ? 'જમા ખર્ચ' : 'J.K.'}</div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="flex flex-col flex-1 divide-y divide-slate-100 bg-white font-sans text-slate-800">
+                           {normalizedJama.map((row, idx) => {
+                              const isHighNode = row.isOpening || row.isClosing;
+                              return (
+                                 <div
+                                    key={idx}
+                                    className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-slate-50 font-bold' : 'hover:bg-slate-50/75 transition-colors cursor-pointer'}`}
+                                    onDoubleClick={() => handleEditEntry(row, 'jama')}
+                                 >
+                                    <div className="col-span-4 px-3.5 py-2">
+                                       <div className={`font-bold text-slate-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{getDisplayName(row, i18n.language === 'gu')}</div>
+                                       {showSubledger && row.sub_details && (
+                                          <div className={`text-[10px] text-slate-500 font-semibold mt-0.5 leading-tight ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                                             {getDisplaySubName(row, i18n.language === 'gu')}
+                                          </div>
+                                       )}
+                                       {printItemDetails && row.notes && (
+                                          <div className="text-[9px] text-slate-400 font-bold mt-0.5 leading-tight italic">
+                                             {row.notes}
+                                          </div>
+                                       )}
+                                    </div>
+                                    <div className="col-span-2 px-3.5 py-2 text-right text-slate-600 font-mono font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
+                                    <div className={`col-span-2 px-3.5 py-2 text-right font-mono font-bold ${isHighNode ? 'text-slate-800' : 'text-emerald-600'}`}>
+                                       {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
+                                    </div>
+                                    <div className="col-span-2 px-3.5 py-2 text-right text-slate-500 font-mono text-[10px]">{row.reference_no || ''}</div>
+                                    <div className="col-span-1 px-3.5 py-2 text-right text-slate-600 font-mono text-[10px]">{(!row.isJV && !row.isContra && !isHighNode && !row.isGST && row.amount) ? parseFloat(row.amount).toFixed(2) : ''}</div>
+                                    <div className="col-span-1 px-3.5 py-2 text-right text-slate-600 font-mono text-[10px] font-semibold">{(row.isJV || row.isContra) ? parseFloat(row.amount).toFixed(2) : ''}</div>
+                                 </div>
+                              );
+                           })}
+                        </div>
+
+                        {/* Footer */}
+                        {data?.totals && (
+                           <div className="grid grid-cols-12 items-center bg-slate-100 border-t border-slate-300 uppercase text-[10px] font-bold tracking-widest mt-auto">
+                              <div className="col-span-6 px-4 py-3 text-slate-500 text-right">{t('rojmel.grossJama')}</div>
+                              <div className="col-span-2 px-4 py-3 text-right text-emerald-600 text-sm font-bold font-mono tracking-tighter">
+                                 ₹{parseFloat(data.totals.jama_total).toFixed(2)}
+                              </div>
+                              <div className="col-span-4"></div>
+                           </div>
+                        )}
+                     </div>
+                  </div>
+
+                  {/* UDHAR SIDE */}
+                  <div className="flex flex-col overflow-x-auto custom-scrollbar w-full">
+                     <div className="min-w-[800px] flex flex-col flex-1">
+                        {/* Header */}
+                        <div className="py-2.5 bg-blue-50/50 flex flex-col items-center justify-center relative border-b border-slate-200">
+                           <div className="flex items-center gap-1.5">
+                              <ArrowDownLeft size={14} className="text-[#1d5f84]" />
+                              <h2 className="text-[11px] font-bold text-[#1d5f84] uppercase tracking-widest font-mono">{t('rojmel.udharBaju')}</h2>
                            </div>
                         </div>
+
+                        {/* Sub Header */}
+                        <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-200 uppercase text-[9px] font-bold text-slate-500 tracking-wider">
+                           <div className="col-span-4 px-3.5 py-2 text-left">{t('rojmel.particulars')}</div>
+                           <div className="col-span-2 px-3.5 py-2 text-right">{t('rojmel.sub')}</div>
+                           <div className="col-span-2 px-3.5 py-2 text-right bg-blue-100/30 text-[#1d5f84]">{t('rojmel.amount')}</div>
+                           <div className={`col-span-2 px-3.5 py-2 text-right border-l border-slate-200 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{i18n.language === 'gu' ? 'રસીદ નં.' : 'RECPT NO'}</div>
+                           <div className={`col-span-1 px-3.5 py-2 text-right border-l border-slate-200 ${i18n.language === 'gu' ? 'font-prompt tracking-normal' : ''}`}>{i18n.language === 'gu' ? 'રોકડ' : 'ROKAD'}</div>
+                           <div className={`col-span-1 px-3.5 py-2 text-right border-l border-slate-200 ${i18n.language === 'gu' ? 'font-prompt tracking-normal' : ''}`}>{i18n.language === 'gu' ? 'જમા ખર્ચ' : 'J.K.'}</div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="flex flex-col flex-1 divide-y divide-slate-100 bg-white font-sans text-slate-800">
+                           {normalizedUdhar.map((row, idx) => {
+                              const isHighNode = row.isOpening || row.isClosing;
+                              return (
+                                 <div
+                                    key={idx}
+                                    className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-slate-50 font-bold' : 'hover:bg-slate-50/75 transition-colors cursor-pointer'}`}
+                                    onDoubleClick={() => handleEditEntry(row, 'udhar')}
+                                 >
+                                    <div className="col-span-4 px-3.5 py-2">
+                                       <div className={`font-bold text-slate-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{getDisplayName(row, i18n.language === 'gu')}</div>
+                                       {showSubledger && row.sub_details && (
+                                          <div className={`text-[10px] text-slate-500 font-semibold mt-0.5 leading-tight ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                                             {getDisplaySubName(row, i18n.language === 'gu')}
+                                          </div>
+                                       )}
+                                       {printItemDetails && row.notes && (
+                                          <div className="text-[9px] text-slate-400 font-bold mt-0.5 leading-tight italic">
+                                             {row.notes}
+                                          </div>
+                                       )}
+                                    </div>
+                                    <div className="col-span-2 px-3.5 py-2 text-right text-slate-600 font-mono font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
+                                    <div className={`col-span-2 px-3.5 py-2 text-right font-mono font-bold ${isHighNode ? 'text-slate-800' : 'text-[#1d5f84]'}`}>
+                                       {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
+                                    </div>
+                                    <div className="col-span-2 px-3.5 py-2 text-right text-slate-500 font-mono text-[10px]">{row.reference_no || ''}</div>
+                                    <div className="col-span-1 px-3.5 py-2 text-right text-slate-600 font-mono text-[10px]">{(!row.isJV && !row.isContra && !isHighNode && !row.isGST && row.amount) ? parseFloat(row.amount).toFixed(2) : ''}</div>
+                                    <div className="col-span-1 px-3.5 py-2 text-right text-slate-600 font-mono text-[10px] font-semibold">{(row.isJV || row.isContra) ? parseFloat(row.amount).toFixed(2) : ''}</div>
+                                 </div>
+                              );
+                           })}
+                        </div>
+
+                        {/* Footer */}
+                        {data?.totals && (
+                           <div className="grid grid-cols-12 items-center bg-slate-100 border-t border-slate-300 uppercase text-[10px] font-bold tracking-widest mt-auto">
+                              <div className="col-span-6 px-4 py-3 text-slate-500 text-right">{t('rojmel.grossUdhar')}</div>
+                              <div className="col-span-2 px-4 py-3 text-right text-[#1d5f84] text-sm font-bold font-mono tracking-tighter">
+                                 ₹{parseFloat(data.totals.udhar_total).toFixed(2)}
+                              </div>
+                              <div className="col-span-4"></div>
+                           </div>
+                        )}
                      </div>
-                  )}
+                  </div>
                </div>
 
                {/* Quick Actions Footer */}
