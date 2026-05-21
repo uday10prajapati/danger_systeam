@@ -207,6 +207,20 @@ export default function BardanReport() {
     if (submit) fetchReportData();
   };
 
+  // Auto-refresh when filters change (debounced)
+  const autoFetchTimer = useRef(null);
+  useEffect(() => {
+    if (!company?.id) return;
+    if (autoFetchTimer.current) clearTimeout(autoFetchTimer.current);
+    autoFetchTimer.current = setTimeout(() => {
+      fetchReportData();
+    }, 300);
+    return () => {
+      if (autoFetchTimer.current) clearTimeout(autoFetchTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberId, village, bankName, season, dangarClass, fromMemberCode, toMemberCode, hideZeroBardan, dateRange.startDate, dateRange.endDate]);
+
   const weightRows = (selectedEntry?.weights || []).filter(w => parseFloat(w.weight || 0) > 0);
 
   if (loading && !company) return <Loading />;
