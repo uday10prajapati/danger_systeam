@@ -1,5 +1,4 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { exportToPDF } from '../utils/pdfExporter';
 import React, { useState, useEffect } from 'react';
 import {
    Search, Download, Filter, X, ChevronRight, Printer,
@@ -13,7 +12,6 @@ import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
 import api from '../api';
-import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
 import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 
 
@@ -37,12 +35,25 @@ export default function AccountLedger() {
 
    const formatDisplayDate = (dateString) => {
       if (!dateString) return '—';
-      let dStr = dateString;
-      if (dStr.includes('T')) dStr = dStr.split('T')[0];
-      const parts = dStr.split('-');
-      if (parts.length !== 3) return dateString;
-      const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-      return isGu ? toGujaratiDigits(engDate) : engDate;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+         return isGu ? toGujaratiDigits(dateString) : dateString;
+      }
+      let cleanStr = dateString;
+      if (cleanStr.includes(' ')) cleanStr = cleanStr.split(' ')[0];
+      if (cleanStr.includes('T')) cleanStr = cleanStr.split('T')[0];
+      
+      const parts = cleanStr.split('-');
+      if (parts.length === 3) {
+         const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+         return isGu ? toGujaratiDigits(engDate) : engDate;
+      }
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return dateString;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const formatted = `${day}/${month}/${year}`;
+      return isGu ? toGujaratiDigits(formatted) : formatted;
    };
 
    const displayAccountName = (acc) => {
@@ -393,120 +404,209 @@ export default function AccountLedger() {
       setView('ledger');
    };
 
-   const handleExportPDF = async () => {
-      if (!selectedAccount || ledgerEntries.length === 0) {
-         alert('Please select an account with transactions first.');
-         return;
-      }
-      const cName = company ? (company.company_name || 'Company') : 'Company';
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      await addGujaratiFont(doc);
-      await addPromptFont(doc);
-      const W = doc.internal.pageSize.getWidth();
-      const H = doc.internal.pageSize.getHeight();
-      const M = 32;
-      const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
-
-      const hdr = () => {
-         doc.setFillColor(...navy); doc.rect(0, 0, W, 28, 'F');
-         doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
-         doc.text(cName, M, 18);
-         doc.setFontSize(7.5); doc.setTextColor(191, 219, 254);
-         doc.text('ACCOUNT LEDGER AUDIT REGISTRY', W / 2, 18, { align: 'center' });
-         doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
-         doc.text('CONFIDENTIAL', W - M, 18, { align: 'right' });
-      };
-
-      const ftr = (pg, tot) => {
-         doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
-         doc.line(M, H - 18, W - M, H - 18);
-         doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-         doc.text(cName + ' - Ledger Audit', M, H - 9);
-         doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-         doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
-      };
-
-      hdr();
-      let y = 62;
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(16); doc.setTextColor(...navy);
-      doc.text(translateSystemText(selectedAccount.account_name_gu || selectedAccount.account_name), M, y);
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
-      doc.text('AUDIT_CLASS: ' + (selectedAccount.account_type || '-') + '  |  PERIOD: ' + dateRange.startDate + ' to ' + dateRange.endDate, M, y + 13);
-      doc.text('GENERATED: ' + new Date().toLocaleString('en-IN'), W - M, y + 13, { align: 'right' });
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-      y += 32;
-
+   const buildPrintHTML = () => {
+      const cName = company?.company_name || 'Company';
+      const accTitle = selectedAccount
+        ? (isGu ? (selectedAccount.account_name_gu || selectedAccount.account_name) : selectedAccount.account_name)
+        : 'Account Ledger';
+      const reportTitle = t('accountLedger.institutionalRegistry') || 'Account Ledger';
+      const today = new Date();
+      const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+      const fy = localStorage.getItem('financialYear') || '2026-27';
+      const periodStr = `${formatDisplayDate(dateRange.startDate)} — ${formatDisplayDate(dateRange.endDate)}`;
+      const isBardanAcc = selectedAccount?.account_code === 'BS0001';
       const totDr = parseFloat(accountBalance.total_debit || 0);
       const totCr = parseFloat(accountBalance.total_credit || 0);
       const bal = parseFloat(accountBalance.balance || accountBalance.running_balance || 0);
 
-      autoTable(doc, {
-         startY: y,
-         head: [[t('accountLedger.date'), t('accountLedger.descriptionMember'), 'Debit', 'Credit', t('accountLedger.balance')]],
-         body: [
-            ...(parseFloat(accountBalance.opening_balance || 0) !== 0 ? [[
-               '—',
-               t('accountLedger.openingBalanceForward'),
-               accountBalance.opening_balance_type === 'debit' ? parseFloat(accountBalance.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—',
-               accountBalance.opening_balance_type === 'credit' ? parseFloat(accountBalance.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—',
-               parseFloat(accountBalance.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (accountBalance.opening_balance_type === 'debit' ? 'DR' : 'CR'),
-            ]] : []),
-            ...ledgerEntries.map(e => [
-               new Date(e.transaction_date).toLocaleDateString('en-GB'),
-               (() => {
-                  const descStr = e.description || '-';
-                  const memberStr = displayBilingualName(e.eng_name || e.member_name, e.member_name_gu || e.member_name);
-                  const combined = descStr + (memberStr ? ' [' + memberStr + ']' : '');
-                  return isGu ? translateSystemText(combined) : combined;
-               })(),
-               parseFloat(e.debit || 0) > 0 ? parseFloat(e.debit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-               parseFloat(e.credit || 0) > 0 ? parseFloat(e.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-               Math.abs(parseFloat(e.running_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(e.running_balance) >= 0 ? 'DR' : 'CR'),
-            ])
-         ],
-         foot: [['', 'CONSOLIDATED TOTALS', totDr.toLocaleString('en-IN', { minimumFractionDigits: 2 }), totCr.toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (bal >= 0 ? 'DR' : 'CR')]],
-         styles: { font: 'NotoGujarati', fontSize: 8, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-         headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 7.5 },
-         footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 7.5 },
-         alternateRowStyles: { fillColor: stripe },
-         didParseCell: (data) => {
-            const text = data.cell.text.join(' ');
-            if (!text) return;
+      // Inline style constants
+      const S = {
+        wrap: 'font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:16px;',
+        container: 'border:1.5px solid #000;background:#fff;overflow:hidden;',
+        hComp: 'border-bottom:1.5px solid #000;padding:12px;text-align:center;font-size:18px;font-weight:bold;',
+        hTitle: 'border-bottom:1.5px solid #000;padding:8px;text-align:center;font-size:14px;font-weight:bold;',
+        hAcc: 'border-bottom:1.5px solid #000;padding:8px;text-align:center;font-size:13px;font-weight:bold;',
+        infoBar: 'border-bottom:1.5px solid #000;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;',
+        infoL: 'font-size:12px;font-weight:bold;',
+        infoR: 'font-size:12px;font-weight:bold;display:flex;gap:16px;',
+        table: 'width:100%;border-collapse:collapse;',
+        th: 'border:1.5px solid #000;padding:6px 8px;font-size:10px;font-weight:bold;background:#fff;',
+        td: 'border:1.5px solid #000;padding:5px 8px;font-size:10px;',
+        tdBold: 'border:1.5px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;',
+        tdFoot: 'border:1.5px solid #000;padding:6px 8px;font-size:11px;font-weight:bold;',
+      };
 
-            // Use NotoGujarati for Unicode characters
-            if (/[\u0A80-\u0AFF]/.test(text)) {
-               data.cell.styles.font = 'NotoGujarati';
-               return;
-            }
+      const openingRow = parseFloat(accountBalance.opening_balance || 0) !== 0 ? `
+        <tr>
+          <td style="${S.td}">—</td>
+          <td style="${S.td}">${t('accountLedger.openingBalanceForward')}</td>
+          <td style="${S.td}text-align:right">${accountBalance.opening_balance_type === 'debit' ? fmtAmount(accountBalance.opening_balance, isBardanAcc ? '' : '₹') : '—'}</td>
+          <td style="${S.td}text-align:right">${accountBalance.opening_balance_type === 'credit' ? fmtAmount(accountBalance.opening_balance, isBardanAcc ? '' : '₹') : '—'}</td>
+          ${isBardanAcc ? `<td style="${S.td}text-align:right">—</td>` : ''}
+          <td style="${S.tdBold}text-align:right">${fmtAmount(accountBalance.opening_balance, isBardanAcc ? '' : '₹')} ${accountBalance.opening_balance_type === 'debit' ? 'DR' : 'CR'}</td>
+          ${isBardanAcc ? `<td style="${S.tdBold}text-align:right">${fmtAmount(Math.abs(parseFloat(accountBalance.opening_balance) * bardanPrice), '₹')}</td>` : ''}
+        </tr>` : '';
 
-            // Use Prompt font for legacy-mapped Gujarati (lowercase text)
-            if (/[a-z]/.test(text)) {
-               data.cell.styles.font = 'Prompt';
-            } else {
-               // Use standard Helvetica for numbers, codes, and uppercase text
-               data.cell.styles.font = 'helvetica';
+      const dataRows = ledgerEntries.map(e => {
+        const memberStr = displayBilingualName(e.eng_name || e.member_name, e.member_name_gu || e.member_name);
+        const descStr = isGu ? translateSystemText(e.description || '-') : (e.description || '-');
+        return `<tr>
+          <td style="${S.td}">${formatDisplayDate(e.transaction_date)}</td>
+          <td style="${S.td}">${descStr}${memberStr ? `<br/><small style="color:#1d5f84;font-weight:bold">${t('accountLedger.node')}: ${memberStr}${e.member_code ? ' [' + (isGu ? toGujaratiDigits(e.member_code) : e.member_code) + ']' : ''}</small>` : ''}</td>
+          <td style="${S.td}text-align:right">${parseFloat(e.debit || 0) > 0 ? (isBardanAcc ? fmtAmount(e.debit, '') : fmtAmount(e.debit, '₹')) : '—'}</td>
+          <td style="${S.td}text-align:right">${parseFloat(e.credit || 0) > 0 ? (isBardanAcc ? (parseFloat(e.company_credit || 0) > 0 ? fmtAmount(e.company_credit, '') : '—') : fmtAmount(e.credit, '₹')) : '—'}</td>
+          ${isBardanAcc ? `<td style="${S.td}text-align:right">${parseFloat(e.self_credit || 0) > 0 ? fmtAmount(e.self_credit, '') : '—'}</td>` : ''}
+          <td style="${S.tdBold}text-align:right">${isBardanAcc ? fmtAmount(Math.abs(parseFloat(e.running_balance)), '') : fmtAmount(Math.abs(parseFloat(e.running_balance)), '₹')} ${parseFloat(e.running_balance) >= 0 ? 'DR' : 'CR'}</td>
+          ${isBardanAcc ? `<td style="${S.tdBold}text-align:right">${fmtAmount(Math.abs(parseFloat(e.penalty_balance || e.running_balance) * bardanPrice), '₹')}</td>` : ''}
+        </tr>`;
+      }).join('');
+
+      const thExtra = isBardanAcc
+        ? `<th style="${S.th}text-align:right">${t('accountLedger.selfJama')}</th><th style="${S.th}text-align:right">${t('accountLedger.balance')}</th><th style="${S.th}text-align:right">${t('accountLedger.bardanAmt')}</th>`
+        : `<th style="${S.th}text-align:right">${t('accountLedger.balance')}</th>`;
+      const tfootExtra = isBardanAcc
+        ? `<td style="${S.tdFoot}">—</td><td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal), '')} ${bal >= 0 ? 'DR' : 'CR'}</td><td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal * bardanPrice), '₹')}</td>`
+        : `<td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal), '₹')} ${bal >= 0 ? 'DR' : 'CR'}</td>`;
+
+      const body = `
+        <div style="${S.wrap}">
+          <div style="${S.container}">
+            <div style="${S.hComp}">${cName}</div>
+            <div style="${S.hTitle}">${reportTitle}</div>
+            <div style="${S.hAcc}">${accTitle}</div>
+            <div style="${S.infoBar}">
+              <div style="${S.infoL}">${isGu ? 'સમયગાળો' : 'Period'}: ${periodStr}</div>
+              <div style="${S.infoR}"><span>${isGu ? 'તારીખ' : 'Date'}: ${dateStr}</span><span>|</span><span>${isGu ? 'વર્ષ' : 'FY'}: ${fy}</span></div>
+            </div>
+            <table style="${S.table}">
+              <thead><tr>
+                <th style="${S.th}">${t('accountLedger.date')}</th>
+                <th style="${S.th}">${t('accountLedger.descriptionMember')}</th>
+                <th style="${S.th}text-align:right">${t('accountLedger.debit')}</th>
+                <th style="${S.th}text-align:right">${t('accountLedger.credit')}</th>
+                ${thExtra}
+              </tr></thead>
+              <tbody>${openingRow}${dataRows}</tbody>
+              <tfoot><tr>
+                <td colspan="2" style="${S.tdFoot}text-align:right">${isGu ? 'કુલ' : 'Total'}:</td>
+                <td style="${S.tdFoot}text-align:right">${fmtAmount(totDr, isBardanAcc ? '' : '₹')}</td>
+                <td style="${S.tdFoot}text-align:right">${fmtAmount(totCr, isBardanAcc ? '' : '₹')}</td>
+                ${tfootExtra}
+              </tr></tfoot>
+            </table>
+          </div>
+        </div>`;
+
+      return `<html><head><style>@page{size:A4 portrait;margin:10mm}body{margin:0;padding:0}</style></head><body>${body}</body></html>`;
+   };
+
+   const handleExportPDF = async () => {
+      if (!selectedAccount || ledgerEntries.length === 0) {
+         alert(isGu ? 'કૃપા ખાતુ પસંદ કરો.' : 'Please select an account with transactions first.');
+         return;
+      }
+      const isBardanAcc = selectedAccount?.account_code === 'BS0001';
+      const periodStr = `${formatDisplayDate(dateRange.startDate)} — ${formatDisplayDate(dateRange.endDate)}`;
+      const accTitle = isGu ? (selectedAccount.account_name_gu || selectedAccount.account_name) : selectedAccount.account_name;
+
+      // Build rows including opening balance
+      const allRows = [];
+      if (parseFloat(accountBalance.opening_balance || 0) !== 0) {
+         allRows.push({ _isOpening: true, ...accountBalance });
+      }
+      ledgerEntries.forEach(e => allRows.push(e));
+      // Add totals row
+      allRows.push({ _isTotals: true });
+
+      const columns = [
+         {
+            header: t('accountLedger.date'),
+            width: '10%',
+            render: (row) => row._isOpening ? '—' : row._isTotals ? '' : formatDisplayDate(row.transaction_date)
+         },
+         {
+            header: t('accountLedger.descriptionMember'),
+            render: (row) => {
+               if (row._isOpening) return `<strong>${t('accountLedger.openingBalanceForward')}</strong>`;
+               if (row._isTotals) return `<strong style="float:right">${isGu ? 'કુલ' : 'Total'}:</strong>`;
+               const memberStr = displayBilingualName(row.eng_name || row.member_name, row.member_name_gu || row.member_name);
+               const descStr = isGu ? translateSystemText(row.description || '-') : (row.description || '-');
+               return descStr + (memberStr ? `<br/><small style="color:#1d5f84;font-weight:bold">${t('accountLedger.node')}: ${memberStr}${row.member_code ? ' [' + row.member_code + ']' : ''}</small>` : '');
             }
          },
-         theme: 'grid',
-         margin: { left: M, right: M },
-         columnStyles: {
-            2: { halign: 'right' },
-            3: { halign: 'right' },
-            4: { halign: 'right', fontStyle: 'bold' },
+         {
+            header: t('accountLedger.debit'),
+            align: 'right',
+            width: '12%',
+            render: (row) => {
+               if (row._isOpening) return row.opening_balance_type === 'debit' ? `<strong>${fmtAmount(row.opening_balance, isBardanAcc ? '' : '₹')}</strong>` : '—';
+               if (row._isTotals) return `<strong>${fmtAmount(accountBalance.total_debit, isBardanAcc ? '' : '₹')}</strong>`;
+               return parseFloat(row.debit || 0) > 0 ? (isBardanAcc ? fmtAmount(row.debit, '') : fmtAmount(row.debit, '₹')) : '—';
+            }
          },
+         {
+            header: t('accountLedger.credit'),
+            align: 'right',
+            width: '12%',
+            render: (row) => {
+               if (row._isOpening) return row.opening_balance_type === 'credit' ? `<strong>${fmtAmount(row.opening_balance, isBardanAcc ? '' : '₹')}</strong>` : '—';
+               if (row._isTotals) return `<strong>${fmtAmount(accountBalance.total_credit, isBardanAcc ? '' : '₹')}</strong>`;
+               return parseFloat(row.credit || 0) > 0 ? (isBardanAcc ? (parseFloat(row.company_credit || 0) > 0 ? fmtAmount(row.company_credit, '') : '—') : fmtAmount(row.credit, '₹')) : '—';
+            }
+         },
+         ...(isBardanAcc ? [{
+            header: t('accountLedger.selfJama'),
+            align: 'right',
+            width: '10%',
+            render: (row) => {
+               if (row._isOpening || row._isTotals) return '—';
+               return parseFloat(row.self_credit || 0) > 0 ? fmtAmount(row.self_credit, '') : '—';
+            }
+         }] : []),
+         {
+            header: t('accountLedger.balance'),
+            align: 'right',
+            width: '14%',
+            render: (row) => {
+               if (row._isOpening) return `<strong>${fmtAmount(row.opening_balance, isBardanAcc ? '' : '₹')} ${row.opening_balance_type === 'debit' ? 'DR' : 'CR'}</strong>`;
+               const bal = parseFloat(accountBalance.balance || accountBalance.running_balance || 0);
+               if (row._isTotals) return `<strong>${isBardanAcc ? fmtAmount(Math.abs(bal), '') : fmtAmount(Math.abs(bal), '₹')} ${bal >= 0 ? 'DR' : 'CR'}</strong>`;
+               return `<strong>${isBardanAcc ? fmtAmount(Math.abs(parseFloat(row.running_balance)), '') : fmtAmount(Math.abs(parseFloat(row.running_balance)), '₹')} ${parseFloat(row.running_balance) >= 0 ? 'DR' : 'CR'}</strong>`;
+            }
+         },
+         ...(isBardanAcc ? [{
+            header: t('accountLedger.bardanAmt'),
+            align: 'right',
+            width: '12%',
+            render: (row) => {
+               if (row._isOpening) return `<strong>${fmtAmount(Math.abs(parseFloat(row.opening_balance) * bardanPrice), '₹')}</strong>`;
+               const bal = parseFloat(accountBalance.balance || accountBalance.running_balance || 0);
+               if (row._isTotals) return `<strong>${fmtAmount(Math.abs(bal * bardanPrice), '₹')}</strong>`;
+               return `<strong>${fmtAmount(Math.abs(parseFloat(row.penalty_balance || row.running_balance) * bardanPrice), '₹')}</strong>`;
+            }
+         }] : [])
+      ];
+
+      await exportToPDF({
+         title: accTitle,
+         columns,
+         rows: allRows,
+         isGu,
+         metaInfo: [{ label: isGu ? 'સમયગાળો' : 'Period', value: periodStr }],
+         filename: `Ledger_${selectedAccount.account_name?.replace(/\s+/g, '-')}_${dateRange.startDate}.pdf`
       });
-
-      const tot = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-      doc.save('Ledger_' + selectedAccount.account_name.replace(/\s+/g, '-') + '.pdf');
    };
 
    const handlePrint = () => {
       if (!selectedAccount || ledgerEntries.length === 0) {
-         alert('Incomplete data stream for deployment.');
+         alert(isGu ? 'કૃપા ખાતુ પસંદ કરો.' : 'Please select an account with transactions first.');
          return;
       }
-      // Printing modal logic would go here
+      const win = window.open('', '_blank', 'width=900,height=800');
+      win.document.write(buildPrintHTML());
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 400);
    };
 
    if (!company?.id) {

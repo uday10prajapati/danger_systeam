@@ -15,6 +15,7 @@ import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
 import { formatBilingualText } from '../utils/textUtils';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
+import { exportToPDF, toGujaratiDigits as guDigits } from '../utils/pdfExporter';
 
 
 const BardanPortfolio = () => {
@@ -371,52 +372,109 @@ const BardanPortfolio = () => {
 
   const handleHistoryPrint = () => {
     const dataToPrint = formData.code ? ledgerData : history;
-    const rows = dataToPrint.filter(row => {
+    const filteredRows = dataToPrint.filter(row => {
       const term = (historySearchQuery || '').toLowerCase();
       return !term ||
-        String(row.sabhasad_name || row.sabhasad_code || row.member_name || row.member_code || '').toLowerCase().includes(term) ||
-        String(row.particulars || '').toLowerCase().includes(term) ||
+        String(row.name || row.particulars || row.sabhasad_name || row.member_name || '').toLowerCase().includes(term) ||
         String(row.pavti_no || '').toLowerCase().includes(term);
-    }).map((r, i) =>
-      '<tr style="background:' + (i % 2 === 0 ? '#fff' : '#f8fafc') + '">' +
-      '<td>' + ((r.date || r.entry_date) ? new Date(r.date || r.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-') : '') + '</td>' +
-      '<td>' + (r.particulars || '') + '</td>' +
-      '<td style="text-align:right">' + (r.taken || r.debit || r.given || '-') + '</td>' +
-      '<td style="text-align:right">' + (r.returned || r.credit || '-') + '</td>' +
-      '<td style="text-align:right">' + (r.balance || '-') + '</td>' +
-      '</tr>'
-    );
+    });
+
+    const company = JSON.parse(localStorage.getItem('company') || '{}');
+    const cName = isGu
+      ? (company.company_name_gu || company.company_name || '')
+      : (company.company_name || company.company_name_gu || '');
+    const reportTitle = t('bardanPortfolio.historyTitle') || 'બારદાન ઈતિહાસ અને લેજર';
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const formattedDate = isGu ? `તારીખ: ${dateStr}` : `Date: ${dateStr}`;
+    const fy = localStorage.getItem('financialYear') || '2026-27';
+    const formattedFY = isGu ? `વર્ષ : ${fy}` : `FY: ${fy}`;
+
+    const fontStyle = isGu ? "font-family:'Prompt','Noto Sans Gujarati',sans-serif;" : "font-family:Arial,sans-serif;";
+
+    const rowsHTML = filteredRows.map((r, idx) => {
+      const dateVal = (r.date || r.entry_date)
+        ? new Date(r.date || r.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-')
+        : '—';
+      const particulars = r.particulars || r.name || (r.type === 'GIVEN' ? (isGu ? 'આપેલ' : 'Given') : (isGu ? 'પરત' : 'Returned'));
+      const pavtiPart = r.pavti_no ? `<br/><span style="font-size:10px;color:#64748b;"># ${r.pavti_no}</span>` : '';
+      const debit = r.debit ?? (r.type === 'GIVEN' ? r.qty : 0);
+      const credit = r.credit ?? (r.type === 'RETURNED' ? r.qty : 0);
+      const balance = r.balance != null ? r.balance : 0;
+      return `
+        <tr>
+          <td style="text-align:center;${fontStyle}">${idx + 1}</td>
+          <td style="text-align:center;${fontStyle}">${dateVal}</td>
+          <td style="${fontStyle}">${particulars}${pavtiPart}</td>
+          <td style="text-align:right;${fontStyle}"><strong>${debit || '—'}</strong></td>
+          <td style="text-align:right;${fontStyle}"><strong>${credit || '—'}</strong></td>
+          <td style="text-align:right;${fontStyle}"><strong>${balance}</strong></td>
+        </tr>`;
+    }).join('');
+
+    const totalDebit = filteredRows.reduce((s, r) => s + parseFloat(r.debit ?? (r.type === 'GIVEN' ? r.qty : 0) ?? 0), 0);
+    const totalCredit = filteredRows.reduce((s, r) => s + parseFloat(r.credit ?? (r.type === 'RETURNED' ? r.qty : 0) ?? 0), 0);
+    const totalBalance = filteredRows.reduce((s, r) => s + parseFloat(r.balance ?? 0), 0);
 
     const win = window.open('', '_blank', 'width=1100,height=800');
-    win.document.write(`<html><head><title>Bardan History</title>
-    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans Gujarati', 'Prompt', Arial, sans-serif;font-size:10px;color:#1e293b;padding:32px}
-      .logo-bar{background:#0f172a;color:#fff;padding:8px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-      .logo-bar h1{font-size:11px;font-weight:normal;text-transform:uppercase}
-      .logo-bar .lbl{font-size:9px;color:#94a3b8;font-weight:normal;letter-spacing:1px}
-      .logo-bar .conf{font-size:9px;color:#ef4444;font-weight:bold;letter-spacing:0.5px}
-      h2{font-size:18px;font-weight:bold;color:#0f172a;margin-bottom:2px}
-      p.sub{font-size:9px;color:#64748b;margin-bottom:12px}
-      hr{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
-      table{width:100%;border-collapse:collapse}
-      thead tr{background:#0f172a;color:#fff}
-      th{padding:8px 10px;font-size:9px;font-weight:700;text-transform:uppercase;text-align:left}
-      td{padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:9px}
-      tfoot tr{background:#1e293b;color:#fff;font-weight:700}
-      @media print{@page{size:A4 portrait;margin:1.5cm}}
-    </style></head><body>
-    <div class="logo-bar">
-       <h1>BARDAN HISTORY</h1>
-       <span class="lbl">BARDAN LEDGER REPORT</span>
-       <span class="conf">CONFIDENTIAL</span>
-    </div>
-    <h2>${t('bardanPortfolio.historyTitle')}</h2>
-    <p class="sub">Generated: ${new Date().toLocaleString('en-IN')}</p>
-    <hr/>
-    <table>
-      <thead><tr><th>${t('bardanPortfolio.table.date')}</th><th>${t('bardanPortfolio.table.particulars')}</th><th style="text-align:right">${t('bardanPortfolio.table.debit')}</th><th style="text-align:right">${t('bardanPortfolio.table.credit')}</th><th style="text-align:right">${t('bardanPortfolio.table.balance')}</th></tr></thead>
-      <tbody>${rows.join('')}</tbody>
-    </table></body></html>`);
-    win.document.close(); win.focus();
+    win.document.write(`
+      <html>
+        <head>
+          <title>${reportTitle}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+            @font-face { font-family:'Prompt'; src:url('/fonts/Prompt.ttf') format('truetype'); }
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family:'Outfit','Noto Sans Gujarati',Arial,sans-serif; padding:16px; background:#fff; color:#000; }
+            .pdf-report-container { border:1.5px solid #000; overflow:hidden; background:#fff; }
+            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:18px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-header-title { border-bottom:1.5px solid #000; padding:8px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-info-bar { border-bottom:1.5px solid #000; padding:8px 12px; display:flex; justify-content:flex-end; align-items:center; background:#fff; }
+            .pdf-table { width:100%; border-collapse:collapse; }
+            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:8px 10px; font-size:12px; color:#000; }
+            .pdf-table th { font-weight:bold; background:#fff; border-top:none !important; }
+            .pdf-table th:first-child, .pdf-table td:first-child { border-left:none !important; }
+            .pdf-table th:last-child, .pdf-table td:last-child { border-right:none !important; }
+            .pdf-table tr:last-child td { border-bottom:none !important; }
+            @media print { @page { size:A4 portrait; margin:10mm; } body { padding:0; } }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-report-container">
+            <div class="pdf-header-company">${cName}</div>
+            <div class="pdf-header-title">${reportTitle}</div>
+            <div class="pdf-info-bar">
+              <div style="font-size:12px;font-weight:bold;color:#000;display:flex;gap:16px;">
+                <span>${formattedDate}</span><span>|</span><span>${formattedFY}</span>
+              </div>
+            </div>
+            <table class="pdf-table">
+              <thead><tr>
+                <th style="width:6%;text-align:center;">${isGu ? 'ક્રમ' : 'Sr.'}</th>
+                <th style="width:12%;text-align:center;">${isGu ? 'તારીખ' : 'Date'}</th>
+                <th style="width:34%;text-align:left;">${isGu ? 'વિગત' : 'Particulars'}</th>
+                <th style="width:16%;text-align:right;">${isGu ? 'ઉધાર' : 'Debit'}</th>
+                <th style="width:16%;text-align:right;">${isGu ? 'જમા' : 'Credit'}</th>
+                <th style="width:16%;text-align:right;">${isGu ? 'બાકી' : 'Balance'}</th>
+              </tr></thead>
+              <tbody>
+                ${rowsHTML}
+                <tr style="font-weight:bold;">
+                  <td style="text-align:center;"></td>
+                  <td style="text-align:center;"></td>
+                  <td style="text-align:left;font-size:12px;"><strong>${isGu ? 'કુલ' : 'Total'} (${filteredRows.length} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong></td>
+                  <td style="text-align:right;font-size:12px;"><strong>${totalDebit.toFixed(2)}</strong></td>
+                  <td style="text-align:right;font-size:12px;"><strong>${totalCredit.toFixed(2)}</strong></td>
+                  <td style="text-align:right;font-size:12px;"><strong>${totalBalance.toFixed(2)}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
@@ -435,127 +493,93 @@ const BardanPortfolio = () => {
       return;
     }
 
-    const company = JSON.parse(localStorage.getItem('company') || '{}');
-    const cName = company.company_name_gu || company.company_name || 'Bardan Registry';
-    const reportTitle = t('bardanPortfolio.historyTitle') || 'બારદાન ઈતિહાસ અને લેજર';
+    const totalDebit = filteredRows.reduce((s, r) => s + parseFloat(r.debit ?? (r.type === 'GIVEN' ? r.qty : 0) ?? 0), 0);
+    const totalCredit = filteredRows.reduce((s, r) => s + parseFloat(r.credit ?? (r.type === 'RETURNED' ? r.qty : 0) ?? 0), 0);
+    const totalBalance = filteredRows.reduce((s, r) => s + parseFloat(r.balance ?? 0), 0);
 
-    const tempWrap = document.createElement('div');
-    tempWrap.style.position = 'fixed';
-    tempWrap.style.left = '-10000px';
-    tempWrap.style.top = '0';
-    tempWrap.style.width = '1100px';
-    tempWrap.style.background = '#fff';
-    tempWrap.style.color = '#111827';
-    tempWrap.style.fontFamily = '"Noto Sans Gujarati", "Prompt", sans-serif';
-    tempWrap.style.padding = '24px';
-    tempWrap.className = 'font-prompt-sm notranslate';
-    tempWrap.setAttribute('translate', 'no');
+    const rowsWithTotal = [
+      ...filteredRows,
+      { isTotal: true, totalCount: filteredRows.length, totalDebit, totalCredit, totalBalance }
+    ];
 
-    const tableRows = filteredRows.map((r, idx) => `
-      <tr style="background:${idx % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td style="padding:10px;border:1px solid #e2e8f0;text-align:center;">${idx + 1}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0;">${(r.date || r.entry_date) ? new Date(r.date || r.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-') : '—'}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0;font-weight:700;">
-          ${r.particulars || r.name || (r.type === 'GIVEN' ? 'આપેલ' : 'પરત')}
-          ${r.pavti_no ? `<br/><span style="font-size:10px;color:#2563eb;"># ${r.pavti_no}</span>` : ''}
-        </td>
-        <td style="padding:10px;border:1px solid #e2e8f0;text-align:right;font-weight:700;">${r.debit ?? (r.type === 'GIVEN' ? r.qty : 0)}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0;text-align:right;font-weight:700;color:#059669;">${r.credit ?? (r.type === 'RETURNED' ? r.qty : 0)}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0;text-align:right;font-weight:900;">${r.balance != null ? r.balance : 0}</td>
-      </tr>
-    `).join('');
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : 'Sr. No.',
+        align: 'center',
+        width: '6%',
+        render: (r, idx) => {
+          if (r.isTotal) return '';
+          return String(idx + 1);
+        }
+      },
+      {
+        header: isGu ? 'તારીખ' : 'Date',
+        align: 'center',
+        width: '12%',
+        render: (r) => {
+          if (r.isTotal) return '';
+          return (r.date || r.entry_date)
+            ? new Date(r.date || r.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-')
+            : '—';
+        }
+      },
+      {
+        header: isGu ? 'વિગત' : 'Particulars',
+        align: 'left',
+        width: '34%',
+        render: (r) => {
+          if (r.isTotal) {
+            return `<strong style="font-size:12px;">${isGu ? 'કુલ' : 'Total'} (${r.totalCount} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong>`;
+          }
+          const particulars = r.particulars || r.name || (r.type === 'GIVEN' ? (isGu ? 'આપેલ' : 'Given') : (isGu ? 'પરત' : 'Returned'));
+          const pavtiPart = r.pavti_no ? `<br/><span style="font-size:10px;color:#64748b;"># ${r.pavti_no}</span>` : '';
+          return `<strong>${particulars}</strong>${pavtiPart}`;
+        },
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'ઉધાર' : 'Debit',
+        align: 'right',
+        width: '16%',
+        render: (r) => {
+          const val = r.isTotal ? r.totalDebit : (r.debit ?? (r.type === 'GIVEN' ? r.qty : 0));
+          return val ? `<strong>${parseFloat(val).toFixed(2)}</strong>` : '—';
+        }
+      },
+      {
+        header: isGu ? 'જમા' : 'Credit',
+        align: 'right',
+        width: '16%',
+        render: (r) => {
+          const val = r.isTotal ? r.totalCredit : (r.credit ?? (r.type === 'RETURNED' ? r.qty : 0));
+          return val ? `<strong>${parseFloat(val).toFixed(2)}</strong>` : '—';
+        }
+      },
+      {
+        header: isGu ? 'બાકી' : 'Balance',
+        align: 'right',
+        width: '16%',
+        render: (r) => {
+          const val = r.isTotal ? r.totalBalance : (r.balance ?? 0);
+          return `<strong>${parseFloat(val).toFixed(2)}</strong>`;
+        }
+      }
+    ];
 
-    tempWrap.innerHTML = `
-      <div style="border:2px solid #0f172a;padding:2px;">
-        <div style="background:#0f172a;color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-size:24px;font-weight:900;letter-spacing:-0.5px;">${cName}</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">ASSET MANAGEMENT LOGISTICS</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:14px;font-weight:700;">${reportTitle}</div>
-            <div style="font-size:10px;color:#94a3b8;margin-top:2px;">બનાવેલ: ${new Date().toLocaleString('en-IN')}</div>
-          </div>
-        </div>
-        
-        <div style="padding:24px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;border-bottom:2px solid #f1f5f9;padding-bottom:12px;">
-             <div>
-               <div style="font-size:18px;font-weight:900;color:#0f172a;">${reportTitle}</div>
-               <div style="font-size:10px;color:#64748b;font-weight:700;margin-top:2px;">MASTER LEDGER REGISTRY / BARDAN PORTFOLIO</div>
-             </div>
-             <div style="text-align:right;font-size:10px;color:#64748b;font-weight:700;">
-               રેકોર્ડ્સ: ${filteredRows.length} | ફિલ્ટર: ${historySearchQuery || 'બધા'}
-             </div>
-          </div>
+    const metaInfo = formData.code
+      ? [{ label: isGu ? 'સભાસદ કોડ' : 'Member Code', value: String(formData.code) }]
+      : [];
 
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead>
-              <tr style="background:#0f172a;color:#fff;">
-                <th style="padding:12px 10px;border:1px solid #0f172a;text-align:center;width:40px;">#</th>
-                <th style="padding:12px 10px;border:1px solid #0f172a;text-align:left;width:100px;">તારીખ</th>
-                <th style="padding:12px 10px;border:1px solid #0f172a;text-align:left;">વિગત</th>
-                <th style="padding:12px 10px;border:1px solid #0f172a;text-align:right;width:80px;">ઉધાર</th>
-                <th style="padding:12px 10px;border:1px solid #0f172a;text-align:right;width:80px;">જમા</th>
-                <th style="padding:12px 10px;border:1px solid #0f172a;text-align:right;width:100px;">બાકી</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-
-          <div style="margin-top:40px;display:flex;justify-content:space-between;padding-top:20px;border-top:1px solid #e2e8f0;">
-             <div style="font-size:9px;color:#94a3b8;font-weight:700;">
-               આ કોમ્પ્યુટર જનરેટેડ રિપોર્ટ છે. અધિકૃત કર્મચારી દ્વારા માન્યતા જરૂરી છે.
-             </div>
-             <div style="text-align:right;">
-               <div style="width:140px;border-bottom:1px solid #0f172a;margin-bottom:4px;"></div>
-               <div style="font-size:10px;font-weight:900;color:#0f172a;text-transform:uppercase;">અધિકૃત સહી</div>
-             </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(tempWrap);
-    await new Promise(r => setTimeout(r, 300));
-
-    const canvas = await html2canvas(tempWrap, {
-      scale: 3,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false
+    await exportToPDF({
+      title: t('bardanPortfolio.historyTitle') || 'બારદાન ఈતિહાસ અને લેજર',
+      columns,
+      rows: rowsWithTotal,
+      isGu,
+      metaInfo,
+      filename: `Bardan_History_${formData.code || 'all'}_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
     });
-    document.body.removeChild(tempWrap);
-
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 32;
-    const imgW = pageW - margin * 2;
-    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
-
-    let y = 0;
-    let pageIndex = 0;
-    while (y < canvas.height) {
-      const sliceHeight = Math.min(pageHpx, canvas.height - y);
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sliceHeight;
-      const ctx = pageCanvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-      const imgData = pageCanvas.toDataURL('image/png');
-      const imgH = (sliceHeight * imgW) / canvas.width;
-
-      if (pageIndex > 0) doc.addPage();
-      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
-      y += sliceHeight;
-      pageIndex += 1;
-    }
-
-    doc.save(`Bardan_History_${formData.code || 'all'}.pdf`);
   };
 
   const handleChange = (e) => {

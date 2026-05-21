@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import { exportToPDF } from '../utils/pdfExporter';
 import {
   Plus, Edit3, Trash2, MapPin, Search,
   RefreshCcw, Download, FileText, Loader,
@@ -107,44 +106,61 @@ export default function VillageMaster() {
   const totalDistricts = [...new Set(villages.map(v => v.districtName).filter(Boolean))].length;
 
   const exportPDF = async () => {
-    if (!filtered.length && !villages.length) { setMessage({ type: 'error', text: t('villageMaster.noRecords') }); return; }
-    const rows = filtered.length ? filtered : villages;
-    const co   = JSON.parse(localStorage.getItem('company') || '{}');
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:1100px;background:#fff;color:#111;font-family:"NotoGujarati",Arial,sans-serif;padding:24px;';
-    wrap.innerHTML = `
-      <div style="border:1px solid #d1d5db;">
-        <div style="background:#1d5f84;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;">
-          <b>${co.company_name_gu || co.company_name || ''}</b><span>ગામ રજીસ્ટ્રી</span>
-        </div>
-        <div style="padding:18px;">
-          <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">${t('villageMaster.title')}</h2>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr style="background:#f1f5f9;">
-              ${['ક્રમ','કોડ','ગામ','તાલુકો','જિલ્લો'].map(h=>`<th style="padding:7px 10px;border:1px solid #d1d5db;">${h}</th>`).join('')}
-            </tr></thead>
-            <tbody>${rows.map((v,i)=>`<tr>${[toGu(i+1),toGu(String(v.villageCode).padStart(4,'0')),v.villageName,v.talukaName||'',v.districtName||''].map(c=>`<td style="padding:7px 10px;border:1px solid #d1d5db;">${c}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>
-        </div>
-      </div>`;
-    document.body.appendChild(wrap);
-    await new Promise(r => setTimeout(r, 200));
-    const canvas = await html2canvas(wrap, { scale: 3, backgroundColor: '#fff', useCORS: true, logging: false });
-    document.body.removeChild(wrap);
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(), m = 24;
-    const iw = pw - m * 2, phx = ((ph - m * 2) * canvas.width) / iw;
-    let y = 0, pi = 0;
-    while (y < canvas.height) {
-      const sh = Math.min(phx, canvas.height - y);
-      const pc = document.createElement('canvas'); pc.width = canvas.width; pc.height = sh;
-      const cx = pc.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,pc.width,sh);
-      cx.drawImage(canvas,0,y,canvas.width,sh,0,0,canvas.width,sh);
-      if (pi > 0) doc.addPage();
-      doc.addImage(pc.toDataURL('image/png'),'PNG',m,m,iw,(sh*iw)/canvas.width);
-      y+=sh; pi++;
+    if (!filtered.length && !villages.length) {
+      setMessage({ type: 'error', text: t('villageMaster.noRecords') });
+      return;
     }
-    doc.save('Village_Master.pdf');
+
+    const rows = filtered.length ? filtered : villages;
+
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : '#',
+        align: 'center',
+        width: '8%',
+        render: (row, idx) => isGu ? toGu(idx + 1) : (idx + 1)
+      },
+      {
+        header: isGu ? 'કોડ' : 'Code',
+        align: 'center',
+        width: '12%',
+        render: (row) => isGu ? toGu(String(row.villageCode).padStart(4, '0')) : String(row.villageCode).padStart(4, '0')
+      },
+      {
+        header: isGu ? 'ગામ' : 'Village Name',
+        align: 'left',
+        width: '30%',
+        render: (row) => isGu ? row.villageName : (row.engName || row.villageName),
+        usePromptFont: isGu
+      },
+      {
+        header: isGu ? 'તાલુકો' : 'Taluka',
+        align: 'left',
+        width: '25%',
+        render: (row) => row.talukaName || '—',
+        usePromptFont: isGu
+      },
+      {
+        header: isGu ? 'જિલ્લો' : 'District',
+        align: 'left',
+        width: '25%',
+        render: (row) => row.districtName || '—',
+        usePromptFont: isGu
+      }
+    ];
+
+    const metaInfo = [];
+
+    await exportToPDF({
+      title: isGu ? 'ગામ રજીસ્ટ્રી' : 'Village Master',
+      columns,
+      rows,
+      isGu,
+      metaInfo,
+      filename: `Village_Master_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
 
   if (loading && !villages.length) return <Loading />;

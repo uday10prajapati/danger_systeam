@@ -8,8 +8,7 @@ import {
   Loader, Globe, Hash, FileText, Wallet,
   Info, Copy, Check, Filter
 } from 'lucide-react'
-import { jsPDF } from 'jspdf'
-import html2canvas from 'html2canvas'
+import { exportToPDF } from '../utils/pdfExporter'
 import api, { sabhasadMasterApi } from '../api'
 import MemberForm from '../components/MemberForm'
 import Toast from '../components/Toast'
@@ -334,110 +333,84 @@ export default function MemberMaster() {
   const toGujaratiDigits = (value) => String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d)
 
   const handleExportPDF = async () => {
-    setLoading(true)
-    const cName = company ? (company.company_name || t('common.organization')) : t('common.organization')
-    const reportTitle = isGu ? 'સભ્યતા માસ્ટર' : 'Member Master'
     const rows = filteredMembers.length ? filteredMembers : members
 
     if (!rows.length) {
       setMessage({ type: 'error', text: t('memberMaster.noRecords') })
-      setLoading(false)
       return
     }
 
-    const tempWrap = document.createElement('div')
-    tempWrap.style.position = 'fixed'
-    tempWrap.style.left = '-10000px'
-    tempWrap.style.top = '0'
-    tempWrap.style.width = '1200px'
-    tempWrap.style.background = '#fff'
-    tempWrap.style.color = '#111827'
-    tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif'
-    tempWrap.style.padding = '24px'
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : '#',
+        align: 'center',
+        width: '6%',
+        render: (row, idx) => isGu ? toGujaratiDigits(idx + 1) : (idx + 1)
+      },
+      {
+        header: isGu ? 'સભ્યનું નામ' : 'Member Name',
+        align: 'left',
+        width: '28%',
+        render: (row) => displayMemberName(row) || '',
+        usePromptFont: isGu
+      },
+      {
+        header: isGu ? 'કોડ' : 'Code',
+        align: 'center',
+        width: '10%',
+        render: (row) => isGu ? toGujaratiDigits(String(row.member_code || '').padStart(4, '0')) : String(row.member_code || '').padStart(4, '0')
+      },
+      {
+        header: isGu ? 'ગામ' : 'Village',
+        align: 'left',
+        width: '18%',
+        render: (row) => row.village_name || '',
+        usePromptFont: isGu
+      },
+      {
+        header: isGu ? 'સરનામું' : 'Address',
+        align: 'left',
+        width: '14%',
+        render: (row) => row.address_no || '',
+        usePromptFont: isGu
+      },
+      {
+        header: isGu ? 'બેંક' : 'Bank',
+        align: 'left',
+        width: '14%',
+        render: (row) => row.bank_name || ''
+      },
+      {
+        header: isGu ? 'સ્થિતિ' : 'Status',
+        align: 'center',
+        width: '10%',
+        render: (row) => row.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')
+      }
+    ]
 
-    const tableRows = rows.map((m, idx) => `
-      <tr>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${isGu ? toGujaratiDigits(idx + 1) : (idx + 1)}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${displayMemberName(m) || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${isGu ? toGujaratiDigits(String(m.member_code || '').padStart(4, '0')) : String(m.member_code || '').padStart(4, '0')}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${m.village_name || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${m.address_no || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: Arial, sans-serif !important;">${m.bank_name || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${m.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')}</td>
-      </tr>
-    `).join('')
+    const metaInfo = [
+      {
+        label: isGu ? 'કુલ સભ્યો' : 'Total Members',
+        value: isGu ? toGujaratiDigits(rows.length) : rows.length
+      },
+      {
+        label: isGu ? 'સ્થિતિ' : 'Status',
+        value: statusFilter === 'all'
+          ? (isGu ? 'બધા' : 'All')
+          : (statusFilter === 'active' ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive'))
+      }
+    ]
 
-    tempWrap.innerHTML = `
-      <div style="border:1px solid #cbd5e1;">
-        <div style="background:#2563eb;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:18px;font-weight:700;">${cName}</div>
-          <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
-        </div>
-        <div style="padding:18px;">
-          <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">${isGu ? 'કુલ સભ્યો' : 'Total Members'}: ${isGu ? toGujaratiDigits(rows.length) : rows.length} | ${isGu ? 'ફિલ્ટર' : 'Filter'}: ${statusFilter === 'all' ? (isGu ? 'બધા' : 'All') : (statusFilter === 'active' ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive'))}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ક્રમ' : '#'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'સભ્યનું નામ' : 'Member Name'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'કોડ' : 'Code'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ગામ' : 'Village'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'સરનામું' : 'Address'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'બેંક' : 'Bank'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'સ્થિતિ' : 'Status'}</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-        </div>
-      </div>
-    `
-
-    document.body.appendChild(tempWrap)
-    await new Promise(resolve => setTimeout(resolve, 250))
-
-    const canvas = await html2canvas(tempWrap, {
-      scale: 3,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      fontEmbedCSS: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap'
+    await exportToPDF({
+      title: isGu ? 'સભ્યતા માસ્ટર' : 'Member Master',
+      columns,
+      rows,
+      isGu,
+      metaInfo,
+      filename: `Member_Master_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
     })
-    document.body.removeChild(tempWrap)
-
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-    const pageW = doc.internal.pageSize.getWidth()
-    const pageH = doc.internal.pageSize.getHeight()
-    const margin = 24
-    const imgW = pageW - margin * 2
-    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW
-
-    let y = 0
-    let pageIndex = 0
-    while (y < canvas.height) {
-      const sliceHeight = Math.min(pageHpx, canvas.height - y)
-      const pageCanvas = document.createElement('canvas')
-      pageCanvas.width = canvas.width
-      pageCanvas.height = sliceHeight
-      const ctx = pageCanvas.getContext('2d')
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-      ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight)
-
-      const imgData = pageCanvas.toDataURL('image/png')
-      const imgH = (sliceHeight * imgW) / canvas.width
-
-      if (pageIndex > 0) doc.addPage()
-      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH)
-
-      y += sliceHeight
-      pageIndex += 1
-    }
-
-    doc.save(`Member_Master_${new Date().toISOString().split('T')[0]}.pdf`)
-    setLoading(false)
   }
 
   if (loading || !company) {

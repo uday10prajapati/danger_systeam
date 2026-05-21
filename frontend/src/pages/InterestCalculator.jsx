@@ -5,14 +5,12 @@ import {
   Plus, X, Save, TrendingDown, Layout, FileText, Printer
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
 import api from '../api';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
+import { exportToPDF } from '../utils/pdfExporter';
 
 export default function InterestCalculator() {
   const { t, i18n } = useTranslation();
@@ -206,221 +204,220 @@ export default function InterestCalculator() {
     fetchCalculations();
   }, [calculationDate]);
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
     const dataToPrint = filteredResults;
     if (!dataToPrint.length) return;
 
     const company = JSON.parse(localStorage.getItem('company') || '{}');
-    const cName = company.company_name_gu || company.company_name || 'Danger Systeam';
-    
-    const tempWrap = document.createElement('div');
-    tempWrap.style.position = 'fixed';
-    tempWrap.style.left = '-10000px';
-    tempWrap.style.top = '0';
-    tempWrap.style.width = '1000px';
-    tempWrap.style.background = '#fff';
-    tempWrap.style.padding = '30px';
-
-    const tableRows = dataToPrint.map((row, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td style="padding:8px;border:1px solid #e2e8f0;font-weight:700;"><span class="font-prompt-sm tracking-wider">${row.member_name || '-'}</span> <br/><span style="font-size:9px;color:#94a3b8;">${row.member_code}</span></td>
-        <td style="padding:8px;border:1px solid #e2e8f0;"><span class="font-prompt-sm tracking-wider" style="font-size:10px;">${row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}</span></td>
-        <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.debit || 0).toFixed(2)}</td>
-        <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.credit || 0).toFixed(2)}</td>
-        <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;font-weight:700;">${parseFloat(row.principal || 0).toFixed(2)}</td>
-        <td style="padding:8px;border:1px solid #e2e8f0;text-align:center;">${row.elapsedDays} D</td>
-        <td style="padding:8px;border:1px solid #e2e8f0;text-align:center;">${isComputed ? (parseFloat(globalRate) || row.interest_percent) + '%' : '-'}</td>
-        <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;font-weight:700;color:#2563eb;">${calculateYield(row)}</td>
-      </tr>`).join('');
+    const cName = isGu
+      ? (company.company_name_gu || company.company_name || '')
+      : (company.company_name || company.company_name_gu || '');
+    const reportTitle = t('interestCalculator.title') || 'વ્યાજ ગણતરી';
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const formattedDate = isGu ? `તારીખ: ${dateStr}` : `Date: ${dateStr}`;
+    const fy = localStorage.getItem('financialYear') || '2026-27';
+    const formattedFY = isGu ? `વર્ષ : ${fy}` : `FY: ${fy}`;
 
     const totalInterest = dataToPrint.reduce((s, r) => s + parseFloat(calculateYield(r) || 0), 0);
     const totalPrincipal = dataToPrint.reduce((s, r) => s + parseFloat(r.principal || 0), 0);
 
-    tempWrap.innerHTML = `
-      <div style="border:1px solid #000;padding:2px;">
-        <div style="background:#1e293b;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:20px;font-weight:900;">${cName}</div>
-          <div style="font-size:12px;font-weight:700;">${t('interestCalculator.title')}</div>
-        </div>
-        <div style="padding:20px;">
-          <h2 style="font-size:18px;font-weight:900;margin-bottom:5px;">${t('interestCalculator.title')}</h2>
-          <p style="font-size:10px;color:#64748b;margin-bottom:15px;">
-            ${t('interestCalculator.targetDate')}: ${calculationDate.split('-').reverse().join('-')} | 
-            ${t('interestCalculator.rateLabel')}: ${globalRate || '--'}% | 
-            Generated: ${new Date().toLocaleString('en-IN')}
-          </p>
-          <table style="width:100%;border-collapse:collapse;font-size:11px;">
-            <thead>
-              <tr style="background:#f1f5f9;">
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:left;">${t('interestCalculator.table.entity')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:left;">${t('interestCalculator.table.reference')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:right;">${t('interestCalculator.table.debit')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:right;">${t('interestCalculator.table.credit')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:right;">${t('interestCalculator.table.principal')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:center;">${t('interestCalculator.table.days')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:center;">${t('interestCalculator.table.rate')}</th>
-                <th style="padding:10px;border:1px solid #cbd5e1;text-align:right;">${t('interestCalculator.table.yield')}</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-            <tfoot>
-              <tr style="background:#f8fafc;font-weight:900;">
-                <td style="padding:10px;border:1px solid #cbd5e1;">TOTALS (${dataToPrint.length})</td>
-                <td style="padding:10px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:10px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:10px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:10px;border:1px solid #cbd5e1;text-align:right;">${totalPrincipal.toFixed(2)}</td>
-                <td style="padding:10px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:10px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:10px;border:1px solid #cbd5e1;text-align:right;">${totalInterest.toFixed(2)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    `;
+    const rowsHTML = dataToPrint.map((row, idx) => {
+      const name = getDisplayName(row) || row.member_name || '—';
+      const desc = row.description === 'Multiple Consolidated Nodes' ? (t('interestCalculator.consolidatedTransactions') || 'Consolidated') : (row.description || '—');
+      const ref = row.reference_no === 'GROUPED' ? (isGu ? 'ગ્રુપદ' : 'Grouped') : `#${row.reference_no || '—'}`;
+      const rate = isComputed ? `${parseFloat(globalRate) || row.interest_percent}%` : '—';
+      return `
+        <tr>
+          <td style="text-align:left;"><strong>${name}</strong><br/><span style="font-size:10px;color:#555;">${row.member_code || ''}</span></td>
+          <td style="text-align:left;font-size:10px;">${desc}<br/><span style="color:#666;">${ref}</span></td>
+          <td style="text-align:right;">${parseFloat(row.debit || 0).toFixed(2)}</td>
+          <td style="text-align:right;">${parseFloat(row.credit || 0).toFixed(2)}</td>
+          <td style="text-align:right;"><strong>${parseFloat(row.principal || 0).toFixed(2)}</strong></td>
+          <td style="text-align:center;">${row.elapsedDays} D</td>
+          <td style="text-align:center;">${rate}</td>
+          <td style="text-align:right;"><strong>${calculateYield(row)}</strong></td>
+        </tr>`;
+    }).join('');
 
-    document.body.appendChild(tempWrap);
-    await new Promise(r => setTimeout(r, 300));
-    const canvas = await html2canvas(tempWrap, { scale: 2 });
-    document.body.removeChild(tempWrap);
-    
-    const win = window.open('', '_blank');
-    win.document.write(`<html><body style="margin:0"><img src="${canvas.toDataURL('image/png')}" style="width:100%"/></body></html>`);
+    const win = window.open('', '_blank', 'width=1200,height=800');
+    win.document.write(`
+      <html>
+        <head>
+          <title>${reportTitle}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+            @font-face { font-family:'Prompt'; src:url('/fonts/Prompt.ttf') format('truetype'); }
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family:'Outfit','Noto Sans Gujarati',Arial,sans-serif; padding:16px; background:#fff; color:#000; }
+            .pdf-report-container { border:1.5px solid #000; overflow:hidden; background:#fff; }
+            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:18px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-header-title { border-bottom:1.5px solid #000; padding:8px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-info-bar { border-bottom:1.5px solid #000; padding:8px 12px; display:flex; justify-content:flex-end; align-items:center; background:#fff; }
+            .pdf-table { width:100%; border-collapse:collapse; }
+            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:7px 8px; font-size:11px; color:#000; }
+            .pdf-table th { font-weight:bold; background:#fff; border-top:none !important; }
+            .pdf-table th:first-child, .pdf-table td:first-child { border-left:none !important; }
+            .pdf-table th:last-child, .pdf-table td:last-child { border-right:none !important; }
+            .pdf-table tr:last-child td { border-bottom:none !important; }
+            @media print { @page { size:A4 landscape; margin:10mm; } body { padding:0; } }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-report-container">
+            <div class="pdf-header-company">${cName}</div>
+            <div class="pdf-header-title">${reportTitle}</div>
+            <div class="pdf-info-bar">
+              <div style="font-size:12px;font-weight:bold;color:#000;display:flex;gap:16px;">
+                <span>${formattedDate}</span><span>|</span><span>${formattedFY}</span>
+                <span>|</span><span>${isGu ? 'આદર: ' : 'Rate: '}${globalRate || '--'}% (${globalRateType.replace('_',' ')})</span>
+              </div>
+            </div>
+            <table class="pdf-table">
+              <thead><tr>
+                <th style="width:18%;text-align:left;">${t('interestCalculator.table.entity')}</th>
+                <th style="width:18%;text-align:left;">${t('interestCalculator.table.reference')}</th>
+                <th style="width:10%;text-align:right;">${t('interestCalculator.table.debit')}</th>
+                <th style="width:10%;text-align:right;">${t('interestCalculator.table.credit')}</th>
+                <th style="width:12%;text-align:right;">${t('interestCalculator.table.principal')}</th>
+                <th style="width:8%;text-align:center;">${t('interestCalculator.table.days')}</th>
+                <th style="width:8%;text-align:center;">${t('interestCalculator.table.rate')}</th>
+                <th style="width:16%;text-align:right;">${t('interestCalculator.table.yield')}</th>
+              </tr></thead>
+              <tbody>
+                ${rowsHTML}
+                <tr style="font-weight:bold;">
+                  <td colspan="4" style="text-align:left;font-size:12px;"><strong>${isGu ? 'કુલ' : 'Total'} (${dataToPrint.length} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong></td>
+                  <td style="text-align:right;font-size:12px;"><strong>${totalPrincipal.toFixed(2)}</strong></td>
+                  <td></td><td></td>
+                  <td style="text-align:right;font-size:12px;"><strong>${totalInterest.toFixed(2)}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `);
     win.document.close();
     win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 500);
+    setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
   const handleExportPDF = async () => {
     const dataToPrint = filteredResults;
     if (!dataToPrint.length) return;
 
-    const company = JSON.parse(localStorage.getItem('company') || '{}');
-    const cName = company.company_name_gu || company.company_name || 'Danger Systeam';
-    
-    const tempWrap = document.createElement('div');
-    tempWrap.style.position = 'fixed';
-    tempWrap.style.left = '-10000px';
-    tempWrap.style.top = '0';
-    tempWrap.style.width = '1100px';
-    tempWrap.style.background = '#fff';
-    tempWrap.style.padding = '30px';
-
-    const tableRows = dataToPrint.map((row, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td style="padding:12px;border:1px solid #e2e8f0;font-weight:700;">
-          <span class="font-prompt-sm tracking-wider">${getDisplayName(row) || '-'}</span>
-          <div style="font-size:9px;color:#64748b;margin-top:2px;">CODE: ${row.member_code}</div>
-        </td>
-        <td style="padding:12px;border:1px solid #e2e8f0;">
-          <div class="font-prompt-sm tracking-wider" style="font-size:11px;">${row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}</div>
-          <div style="font-size:9px;color:#64748b;margin-top:2px;">${row.reference_no === 'GROUPED' ? `<span class="font-prompt-sm">${t('interestCalculator.grouped')}</span>` : '#' + row.reference_no}</div>
-        </td>
-        <td style="padding:12px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.debit || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-        <td style="padding:12px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.credit || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-        <td style="padding:12px;border:1px solid #e2e8f0;text-align:right;font-weight:900;">${parseFloat(row.principal || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-        <td style="padding:12px;border:1px solid #e2e8f0;text-align:center;">${row.elapsedDays} D</td>
-        <td style="padding:12px;border:1px solid #e2e8f0;text-align:center;">${isComputed ? (parseFloat(globalRate) || row.interest_percent) + '%' : '-'}</td>
-        <td style="padding:12px;border:1px solid #e2e8f0;text-align:right;font-weight:900;color:#2563eb;">${calculateYield(row)}</td>
-      </tr>`).join('');
-
     const totalInterest = dataToPrint.reduce((s, r) => s + parseFloat(calculateYield(r) || 0), 0);
     const totalPrincipal = dataToPrint.reduce((s, r) => s + parseFloat(r.principal || 0), 0);
 
-    tempWrap.innerHTML = `
-      <div style="border:2px solid #0f172a;padding:2px;">
-        <div style="background:#0f172a;color:#fff;padding:25px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-size:26px;font-weight:900;letter-spacing:-1px;">${cName}</div>
-            <div style="font-size:10px;color:#94a3b8;margin-top:2px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">FINANCIAL ANALYTICS DIVISION</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:14px;font-weight:700;">${t('interestCalculator.title')}</div>
-            <div style="font-size:9px;color:#94a3b8;margin-top:2px;">REF: IC-COMPUTE-${new Date().getTime()}</div>
-          </div>
-        </div>
-        
-        <div style="padding:30px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:25px;border-bottom:3px solid #f1f5f9;padding-bottom:15px;">
-             <div>
-               <div style="font-size:20px;font-weight:900;color:#0f172a;">${t('interestCalculator.title')}</div>
-               <div style="font-size:10px;color:#64748b;font-weight:700;margin-top:2px;">MANIFEST DATE: ${calculationDate.split('-').reverse().join('-')}</div>
-             </div>
-             <div style="text-align:right;">
-               <div style="font-size:10px;color:#64748b;font-weight:700;">
-                 RATE: ${globalRate || '--'}% (${globalRateType.replace('_', ' ')}) | RECORDS: ${dataToPrint.length}
-               </div>
-             </div>
-          </div>
+    const rowsWithTotal = [
+      ...dataToPrint,
+      { isTotal: true, totalCount: dataToPrint.length, totalPrincipal, totalInterest }
+    ];
 
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead>
-              <tr style="background:#0f172a;color:#fff;">
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:left;">${t('interestCalculator.table.entity')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:left;">${t('interestCalculator.table.reference')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:right;">${t('interestCalculator.table.debit')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:right;">${t('interestCalculator.table.credit')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:right;">${t('interestCalculator.table.principal')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:center;">${t('interestCalculator.table.days')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:center;">${t('interestCalculator.table.rate')}</th>
-                <th style="padding:15px 12px;border:1px solid #0f172a;text-align:right;">${t('interestCalculator.table.yield')}</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-            <tfoot>
-              <tr style="background:#f8fafc;font-weight:900;font-size:13px;border-top:2px solid #0f172a;">
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;">TOTALS</td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;text-align:right;">${totalPrincipal.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;"></td>
-                <td style="padding:15px 12px;border:1px solid #cbd5e1;text-align:right;color:#2563eb;">${totalInterest.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-              </tr>
-            </tfoot>
-          </table>
+    const columns = [
+      {
+        header: t('interestCalculator.table.entity'),
+        align: 'left',
+        width: '18%',
+        render: (row) => {
+          if (row.isTotal) return `<strong style="font-size:12px;">${isGu ? 'કુલ' : 'Total'} (${row.totalCount} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong>`;
+          const name = getDisplayName(row) || row.member_name || '—';
+          return `<strong>${name}</strong><br/><span style="font-size:10px;color:#555;">${row.member_code || ''}</span>`;
+        },
+        usePromptFont: true
+      },
+      {
+        header: t('interestCalculator.table.reference'),
+        align: 'left',
+        width: '18%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          const desc = row.description === 'Multiple Consolidated Nodes'
+            ? (t('interestCalculator.consolidatedTransactions') || 'Consolidated')
+            : (row.description || '—');
+          const ref = row.reference_no === 'GROUPED' ? (isGu ? 'ગ્રુપદ' : 'Grouped') : `#${row.reference_no || '—'}`;
+          return `${desc}<br/><span style="font-size:10px;color:#666;">${ref}</span>`;
+        }
+      },
+      {
+        header: t('interestCalculator.table.debit'),
+        align: 'right',
+        width: '10%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          return parseFloat(row.debit || 0).toFixed(2);
+        }
+      },
+      {
+        header: t('interestCalculator.table.credit'),
+        align: 'right',
+        width: '10%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          return parseFloat(row.credit || 0).toFixed(2);
+        }
+      },
+      {
+        header: t('interestCalculator.table.principal'),
+        align: 'right',
+        width: '12%',
+        render: (row) => {
+          const val = row.isTotal ? row.totalPrincipal : parseFloat(row.principal || 0);
+          return `<strong>${val.toFixed(2)}</strong>`;
+        }
+      },
+      {
+        header: t('interestCalculator.table.days'),
+        align: 'center',
+        width: '8%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          return `${row.elapsedDays} D`;
+        }
+      },
+      {
+        header: t('interestCalculator.table.rate'),
+        align: 'center',
+        width: '8%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          return isComputed ? `${parseFloat(globalRate) || row.interest_percent}%` : '—';
+        }
+      },
+      {
+        header: t('interestCalculator.table.yield'),
+        align: 'right',
+        width: '16%',
+        render: (row) => {
+          const val = row.isTotal ? row.totalInterest.toFixed(2) : calculateYield(row);
+          return `<strong>${val}</strong>`;
+        }
+      }
+    ];
 
-          <div style="margin-top:60px;display:flex;justify-content:space-between;padding-top:25px;border-top:1px solid #e2e8f0;">
-             <div style="font-size:9px;color:#94a3b8;font-weight:700;">
-               INTEREST CALCULATED AS OF ${calculationDate} BASED ON TRANSACTIONAL LOGS.
-             </div>
-             <div style="text-align:right;">
-               <div style="width:160px;border-bottom:2px solid #0f172a;margin-bottom:5px;"></div>
-               <div style="font-size:11px;font-weight:900;color:#0f172a;">ACCOUNTANT SIGNATURE</div>
-             </div>
-          </div>
-        </div>
-      </div>
-    `;
+    const metaInfo = [
+      {
+        label: isGu ? 'આદર' : 'Interest Rate',
+        value: `${globalRate || '--'}% (${globalRateType.replace('_', ' ')})`
+      },
+      {
+        label: isGu ? 'ગણતરી તારીખ' : 'As of Date',
+        value: calculationDate.split('-').reverse().join('-')
+      }
+    ];
 
-    document.body.appendChild(tempWrap);
-    await new Promise(r => setTimeout(r, 400));
-    const canvas = await html2canvas(tempWrap, { scale: 3, useCORS: true });
-    document.body.removeChild(tempWrap);
-
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 32;
-    const imgW = pageW - margin * 2;
-    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
-
-    let yOffset = 0;
-    while (yOffset < canvas.height) {
-      const sliceHeight = Math.min(pageHpx, canvas.height - yOffset);
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sliceHeight;
-      const ctx = pageCanvas.getContext('2d');
-      ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-      
-      if (yOffset > 0) doc.addPage();
-      doc.addImage(pageCanvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, (sliceHeight * imgW) / canvas.width);
-      yOffset += sliceHeight;
-    }
-    doc.save(`Interest_Manifest_${calculationDate}.pdf`);
+    await exportToPDF({
+      title: t('interestCalculator.title') || 'વ્યાજ ગણતરી',
+      columns,
+      rows: rowsWithTotal,
+      isGu,
+      metaInfo,
+      orientation: 'landscape',
+      filename: `Interest_Calculator_${calculationDate}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
 
   const filteredResults = results.filter(row =>

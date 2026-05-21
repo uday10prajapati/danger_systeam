@@ -16,6 +16,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api, { sabhasadMasterApi, dangarEntryApi, bardanEntryApi } from '../api';
 import Toast from '../components/Toast';
 import { formatBilingualText } from '../utils/textUtils';
+import { exportToPDF, toGujaratiDigits } from '../utils/pdfExporter';
 
 const DangarEntry = () => {/*  */
   const { t, i18n } = useTranslation();
@@ -898,110 +899,116 @@ const DangarEntry = () => {/*  */
       return;
     }
 
-    setLoading(true);
-    try {
-      const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
-      const toGujaratiDigits = (num) => {
-        const value = String(num ?? '');
-        return isGu ? value.replace(/[0-9]/g, d => guDigits[d] || d) : value;
-      };
+    const totalVolume = rows.reduce((acc, row) => acc + (parseFloat(row.net_quintal || 0) * 5), 0);
+    const totalNetVol = rows.reduce((acc, row) => acc + parseFloat(row.net_quintal || 0), 0);
 
-      const companyData = company || {};
-      const cName = companyData.company_name_gu || companyData.company_name || 'Company';
-      const reportTitle = t('dangarEntry.historyTitle') || 'Transaction History';
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : 'Sr. No.',
+        align: 'center',
+        width: '6%',
+        render: (row, idx) => {
+          if (row.isTotal) return '';
+          return isGu ? toGujaratiDigits(idx + 1) : (idx + 1);
+        }
+      },
+      {
+        header: isGu ? 'તારીખ' : 'Date',
+        align: 'center',
+        width: '12%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          return formatDisplayDate(row.entry_date);
+        }
+      },
+      {
+        header: isGu ? 'બિલ નંબર' : 'Bill Number',
+        align: 'center',
+        width: '14%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          const bookTypeText = t('dangarEntry.form.' + row.book_type?.toLowerCase()) || row.book_type;
+          return `#${row.sr_no || ''}<br/><span style="font-size:10px; color:#64748b;">${bookTypeText}</span>`;
+        }
+      },
+      {
+        header: isGu ? 'સભાસદ' : 'Member',
+        align: 'left',
+        width: '28%',
+        render: (row) => {
+          if (row.isTotal) {
+            return `<strong style="font-size:12px;">${isGu ? 'કુલ' : 'Totals'} (${toGujaratiDigits(row.totalCount)} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong>`;
+          }
+          const mCode = isGu ? toGujaratiDigits(row.member_code) : row.member_code;
+          return `<strong>${row.member_name}</strong><br/><span style="font-size:10px; color:#64748b;">${t('memberMaster.code') || 'CODE'}: ${mCode}</span>`;
+        },
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'વર્ગ' : 'Quality Class',
+        align: 'center',
+        width: '10%',
+        render: (row) => {
+          if (row.isTotal) return '';
+          return row.quality_class === '1st' ? t('dangarMaster.filters.first') :
+                 row.quality_class === '2nd' ? t('dangarMaster.filters.second') :
+                 row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st');
+        }
+      },
+      {
+        header: isGu ? 'કદ (મણ)' : 'Volume (Man)',
+        align: 'right',
+        width: '15%',
+        render: (row) => {
+          const val = row.isTotal ? row.totalVolume : (parseFloat(row.net_quintal || 0) * 5);
+          const formattedVal = parseFloat(val).toFixed(2);
+          return `<strong>${isGu ? toGujaratiDigits(formattedVal) : formattedVal}</strong>`;
+        }
+      },
+      {
+        header: isGu ? 'નેટ ક્વિ.' : 'Net Volume (Qt)',
+        align: 'right',
+        width: '15%',
+        render: (row) => {
+          const val = row.isTotal ? row.totalNetVol : parseFloat(row.net_quintal || 0);
+          const formattedVal = parseFloat(val).toFixed(2);
+          return `<strong>${isGu ? toGujaratiDigits(formattedVal) : formattedVal}</strong>`;
+        }
+      }
+    ];
 
-      const tempWrap = document.createElement('div');
-      tempWrap.style.position = 'fixed';
-      tempWrap.style.left = '-10000px';
-      tempWrap.style.top = '0';
-      tempWrap.style.width = '1100px';
-      tempWrap.style.background = '#fff';
-      tempWrap.style.color = '#111827';
-      tempWrap.style.fontFamily = '"Noto Sans Gujarati", "NotoGujarati", Arial, sans-serif';
-      tempWrap.style.padding = '30px';
+    const rowsToExport = rows.map(r => ({ ...r }));
+    rowsToExport.push({
+      isTotal: true,
+      totalCount: rows.length,
+      totalVolume: totalVolume,
+      totalNetVol: totalNetVol
+    });
 
-      const totalQt = rows.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
-
-      const tableRows = rows.map((r, idx) => `
-        <tr>
-          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;">${toGujaratiDigits(idx + 1)}</td>
-          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;">${toGujaratiDigits(new Date(r.entry_date).toLocaleDateString('en-GB'))}</td>
-          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;" translate="no">#${String(r.sr_no || '')}<br/><span style="font-size:10px;color:#64748b;">${t('dangarEntry.form.' + r.book_type.toLowerCase()) || r.book_type}</span></td>
-          <td style="padding:10px;border:1px solid #cbd5e1;font-weight:700;font-family:'Prompt',sans-serif !important;">${r.member_name} <br/><span style="font-size:10px;color:#64748b;font-family:Arial,sans-serif !important;">${t('memberMaster.code') || 'CODE'}: ${toGujaratiDigits(r.member_code)}</span></td>
-          <td style="padding:10px;border:1px solid #cbd5e1;font-family:'Prompt',sans-serif !important;">${r.item_name || '-'}</td>
-          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;">${r.quality_class === '1st' ? t('dangarMaster.filters.first') : r.quality_class === '2nd' ? t('dangarMaster.filters.second') : r.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(r.quality_class || '1st')}</td>
-          <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;font-family:Arial,sans-serif !important;">${r.vehicle_no || '-'}</td>
-          <td style="padding:10px;border:1px solid #cbd5e1;text-align:right;font-weight:700;font-family:Arial,sans-serif !important;">${toGujaratiDigits(parseFloat(r.net_quintal).toFixed(2))}</td>
-        </tr>
-      `).join('');
-
-      tempWrap.innerHTML = `
-        <div style="border:2px solid #1d5f84; border-radius:0;">
-          <div style="background:#1d5f84;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-size:22px;font-weight:800;font-family:'Prompt', sans-serif;">${cName}</div>
-            <div style="font-size:14px;font-weight:700;opacity:0.9;">${reportTitle}</div>
-          </div>
-          <div style="padding:30px;">
-            <div style="font-size:28px;font-weight:800;color:#0f172a;margin-bottom:8px;">${reportTitle}</div>
-            <div style="font-size:14px;color:#64748b;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
-              ${t('common.from')}: <b>${toGujaratiDigits(historyFilters.startDate || '--')}</b> ${t('common.to')}: <b>${toGujaratiDigits(historyFilters.endDate || '--')}</b> | 
-              ${t('dangarEntry.historyMemberRange')}: <b>${toGujaratiDigits(historyFilters.fromMember || '--')}</b> થી <b>${toGujaratiDigits(historyFilters.toMember || '--')}</b> | 
-              ${t('dangarMaster.pdfReport.generated')}: <b>${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</b>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:14px;">
-              <thead>
-                <tr style="background:#f1f5f9;color:#475569;">
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:center;">${t('sabhasadLedgerSummary.srNo')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('common.date')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('common.billNumber')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('dangarEntry.form.memberNode')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;">${t('dangarEntry.form.itemStructure')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:center;">${t('dangarEntry.form.qualityVector')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:center;">${t('dangarEntry.form.vehicle')}</th>
-                  <th style="padding:12px 10px;border:1px solid #cbd5e1;text-align:right;">${t('dangarEntry.stats.netQuintal')} (${t('dangarMaster.table.unit')})</th>
-                </tr>
-              </thead>
-              <tbody>${tableRows}</tbody>
-              <tfoot>
-                <tr style="background:#f8fafc;font-weight:800;color:#0f172a;">
-                  <td colspan="7" style="padding:15px;border:1px solid #cbd5e1;text-align:right;">${t('dangarMaster.table.totals')} (${toGujaratiDigits(rows.length)} ${t('common.records')})</td>
-                  <td style="padding:15px;border:1px solid #cbd5e1;text-align:right;font-size:16px;">${toGujaratiDigits(totalQt.toFixed(2))}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(tempWrap);
-
-      await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 400));
-
-      const canvas = await html2canvas(tempWrap, {
-        scale: 2.5,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        fontEmbedCSS: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap'
+    const metaInfo = [];
+    if (historyFilters.startDate || historyFilters.endDate) {
+      metaInfo.push({
+        label: isGu ? 'તારીખ ગાળો' : 'Date Range',
+        value: `${historyFilters.startDate || '--'} થી ${historyFilters.endDate || '--'}`
       });
-
-      document.body.removeChild(tempWrap);
-
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-      const pageW = doc.internal.pageSize.getWidth();
-      const margin = 30;
-      const imgW = pageW - margin * 2;
-      const imgH = (canvas.height * imgW) / canvas.width;
-
-      doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, imgH);
-      doc.save(`Transaction_History_${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-      console.error('PDF Export Error:', error);
-      setMessage({ type: 'error', text: t('dangarEntry.messages.pdfFailed') });
-    } finally {
-      setLoading(false);
     }
+    if (historyFilters.fromMember || historyFilters.toMember) {
+      metaInfo.push({
+        label: isGu ? 'સભાસદ કોડ ગાળો' : 'Member Code Range',
+        value: `${historyFilters.fromMember || '--'} થી ${historyFilters.toMember || '--'}`
+      });
+    }
+
+    await exportToPDF({
+      title: isGu ? 'ડાંગર ટ્રાન્ઝેક્શન ઇતિહાસ' : 'Dangar Transaction History',
+      columns,
+      rows: rowsToExport,
+      isGu,
+      metaInfo,
+      filename: `Transaction_History_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
 
   const handleExportAllBardanSlipsPDF = async () => {
@@ -1118,7 +1125,10 @@ const DangarEntry = () => {/*  */
   };
 
   const handleHistoryPrint = () => {
-    const cName = company?.company_name_gu || company?.company_name || 'Company';
+    const cName = isGu
+      ? (company?.company_name_gu || company?.company_name || '')
+      : (company?.company_name || company?.company_name_gu || '');
+
     const filteredHistory = history.filter(row => {
       const rowDate = new Date(row.entry_date).toISOString().split('T')[0];
       const matchesDate = (!historyFilters.startDate || rowDate >= historyFilters.startDate) &&
@@ -1137,44 +1147,233 @@ const DangarEntry = () => {/*  */
       return isGu ? value.replace(/[0-9]/g, d => guDigits[d] || d) : value;
     };
 
-    const totalQt = filteredHistory.reduce((s, r) => s + parseFloat(r.net_quintal || 0), 0);
-    const rows = filteredHistory.map((row, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td style="font-family:Arial, sans-serif; padding:10px;">${toGujaratiDigits(new Date(row.entry_date).toLocaleDateString('en-GB'))}</td>
-        <td style="font-family:Arial, sans-serif; padding:10px;" translate="no">#${String(row.sr_no || '')}<br/><span style="font-size:9px;color:#94a3b8">${t('dangarEntry.form.' + row.book_type.toLowerCase()) || row.book_type}</span></td>
-        <td style="padding:10px;"><strong style="font-family:'Prompt', sans-serif;">${row.member_name}</strong><br/><span style="font-size:9px;color:#94a3b8">${t('memberMaster.code') || 'CODE'}: ${toGujaratiDigits(row.member_code)}</span></td>
-        <td style="font-family:'Prompt', sans-serif; padding:10px;">${row.item_name || '-'}</td>
-        <td style="font-family:Arial, sans-serif; padding:10px;">${row.quality_class === '1st' ? t('dangarMaster.filters.first') : row.quality_class === '2nd' ? t('dangarMaster.filters.second') : row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st')}</td>
-        <td style="font-family:Arial, sans-serif; padding:10px;">${row.vehicle_no || '-'}</td>
-        <td style="text-align:right;font-family:Arial, sans-serif; padding:10px;">${toGujaratiDigits(parseFloat(row.net_quintal || 0).toFixed(2))} ${t('dangarMaster.table.unit')}</td>
-      </tr>`);
+    const totalVolume = filteredHistory.reduce((acc, row) => acc + (parseFloat(row.net_quintal || 0) * 5), 0);
+    const totalNetVol = filteredHistory.reduce((acc, row) => acc + parseFloat(row.net_quintal || 0), 0);
+
+    const formattedFY = company?.financial_year
+      ? (isGu ? `વર્ષ : ${toGujaratiDigits(company.financial_year)}` : `FY: ${company.financial_year}`)
+      : (() => {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const currentFY = user.financial_year || '2026-27';
+          return isGu ? `વર્ષ : ${toGujaratiDigits(currentFY)}` : `FY: ${currentFY}`;
+        })();
+
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const dateStr = `${day}/${month}/${year}`;
+    const formattedDate = isGu ? `તારીખ: ${toGujaratiDigits(dateStr)}` : `Date: ${dateStr}`;
+
+    const metaInfo = [];
+    if (historyFilters.startDate || historyFilters.endDate) {
+      metaInfo.push({
+        label: isGu ? 'તારીખ ગાળો' : 'Date Range',
+        value: `${historyFilters.startDate || '--'} થી ${historyFilters.endDate || '--'}`
+      });
+    }
+    if (historyFilters.fromMember || historyFilters.toMember) {
+      metaInfo.push({
+        label: isGu ? 'સભાસદ કોડ ગાળો' : 'Member Code Range',
+        value: `${historyFilters.fromMember || '--'} થી ${historyFilters.toMember || '--'}`
+      });
+    }
+
+    const metaHTML = metaInfo.map(item => `
+      <div style="font-size:12px; font-weight:bold; color:#000000; margin-right:16px; font-family:'Noto Sans Gujarati', sans-serif; display:inline-block;">
+        <span>${item.label}:</span>
+        <span style="color:#000000; font-family:'Prompt', 'Noto Sans Gujarati', sans-serif;">${item.value}</span>
+      </div>
+    `).join('');
+
+    const rowsHTML = filteredHistory.map((row, idx) => {
+      const serial = isGu ? toGujaratiDigits(idx + 1) : String(idx + 1);
+      const rowDate = formatDisplayDate(row.entry_date);
+      const bookTypeText = t('dangarEntry.form.' + row.book_type?.toLowerCase()) || row.book_type;
+      const billNo = `#${row.sr_no || ''}<br/><span style="font-size:10px; color:#64748b;">${bookTypeText}</span>`;
+      
+      const mCode = isGu ? toGujaratiDigits(row.member_code) : row.member_code;
+      const memberCell = `<strong>${row.member_name}</strong><br/><span style="font-size:10px; color:#64748b;">${t('memberMaster.code') || 'CODE'}: ${mCode}</span>`;
+      
+      const qClass = row.quality_class === '1st' ? t('dangarMaster.filters.first') :
+                    row.quality_class === '2nd' ? t('dangarMaster.filters.second') :
+                    row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st');
+      
+      const volManVal = (parseFloat(row.net_quintal || 0) * 5).toFixed(2);
+      const volMan = isGu ? toGujaratiDigits(volManVal) : volManVal;
+      
+      const netVolVal = parseFloat(row.net_quintal || 0).toFixed(2);
+      const netVol = isGu ? toGujaratiDigits(netVolVal) : netVolVal;
+
+      const fontStyle = isGu ? "font-family:'Noto Sans Gujarati', sans-serif;" : "font-family:Arial, sans-serif;";
+      const memberStyle = "font-family:'Prompt', 'Noto Sans Gujarati', sans-serif;";
+
+      return `
+        <tr>
+          <td style="text-align: center; ${fontStyle}">${serial}</td>
+          <td style="text-align: center; ${fontStyle}">${rowDate}</td>
+          <td style="text-align: center; ${fontStyle}">${billNo}</td>
+          <td style="${memberStyle}">${memberCell}</td>
+          <td style="text-align: center; ${fontStyle}">${qClass}</td>
+          <td style="text-align: right; ${fontStyle}"><strong>${volMan}</strong></td>
+          <td style="text-align: right; ${fontStyle}"><strong>${netVol}</strong></td>
+        </tr>
+      `;
+    }).join('');
+
     const win = window.open('', '_blank', 'width=1100,height=800');
-    win.document.write(`<html><head><title>${cName} - ${t('dangarEntry.historyTitle')}</title>
-      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:20px}
-        .logo-bar{background:#1d5f84;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-        .logo-bar h1{font-size:13px;font-weight:900;font-family:'Prompt', sans-serif;}.logo-bar span{font-size:9px;color:#cbd5e1}
-        h2{font-size:18px;font-weight:900;margin-bottom:2px}
-        p.sub{font-size:9px;color:#64748b;margin-bottom:10px}
-        hr{border:none;border-top:1px solid #cbd5e1;margin:8px 0}
-        table{width:100%;border-collapse:collapse}
-        thead tr{background:#1d5f84;color:#fff}
-        th{padding:10px 8px;font-size:9px;font-weight:700;text-transform:uppercase;text-align:left}
-        td{padding:8px 8px;border-bottom:1px solid #f1f5f9;font-size:9px}
-        tfoot tr{background:#1e293b;color:#fff;font-weight:700}
-        @media print{@page{size:A4 portrait;margin:1.5cm}}
-      </style></head><body>
-      <div class='logo-bar'><h1>${cName}</h1><span>${t('dangarEntry.historyTitle')} &nbsp;|&nbsp; ${toGujaratiDigits(new Date().toLocaleDateString('en-IN'))}</span></div>
-      <h2>${t('dangarEntry.historyTitle')}</h2>
-      <p class='sub'>${t('common.records')}: ${toGujaratiDigits(filteredHistory.length)} &nbsp;|&nbsp; ${t('dangarMaster.pdfReport.generated')}: ${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</p>
-      ${historyFilters.startDate || historyFilters.fromMember ? `<p class='sub'>${t('dangarEntry.historyFilter')}: ${toGujaratiDigits(historyFilters.startDate || '--')} થી ${toGujaratiDigits(historyFilters.endDate || '--')} | ${t('dangarEntry.historyMemberRange')}: ${toGujaratiDigits(historyFilters.fromMember || '--')} થી ${toGujaratiDigits(historyFilters.toMember || '--')}</p>` : ''}
-      <hr/>
-      <table>
-        <thead><tr><th>${t('common.date')}</th><th>${t('common.billNumber')}</th><th>${t('dangarEntry.form.memberNode')}</th><th>${t('dangarEntry.form.itemStructure')}</th><th>${t('dangarEntry.form.qualityVector')}</th><th>${t('dangarEntry.form.vehicle')}</th><th style='text-align:right'>${t('dangarEntry.stats.netVol')}</th></tr></thead>
-        <tbody>${rows.join('')}</tbody>
-        <tfoot><tr><td style="padding:10px;" colspan='6'>${t('dangarMaster.table.totals')} &mdash; ${toGujaratiDigits(filteredHistory.length)} ${t('common.records')}</td><td style='text-align:right; padding:10px;'>${toGujaratiDigits(totalQt.toFixed(2))} ${t('dangarMaster.table.unit')}</td></tr></tfoot>
-      </table></body></html>`);
-    win.document.close(); win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
+    win.document.write(`
+      <html>
+        <head>
+          <title>${isGu ? 'ડાંગર ટ્રાન્ઝેક્શન ઇતિહાસ' : 'Dangar Transaction History'}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+            
+            @font-face {
+              font-family: 'Prompt';
+              src: url('/fonts/Prompt.ttf') format('truetype');
+              font-weight: normal;
+              font-style: normal;
+            }
+
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: 'Outfit', 'Noto Sans Gujarati', Arial, sans-serif;
+              padding: 16px;
+              background: #ffffff;
+              color: #000000;
+            }
+            .pdf-report-container {
+              border: 1.5px solid #000000;
+              overflow: hidden;
+              background: #ffffff;
+            }
+            .pdf-header-company {
+              border-bottom: 1.5px solid #000000;
+              padding: 12px;
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              font-family: 'Prompt', 'Noto Sans Gujarati', 'Outfit', sans-serif;
+              color: #000000;
+            }
+            .pdf-header-title {
+              border-bottom: 1.5px solid #000000;
+              padding: 8px;
+              text-align: center;
+              font-size: 14px;
+              font-weight: bold;
+              font-family: 'Noto Sans Gujarati', 'Outfit', sans-serif;
+              color: #000000;
+            }
+            .pdf-info-bar {
+              border-bottom: 1.5px solid #000000;
+              padding: 8px 12px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              background: #ffffff;
+            }
+            .pdf-meta-items {
+              display: flex;
+              align-items: center;
+              flex-wrap: wrap;
+            }
+            .pdf-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .pdf-table th, .pdf-table td {
+              border: 1.5px solid #000000 !important;
+              padding: 8px 10px;
+              font-size: 12px;
+              color: #000000;
+            }
+            .pdf-table th {
+              font-weight: bold;
+              background: #ffffff;
+              border-top: none !important;
+            }
+            /* Remove outer borders of the table to merge with the container's border */
+            .pdf-table th:first-child, .pdf-table td:first-child {
+              border-left: none !important;
+            }
+            .pdf-table th:last-child, .pdf-table td:last-child {
+              border-right: none !important;
+            }
+            .pdf-table tr:last-child td {
+              border-bottom: none !important;
+            }
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 10mm;
+              }
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-report-container">
+            <div class="pdf-header-company">${cName}</div>
+            <div class="pdf-header-title">${isGu ? 'ડાંગર ટ્રાન્ઝેક્શન ઇતિહાસ' : 'Dangar Transaction History'}</div>
+            <div class="pdf-info-bar">
+              <div class="pdf-meta-items">
+                ${metaHTML}
+              </div>
+              <div style="font-size:12px; font-weight:bold; color:#000000; display:flex; gap:16px;">
+                <span>${formattedDate}</span>
+                ${formattedFY ? `<span>|</span> <span>${formattedFY}</span>` : ''}
+              </div>
+            </div>
+            <table class="pdf-table">
+              <thead>
+                <tr>
+                  <th style="width: 6%; text-align: center;">${isGu ? 'ક્રમ' : 'Sr. No.'}</th>
+                  <th style="width: 12%; text-align: center;">${isGu ? 'તારીખ' : 'Date'}</th>
+                  <th style="width: 14%; text-align: center;">${isGu ? 'બિલ નંબર' : 'Bill Number'}</th>
+                  <th style="width: 28%; text-align: left;">${isGu ? 'સભાસદ' : 'Member'}</th>
+                  <th style="width: 10%; text-align: center;">${isGu ? 'વર્ગ' : 'Quality Class'}</th>
+                  <th style="width: 15%; text-align: right;">${isGu ? 'કદ (મણ)' : 'Volume (Man)'}</th>
+                  <th style="width: 15%; text-align: right;">${isGu ? 'નેટ ક્વિ.' : 'Net Volume (Qt)'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHTML}
+                <tr style="background:#ffffff; font-weight:bold;">
+                  <td style="text-align:center;"></td>
+                  <td style="text-align:center;"></td>
+                  <td style="text-align:center;"></td>
+                  <td style="text-align:left; font-size:12px;">
+                    <strong>${isGu ? 'કુલ' : 'Totals'} (${toGujaratiDigits(filteredHistory.length)} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong>
+                  </td>
+                  <td style="text-align:center;"></td>
+                  <td style="text-align:right; font-size:12px;">
+                    <strong>${toGujaratiDigits(totalVolume.toFixed(2))}</strong>
+                  </td>
+                  <td style="text-align:right; font-size:12px;">
+                    <strong>${toGujaratiDigits(totalNetVol.toFixed(2))}</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 400);
   };
 
   const handleAddRow = () => {

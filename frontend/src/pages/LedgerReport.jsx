@@ -10,6 +10,7 @@ import {
 import api from '../api';
 import { useTranslation } from 'react-i18next';
 import { formatBilingualText, translateSystemText } from '../utils/textUtils';
+import { exportToPDF } from '../utils/pdfExporter';
 
 export default function LedgerReport() {
   const { t, i18n } = useTranslation();
@@ -481,23 +482,195 @@ export default function LedgerReport() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const GU_DIGITS = {
+    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
+    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  };
+
+  const toGujaratiDigits = (value) => 
+    String(value ?? '').replace(/[0-9]/g, (d) => GU_DIGITS[d] || d);
+
+  const fmtNum = (value, digits = 2) => {
+    const n = parseFloat(value || 0);
+    const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    return isGu ? toGujaratiDigits(formatted) : formatted;
   };
 
   const formatBalance = (balance) => {
     const val = parseFloat(balance);
     if (isNaN(val)) return '';
-    const absVal = Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    if (val < 0) return `${absVal} C`;
-    if (val > 0) return `${absVal} D`;
-    return '0.00';
+    const absVal = Math.abs(val);
+    const formatted = fmtNum(absVal, 2);
+    if (val < 0) return `${formatted} C`;
+    if (val > 0) return `${formatted} D`;
+    return isGu ? toGujaratiDigits('0.00') : '0.00';
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    const formatted = `${day}-${month}-${year}`;
+    return isGu ? toGujaratiDigits(formatted) : formatted;
+  };
+
+  const labels = {
+    title: t('ledgerReport.title') || "Statement of Account",
+    postEpoch: t('ledgerReport.postEpoch') || "Post Epoch",
+    manifestShard: t('ledgerReport.manifestShard') || "Manifest Shard",
+    particulars: t('ledgerReport.particulars') || "Particulars",
+    opening: t('ledgerReport.openingBalance') || "Opening Balance",
+    debit: t('ledgerReport.debit') || "Debit (+)",
+    credit: t('ledgerReport.credit') || "Credit (-)",
+    runningPosition: t('ledgerReport.runningPosition') || "Running Position",
+    totals: t('ledgerReport.aggregateIntegrity') || "Total Balance",
+    period: isGu ? 'સમયગાળો' : 'Period',
+    dateLabel: isGu ? 'તારીખ' : 'Date',
+    fyLabel: isGu ? 'નાણાકીય વર્ષ' : 'Financial Year',
+  };
+
+  const handleExportPDF = async () => {
+    if (data.length === 0) return;
+    const periodStr = `${dateRange.startDate} — ${dateRange.endDate}`;
+    
+    const allRows = [
+      ...data,
+      { _isTotals: true, debit: totals.debit, credit: totals.credit }
+    ];
+
+    await exportToPDF({
+      title: isGu ? `ખાતાવહી વિવરણ - ${accountNameSearch}` : `Statement of Account - ${accountNameSearch}`,
+      columns: [
+        {
+          header: labels.postEpoch, align: 'center', width: '12%',
+          render: (row) => row._isTotals ? '' : formatDate(row.transaction_date)
+        },
+        {
+          header: labels.manifestShard, align: 'center', width: '10%',
+          render: (row) => row._isTotals ? '' : (row.reference_no || '—')
+        },
+        {
+          header: labels.particulars, align: 'left', width: '24%', usePromptFont: true,
+          render: (row) => {
+            if (row._isTotals) return `<strong style="float:right">${labels.totals}</strong>`;
+            return isGu ? formatBilingualText(row.description_gu || row.narration_text_gu || row.description || '') : (row.description_en || row.description || row.narration_text || row.eng_name || '—');
+          }
+        },
+        {
+          header: labels.opening, align: 'right', width: '13%',
+          render: (row) => {
+            if (row._isTotals) return '';
+            const val = parseFloat(row.opening_balance || 0);
+            return val !== 0 ? `₹${fmtNum(val)}` : '—';
+          }
+        },
+        {
+          header: labels.debit, align: 'right', width: '13%',
+          render: (row) => {
+            const val = parseFloat(row.debit || 0);
+            return val > 0 ? `₹${fmtNum(val)}` : '—';
+          }
+        },
+        {
+          header: labels.credit, align: 'right', width: '13%',
+          render: (row) => {
+            const val = parseFloat(row.credit || 0);
+            return val > 0 ? `₹${fmtNum(val)}` : '—';
+          }
+        },
+        {
+          header: labels.runningPosition, align: 'right', width: '15%',
+          render: (row) => row._isTotals ? '' : formatBalance(row.running_balance)
+        }
+      ],
+      rows: allRows,
+      isGu,
+      metaInfo: [
+        { label: isGu ? 'ખાતું' : 'Account', value: accountNameSearch },
+        memberId ? { label: isGu ? 'સભાસદ' : 'Member', value: memberNameSearch } : null,
+        { label: labels.period, value: isGu ? toGujaratiDigits(periodStr) : periodStr }
+      ].filter(Boolean),
+      filename: `${isGu ? 'ખાતાવહી_અહેવાલ' : 'Ledger_Report'}_${accountNameSearch.replace(/\s+/g, '_')}_${dateRange.startDate}_${dateRange.endDate}.pdf`
+    });
+  };
+
+  const handlePrint = () => {
+    if (data.length === 0) return;
+    const cName = isGu ? (company?.company_name_gu || company?.company_name || 'કંપની') : (company?.company_name || 'Company');
+    const fy = localStorage.getItem('financialYear') || '2026-27';
+    const formattedFy = isGu ? toGujaratiDigits(fy) : fy;
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const formattedDate = isGu ? toGujaratiDigits(dateStr) : dateStr;
+    const periodStr = `${dateRange.startDate} — ${dateRange.endDate}`;
+    const formattedPeriod = isGu ? toGujaratiDigits(periodStr) : periodStr;
+
+    const rows = data.map((row, idx) => {
+      const dateVal = formatDate(row.transaction_date);
+      const refVal = row.reference_no || '—';
+      const particularVal = isGu ? formatBilingualText(row.description_gu || row.narration_text_gu || row.description || '') : (row.description_en || row.description || row.narration_text || row.eng_name || '—');
+      const openingVal = parseFloat(row.opening_balance || 0) !== 0 ? `₹${fmtNum(row.opening_balance)}` : '—';
+      const debitVal = parseFloat(row.debit || 0) > 0 ? `₹${fmtNum(row.debit)}` : '—';
+      const creditVal = parseFloat(row.credit || 0) > 0 ? `₹${fmtNum(row.credit)}` : '—';
+      const runningVal = formatBalance(row.running_balance);
+
+      return `<tr>
+        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">${dateVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">${refVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 8px;font-size:10px;font-family:'Prompt', sans-serif">${particularVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${openingVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${debitVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${creditVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">${runningVal}</td>
+      </tr>`;
+    }).join('');
+
+    const win = window.open('', '_blank', 'width=1100,height=800');
+    win.document.write(`<html><head>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+        @font-face {
+          font-family: 'Prompt';
+          src: url('/fonts/Prompt.ttf') format('truetype');
+          font-weight: normal;
+          font-style: normal;
+        }
+        @page { size: A4 landscape; margin: 10mm; }
+        body { margin: 0; padding: 16px; font-family: ${isGu ? `'Prompt', 'Noto Sans Gujarati', sans-serif` : 'Arial, sans-serif'}; }
+      </style>
+    </head><body>
+      <div style="border:1.5px solid #000000;overflow:hidden;">
+        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:18px;font-weight:bold">${cName}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:8px;text-align:center;font-size:14px;font-weight:bold">${labels.title} - ${accountNameSearch}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:8px 12px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold">
+          <span>${labels.period}: ${formattedPeriod}</span>
+          <span style="display:flex;gap:16px"><span>${labels.dateLabel}: ${formattedDate}</span><span>|</span><span>${labels.fyLabel}: ${formattedFy}</span></span>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:12%">${labels.postEpoch}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:10%">${labels.manifestShard}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:left">${labels.particulars}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.opening}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.debit}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.credit}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:15%">${labels.runningPosition}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr>
+            <td colspan="4" style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right">${labels.totals}:</td>
+            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totals.debit)}</td>
+            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totals.credit)}</td>
+            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">-</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
     if (!company) {
@@ -570,10 +743,17 @@ export default function LedgerReport() {
               )}
               <button
                 onClick={handlePrint}
-                title={t('sabhasadLedgerSummary.print') || "Print"}
-                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] font-bold rounded-md transition cursor-pointer uppercase tracking-wider shadow-sm"
               >
                 <Printer size={13} className="text-slate-500" />
+                <span>{isGu ? 'પ્રિન્ટ' : 'Print'}</span>
+              </button>
+              <button
+                onClick={handleExportPDF}
+                title={isGu ? 'પીડીએફ ડાઉનલોડ' : 'Download PDF'}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <FileText size={13} className="text-slate-500" />
               </button>
               <button
                 onClick={fetchReportData}
@@ -621,18 +801,18 @@ export default function LedgerReport() {
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[10px] text-slate-600 font-mono">{row.reference_no}</td>
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-slate-700 font-medium leading-tight">{isGu ? formatBilingualText(row.description_gu || row.narration_text_gu || row.description || '') : (row.description_en || row.description || row.narration_text || row.eng_name || '—')}</td>
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-slate-500">
-                          {parseFloat(row.opening_balance || 0) !== 0 ? `₹${parseFloat(row.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                          {parseFloat(row.opening_balance || 0) !== 0 ? `₹${fmtNum(row.opening_balance)}` : '—'}
                         </td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-blue-600">{parseFloat(row.debit || 0) > 0 ? `₹${parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-emerald-600">{parseFloat(row.credit || 0) > 0 ? `₹${parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-blue-600">{parseFloat(row.debit || 0) > 0 ? `₹${fmtNum(row.debit)}` : '—'}</td>
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-emerald-600">{parseFloat(row.credit || 0) > 0 ? `₹${fmtNum(row.credit)}` : '—'}</td>
                         <td className="px-3 py-1.5 text-right text-[11px] font-mono font-bold text-slate-800">{formatBalance(row.running_balance)}</td>
                       </tr>
                     ))}
                     {/* Consolidated Total Shard */}
                     <tr className="bg-slate-100 border-t border-slate-200">
                       <td colSpan="4" className="px-3 py-2 text-[11px] font-black uppercase text-slate-700 text-right border-r border-slate-200">{t('ledgerReport.aggregateIntegrity') || "Total Balance"}:</td>
-                      <td className="px-3 py-2 text-right text-[11px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="px-3 py-2 text-right text-[11px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-right text-[11px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{fmtNum(totals.debit)}</td>
+                      <td className="px-3 py-2 text-right text-[11px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{fmtNum(totals.credit)}</td>
                       <td className="px-3 py-2 text-right opacity-60 text-[10px] tracking-widest uppercase font-sans text-[#1d5f84]">End_of_Window</td>
                     </tr>
                   </>

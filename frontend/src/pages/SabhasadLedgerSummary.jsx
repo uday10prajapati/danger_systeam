@@ -1,6 +1,6 @@
+
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
+import html2canvas from 'html2canvas';
 import React, { useState, useEffect } from 'react';
 import {
   Search, Download, Filter, FileText,
@@ -13,6 +13,7 @@ import Loading from '../components/Loading';
 import Toast from '../components/Toast';
 import api from '../api';
 import { formatBilingualText, translateSystemText } from '../utils/textUtils';
+import { exportToPDF } from '../utils/pdfExporter';
 
 // Helper function to format dates gracefully and avoid "Invalid Date"
 const formatDate = (dateStr) => {
@@ -38,17 +39,30 @@ export default function SabhasadLedgerSummary() {
 
   const formatDisplayDate = (dateString) => {
     if (!dateString) return '—';
-    let dStr = dateString;
-    if (dStr.includes('T')) dStr = dStr.split('T')[0];
-    const parts = dStr.split('-');
-    if (parts.length !== 3) {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) return dateString;
-      const formatted = d.toLocaleDateString('en-GB');
-      return isGu ? toGujaratiDigits(formatted) : formatted;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+      return isGu ? toGujaratiDigits(dateString) : dateString;
     }
-    const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    return isGu ? toGujaratiDigits(engDate) : engDate;
+    let cleanStr = dateString;
+    if (cleanStr.includes(' ')) cleanStr = cleanStr.split(' ')[0];
+    if (cleanStr.includes('T')) cleanStr = cleanStr.split('T')[0];
+    
+    const parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return isGu ? toGujaratiDigits(engDate) : engDate;
+    }
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const formatted = `${day}/${month}/${year}`;
+    return isGu ? toGujaratiDigits(formatted) : formatted;
+  };
+
+  const getSafeDescription = (desc, fallback = '—') => {
+    if (!desc || desc === 'undefined' || desc === 'null') return fallback;
+    return desc;
   };
 
   const toLocale = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) => {
@@ -559,7 +573,7 @@ export default function SabhasadLedgerSummary() {
             <td>${formatDisplayDate(row.entry_date)}</td>
             <td>${row.member_code || '-'}</td>
             <td>${translateSystemText(displayMemberName(row) || '-')}</td>
-            <td>${translateSystemText(row.description)}</td>
+            <td>${translateSystemText(getSafeDescription(row.description))}</td>
               <td style="text-align:right">${fmtAmount(displayDebit || 0, '₹')}</td>
               <td style="text-align:right">${fmtAmount(displayCredit || 0, '₹')}</td>
               <td style="text-align:right; font-weight:bold;">${toLocale(Math.abs(parseFloat(row.balance || 0)))} ${balLabel}</td>
@@ -647,299 +661,402 @@ export default function SabhasadLedgerSummary() {
        <td style="text-align:right; font-weight:bold;">${totalBardanSelf.toLocaleString()}</td>
        <td style="text-align:right; font-weight:bold;">₹${Math.abs(totalBardanAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${totalBardanPenalty >= 0 ? 'DR' : 'CR'}</td>`;
 
+    const reportTitle = t('sabhasadLedgerSummary.ledgerSummaryRegistry') || (isGu ? 'સભ્ય ખાતા સારાંશ' : 'Sabhasad Ledger Summary');
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const formattedDate = isGu ? `તારીખ: ${dateStr}` : `Date: ${dateStr}`;
+    const fy = localStorage.getItem('financialYear') || '2026-27';
+    const formattedFY = isGu ? `વર્ષ : ${fy}` : `FY: ${fy}`;
+    const periodStr = `${formatDisplayDate(dateRange.startDate)} — ${formatDisplayDate(dateRange.endDate)}`;
+
     win.document.write(`
       <html>
         <head>
-          <title>Sabhasad Ledger Summary</title>
+          <title>${reportTitle}</title>
           <style>
-            @page { size: A4 landscape; margin: 10mm; }
-            body { font-family: 'Helvetica', sans-serif; color: #1f2937; margin: 0; padding: 0; font-size: 9pt; }
-            .header-bar { background: #1e40af; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; -webkit-print-color-adjust: exact; }
-            .header-bar h1 { margin: 0; font-size: 14pt; font-weight: 700; letter-spacing: -0.025em; }
-            .info-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; padding: 15px 20px; border-bottom: 2px solid #e5e7eb; }
-            .info-item { font-size: 8pt; color: #6b7280; font-weight: 600; text-transform: uppercase; }
-            .info-value { font-size: 10pt; color: #111827; font-weight: 700; margin-top: 2px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 7.5pt; padding: 8px 10px; border: 1px solid #e2e8f0; text-align: left; }
-            td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 8.5pt; color: #334155; }
-            tr:nth-child(even) { background: #f1f5f9; }
-            .footer { position: fixed; bottom: 0; width: 100%; padding: 10px 20px; font-size: 7pt; color: #94a3b8; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
-            tfoot td { background: #1e293b; color: white; border: none; padding: 10px; }
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+            @font-face { font-family:'Prompt'; src:url('/fonts/Prompt.ttf') format('truetype'); }
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family:'Outfit','Noto Sans Gujarati',Arial,sans-serif; padding:16px; background:#fff; color:#000; }
+            .pdf-report-container { border:1.5px solid #000; overflow:hidden; background:#fff; }
+            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:18px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-header-title { border-bottom:1.5px solid #000; padding:8px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-info-bar { border-bottom:1.5px solid #000; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; background:#fff; }
+            .pdf-table { width:100%; border-collapse:collapse; }
+            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:6px 8px; font-size:10px; color:#000; }
+            .pdf-table th { font-weight:bold; background:#fff; border-top:none !important; }
+            .pdf-table th:first-child, .pdf-table td:first-child { border-left:none !important; }
+            .pdf-table th:last-child, .pdf-table td:last-child { border-right:none !important; }
+            .pdf-table tfoot td { font-weight:bold; font-size:11px; border-bottom:none !important; }
+            @media print { @page { size:A4 landscape; margin:10mm; } body { padding:0; } }
           </style>
         </head>
         <body>
-          <div class="header-bar">
-            <h1>${cName}</h1>
-            <div style="font-weight: 600; font-size: 9pt; opacity: 0.9;">SABHASAD LEDGER SUMMARY</div>
-          </div>
-          
-          <div class="info-grid">
-            <div>
-              <div class="info-item">Registry Period</div>
-              <div class="info-value">${formatDisplayDate(dateRange.startDate)} to ${formatDisplayDate(dateRange.endDate)}</div>
+          <div class="pdf-report-container">
+            <div class="pdf-header-company">${cName}</div>
+            <div class="pdf-header-title">${reportTitle}</div>
+            <div class="pdf-info-bar">
+              <div style="font-size:12px;font-weight:bold;color:#000;">${isGu ? 'સમયગાળો' : 'Period'}: ${periodStr}</div>
+              <div style="font-size:12px;font-weight:bold;color:#000;display:flex;gap:16px;">
+                <span>${formattedDate}</span><span>|</span><span>${formattedFY}</span>
+              </div>
             </div>
-            <div style="text-align: right">
-              <div class="info-item">Report Generation</div>
-              <div class="info-value">${isGu ? toGujaratiDigits(new Date().toLocaleString('en-IN')) : new Date().toLocaleString('en-IN')}</div>
-            </div>
+            <table class="pdf-table">
+              <thead><tr>${thCols}</tr></thead>
+              <tbody>${rows.join('')}</tbody>
+              <tfoot><tr>${tfootRow}</tr></tfoot>
+            </table>
           </div>
-
-          <table>
-            <thead><tr>${thCols}</tr></thead>
-            <tbody>${rows.join('')}</tbody>
-            <tfoot><tr>${tfootRow}</tr></tfoot>
-          </table>
-          
-          <div class="footer">
-            <div>${cName} - Audit Connectivity Protocol Active</div>
-            <div>Generated by Antigravity OS / Accounting Suite v2.0</div>
-            <div>Page 1 of 1</div>
-          </div>
-          
-          <script>
-            window.onload = () => {
-              window.print();
-              setTimeout(() => window.close(), 500);
-            };
-          </script>
         </body>
       </html>
     `);
     win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
   const handleExportPDF = async () => {
     if (data.length === 0) return;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
-    const totalBardanBal = data.reduce((s, r) => s + parseFloat(r.bardan_balance || 0), 0);
-    const totalBardanSelf = data.reduce((s, r) => s + parseFloat(r.bardan_self_jama || 0), 0);
-    const totalBardanAmt = data.reduce((s, r) => s + (parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0) * bardanPrice), 0);
-    const totalBardanPenalty = data.reduce((s, r) => s + parseFloat(r.bardan_penalty_balance || r.bardan_balance || 0), 0);
+    const periodStr = `${formatDisplayDate(dateRange.startDate)} — ${formatDisplayDate(dateRange.endDate)}`;
+    const reportTitle = t('sabhasadLedgerSummary.ledgerSummaryRegistry') || 'Sabhasad Ledger Summary';
+    const allRows = [...data, { _isTotals: true }];
 
-    await addGujaratiFont(doc);
-    await addPromptFont(doc);
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 32;
-    const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
-    const cName = company ? (company.company_name || 'Company') : 'Company';
-
-    const hdr = () => {
-      doc.setFillColor(...navy); doc.rect(0, 0, W, 28, 'F');
-      doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
-      doc.text(cName, M, 18);
-      doc.setFontSize(7.5); doc.setTextColor(191, 219, 254);
-      doc.text(t('sabhasadLedgerSummary.ledgerSummaryRegistry'), W / 2, 18, { align: 'center' });
-      doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
-      doc.text('AUDIT CERTIFIED', W - M, 18, { align: 'right' });
-    };
-
-    const ftr = (pg, tot) => {
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
-      doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.text(cName + ' - Sabhasad Ledger Registry', M, H - 9);
-      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
-    };
-
-    hdr();
-    let y = 62;
-    doc.setFont('NotoGujarati', 'bold'); doc.setFontSize(16); doc.setTextColor(...navy);
-    doc.text(t('sabhasadLedgerSummary.ledgerSummaryRegistry'), M, y);
-    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
-    doc.text('PERIOD: ' + dateRange.startDate + ' to ' + dateRange.endDate, M, y + 13);
-    doc.text('GENERATED: ' + new Date().toLocaleString('en-IN'), W - M, y + 13, { align: 'right' });
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-    y += 32;
-
-    const head = isBardan ?
-      [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.opening'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.selfJama'), t('sabhasadLedgerSummary.balance'), t('sabhasadLedgerSummary.bardanAmt')]] :
-      isCash ?
-        [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.descriptionMember'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.balance')]] :
-        isPurchase || isSale || isTransactional ?
-          [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.description'), isSale ? t('sabhasadLedgerSummary.creditSale') : t('sabhasadLedgerSummary.debit'), isSale ? t('sabhasadLedgerSummary.cashSale') : t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.balance')]] :
-          isDangar ?
-            [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.purchesRate'), t('sabhasadLedgerSummary.itemName'), t('sabhasadLedgerSummary.class'), t('sabhasadLedgerSummary.season'), t('sabhasadLedgerSummary.totalQty'), t('sabhasadLedgerSummary.totalRate')]] :
-            hideBardan ?
-              [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.accountName'), t('sabhasadLedgerSummary.opening'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.closing')]] :
-              [[t('sabhasadLedgerSummary.srNo'), t('sabhasadLedgerSummary.code'), t('sabhasadLedgerSummary.memberName'), t('sabhasadLedgerSummary.village'), t('sabhasadLedgerSummary.accountName'), t('sabhasadLedgerSummary.opening'), t('sabhasadLedgerSummary.date'), t('sabhasadLedgerSummary.debit'), t('sabhasadLedgerSummary.credit'), t('sabhasadLedgerSummary.closing'), t('sabhasadLedgerSummary.bardanBal'), t('sabhasadLedgerSummary.selfJama'), t('sabhasadLedgerSummary.bardanAmt')]];
-
-    const body = data.map((row, i) => {
-      if (isPurchase || isSale || isBardan || isTransactional) {
-        let displayDebit = parseFloat(row.debit || 0);
-        let displayCredit = parseFloat(row.credit || 0);
-        if (isSale) {
-          const isCash = (row.payment_type || '').toLowerCase().includes('cash');
-          const amount = displayDebit || displayCredit;
-          if (isCash) { displayDebit = 0; displayCredit = amount; }
-          else { displayDebit = amount; displayCredit = 0; }
-        }
-
-        if (isBardan || isCash) {
-          if (isBardan) {
-            return [
-              isGu ? toGujaratiDigits(String(i + 1).padStart(3, '0')) : String(i + 1).padStart(3, '0'),
-              row.member_code || '-',
-              translateSystemText(displayMemberName(row) || '-'),
-              translateSystemText(row.village_name || '-'),
-              toLocaleSimple(row.opening_balance || 0),
-              parseFloat(row.debit || 0) > 0 ? toLocaleSimple(row.debit || 0) : '-',
-              parseFloat(row.credit || 0) > 0 ? toLocaleSimple(row.credit || 0) : '-',
-              parseFloat(row.self_credit || 0) > 0 ? toLocaleSimple(row.self_credit || 0) : '-',
-              toLocaleSimple(Math.abs(parseFloat(row.balance || 0))) + ' ' + (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR'),
-              fmtAmount((parseFloat(row.balance || 0) * bardanPrice), '₹')
-            ];
-          } else {
-            return [
-              String(i + 1).padStart(3, '0'),
-              formatDate(row.entry_date),
-              translateSystemText(row.village_name || '-'),
-              row.member_name
-                ? `${translateSystemText(row.description || '-')}\n${translateSystemText('Node')}: ${translateSystemText(displayMemberName(row))} [${row.member_id}]`
-                : translateSystemText(row.description || '-'),
-              '₹' + parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-              '₹' + parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-              '₹' + Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(row.balance || 0) >= 0 ? 'C' : 'D')
-            ];
+    let columns = [];
+    if (isBardan) {
+      columns = [
+        {
+          header: t('sabhasadLedgerSummary.srNo'),
+          align: 'center', width: '5%',
+          render: (row, idx) => row._isTotals ? '' : (isGu ? toGujaratiDigits(String(idx + 1).padStart(3, '0')) : String(idx + 1).padStart(3, '0'))
+        },
+        {
+          header: t('sabhasadLedgerSummary.code'),
+          align: 'center', width: '8%',
+          render: (row) => row._isTotals ? '' : (row.member_code ? (isGu ? toGujaratiDigits(row.member_code) : row.member_code) : '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.memberName'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? `<strong style="float:right">REGISTRY TOTALS:</strong>` : `<strong>${displayMemberName(row) || '-'}</strong>`
+        },
+        {
+          header: t('sabhasadLedgerSummary.village'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? '' : (row.village_name || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.opening'),
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? `<strong>${toLocaleSimple(totals.opening_balance || 0)}</strong>` : toLocaleSimple(row.opening_balance || 0)
+        },
+        {
+          header: t('sabhasadLedgerSummary.debit') + ' (+)',
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? `<strong>${toLocaleSimple(totals.debit || 0)}</strong>` : (parseFloat(row.debit || 0) > 0 ? toLocaleSimple(row.debit || 0) : '—')
+        },
+        {
+          header: t('sabhasadLedgerSummary.credit') + ' (-)',
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? `<strong>${toLocaleSimple(totals.credit || 0)}</strong>` : (parseFloat(row.credit || 0) > 0 ? toLocaleSimple(row.credit || 0) : '—')
+        },
+        {
+          header: t('sabhasadLedgerSummary.selfJama'),
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? `<strong>${toLocaleSimple(totals.self_credit || 0)}</strong>` : (parseFloat(row.self_credit || 0) > 0 ? toLocaleSimple(row.self_credit || 0) : '—')
+        },
+        {
+          header: t('sabhasadLedgerSummary.balance'),
+          align: 'right', width: '11%',
+          render: (row) => {
+            if (row._isTotals) {
+              const bal = parseFloat(totals.balance || 0);
+              return `<strong>${toLocaleSimple(Math.abs(bal))} ${bal >= 0 ? 'DR' : 'CR'}</strong>`;
+            }
+            return `<strong>${toLocaleSimple(Math.abs(parseFloat(row.balance || 0)))} ${parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR'}</strong>`;
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.bardanAmt'),
+          align: 'right', width: '12%',
+          render: (row) => {
+            if (row._isTotals) {
+              return `<strong>${fmtAmount((parseFloat(totals.balance || 0) * bardanPrice), '₹')}</strong>`;
+            }
+            return `<strong>${fmtAmount((parseFloat(row.balance || 0) * bardanPrice), '₹')}</strong>`;
           }
         }
-
-        return [
-          isGu ? toGujaratiDigits(String(i + 1).padStart(3, '0')) : String(i + 1).padStart(3, '0'),
-          formatDisplayDate(row.entry_date),
-          row.member_code || '-',
-          translateSystemText(displayMemberName(row) || '-'),
-          translateSystemText(row.village_name || '-'),
-          translateSystemText(row.description || '-'),
-          fmtAmount(displayDebit || 0, '₹'),
-          fmtAmount(displayCredit || 0, '₹'),
-          toLocale(Math.abs(parseFloat(row.balance || 0))) + ' ' + (isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR'))
-        ];
-      }
-      if (isDangar) return [
-        isGu ? toGujaratiDigits(String(i + 1).padStart(3, '0')) : String(i + 1).padStart(3, '0'),
-        row.member_code,
-        translateSystemText(displayMemberName(row)),
-        translateSystemText(row.village_name || '-'),
-        formatDisplayDate(row.entry_date),
-        toLocale(row.rate || 0),
-        translateSystemText(row.item_name),
-        row.quality_class,
-        row.book_type,
-        toFixed2(row.net_quintal || 0),
-        toLocale(row.amount || 0)
       ];
-
-      const base = [
-        String(i + 1).padStart(3, '0'),
-        row.member_code || '-',
-        translateSystemText(displayMemberName(row) || '-'),
-        translateSystemText(row.village_name || '-'),
-        translateSystemText(row.account_name_gu || row.account_name || '-'),
-        (parseFloat(row.opening_balance) >= 0 ? '+' : '-') + toLocale(Math.abs(parseFloat(row.opening_balance))),
-        row.last_activity_date ? formatDisplayDate(row.last_activity_date) : '-',
-        toLocale(row.debit || 0),
-        toLocale(row.credit || 0),
-        toLocale(Math.abs(parseFloat(row.closing_balance || 0))) + ' ' + (parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR')
-      ];
-      if (!hideBardan) {
-        base.push(
-          toLocale(Math.abs(parseFloat(row.bardan_balance || 0))) + ' ' + (parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'),
-          toLocale(row.bardan_self_jama || 0),
-          fmtAmount(Math.abs((parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0)) * bardanPrice), '₹') + ' ' + (parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR')
-        );
-      }
-      return base;
-    });
-
-    const foot = isBardan ?
-      [['', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.opening_balance || 0).toLocaleString(), parseFloat(totals.debit || 0).toLocaleString(), parseFloat(totals.credit || 0).toLocaleString(), parseFloat(totals.self_credit || 0).toLocaleString(), Math.abs(parseFloat(totals.balance || 0)).toLocaleString() + ' ' + (parseFloat(totals.balance || 0) >= 0 ? 'DR' : 'CR'), '₹' + (parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })]] :
-      isCash ?
-        [['', '', '', t('sabhasadLedgerSummary.totals'), '₹' + parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '₹' + parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '₹' + Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.balance || 0) >= 0 ? 'C' : 'D')]] :
-        isPurchase || isSale || isTransactional ?
-          [['', '', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (isSale ? (parseFloat(totals.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(totals.balance || 0) >= 0 ? 'DR' : 'CR'))]] :
-          isDangar ?
-            [['', '', '', '', '', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.qty || 0).toFixed(2), parseFloat(totals.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })]] :
-            hideBardan ?
-              [['', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR')]] :
-              [['', '', '', '', t('sabhasadLedgerSummary.totals'), parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), '', parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), Math.abs(totals.closing_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'), Math.abs(totalBardanBal).toLocaleString() + ' ' + (totalBardanBal >= 0 ? 'DR' : 'CR'), totalBardanSelf.toLocaleString(), '₹' + Math.abs(totalBardanAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + ' ' + (totalBardanPenalty >= 0 ? 'DR' : 'CR')]];
-
-    autoTable(doc, {
-      startY: y,
-      head: head,
-      body: body,
-      foot: foot,
-      didParseCell: (data) => {
-        const text = data.cell.text.join(' ');
-        if (!text) return;
-
-        if (/[\u0A80-\u0AFF]/.test(text)) {
-          data.cell.styles.font = 'NotoGujarati';
-          return;
+    } else if (isCash) {
+      columns = [
+        {
+          header: t('sabhasadLedgerSummary.srNo'),
+          align: 'center', width: '6%',
+          render: (row, idx) => row._isTotals ? '' : (isGu ? toGujaratiDigits(String(idx + 1).padStart(3, '0')) : String(idx + 1).padStart(3, '0'))
+        },
+        {
+          header: t('sabhasadLedgerSummary.date'),
+          align: 'center', width: '12%',
+          render: (row) => row._isTotals ? '' : formatDisplayDate(row.entry_date)
+        },
+        {
+          header: t('sabhasadLedgerSummary.descriptionMember'),
+          usePromptFont: true,
+          render: (row) => {
+            if (row._isTotals) return `<strong style="float:right">REGISTRY TOTALS:</strong>`;
+            return `<strong>${displayMemberName(row) || '-'}</strong>${row.member_id ? `<br/><small style="color:#2563eb">Node: ${displayMemberName(row)} [${row.member_id}]</small>` : ''}`;
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.debit'),
+          align: 'right', width: '15%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${fmtAmount(totals.debit || 0, '₹')}</strong>`;
+            let displayDebit = parseFloat(row.debit || 0);
+            return displayDebit > 0 ? fmtAmount(displayDebit, '₹') : '—';
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.credit'),
+          align: 'right', width: '15%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${fmtAmount(totals.credit || 0, '₹')}</strong>`;
+            let displayCredit = parseFloat(row.credit || 0);
+            return displayCredit > 0 ? fmtAmount(displayCredit, '₹') : '—';
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.balance'),
+          align: 'right', width: '16%',
+          render: (row) => {
+            if (row._isTotals) {
+              const bal = parseFloat(totals.balance || 0);
+              return `<strong>${fmtAmount(Math.abs(bal), '₹')} ${bal >= 0 ? 'C' : 'D'}</strong>`;
+            }
+            return `<strong>${fmtAmount(Math.abs(parseFloat(row.balance || 0)), '₹')} ${parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'}</strong>`;
+          }
         }
+      ];
+    } else if (isPurchase || isSale || isTransactional) {
+      columns = [
+        {
+          header: t('sabhasadLedgerSummary.srNo'),
+          align: 'center', width: '6%',
+          render: (row, idx) => row._isTotals ? '' : (isGu ? toGujaratiDigits(String(idx + 1).padStart(3, '0')) : String(idx + 1).padStart(3, '0'))
+        },
+        {
+          header: t('sabhasadLedgerSummary.date'),
+          align: 'center', width: '12%',
+          render: (row) => row._isTotals ? '' : formatDisplayDate(row.entry_date)
+        },
+        {
+          header: t('sabhasadLedgerSummary.code'),
+          align: 'center', width: '8%',
+          render: (row) => row._isTotals ? '' : (row.member_code || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.memberName'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? `<strong style="float:right">REGISTRY TOTALS:</strong>` : `<strong>${displayMemberName(row) || '-'}</strong>`
+        },
+        {
+          header: t('sabhasadLedgerSummary.description'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? '' : getSafeDescription(row.description)
+        },
+        {
+          header: isSale ? t('sabhasadLedgerSummary.creditSale') : t('sabhasadLedgerSummary.debit'),
+          align: 'right', width: '13%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${fmtAmount(totals.debit || 0, '₹')}</strong>`;
+            let displayDebit = parseFloat(row.debit || 0);
+            if (isSale) {
+              const isCashRow = (row.payment_type || '').toLowerCase().includes('cash');
+              if (isCashRow) displayDebit = 0;
+            }
+            return displayDebit > 0 ? fmtAmount(displayDebit, '₹') : '—';
+          }
+        },
+        {
+          header: isSale ? t('sabhasadLedgerSummary.cashSale') : t('sabhasadLedgerSummary.credit'),
+          align: 'right', width: '13%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${fmtAmount(totals.credit || 0, '₹')}</strong>`;
+            let displayCredit = parseFloat(row.credit || 0);
+            if (isSale) {
+              const isCashRow = (row.payment_type || '').toLowerCase().includes('cash');
+              if (isCashRow) displayCredit = displayCredit || parseFloat(row.debit || 0);
+            }
+            return displayCredit > 0 ? fmtAmount(displayCredit, '₹') : '—';
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.balance'),
+          align: 'right', width: '14%',
+          render: (row) => {
+            const balLabel = isSale ? (parseFloat(row.balance || 0) >= 0 ? 'CR' : 'DR') : (parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR');
+            if (row._isTotals) {
+              const bal = parseFloat(totals.balance || 0);
+              const totLabel = isSale ? (bal >= 0 ? 'CR' : 'DR') : (bal >= 0 ? 'DR' : 'CR');
+              return `<strong>${toLocale(Math.abs(bal))} ${totLabel}</strong>`;
+            }
+            return `<strong>${toLocale(Math.abs(parseFloat(row.balance || 0)))} ${balLabel}</strong>`;
+          }
+        }
+      ];
+    } else if (isDangar) {
+      columns = [
+        {
+          header: t('sabhasadLedgerSummary.srNo'),
+          align: 'center', width: '5%',
+          render: (row, idx) => row._isTotals ? '' : (isGu ? toGujaratiDigits(String(idx + 1).padStart(3, '0')) : String(idx + 1).padStart(3, '0'))
+        },
+        {
+          header: t('sabhasadLedgerSummary.code'),
+          align: 'center', width: '8%',
+          render: (row) => row._isTotals ? '' : (row.member_code || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.memberName'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? `<strong style="float:right">GRAND TOTAL:</strong>` : `<strong>${displayMemberName(row) || '-'}</strong>`
+        },
+        {
+          header: t('sabhasadLedgerSummary.date'),
+          align: 'center', width: '11%',
+          render: (row) => row._isTotals ? '' : formatDisplayDate(row.entry_date)
+        },
+        {
+          header: t('sabhasadLedgerSummary.purchesRate'),
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? '' : toLocale(row.rate || 0)
+        },
+        {
+          header: t('sabhasadLedgerSummary.itemName'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? '' : (row.item_name || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.class'),
+          align: 'center', width: '8%',
+          render: (row) => row._isTotals ? '' : (row.quality_class || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.season'),
+          align: 'center', width: '9%',
+          render: (row) => row._isTotals ? '' : (row.book_type || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.totalQty'),
+          align: 'right', width: '11%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${parseFloat(totals.qty || 0).toFixed(2)} Qt</strong>`;
+            return `${toFixed2(row.net_quintal || 0)} Qt`;
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.totalRate'),
+          align: 'right', width: '12%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${toLocale(totals.amount || 0)}</strong>`;
+            return toLocale(row.amount || 0);
+          }
+        }
+      ];
+    } else {
+      // Standard / Default Accounts Summary
+      columns = [
+        {
+          header: t('sabhasadLedgerSummary.srNo'),
+          align: 'center', width: '4%',
+          render: (row, idx) => row._isTotals ? '' : (isGu ? toGujaratiDigits(String(idx + 1).padStart(3, '0')) : String(idx + 1).padStart(3, '0'))
+        },
+        {
+          header: t('sabhasadLedgerSummary.code'),
+          align: 'center', width: '7%',
+          render: (row) => row._isTotals ? '' : (row.member_code || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.memberName'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? `<strong style="float:right">CONSOLIDATED TOTALS:</strong>` : `<strong>${displayMemberName(row) || '-'}</strong>`
+        },
+        {
+          header: t('sabhasadLedgerSummary.accountName'),
+          usePromptFont: true,
+          render: (row) => row._isTotals ? '' : (row.account_name_gu || row.account_name || '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.opening'),
+          align: 'right', width: '10%',
+          render: (row) => {
+            if (row._isTotals) return `<strong>${toLocale(totals.opening_balance || 0)}</strong>`;
+            return `<span style="color:${parseFloat(row.opening_balance) >= 0 ? '#059669' : '#dc2626'}">${parseFloat(row.opening_balance) >= 0 ? '+' : '-'}${toLocale(Math.abs(parseFloat(row.opening_balance)))}</span>`;
+          }
+        },
+        {
+          header: t('sabhasadLedgerSummary.date'),
+          align: 'center', width: '10%',
+          render: (row) => row._isTotals ? '' : (row.last_activity_date ? formatDisplayDate(row.last_activity_date) : '-')
+        },
+        {
+          header: t('sabhasadLedgerSummary.debit'),
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? `<strong>${toLocale(totals.debit || 0)}</strong>` : toLocale(row.debit || 0)
+        },
+        {
+          header: t('sabhasadLedgerSummary.credit'),
+          align: 'right', width: '10%',
+          render: (row) => row._isTotals ? `<strong>${toLocale(totals.credit || 0)}</strong>` : toLocale(row.credit || 0)
+        },
+        {
+          header: t('sabhasadLedgerSummary.closing'),
+          align: 'right', width: '11%',
+          render: (row) => {
+            if (row._isTotals) {
+              return `<strong>${toLocale(Math.abs(parseFloat(totals.closing_balance || 0)))} ${parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</strong>`;
+            }
+            return `<strong>${toLocale(Math.abs(parseFloat(row.closing_balance || 0)))} ${parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}</strong>`;
+          }
+        },
+        ...(!hideBardan ? [
+          {
+            header: t('sabhasadLedgerSummary.bardanBal'),
+            align: 'right', width: '10%',
+            render: (row) => {
+              if (row._isTotals) return `<strong>${Math.abs(totalBardanBal).toLocaleString()} ${totalBardanBal >= 0 ? 'DR' : 'CR'}</strong>`;
+              return `${toLocale(Math.abs(parseFloat(row.bardan_balance || 0)))} ${parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}`;
+            }
+          },
+          {
+            header: t('sabhasadLedgerSummary.selfJama'),
+            align: 'right', width: '8%',
+            render: (row) => {
+              if (row._isTotals) return `<strong>${totalBardanSelf.toLocaleString()}</strong>`;
+              return toLocale(row.bardan_self_jama || 0);
+            }
+          },
+          {
+            header: t('sabhasadLedgerSummary.bardanAmt'),
+            align: 'right', width: '12%',
+            render: (row) => {
+              if (row._isTotals) return `<strong>₹${Math.abs(totalBardanAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 })} ${totalBardanPenalty >= 0 ? 'DR' : 'CR'}</strong>`;
+              return `${fmtAmount(Math.abs((parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0)) * bardanPrice), '₹')} ${parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}`;
+            }
+          }
+        ] : [])
+      ];
+    }
 
-        data.cell.styles.font = 'helvetica';
-      },
-      theme: 'grid',
-      styles: { font: 'NotoGujarati', fontSize: 6.5, cellPadding: [3, 4], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.2 },
-      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 6.5 },
-      footStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 6.5 },
-      alternateRowStyles: { fillColor: stripe },
-      margin: { left: M, right: M },
-      columnStyles: isBardan ? {
-        0: { cellWidth: 20 },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 90 },
-        3: { cellWidth: 55 },
-        4: { halign: 'right', cellWidth: 45 },
-        5: { halign: 'right', cellWidth: 45 },
-        6: { halign: 'right', cellWidth: 45 },
-        7: { halign: 'right', cellWidth: 45 },
-        8: { halign: 'right', fontStyle: 'bold', cellWidth: 55 },
-        9: { halign: 'right', cellWidth: 55 },
-      } : isPurchase || isSale ? {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 70 },
-        4: { cellWidth: 'auto' },
-        5: { halign: 'right', cellWidth: 45 },
-        6: { halign: 'right', cellWidth: 45 },
-        7: { halign: 'right', fontStyle: 'bold', cellWidth: 55 },
-      } : isDangar ? {
-        0: { cellWidth: 20 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 100 },
-        3: { cellWidth: 50 },
-        4: { halign: 'right', cellWidth: 40 },
-        5: { cellWidth: 60 },
-        8: { halign: 'right', cellWidth: 40 },
-        9: { halign: 'right', fontStyle: 'bold', cellWidth: 60 },
-      } : {
-        0: { cellWidth: 20 },
-        1: { cellWidth: 25 },
-        2: { cellWidth: 'auto' },
-        3: { cellWidth: 70 },
-        4: { cellWidth: 45 },
-        5: { cellWidth: 45 },
-        6: { halign: 'right', cellWidth: 50 },
-        7: { halign: 'right', cellWidth: 50 },
-        8: { halign: 'right', fontStyle: 'bold', cellWidth: 55 },
-        9: { halign: 'right', cellWidth: 45 },
-        10: { halign: 'right', cellWidth: 40 },
-        11: { halign: 'right', cellWidth: 55 },
-      },
-      didDrawPage: (pageData) => {
-        if (pageData.pageNumber > 1) hdr();
-      }
+    await exportToPDF({
+      title: reportTitle,
+      columns,
+      rows: allRows,
+      isGu,
+      orientation: 'landscape',
+      metaInfo: [{ label: isGu ? 'સમયગાળો' : 'Period', value: periodStr }],
+      filename: `Sabhasad_Ledger_${dateRange.startDate}_${dateRange.endDate}.pdf`
     });
-
-    const tot = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-
-    doc.save(`Sabhasad_Ledger_${dateRange.startDate}_${dateRange.endDate}.pdf`);
   };
 
   const clearFilters = () => {
@@ -1421,7 +1538,7 @@ export default function SabhasadLedgerSummary() {
                                     </div>
                                   </td>
                                   <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">
-                                    {row.description ? formatBilingualText(row.description) : '—'}
+                                    {getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}
                                   </td>
                                   <td className={`px-3 py-1.5 text-[11px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {idx === 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
@@ -1466,7 +1583,7 @@ export default function SabhasadLedgerSummary() {
 
                                   </div>
                                 </td>
-                                <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">{row.description ? formatBilingualText(row.description) : '—'}</td>
+                                <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">{getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}</td>
                                 <td className={`px-3 py-1.5 text-[11px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {idx === 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                                 </td>
@@ -1525,7 +1642,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(row.days || 0) : (row.days || 0)} {isGu ? 'દિવસ' : 'Days'}
                                 </td>
-                                <td className="px-3 py-1.5 text-[11px] text-slate-600 border-r border-slate-100 leading-tight font-medium">{formatBilingualText(row.description || 'Interest')}</td>
+                                <td className="px-3 py-1.5 text-[11px] text-slate-600 border-r border-slate-100 leading-tight font-medium">{formatBilingualText(getSafeDescription(row.description, 'Interest'))}</td>
                                 <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(parseFloat(row.interest_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(row.interest_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
@@ -1545,7 +1662,7 @@ export default function SabhasadLedgerSummary() {
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(row.invoice_no || '—') : (row.invoice_no || '—')}
                                 </td>
-                                <td className="px-3 py-1.5 text-[11px] text-slate-650 border-r border-slate-100 leading-tight">{formatBilingualText(row.description)}</td>
+                                <td className="px-3 py-1.5 text-[11px] text-slate-650 border-r border-slate-100 leading-tight">{getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}</td>
                                 <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>

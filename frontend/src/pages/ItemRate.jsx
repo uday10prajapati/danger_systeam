@@ -9,16 +9,13 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { addGujaratiFont } from '../utils/pdfFonts';
+import { exportToPDF } from '../utils/pdfExporter';
 import ItemRateForm from '../components/ItemRateForm';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
-import html2canvas from 'html2canvas';
 
 export default function ItemRate() {
   const { t, i18n } = useTranslation();
@@ -112,7 +109,7 @@ export default function ItemRate() {
         fetchedRates = ratesRes.data.data || [];
         setRateEntries(fetchedRates);
       }
-      
+
       if (itemsRes.data.success) {
         fetchedItems = itemsRes.data.data || [];
         setItems(fetchedItems);
@@ -207,161 +204,269 @@ export default function ItemRate() {
     return num.toString().split('').map(digit => gujDigits[digit] || digit).join('');
   };
 
-  const buildTariffManifestHTML = () => {
-    const cName = company?.company_name_gu || company?.company_name || 'Company';
-    const reportTitle = t('itemRate.print.tariffManifest');
-
-    const tableRows = filteredRates.map((rate, idx) => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
-        <td style="padding:10px;border:1px solid #d1d5db;font-family:'NotoGujarati', 'Noto Sans Gujarati', sans-serif;font-weight:700;">${rate.item_name_gu || rate.item_name}</td>
-        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;font-weight:bold;">${rate.item_code || '-'}</td>
-        <td style="padding:10px;border:1px solid #d1d5db;text-align:right;font-weight:900;">₹${parseFloat(rate.sale_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;">${new Date(rate.effective_from).toLocaleDateString('en-GB')}</td>
-        <td style="padding:10px;border:1px solid #d1d5db;text-align:center;">
-          <span style="font-size:10px;font-weight:800;padding:2px 6px;border:1px solid #d1d5db;background:#f8fafc;">
-            ${rate.is_active === 1 ? t('itemRate.table.verified') : t('itemRate.table.redacted')}
-          </span>
-        </td>
-      </tr>
-    `).join('');
-
-    return `
-      <div style="width:1000px;background:#fff;color:#111827;font-family:'NotoGujarati', 'Noto Sans Gujarati', Arial, sans-serif;padding:30px;border:1px solid #cbd5e1;">
-        <div style="background:#2563eb;color:#fff;padding:20px 25px;display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;">
-          <div style="font-size:24px;font-weight:900;">${cName}</div>
-          <div style="font-size:14px;font-weight:700;opacity:0.9;letter-spacing:1px;">${reportTitle}</div>
-        </div>
-        
-        <div style="margin-bottom:20px;">
-          <h2 style="font-size:28px;font-weight:900;color:#1e293b;margin-bottom:8px;">${reportTitle}</h2>
-          <div style="font-size:13px;color:#64748b;display:flex;gap:15px;padding-bottom:15px;border-bottom:2px solid #f1f5f9;">
-            <span>${t('memberMaster.status')}: <b>${selectedStatus === 'all' ? t('common.all') : t(`itemRate.table.${selectedStatus}`)}</b></span>
-            <span>${t('dangarMaster.records')}: <b>${filteredRates.length}</b></span>
-            <span>${t('itemRate.pdf.generated')}: <b>${new Date().toLocaleString('en-IN')}</b></span>
-          </div>
-        </div>
-
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="background:#f8fafc;">
-              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">#</th>
-              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:left;">${t('itemRate.table.nomenclature')}</th>
-              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">${t('itemRate.table.systemId')}</th>
-              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:right;">${t('itemRate.table.yieldIndex')}</th>
-              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">${t('itemRate.table.timeline')}</th>
-              <th style="padding:12px 10px;border:1px solid #d1d5db;text-align:center;">${t('itemRate.table.auditStatus')}</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>
-    `;
-  };
-
   const handleExportPDF = async () => {
     if (filteredRates.length === 0) {
       setMessage({ type: 'error', text: translateServerMessage(t('itemMaster.errors.failedLoadItems')) });
       return;
     }
-    
-    setLoading(true);
-    try {
-      const tempWrap = document.createElement('div');
-      tempWrap.style.position = 'fixed';
-      tempWrap.style.left = '-10000px';
-      tempWrap.style.top = '0';
-      tempWrap.style.width = '1000px';
-      tempWrap.style.background = '#fff';
-      tempWrap.innerHTML = buildTariffManifestHTML();
-      document.body.appendChild(tempWrap);
 
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 500));
-
-      const canvas = await html2canvas(tempWrap, { 
-        scale: 2.5, 
-        useCORS: true, 
-        backgroundColor: '#ffffff',
-        logging: false 
-      });
-      document.body.removeChild(tempWrap);
-
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-      const margin = 32;
-      const imgW = pageW - margin * 2;
-      const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
-
-      let yPos = 0;
-      let pIdx = 0;
-      while (yPos < canvas.height) {
-        const sliceH = Math.min(pageHpx, canvas.height - yPos);
-        const pCanvas = document.createElement('canvas');
-        pCanvas.width = canvas.width;
-        pCanvas.height = sliceH;
-        const ctx = pCanvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-        ctx.drawImage(canvas, 0, yPos, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-
-        if (pIdx > 0) doc.addPage();
-        doc.addImage(pCanvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, (sliceH * imgW) / canvas.width);
-        
-        yPos += sliceH;
-        pIdx++;
+    const isGu = i18n.language === 'gu';
+    const columns = [
+      {
+        header: '#',
+        align: 'center',
+        width: '8%',
+        render: (row, idx) => isGu ? toGujaratiDigits(idx + 1) : String(idx + 1)
+      },
+      {
+        header: t('itemRate.table.nomenclature'),
+        align: 'left',
+        width: '35%',
+        render: (row) => isGu ? (row.item_name_gu || row.item_name || '') : (row.item_name || row.item_name_gu || ''),
+        usePromptFont: isGu
+      },
+      {
+        header: t('itemRate.table.systemId'),
+        align: 'center',
+        width: '15%',
+        render: (row) => row.item_code || '—'
+      },
+      {
+        header: t('itemRate.table.yieldIndex'),
+        align: 'right',
+        width: '15%',
+        render: (row) => {
+          const val = parseFloat(row.sale_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          return isGu ? `₹${toGujaratiDigits(val)}` : `₹${val}`;
+        }
+      },
+      {
+        header: t('itemRate.table.timeline'),
+        align: 'center',
+        width: '15%',
+        render: (row) => {
+          if (!row.effective_from) return '—';
+          const d = new Date(row.effective_from);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          const dateStr = `${day}/${month}/${year}`;
+          return isGu ? toGujaratiDigits(dateStr) : dateStr;
+        }
+      },
+      {
+        header: t('itemRate.table.auditStatus'),
+        align: 'center',
+        width: '12%',
+        render: (row) => row.is_pending_rate ? t('itemRate.table.pending') : (row.is_active === 1 ? t('itemRate.table.verified') : t('itemRate.table.redacted'))
       }
-      
-      doc.save('Tariff_Manifest_' + new Date().toISOString().split('T')[0] + '.pdf');
-    } catch (err) {
-      console.error('PDF Export Error:', err);
-      setMessage({ type: 'error', text: translateServerMessage('PDF Generation Failed') });
-    } finally {
-      setLoading(false);
-    }
+    ];
+
+    const metaInfo = [];
+
+    await exportToPDF({
+      title: t('itemRate.print.tariffManifest'),
+      columns,
+      rows: filteredRates,
+      isGu,
+      metaInfo,
+      filename: `Tariff_Manifest_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
+
 
   const handlePrint = () => {
     if (filteredRates.length === 0) {
       setMessage({ type: 'error', text: translateServerMessage(t('itemMaster.errors.failedLoadItems')) });
       return;
     }
-    const cName = company?.company_name || 'Company';
-    const rows = filteredRates.map((rate, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td style="padding: 6px 8px; border: 1px solid #e4e4e7;">${rate.item_name || 'Unknown'}</td>
-        <td style="padding: 6px 8px; border: 1px solid #e4e4e7;">${rate.item_code || '-'}</td>
-        <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:right"><strong>${parseFloat(rate.sale_rate || 0).toFixed(2)}</strong></td>
-        <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:center">${rate.effective_from ? new Date(rate.effective_from).toLocaleDateString('en-GB') : '-'}</td>
-        <td style="padding: 6px 8px; border: 1px solid #e4e4e7; text-align:center">${rate.is_active === 1 ? t('itemRate.table.verified') : t('itemRate.table.redacted')}</td>
-      </tr>`);
+
+    const isGu = i18n.language === 'gu';
+
+    // Fetch Company Information from localStorage
+    const companyData = JSON.parse(localStorage.getItem('company') || '{}');
+    const companyName = isGu
+      ? (companyData.company_name_gu || companyData.company_name || '')
+      : (companyData.company_name || companyData.company_name_gu || '');
+
+    // Get current financial year
+    const currentFY = localStorage.getItem('financialYear') || '';
+    const formattedFY = currentFY ? (isGu ? `વર્ષ : ${toGujaratiDigits(currentFY)}` : `FY: ${currentFY}`) : '';
+
+    // Generate today's date string
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const dateStr = `${day}/${month}/${year}`;
+    const formattedDate = isGu ? `તારીખ: ${toGujaratiDigits(dateStr)}` : `Date: ${dateStr}`;
+
+    const reportTitle = t('itemRate.print.tariffManifest');
+
+    const rowsHTML = filteredRates.map((rate, idx) => {
+      const serial = isGu ? toGujaratiDigits(idx + 1) : String(idx + 1);
+      const name = isGu ? (rate.item_name_gu || rate.item_name || '') : (rate.item_name || rate.item_name_gu || '');
+      const code = rate.item_code || '—';
+
+      const val = parseFloat(rate.sale_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      const rateVal = isGu ? `₹${toGujaratiDigits(val)}` : `₹${val}`;
+
+      let dateVal = '—';
+      if (rate.effective_from) {
+        const d = new Date(rate.effective_from);
+        const dStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        dateVal = isGu ? toGujaratiDigits(dStr) : dStr;
+      }
+
+      const statusVal = rate.is_pending_rate ? t('itemRate.table.pending') : (rate.is_active === 1 ? t('itemRate.table.verified') : t('itemRate.table.redacted'));
+
+      const fontStyle = isGu ? "font-family:'Prompt', 'Noto Sans Gujarati', sans-serif;" : "font-family:Arial, sans-serif;";
+      const nameStyle = isGu ? "font-family:'Prompt', 'Noto Sans Gujarati', sans-serif;" : "font-family:Arial, sans-serif;";
+
+      return `
+        <tr>
+          <td style="text-align: center; ${fontStyle}">${serial}</td>
+          <td style="${nameStyle}">${name}</td>
+          <td style="text-align: center; font-family: Arial, sans-serif;">${code}</td>
+          <td style="text-align: right; ${fontStyle}">${rateVal}</td>
+          <td style="text-align: center; font-family: Arial, sans-serif;">${dateVal}</td>
+          <td style="text-align: center; ${fontStyle}">${statusVal}</td>
+        </tr>
+      `;
+    }).join('');
 
     const win = window.open('', '_blank', 'width=1100,height=800');
-    win.document.write(`<html><head><title>${t('itemRate.print.tariffManifest')}</title>
-      <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:Arial,sans-serif;font-size:10px;color:#18181b;padding:30px}
-        .logo-bar{background:#2563eb;color:#fff;padding:8px 15px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-radius:0}
-        .logo-bar h1{font-size:12px;font-weight:900;text-transform:uppercase}
-        .logo-bar span{font-size:8px;color:#dbeafe}
-        h2{font-size:16px;font-weight:bold;text-transform:uppercase;margin-bottom:4px;color:#18181b}
-        p.sub{font-size:8px;color:#71717a;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px}
-        table{width:100%;border-collapse:collapse;border:1px solid #18181b}
-        th{padding:8px;font-size:9px;font-weight:bold;text-transform:uppercase;background:#f4f4f5;border:1px solid #18181b;text-align:left}
-        td{font-size:10px}
-        @media print{@page{size:A4 portrait;margin:0}}
-      </style></head><body>
-      <div class='logo-bar'><h1>${cName}</h1><span>${t('itemRate.print.tariffManifest')} &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
-      <h2>${t('itemRate.print.tariffManifest')}</h2>
-      <p class='sub'>${t('memberMaster.status')}: ${(selectedStatus === 'all' ? t('common.all') : t(`itemRate.table.${selectedStatus}`))} &nbsp;|&nbsp; ${t('dangarMaster.records')}: ${filteredRates.length} &nbsp;|&nbsp; ${t('itemRate.pdf.generated')}: ${new Date().toLocaleString('en-IN')}</p>
-      <table>
-        <thead><tr><th>${t('itemRate.table.nomenclature')}</th><th>${t('itemRate.table.systemId')}</th><th style="text-align:right">${t('itemRate.table.yieldIndex')} (₹)</th><th style="text-align:center">${t('itemRate.table.timeline')}</th><th style="text-align:center">${t('itemRate.table.auditStatus')}</th></tr></thead>
-        <tbody>${rows.join('')}</tbody>
-      </table></body></html>`);
-    win.document.close(); win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
+    win.document.write(`
+      <html>
+        <head>
+          <title>${reportTitle}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+            
+            @font-face {
+              font-family: 'Prompt';
+              src: url('/fonts/Prompt.ttf') format('truetype');
+              font-weight: normal;
+              font-style: normal;
+            }
+
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: 'Outfit', 'Noto Sans Gujarati', Arial, sans-serif;
+              padding: 30px;
+              background: #ffffff;
+              color: #000000;
+            }
+            .pdf-report-container {
+              border: 2.5px solid #000000;
+              overflow: hidden;
+              background: #ffffff;
+            }
+            .pdf-header-company {
+              border-bottom: 1.5px solid #000000;
+              padding: 12px;
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              font-family: 'Prompt', 'Noto Sans Gujarati', 'Outfit', sans-serif;
+              color: #000000;
+            }
+            .pdf-header-title {
+              border-bottom: 1.5px solid #000000;
+              padding: 8px;
+              text-align: center;
+              font-size: 14px;
+              font-weight: bold;
+              font-family: 'Noto Sans Gujarati', 'Outfit', sans-serif;
+              color: #000000;
+            }
+            .pdf-info-bar {
+              border-bottom: 1.5px solid #000000;
+              padding: 8px 12px;
+              display: flex;
+              justify-content: flex-end;
+              align-items: center;
+              background: #ffffff;
+            }
+            .pdf-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .pdf-table th, .pdf-table td {
+              border: 1.5px solid #000000 !important;
+              padding: 8px 10px;
+              font-size: 12px;
+              color: #000000;
+            }
+            .pdf-table th {
+              font-weight: bold;
+              background: #ffffff;
+              border-top: none !important;
+            }
+            /* Remove outer borders of the table to merge with the container's border */
+            .pdf-table th:first-child, .pdf-table td:first-child {
+              border-left: none !important;
+            }
+            .pdf-table th:last-child, .pdf-table td:last-child {
+              border-right: none !important;
+            }
+            .pdf-table tr:last-child td {
+              border-bottom: none !important;
+            }
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 20mm;
+              }
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-report-container">
+            <div class="pdf-header-company">${companyName}</div>
+            <div class="pdf-header-title">${reportTitle}</div>
+            <div class="pdf-info-bar">
+              <div style="font-size:12px; font-weight:bold; color:#000000; display:flex; gap:16px;">
+                <span>${formattedDate}</span>
+                ${formattedFY ? `<span>|</span> <span>${formattedFY}</span>` : ''}
+              </div>
+            </div>
+            <table class="pdf-table">
+              <thead>
+                <tr>
+                  <th style="width: 8%; text-align: center;">#</th>
+                  <th style="width: 35%; text-align: left;">${t('itemRate.table.nomenclature')}</th>
+                  <th style="width: 15%; text-align: center;">${t('itemRate.table.systemId')}</th>
+                  <th style="width: 15%; text-align: right;">${t('itemRate.table.yieldIndex')}</th>
+                  <th style="width: 15%; text-align: center;">${t('itemRate.table.timeline')}</th>
+                  <th style="width: 12%; text-align: center;">${t('itemRate.table.auditStatus')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHTML}
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 400);
   };
+
 
   if (!company) {
     return <Loading />;
@@ -370,7 +475,7 @@ export default function ItemRate() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
-      
+
       <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -391,67 +496,66 @@ export default function ItemRate() {
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
-             <div className="flex items-center gap-2">
-                <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
-                   {t('itemRate.title')}
-                </span>
-                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
-                   {filteredRates.length} {t('itemRate.table.nomenclature')}
-                </span>
-             </div>
-             
-             <div className="flex items-center gap-2 flex-wrap">
-               {/* Search */}
-               <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
-                 <Search size={12} className="text-slate-400 mr-1.5" />
-                 <input
-                   type="text"
-                   placeholder={t('itemRate.searchPlaceholder')}
-                   value={searchTerm}
-                   onChange={handleSearch}
-                   className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold font-mono"
-                 />
-                 {searchTerm && (
-                   <button onClick={() => { setSearchTerm(''); applyFilters(rates, '', selectedStatus); }} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
-                     <X size={10} />
-                   </button>
-                 )}
-               </div>
-               
-               {/* Status Filters */}
-               <div className="flex items-center border border-slate-200 bg-white rounded-md p-0.5">
-                 {['active', 'inactive', 'all'].map(status => (
-                   <button
-                     key={status}
-                     onClick={() => handleStatusFilter(status)}
-                     className={`px-2.5 py-1 text-[10px] font-bold uppercase select-none transition-all rounded-sm ${
-                       selectedStatus === status 
-                         ? 'bg-[#1d5f84] text-white' 
-                         : 'bg-transparent text-slate-600 hover:bg-slate-100'
-                     }`}
-                   >
-                     {t(`itemRate.table.${status}`)}
-                   </button>
-                 ))}
-               </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                {t('itemRate.title')}
+              </span>
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                {filteredRates.length} {t('itemRate.table.nomenclature')}
+              </span>
+            </div>
 
-               {/* Add/Export Actions */}
-               <div className="flex items-center gap-1.5 ml-1">
-                 <button onClick={() => fetchRates(company.id)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('itemRate.syncVectors')}>
-                   <RefreshCcw size={13} className={loading ? 'animate-spin' : ''} />
-                 </button>
-                 <button onClick={handleExportPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('common.pdf')}>
-                   <FileText size={13} />
-                 </button>
-                 <button onClick={handlePrint} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('dangarMaster.print')}>
-                   <Printer size={13} />
-                 </button>
-                 <button onClick={() => { setEditingRate(null); setShowForm(true); }} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
-                   <Plus size={13} />
-                   <span>{t('itemRate.initializeTariff')}</span>
-                 </button>
-               </div>
-             </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Search */}
+              <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                <Search size={12} className="text-slate-400 mr-1.5" />
+                <input
+                  type="text"
+                  placeholder={t('itemRate.searchPlaceholder')}
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold font-mono"
+                />
+                {searchTerm && (
+                  <button onClick={() => { setSearchTerm(''); applyFilters(rates, '', selectedStatus); }} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filters */}
+              <div className="flex items-center border border-slate-200 bg-white rounded-md p-0.5">
+                {['active', 'inactive', 'all'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => handleStatusFilter(status)}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase select-none transition-all rounded-sm ${selectedStatus === status
+                        ? 'bg-[#1d5f84] text-white'
+                        : 'bg-transparent text-slate-600 hover:bg-slate-100'
+                      }`}
+                  >
+                    {t(`itemRate.table.${status}`)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Add/Export Actions */}
+              <div className="flex items-center gap-1.5 ml-1">
+                <button onClick={() => fetchRates(company.id)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('itemRate.syncVectors')}>
+                  <RefreshCcw size={13} className={loading ? 'animate-spin' : ''} />
+                </button>
+                <button onClick={handleExportPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('common.pdf')}>
+                  <FileText size={13} />
+                </button>
+                <button onClick={handlePrint} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('dangarMaster.print')}>
+                  <Printer size={13} />
+                </button>
+                <button onClick={() => { setEditingRate(null); setShowForm(true); }} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
+                  <Plus size={13} />
+                  <span>{t('itemRate.initializeTariff')}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="overflow-x-auto w-full">
@@ -558,7 +662,7 @@ export default function ItemRate() {
                 </div>
               ))}
             </div>
-            
+
             <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button onClick={() => setShowHistory(false)} className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer">{t('common.close') || 'Close'}</button>
             </div>

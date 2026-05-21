@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
+import { exportToPDF, toGujaratiDigits } from '../utils/pdfExporter';
 import {
    TrendingUp, TrendingDown, DollarSign, PieChart,
    ArrowUpRight, ArrowDownLeft, Calendar, FileText,
@@ -11,7 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function ProfitLoss() {
-   const { t } = useTranslation();
+   const { t, i18n } = useTranslation();
    const [plData, setPlData] = useState(null);
    const [monthlyData, setMonthlyData] = useState([]);
    const [loading, setLoading] = useState(true);
@@ -93,9 +94,179 @@ export default function ProfitLoss() {
       });
    };
 
-   const handlePrint = () => {
-      window.print();
-   };
+    const handlePrint = () => {
+       window.print();
+    };
+
+    const handleExportPDF = async () => {
+       if (viewMode === 'summary') {
+          if (!plData) return;
+          const isGu = i18n.language === 'gu';
+          
+          const fmtNum = (value, digits = 2) => {
+             const n = parseFloat(value || 0);
+             const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+             return isGu ? toGujaratiDigits(formatted) : formatted;
+          };
+
+          const expItems = [];
+          expItems.push({ name: isGu ? 'ખરીદી (વેચેલ માલની પડતર)' : 'Purchases (COGS)', amount: plData?.costOfGoodsSold?.netCostOfGoodsSold || 0 });
+          if (plData.expenseAccounts) {
+             plData.expenseAccounts.forEach(acc => {
+                expItems.push({ name: isGu ? (acc.account_name_gu || acc.account_name) : acc.account_name, amount: acc.amount });
+             });
+          }
+          if (plData.netProfit > 0) {
+             expItems.push({ name: isGu ? 'ચોખ્ખો નફો' : 'Net Profit', amount: plData.netProfit, expIsTotal: true });
+          }
+
+          const incItems = [];
+          incItems.push({ name: isGu ? 'વેચાણ' : 'Sales', amount: plData?.revenue?.netSales || 0 });
+          if (plData.incomeAccounts) {
+             plData.incomeAccounts.forEach(acc => {
+                incItems.push({ name: isGu ? (acc.account_name_gu || acc.account_name) : acc.account_name, amount: acc.amount });
+             });
+          }
+          if (plData.netProfit < 0) {
+             incItems.push({ name: isGu ? 'ચોખ્ખી ખોટ' : 'Net Loss', amount: Math.abs(plData.netProfit), incIsTotal: true });
+          }
+
+          const pdfRows = [];
+          const maxLen = Math.max(expItems.length, incItems.length);
+          for (let i = 0; i < maxLen; i++) {
+             const exp = expItems[i] || { name: '', amount: null };
+             const inc = incItems[i] || { name: '', amount: null };
+             pdfRows.push({
+                expName: exp.name,
+                expAmount: exp.amount,
+                expIsTotal: exp.expIsTotal,
+                incName: inc.name,
+                incAmount: inc.amount,
+                incIsTotal: inc.incIsTotal
+             });
+          }
+
+          const totalVal = Math.max(
+             (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+             (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+          );
+
+          pdfRows.push({
+             _isTotals: true,
+             expName: isGu ? 'સરવાળો' : 'Total',
+             expAmount: totalVal,
+             incName: isGu ? 'સરવાળો' : 'Total',
+             incAmount: totalVal
+          });
+
+          const columns = [
+             {
+                header: isGu ? 'ખર્ચ વિગત (ઉધાર)' : 'Expenditure (Debit)',
+                align: 'left',
+                width: '35%',
+                render: (row) => row.expIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">${row.expName}</strong>` : row.expName
+             },
+             {
+                header: isGu ? 'રકમ' : 'Amount',
+                align: 'right',
+                width: '15%',
+                render: (row) => {
+                   if (row.expAmount === null || row.expAmount === undefined) return '';
+                   const val = parseFloat(row.expAmount);
+                   return row.expIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
+                }
+             },
+             {
+                header: isGu ? 'આવક વિગત (જમા)' : 'Income (Credit)',
+                align: 'left',
+                width: '35%',
+                render: (row) => row.incIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">${row.incName}</strong>` : row.incName
+             },
+             {
+                header: isGu ? 'રકમ' : 'Amount',
+                align: 'right',
+                width: '15%',
+                render: (row) => {
+                   if (row.incAmount === null || row.incAmount === undefined) return '';
+                   const val = parseFloat(row.incAmount);
+                   return row.incIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
+                }
+             }
+          ];
+
+          const periodStr = `${startDate} — ${endDate}`;
+
+          await exportToPDF({
+             title: isGu ? 'નફા-નુકસાન અહેવાલ' : 'Profit & Loss Statement',
+             columns,
+             rows: pdfRows,
+             isGu,
+             metaInfo: [
+                { label: isGu ? 'સમયગાળો' : 'Period', value: isGu ? toGujaratiDigits(periodStr) : periodStr }
+             ],
+             filename: `${isGu ? 'નફા_નુકસાન_અહેવાલ' : 'Profit_Loss_Report'}_${startDate}_${endDate}.pdf`
+          });
+       } else {
+          if (monthlyData.length === 0) return;
+          const isGu = i18n.language === 'gu';
+          
+          const fmtNum = (value, digits = 2) => {
+             const n = parseFloat(value || 0);
+             const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+             return isGu ? toGujaratiDigits(formatted) : formatted;
+          };
+
+          const monthNamesGu = ['જાન્યુઆરી', 'ફેબ્રુઆરી', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટેમ્બર', 'ઓક્ટોબર', 'નવેમ્બર', 'ડિસેમ્બર'];
+          const monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+          const columns = [
+             {
+                header: isGu ? 'માસ' : 'Month',
+                align: 'left',
+                width: '25%',
+                render: (row) => isGu ? monthNamesGu[row.month - 1] : monthNamesEn[row.month - 1]
+             },
+             {
+                header: isGu ? 'આવક' : 'Revenue',
+                align: 'right',
+                width: '20%',
+                render: (row) => `₹${fmtNum(row.netSales)}`
+             },
+             {
+                header: isGu ? 'પડતર' : 'Cost of Goods Sold (COGS)',
+                align: 'right',
+                width: '20%',
+                render: (row) => `₹${fmtNum(row.netCOGS)}`
+             },
+             {
+                header: isGu ? 'ચોખ્ખો નફો' : 'Gross Profit',
+                align: 'right',
+                width: '20%',
+                render: (row) => `₹${fmtNum(row.grossProfit)}`
+             },
+             {
+                header: isGu ? 'નફાની ટકાવારી' : 'Yield',
+                align: 'right',
+                width: '15%',
+                render: (row) => {
+                   const yieldRate = row.netSales > 0 ? ((row.grossProfit / row.netSales) * 100).toFixed(1) : '0.0';
+                   return isGu ? `${toGujaratiDigits(yieldRate)}%` : `${yieldRate}%`;
+                }
+             }
+          ];
+
+          await exportToPDF({
+             title: isGu ? 'માસિક નફા-નુકસાન અહેવાલ' : 'Monthly Profit & Loss Heatmap',
+             columns,
+             rows: monthlyData,
+             isGu,
+             metaInfo: [
+                { label: isGu ? 'વર્ષ' : 'Year', value: isGu ? toGujaratiDigits(new Date(startDate).getFullYear()) : new Date(startDate).getFullYear() }
+             ],
+             filename: `${isGu ? 'માસિક_નફા_નુકસાન' : 'Monthly_Profit_Loss'}_${new Date(startDate).getFullYear()}.pdf`
+          });
+       }
+    };
 
    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -167,6 +338,13 @@ export default function ProfitLoss() {
                         className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
                      >
                         <Printer size={13} className="text-slate-500" />
+                     </button>
+                     <button
+                        onClick={handleExportPDF}
+                        title={i18n.language === 'gu' ? 'પીડીએફ ડાઉનલોડ' : 'Download PDF'}
+                        className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                     >
+                        <FileText size={13} className="text-slate-500" />
                      </button>
                      <button
                         onClick={fetchProfitLoss}

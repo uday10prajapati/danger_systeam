@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { exportToPDF } from '../utils/pdfExporter';
 import {
   Plus, Search, Download, Package, PackageX,
   Edit3, Trash2, Power, RefreshCcw, Database, Shield,
@@ -223,111 +222,80 @@ export default function ItemMaster() {
   };
 
   const handleExportPDF = async () => {
-    setLoading(true);
-
-    const cName = company ? (company.company_name || 'Company') : 'Company';
-    const reportTitle = isGu ? 'વસ્તુ માસ્ટર' : 'Item Master';
     const rows = filteredItems.length ? filteredItems : items;
 
     if (!rows.length) {
       setMessage({ type: 'error', text: t('itemMaster.noRecords') });
-      setLoading(false);
       return;
     }
 
-    const tempWrap = document.createElement('div');
-    tempWrap.style.position = 'fixed';
-    tempWrap.style.left = '-10000px';
-    tempWrap.style.top = '0';
-    tempWrap.style.width = '1300px';
-    tempWrap.style.background = '#fff';
-    tempWrap.style.color = '#111827';
-    tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif';
-    tempWrap.style.padding = '24px';
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : '#',
+        align: 'center',
+        width: '8%',
+        render: (row, idx) => isGu ? toGujaratiDigits(idx + 1) : (idx + 1)
+      },
+      {
+        header: isGu ? 'વસ્તુનું નામ' : 'Item Name',
+        align: 'left',
+        width: '35%',
+        render: (row) => displayItemName(row) || '',
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'કોડ' : 'Code',
+        align: 'center',
+        width: '12%',
+        render: (row) => isGu ? toGujaratiDigits(row.item_code || '') : (row.item_code || '')
+      },
+      {
+        header: isGu ? 'શ્રેણી' : 'Category',
+        align: 'left',
+        width: '15%',
+        render: (row) => row.category || ''
+      },
+      {
+        header: isGu ? 'એકમ' : 'Unit',
+        align: 'center',
+        width: '10%',
+        render: (row) => t(`units.${row.unit}`) || row.unit || ''
+      },
+      {
+        header: isGu ? 'કર %' : 'Tax %',
+        align: 'center',
+        width: '10%',
+        render: (row) => isGu ? toGujaratiDigits((parseFloat(row.tax_percentage) || 0).toFixed(2)) + '%' : (parseFloat(row.tax_percentage) || 0).toFixed(2) + '%'
+      },
+      {
+        header: isGu ? 'સ્થિતિ' : 'Status',
+        align: 'center',
+        width: '10%',
+        render: (row) => row.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')
+      }
+    ];
 
-    const tableRows = rows.map((item, idx) => `
-      <tr>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family:${isGu ? "'Prompt','Noto Sans Gujarati',sans-serif" : "Arial,sans-serif"} !important;font-weight:bold;">${displayItemName(item)}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;font-family:monospace;">${toGujaratiDigits(item.item_code || '')}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;">${item.category || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${t(`units.${item.unit}`) || item.unit || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;font-family:monospace;">${toGujaratiDigits((parseFloat(item.tax_percentage) || 0).toFixed(2))}%</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${item.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')}</td>
-      </tr>
-    `).join('');
+    const metaInfo = [
+      {
+        label: isGu ? 'કુલ વસ્તુઓ' : 'Total Items',
+        value: isGu ? toGujaratiDigits(rows.length) : rows.length
+      },
+      {
+        label: isGu ? 'સ્થિતિ ફિલ્ટર' : 'Status Filter',
+        value: statusFilter === 'all' ? (isGu ? 'બધા' : 'All') : (statusFilter === 'active' ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive'))
+      }
+    ];
 
-    tempWrap.innerHTML = `
-      <div style="border:1px solid #cbd5e1;">
-        <div style="background:#1d5f84;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:18px;font-weight:700;">${cName}</div>
-          <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
-        </div>
-        <div style="padding:18px;">
-          <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">કુલ વસ્તુઓ: ${toGujaratiDigits(rows.length)} | સ્થિતિ: ${statusFilter === 'all' ? 'બધા' : (statusFilter === 'active' ? 'સક્રિય' : 'નિષ્ક્રિય')}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">ક્રમ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">વસ્તુનું નામ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">કોડ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">શ્રેણી</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">એકમ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">કર %</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">સ્થિતિ</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(tempWrap);
-
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const canvas = await html2canvas(tempWrap, {
-      scale: 3,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      allowTaint: false,
-      logging: false
+    await exportToPDF({
+      title: isGu ? 'વસ્તુ માસ્ટર' : 'Item Master',
+      columns,
+      rows,
+      isGu,
+      metaInfo,
+      filename: `Item_Master_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
     });
-    document.body.removeChild(tempWrap);
-
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 24;
-    const imgW = pageW - margin * 2;
-    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
-
-    let y = 0;
-    let pageIndex = 0;
-    while (y < canvas.height) {
-      const sliceHeight = Math.min(pageHpx, canvas.height - y);
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sliceHeight;
-      const ctx = pageCanvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-      const imgData = pageCanvas.toDataURL('image/png');
-      const imgH = (sliceHeight * imgW) / canvas.width;
-
-      if (pageIndex > 0) doc.addPage();
-      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
-
-      y += sliceHeight;
-      pageIndex += 1;
-    }
-
-    doc.save(`Item_Master_${new Date().toISOString().split('T')[0]}.pdf`);
-    setLoading(false);
   };
 
   const filteredItems = items.filter(i => {

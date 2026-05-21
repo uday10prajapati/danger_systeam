@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { exportToPDF } from '../utils/pdfExporter';
 import {
   Plus, Edit2, Trash2, Eye, X, Download, Database, Shield,
   Search, Loader, FileText, Power, RefreshCcw, Building2,
@@ -245,121 +244,89 @@ export default function AccountMaster() {
   };
 
   const handleExportPDF = async () => {
-    setLoading(true);
-
-    const cName = company ? (company.company_name || 'Company') : 'Company';
-    const reportTitle = isGu ? 'ખાતા માસ્ટર' : 'Account Master';
     const rows = filteredAccounts.length ? filteredAccounts : accounts;
 
     if (!rows.length) {
       setMessage({ type: 'error', text: t('accountMaster.noRecords') });
-      setLoading(false);
       return;
     }
 
-    const totalDebit = rows.filter(a => a.balance_type === 'debit').reduce((s, a) => s + parseFloat(a.closing_balance || 0), 0);
-    const totalCredit = rows.filter(a => a.balance_type === 'credit').reduce((s, a) => s + parseFloat(a.closing_balance || 0), 0);
+    const rowsDebit = rows.filter(a => a.balance_type === 'debit').reduce((s, a) => s + parseFloat(a.closing_balance || 0), 0);
+    const rowsCredit = rows.filter(a => a.balance_type === 'credit').reduce((s, a) => s + parseFloat(a.closing_balance || 0), 0);
 
-    const tempWrap = document.createElement('div');
-    tempWrap.style.position = 'fixed';
-    tempWrap.style.left = '-10000px';
-    tempWrap.style.top = '0';
-    tempWrap.style.width = '1400px';
-    tempWrap.style.background = '#fff';
-    tempWrap.style.color = '#111827';
-    tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif';
-    tempWrap.style.padding = '24px';
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : '#',
+        align: 'center',
+        width: '8%',
+        render: (row, idx) => isGu ? toGujaratiDigits(idx + 1) : (idx + 1)
+      },
+      {
+        header: isGu ? 'ખાતાનું નામ' : 'Account Name',
+        align: 'left',
+        width: '35%',
+        render: (row) => displayAccountName(row) || '',
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'ખાતા કોડ' : 'Account Code',
+        align: 'center',
+        width: '15%',
+        render: (row) => isGu ? toGujaratiDigits(row.account_code || row.id || '') : (row.account_code || row.id || '')
+      },
+      {
+        header: isGu ? 'હિસાબ પ્રકાર' : 'Account Type',
+        align: 'left',
+        width: '18%',
+        render: (row) => t(`accountMaster.types.${row.account_type}`) || row.account_type || ''
+      },
+      {
+        header: isGu ? 'સ્થિતિ' : 'Status',
+        align: 'center',
+        width: '10%',
+        render: (row) => row.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')
+      },
+      {
+        header: isGu ? 'બંધ નાણું' : 'Closing Balance',
+        align: 'right',
+        width: '14%',
+        render: (row) => {
+          const bal = parseFloat(row.closing_balance) || 0;
+          const type = row.balance_type === 'credit' ? (isGu ? ' જમા' : ' CR') : row.balance_type === 'debit' ? (isGu ? ' ઉધાર' : ' DR') : '';
+          return `₹${fmtAmount(bal)}${type}`;
+        }
+      }
+    ];
 
-    const tableRows = rows.map((acc, idx) => `
-      <tr>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${isGu ? toGujaratiDigits(idx + 1) : (idx + 1)}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', sans-serif;font-weight: bold;">${displayAccountName(acc) || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;font-family: monospace;">${isGu ? toGujaratiDigits(acc.account_code || acc.id || '') : (acc.account_code || acc.id || '')}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;">${t(`accountMaster.types.${acc.account_type}`) || acc.account_type || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${acc.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;font-family: monospace;font-weight: bold;">₹${toGujaratiDigits(parseFloat(acc.closing_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${acc.balance_type === 'credit' ? (isGu ? 'જમા' : 'CR') : acc.balance_type === 'debit' ? (isGu ? 'ઉધાર' : 'DR') : (isGu ? 'શૂન્ય' : '—')}</td>
-      </tr>
-    `).join('');
+    const metaInfo = [
+      {
+        label: isGu ? 'કુલ ખાતાઓ' : 'Total Accounts',
+        value: isGu ? toGujaratiDigits(rows.length) : rows.length
+      },
+      {
+        label: isGu ? 'કુલ ઉધાર બાકી' : 'Total Debit',
+        value: `₹${fmtAmount(rowsDebit)}`
+      },
+      {
+        label: isGu ? 'કુલ જમા બાકી' : 'Total Credit',
+        value: `₹${fmtAmount(rowsCredit)}`
+      },
+      {
+        label: isGu ? 'ફિલ્ટર' : 'Filter',
+        value: selectedType === 'all' ? (isGu ? 'બધા' : 'All') : selectedType
+      }
+    ];
 
-    tempWrap.innerHTML = `
-      <div style="border:1px solid #cbd5e1;">
-        <div style="background:#1d5f84;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:18px;font-weight:700;">${cName}</div>
-          <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
-        </div>
-        <div style="padding:18px;">
-          <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">${isGu ? 'કુલ ખાતાઓ' : 'Total Accounts'}: ${isGu ? toGujaratiDigits(rows.length) : rows.length} | ${isGu ? 'ફિલ્ટર' : 'Filter'}: ${selectedType === 'all' ? (isGu ? 'બધા' : 'All') : selectedType}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ક્રમ' : '#'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ખાતાનું નામ' : 'Account Name'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ખાતા કોડ' : 'Account Code'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'હિસાબ પ્રકાર' : 'Account Type'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'સ્થિતિ' : 'Status'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">${isGu ? 'બંધ નાણું' : 'Closing Balance'}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ડીબીટ/જમા' : 'DR/CR'}</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-            <tfoot>
-              <tr style="background:#f3f4f6;font-weight:700;">
-                <td colspan="5" style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">કુલ જોડ:</td>
-                <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">${toGujaratiDigits((totalDebit + totalCredit).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</td>
-                <td style="padding:8px 10px;border:1px solid #d1d5db;"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(tempWrap);
-
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const canvas = await html2canvas(tempWrap, {
-      scale: 3,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      allowTaint: false,
-      logging: false
+    await exportToPDF({
+      title: isGu ? 'ખાતા માસ્ટર' : 'Account Master',
+      columns,
+      rows,
+      isGu,
+      metaInfo,
+      filename: `Account_Master_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
     });
-    document.body.removeChild(tempWrap);
-
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 24;
-    const imgW = pageW - margin * 2;
-    const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
-
-    let y = 0;
-    let pageIndex = 0;
-    while (y < canvas.height) {
-      const sliceHeight = Math.min(pageHpx, canvas.height - y);
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sliceHeight;
-      const ctx = pageCanvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-      const imgData = pageCanvas.toDataURL('image/png');
-      const imgH = (sliceHeight * imgW) / canvas.width;
-
-      if (pageIndex > 0) doc.addPage();
-      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
-
-      y += sliceHeight;
-      pageIndex += 1;
-    }
-
-    doc.save(`Account_Master_${new Date().toISOString().split('T')[0]}.pdf`);
-    setLoading(false);
   };
 
   const filteredAccounts = accounts.filter(acc => {

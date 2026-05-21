@@ -5,14 +5,11 @@ import {
   TrendingUp, Scale, Box, Loader, Info, Edit3, X, FileText, Printer
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import api from '../api';
-import { addGujaratiFont } from '../utils/pdfFonts';
 import Toast from '../components/Toast';
-import html2canvas from 'html2canvas';
 import Loading from '../components/Loading';
 import { formatBilingualText } from '../utils/textUtils';
+import { exportToPDF } from '../utils/pdfExporter';
 
 
 export default function DangarRateMaster() {
@@ -67,6 +64,7 @@ export default function DangarRateMaster() {
   const seasonYearRef = useRef(null);
 
   useEffect(() => {
+    localStorage.setItem('financialYear', financialYear);
     loadInitialData();
     setCurrentPage(1);
   }, [financialYear]);
@@ -199,71 +197,194 @@ export default function DangarRateMaster() {
     (item.item_code || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const buildRateTableHTML = (forPrint = false) => {
-    const cName = companyName || 'Company';
-    const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
-    const toGu = (num) => String(num || '').replace(/[0-9]/g, d => guDigits[d] || d);
+  const handlePrint = () => {
+    if (filteredItems.length === 0) {
+      setMessage({ type: 'error', text: t('dangarRateMaster.errors.syncFailure') });
+      return;
+    }
 
-    const tableRows = filteredItems.map((item, i) => {
+    const isGu = i18n.language === 'gu';
+
+    // Fetch Company Information from localStorage or fallback to state
+    const companyData = JSON.parse(localStorage.getItem('company') || '{}');
+    const companyHeaderName = isGu
+      ? (companyData.company_name_gu || companyData.company_name || companyName || '')
+      : (companyData.company_name || companyData.company_name_gu || companyName || '');
+
+    // Get current financial year
+    const formattedFY = financialYear ? (isGu ? `વર્ષ : ${toGu(financialYear)}` : `FY: ${financialYear}`) : '';
+
+    // Generate today's date string
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const dateStr = `${day}/${month}/${year}`;
+    const formattedDate = isGu ? `તારીખ: ${toGu(dateStr)}` : `Date: ${dateStr}`;
+
+    const reportTitle = t('dangarRateMaster.pdf.title') || 'વાર્ષિક ડાંગર દર રજિસ્ટ્રી';
+
+    const rowsHTML = filteredItems.map((item, idx) => {
+      const serial = isGu ? toGu(idx + 1) : String(idx + 1);
       const rateObj = rates.find(r => r.item_id === item.id);
+      
+      const itemName = displayRateItemName(item, rateObj);
+      const sku = item.item_code || '—';
+      const category = displayCategory(item) || '—';
+
+      const rateVal1 = rateObj ? parseFloat(rateObj.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00';
+      const rateVal2 = rateObj ? parseFloat(rateObj.winter_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00';
+      const rateVal3 = rateObj ? parseFloat(rateObj.summer_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00';
+
+      const class1 = isGu ? `₹${toGu(rateVal1)}` : `₹${rateVal1}`;
+      const class2 = isGu ? `₹${toGu(rateVal2)}` : `₹${rateVal2}`;
+      const class3 = isGu ? `₹${toGu(rateVal3)}` : `₹${rateVal3}`;
+
+      const fontStyle = isGu ? "font-family:'Prompt', 'Noto Sans Gujarati', sans-serif;" : "font-family:Arial, sans-serif;";
+      const nameStyle = isGu ? "font-family:'Prompt', 'Noto Sans Gujarati', sans-serif;" : "font-family:Arial, sans-serif;";
+
       return `
-         <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}; border-bottom: 1px solid #e2e8f0;">
-           <td style="padding:10px; font-family:${isGu ? "'Prompt', 'Noto Sans Gujarati', sans-serif" : "Arial, sans-serif"}; font-weight:700; font-size: 13px; color: #1e293b;">${displayRateItemName(item, rateObj)}</td>
-           <td style="padding:10px; text-align:center; font-family:Arial, sans-serif; font-size: 12px; color: #64748b;">${item.item_code || '-'}</td>
-           <td style="padding:10px; text-align:right; font-family:Arial, sans-serif; font-weight:700; font-size: 13px; color: #0f172a;">₹${parseFloat(rateObj?.rate || 0).toFixed(2)}</td>
-           <td style="padding:10px; text-align:right; font-family:Arial, sans-serif; font-weight:700; font-size: 13px; color: #0f172a;">₹${parseFloat(rateObj?.winter_rate || 0).toFixed(2)}</td>
-           <td style="padding:10px; text-align:right; font-family:Arial, sans-serif; font-weight:700; font-size: 13px; color: #0f172a;">₹${parseFloat(rateObj?.summer_rate || 0).toFixed(2)}</td>
-         </tr>`;
+        <tr>
+          <td style="text-align: center; ${fontStyle}">${serial}</td>
+          <td style="text-align: center; font-family: Arial, sans-serif;">${sku}</td>
+          <td style="${nameStyle}">${itemName}</td>
+          <td style="${nameStyle}">${category}</td>
+          <td style="text-align: right; ${fontStyle}">${class1}</td>
+          <td style="text-align: right; ${fontStyle}">${class2}</td>
+          <td style="text-align: right; ${fontStyle}">${class3}</td>
+        </tr>
+      `;
     }).join('');
 
-    return `
-      <div style="border:1px solid #cbd5e1; background:#fff; font-family:'Noto Sans Gujarati', 'NotoGujarati', Arial, sans-serif; width: 850px;">
-        <div style="background:#2563eb; color:#fff; padding:20px 30px; display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:24px; font-weight:900; font-family:'Prompt', sans-serif;">${cName}</div>
-          <div style="font-size:14px; font-weight:700; letter-spacing:1px; opacity:0.9;">${t('dangarRateMaster.pdf.title')}</div>
-        </div>
-        
-        <div style="padding:30px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#64748b; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid #f1f5f9;">
-            <div>${t('dangarRateMaster.financialYear')}: <b style="color:#0f172a;">${financialYear}</b></div>
-            <div>${t('itemMaster.totalItems')}: <b style="color:#0f172a;">${filteredItems.length}</b></div>
-            <div>${t('dangarRateMaster.pdf.generated')}: <b style="color:#0f172a;">${new Date().toLocaleString('en-IN')}</b></div>
-          </div>
-          
-          <table style="width:100%; border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f8fafc; border-bottom: 2px solid #e2e8f0;">
-                <th style="padding:12px 10px; text-align:left; font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">${t('dangarRateMaster.table.itemName')}</th>
-                <th style="padding:12px 10px; text-align:center; font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">${t('dangarRateMaster.table.sku')}</th>
-                <th style="padding:12px 10px; text-align:right; font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">${t('dangarRateMaster.table.class1')}</th>
-                <th style="padding:12px 10px; text-align:right; font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">${t('dangarRateMaster.table.class2')}</th>
-                <th style="padding:12px 10px; text-align:right; font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">${t('dangarRateMaster.table.class3')}</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-          
-          <div style="margin-top:20px; background:#1e40af; color:#fff; padding:12px 20px; font-size:13px; font-weight:700; display:flex; justify-content:flex-end;">
-            ${t('dangarRateMaster.pdf.totalItems')}: ${filteredItems.length}
-          </div>
-        </div>
-      </div>`;
-  };
-
-  const handlePrint = () => {
-    const cName = companyName || 'Company';
     const win = window.open('', '_blank', 'width=1100,height=800');
-    win.document.write(`<html><head><title>${t('dangarRateMaster.pdf.title')}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap" rel="stylesheet"/>
-      <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#fff;padding:20px;}
-        @media print{@page{size:A4 portrait;margin:1.5cm}}
-      </style></head><body>
-      ${buildRateTableHTML(true)}
-      </body></html>`);
-    win.document.close(); win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 600);
+    win.document.write(`
+      <html>
+        <head>
+          <title>${reportTitle}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+            
+            @font-face {
+              font-family: 'Prompt';
+              src: url('/fonts/Prompt.ttf') format('truetype');
+              font-weight: normal;
+              font-style: normal;
+            }
+
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: 'Outfit', 'Noto Sans Gujarati', Arial, sans-serif;
+              padding: 16px;
+              background: #ffffff;
+              color: #000000;
+            }
+            .pdf-report-container {
+              border: 1.5px solid #000000;
+              overflow: hidden;
+              background: #ffffff;
+            }
+            .pdf-header-company {
+              border-bottom: 1.5px solid #000000;
+              padding: 12px;
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              font-family: 'Prompt', 'Noto Sans Gujarati', 'Outfit', sans-serif;
+              color: #000000;
+            }
+            .pdf-header-title {
+              border-bottom: 1.5px solid #000000;
+              padding: 8px;
+              text-align: center;
+              font-size: 14px;
+              font-weight: bold;
+              font-family: 'Noto Sans Gujarati', 'Outfit', sans-serif;
+              color: #000000;
+            }
+            .pdf-info-bar {
+              border-bottom: 1.5px solid #000000;
+              padding: 8px 12px;
+              display: flex;
+              justify-content: flex-end;
+              align-items: center;
+              background: #ffffff;
+            }
+            .pdf-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .pdf-table th, .pdf-table td {
+              border: 1.5px solid #000000 !important;
+              padding: 8px 10px;
+              font-size: 12px;
+              color: #000000;
+            }
+            .pdf-table th {
+              font-weight: bold;
+              background: #ffffff;
+              border-top: none !important;
+            }
+            /* Remove outer borders of the table to merge with the container's border */
+            .pdf-table th:first-child, .pdf-table td:first-child {
+              border-left: none !important;
+            }
+            .pdf-table th:last-child, .pdf-table td:last-child {
+              border-right: none !important;
+            }
+            .pdf-table tr:last-child td {
+              border-bottom: none !important;
+            }
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 10mm;
+              }
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-report-container">
+            <div class="pdf-header-company">${companyHeaderName}</div>
+            <div class="pdf-header-title">${reportTitle}</div>
+            <div class="pdf-info-bar">
+              <div style="font-size:12px; font-weight:bold; color:#000000; display:flex; gap:16px;">
+                <span>${formattedDate}</span>
+                ${formattedFY ? `<span>|</span> <span>${formattedFY}</span>` : ''}
+              </div>
+            </div>
+            <table class="pdf-table">
+              <thead>
+                <tr>
+                  <th style="width: 6%; text-align: center;">#</th>
+                  <th style="width: 10%; text-align: center;">${t('dangarRateMaster.table.sku') || 'SKU'}</th>
+                  <th style="width: 28%; text-align: left;">${t('dangarRateMaster.table.itemName') || 'Item Name'}</th>
+                  <th style="width: 14%; text-align: left;">${t('dangarRateMaster.table.category') || 'Category'}</th>
+                  <th style="width: 14%; text-align: right;">${t('dangarRateMaster.table.class1') || 'Class 1 Rate'}</th>
+                  <th style="width: 14%; text-align: right;">${t('dangarRateMaster.table.class2') || 'Class 2 Rate'}</th>
+                  <th style="width: 14%; text-align: right;">${t('dangarRateMaster.table.class3') || 'Class 3 Rate'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHTML}
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 600);
   };
 
   const handleExportPDF = async () => {
@@ -271,55 +392,79 @@ export default function DangarRateMaster() {
       setMessage({ type: 'error', text: t('dangarRateMaster.errors.syncFailure') });
       return;
     }
-    setLoading(true);
-    try {
-      const tempWrap = document.createElement('div');
-      tempWrap.style.position = 'fixed';
-      tempWrap.style.left = '-10000px';
-      tempWrap.style.top = '0';
-      tempWrap.style.width = '850px';
-      tempWrap.style.background = '#fff';
-      tempWrap.style.fontFamily = '"Noto Sans Gujarati", "NotoGujarati", "Prompt", Arial, sans-serif';
-      tempWrap.innerHTML = buildRateTableHTML(false);
-      document.body.appendChild(tempWrap);
 
-      // Load fonts before capture
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 600));
-
-      const canvas = await html2canvas(tempWrap, { scale: 3, useCORS: true, backgroundColor: '#fff', logging: false });
-      document.body.removeChild(tempWrap);
-
-      const imgData = canvas.toDataURL('image/png');
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-      const W = doc.internal.pageSize.getWidth();
-      const H = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const imgW = W - margin * 2;
-      const imgH = (canvas.height / canvas.width) * imgW;
-      let yPos = margin;
-      let remaining = imgH;
-      let srcY = 0;
-      const pageH = H - margin * 2;
-      while (remaining > 0) {
-        const sliceH = Math.min(remaining, pageH);
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = (sliceH / imgW) * canvas.width;
-        const ctx = sliceCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, srcY * (canvas.width / imgW), canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
-        doc.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', margin, yPos, imgW, sliceH);
-        remaining -= sliceH;
-        srcY += sliceH;
-        if (remaining > 0) { doc.addPage(); yPos = margin; }
+    const isGu = i18n.language === 'gu';
+    const columns = [
+      {
+        header: '#',
+        align: 'center',
+        width: '6%',
+        render: (item, idx) => isGu ? toGu(idx + 1) : String(idx + 1)
+      },
+      {
+        header: t('dangarRateMaster.table.sku') || 'SKU',
+        align: 'center',
+        width: '10%',
+        render: (item) => item.item_code || '—'
+      },
+      {
+        header: t('dangarRateMaster.table.itemName') || 'Item Name',
+        align: 'left',
+        width: '28%',
+        render: (item) => {
+          const rateObj = rates.find(r => r.item_id === item.id);
+          return displayRateItemName(item, rateObj);
+        },
+        usePromptFont: isGu
+      },
+      {
+        header: t('dangarRateMaster.table.category') || 'Category',
+        align: 'left',
+        width: '14%',
+        render: (item) => displayCategory(item) || '—',
+        usePromptFont: isGu
+      },
+      {
+        header: t('dangarRateMaster.table.class1') || 'Class 1 Rate',
+        align: 'right',
+        width: '14%',
+        render: (item) => {
+          const rateObj = rates.find(r => r.item_id === item.id);
+          const val = parseFloat(rateObj?.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          return isGu ? `₹${toGu(val)}` : `₹${val}`;
+        }
+      },
+      {
+        header: t('dangarRateMaster.table.class2') || 'Class 2 Rate',
+        align: 'right',
+        width: '14%',
+        render: (item) => {
+          const rateObj = rates.find(r => r.item_id === item.id);
+          const val = parseFloat(rateObj?.winter_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          return isGu ? `₹${toGu(val)}` : `₹${val}`;
+        }
+      },
+      {
+        header: t('dangarRateMaster.table.class3') || 'Class 3 Rate',
+        align: 'right',
+        width: '14%',
+        render: (item) => {
+          const rateObj = rates.find(r => r.item_id === item.id);
+          const val = parseFloat(rateObj?.summer_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          return isGu ? `₹${toGu(val)}` : `₹${val}`;
+        }
       }
-      doc.save(`Dangar_Rate_Master_FY${financialYear.replace('-', '_')}.pdf`);
-    } catch (err) {
-      console.error('PDF Export Error:', err);
-      setMessage({ type: 'error', text: 'PDF generation failed' });
-    } finally {
-      setLoading(false);
-    }
+    ];
+
+    await exportToPDF({
+      title: t('dangarRateMaster.pdf.title'),
+      columns,
+      rows: filteredItems,
+      isGu,
+      filename: `Dangar_Rate_Master_FY${financialYear.replace('-', '_')}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
 
   const ITEMS_PER_PAGE = 10;

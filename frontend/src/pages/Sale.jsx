@@ -12,6 +12,7 @@ import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
 import api from '../api';
+import { exportToPDF } from '../utils/pdfExporter';
 export default function Sale() {
   const { t, i18n } = useTranslation();
   const isGu = i18n.language === 'gu';
@@ -409,58 +410,111 @@ export default function Sale() {
     link.click();
   };
 
-  const handleExportPDF = () => {
-    const cName = company ? (company.company_name || 'Company') : 'Company';
+  const handleExportPDF = async () => {
+    if (!filteredSales.length) return;
+
     const totalAmt = filteredSales.reduce((s, x) => s + parseFloat(x.net_amount || 0), 0);
-    const win = window.open('', '_blank', 'width=900,height=800');
-    const rows = filteredSales.map((s, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td>${displaySaleCustomer(s) || 'Walk-In'}</td>
-        <td>${s.invoice_date}</td>
-        <td>#${s.invoice_no}</td>
-        <td style="text-align:center">${s.item_count} ${t('common.items')}</td>
-        <td style="text-align:right">${parseFloat(s.net_amount || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
-        <td style="text-align:center">${(s.payment_type || 'cash')}</td>
-      </tr>`);
-    win.document.write(`
-      <html><head><title>${cName} - Sales Registry</title>
-      <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;padding:20px}
-        .logo-bar{background:#0f172a;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-radius:4px}
-        .logo-bar h1{font-size:13px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
-        .logo-bar span{font-size:9px;color:#94a3b8}
-        .report-title{font-size:18px;font-weight:900;text-transform:uppercase;color:#0f172a;margin-bottom:2px}
-        .report-sub{font-size:9px;color:#64748b;margin-bottom:10px}
-        .divider{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
-        table{width:100%;border-collapse:collapse;margin-top:6px}
-        thead tr{background:#0f172a;color:#fff}
-        th{padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left}
-        td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:9px}
-        tfoot tr{background:#1e293b;color:#fff;font-weight:700}
-        @media print{@page{size:A4 portrait;margin:1.5cm}}
-      </style></head><body>
-      <div class='logo-bar'><h1>${cName}</h1><span>${t('saleMaster.title')} / Analytics &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
-      <div class='report-title'>${t('saleMaster.registryReport.title')}</div>
-      <div class='report-sub'>${t('saleMaster.stats.totalSales')}: ${filteredSales.length} &nbsp;|&nbsp; ${t('saleMaster.bill.printDate')}: ${new Date().toLocaleString('en-IN')}</div>
-      <hr class='divider'/>
-      <table>
-        <thead><tr>
-          <th>${t('saleMaster.registryReport.client')}</th><th>${t('saleMaster.registryReport.date')}</th><th>${t('saleMaster.registryReport.invoice')}</th><th>${t('saleMaster.registryReport.items')}</th>
-          <th style='text-align:right'>${t('saleMaster.registryReport.netProceeds')}</th>
-          <th style='text-align:center'>${t('saleMaster.registryReport.mode')}</th>
-        </tr></thead>
-        <tbody>${rows.join('')}</tbody>
-        <tfoot><tr>
-          <td colspan='4'>${t('saleMaster.registryReport.totals')} &mdash; ${filteredSales.length} ${t('saleMaster.records')}</td>
-          <td style='text-align:right'>${totalAmt.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
-          <td></td>
-        </tr></tfoot>
-      </table>
-      </body></html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
+    const totalItems = filteredSales.reduce((s, x) => s + parseInt(x.item_count || 0), 0);
+
+    const rowsWithTotal = [
+      ...filteredSales,
+      { isTotal: true, totalCount: filteredSales.length, totalAmt, totalItems }
+    ];
+
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : 'Sr.',
+        align: 'center',
+        width: '5%',
+        render: (s, idx) => {
+          if (s.isTotal) return '';
+          return String(idx + 1);
+        }
+      },
+      {
+        header: t('saleMaster.registryReport.client') || (isGu ? 'ગ્રાહક' : 'Customer'),
+        align: 'left',
+        width: '26%',
+        render: (s) => {
+          if (s.isTotal) return `<strong style="font-size:12px;">${isGu ? 'કુલ' : 'Total'} (${s.totalCount} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong>`;
+          const name = displaySaleCustomer(s) || (isGu ? 'નોધાયેલ' : 'Walk-In');
+          const code = s.member_code ? `<br/><span style="font-size:10px;color:#555;">${s.member_code}</span>` : '';
+          return `<strong>${name}</strong>${code}`;
+        },
+        usePromptFont: true
+      },
+      {
+        header: t('saleMaster.registryReport.invoice') || (isGu ? 'ઇન્વોઇસ' : 'Invoice'),
+        align: 'center',
+        width: '14%',
+        render: (s) => {
+          if (s.isTotal) return '';
+          return `#${s.invoice_no}`;
+        }
+      },
+      {
+        header: t('saleMaster.registryReport.date') || (isGu ? 'તારીખ' : 'Date'),
+        align: 'center',
+        width: '14%',
+        render: (s) => {
+          if (s.isTotal) return '';
+          return s.invoice_date
+            ? new Date(s.invoice_date).toLocaleDateString('en-GB').replace(/\//g, '-')
+            : '—';
+        }
+      },
+      {
+        header: t('saleMaster.registryReport.items') || (isGu ? 'આઇટમ્સ' : 'Items'),
+        align: 'center',
+        width: '10%',
+        render: (s) => {
+          if (s.isTotal) return `<strong>${s.totalItems}</strong>`;
+          return String(s.item_count || 0);
+        }
+      },
+      {
+        header: t('saleMaster.registryReport.netProceeds') || (isGu ? 'નેટ રકમ' : 'Net Amount'),
+        align: 'right',
+        width: '18%',
+        render: (s) => {
+          const val = s.isTotal ? s.totalAmt : parseFloat(s.net_amount || 0);
+          return `<strong>₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>`;
+        }
+      },
+      {
+        header: t('saleMaster.registryReport.mode') || (isGu ? 'પ્રકાર' : 'Payment'),
+        align: 'center',
+        width: '13%',
+        render: (s) => {
+          if (s.isTotal) return '';
+          return s.payment_type === 'cash'
+            ? (isGu ? 'નગદ' : 'Cash')
+            : (isGu ? 'ઉધાર' : 'Credit');
+        }
+      }
+    ];
+
+    const metaInfo = [
+      {
+        label: isGu ? 'સમયગાળો' : 'Period',
+        value: `${dateRange.startDate.split('-').reverse().join('-')} — ${dateRange.endDate.split('-').reverse().join('-')}`
+      },
+      {
+        label: isGu ? 'કુલ વેચાણ' : 'Total Sales',
+        value: String(filteredSales.length)
+      }
+    ];
+
+    await exportToPDF({
+      title: t('saleMaster.registryReport.title') || (isGu ? 'વેચાણ રજીસ્ટ્રી' : 'Sales Registry'),
+      columns,
+      rows: rowsWithTotal,
+      isGu,
+      metaInfo,
+      filename: `Sales_Registry_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
 
   const stats = {

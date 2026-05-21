@@ -1,15 +1,14 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
    Plus, X, Database, Layout, CheckCircle, UserCheck,
    ArrowRight, User, TrendingUp, Save, Search, RefreshCcw, Calendar, FileText
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import api, { sabhasadMasterApi } from '../api';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
 import { formatBilingualText } from '../utils/textUtils';
+import { exportToPDF, toGujaratiDigits as guDigitsUtil } from '../utils/pdfExporter';
 
 export default function DeductionConsole() {
    const { t, i18n } = useTranslation();
@@ -245,128 +244,106 @@ export default function DeductionConsole() {
    };
 
    const handleExportPDF = async () => {
-      if (!selectedIdentities.length) { 
-         setMessage({ type: 'error', text: t('kapatConsole.modal.noMembers') || 'No records to export.' }); 
-         return; 
+      if (!selectedIdentities.length) {
+         setMessage({ type: 'error', text: t('kapatConsole.modal.noMembers') || 'No records to export.' });
+         return;
       }
 
-      setLoading(true);
-      try {
+      const rowsToExport = [...selectedIdentities];
+      rowsToExport.push({
+         isTotal: true,
+         totalCount: selectedIdentities.length,
+         totalAmount: totalDeductionAmount
+      });
 
-         const company = JSON.parse(localStorage.getItem('company') || '{}');
-         const cName = company.company_name_gu || company.company_name || 'Company';
-         const reportTitle = 'કપાત (Deduction) રજીસ્ટ્રી';
-         const fy = localStorage.getItem('financial_year') || '2026-27';
-
-         const tempWrap = document.createElement('div');
-         tempWrap.style.position = 'fixed';
-         tempWrap.style.left = '-10000px';
-         tempWrap.style.top = '0';
-         tempWrap.style.width = '1000px';
-         tempWrap.style.background = '#fff';
-         tempWrap.style.color = '#111827';
-         tempWrap.style.fontFamily = '"NotoGujarati", "Noto Sans Gujarati", Arial, sans-serif';
-         tempWrap.style.padding = '24px';
-
-         const tableRows = selectedIdentities.map((item, idx) => `
-            <tr>
-               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
-               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${item.type === 'member' ? 'સભ્ય' : 'ખાતું'}</td>
-               <td style="padding:8px 10px;border:1px solid #d1d5db;font-weight:700;">${item.name || ''}</td>
-               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;font-family:Arial, sans-serif;">${item.code || ''}</td>
-               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${item.is_auto !== false ? 'ઓટો' : 'મેન્યુઅલ'}</td>
-               <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;font-weight:700;">${toGujaratiDigits(parseFloat(item.deduction_amount || 0).toFixed(2))}</td>
-            </tr>
-         `).join('');
-
-         const totalAmount = selectedIdentities.reduce((sum, item) => sum + (parseFloat(item.deduction_amount) || 0), 0);
-
-         tempWrap.innerHTML = `
-            <div style="border:1px solid #cbd5e1;">
-               <div style="background:#2563eb;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
-                  <div style="font-size:18px;font-weight:700;">${cName}</div>
-                  <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
-               </div>
-               <div style="padding:18px;">
-                  <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
-                  <div style="font-size:12px;color:#6b7280;margin-bottom:16px;display:flex;justify-content:space-between;">
-                     <span>નાણાકીય વર્ષ: ${toGujaratiDigits(fy)} | કુલ કપાત પાત્રો: ${toGujaratiDigits(selectedIdentities.length)}</span>
-                     <span>બનાવેલ: ${toGujaratiDigits(new Date().toLocaleString('en-IN'))}</span>
-                  </div>
-                  <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                     <thead>
-                        <tr style="background:#f8fafc;">
-                           <th style="padding:8px 10px;border:1px solid #d1d5db;">ક્રમ</th>
-                           <th style="padding:8px 10px;border:1px solid #d1d5db;">પ્રકાર</th>
-                           <th style="padding:8px 10px;border:1px solid #d1d5db;">નામ</th>
-                           <th style="padding:8px 10px;border:1px solid #d1d5db;">કોડ</th>
-                           <th style="padding:8px 10px;border:1px solid #d1d5db;">ગણતરી</th>
-                           <th style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">કપાત રકમ (₹)</th>
-                        </tr>
-                     </thead>
-                     <tbody>${tableRows}</tbody>
-                     <tfoot>
-                        <tr style="background:#f1f5f9;font-weight:900;color:#111827;">
-                           <td colspan="5" style="padding:10px;border:1px solid #d1d5db;text-align:right;font-size:14px;">કુલ કપાત રકમ:</td>
-                           <td style="padding:10px;border:1px solid #d1d5db;text-align:right;font-size:14px;">${toGujaratiDigits(totalAmount.toFixed(2))}</td>
-                        </tr>
-                     </tfoot>
-                  </table>
-               </div>
-            </div>
-         `;
-
-         document.body.appendChild(tempWrap);
-
-         // Wait for fonts to render
-         await new Promise(resolve => setTimeout(resolve, 500));
-
-         const canvas = await html2canvas(tempWrap, { 
-            scale: 3, 
-            backgroundColor: '#ffffff', 
-            useCORS: true,
-            allowTaint: false,
-            logging: false
-         });
-         document.body.removeChild(tempWrap);
-
-         const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-         const pageW = doc.internal.pageSize.getWidth();
-         const pageH = doc.internal.pageSize.getHeight();
-         const margin = 32;
-         const imgW = pageW - margin * 2;
-         const pageHpx = ((pageH - margin * 2) * canvas.width) / imgW;
-
-         let y = 0;
-         let pageIndex = 0;
-         while (y < canvas.height) {
-            const sliceHeight = Math.min(pageHpx, canvas.height - y);
-            const pageCanvas = document.createElement('canvas');
-            pageCanvas.width = canvas.width;
-            pageCanvas.height = sliceHeight;
-            const ctx = pageCanvas.getContext('2d');
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-            ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-            const imgData = pageCanvas.toDataURL('image/png');
-            const imgH = (sliceHeight * imgW) / canvas.width;
-
-            if (pageIndex > 0) doc.addPage();
-            doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
-
-            y += sliceHeight;
-            pageIndex += 1;
+      const columns = [
+         {
+            header: isGu ? 'ક્રમ' : 'Sr. No.',
+            align: 'center',
+            width: '6%',
+            render: (item, idx) => {
+               if (item.isTotal) return '';
+               return isGu ? toGujaratiDigits(idx + 1) : String(idx + 1);
+            }
+         },
+         {
+            header: isGu ? 'પ્રકાર' : 'Type',
+            align: 'center',
+            width: '12%',
+            render: (item) => {
+               if (item.isTotal) return '';
+               return item.type === 'member'
+                  ? (isGu ? 'સભ્ય' : 'Member')
+                  : (isGu ? 'ખાતું' : 'Account');
+            }
+         },
+         {
+            header: isGu ? 'નામ' : 'Name',
+            align: 'left',
+            width: '32%',
+            render: (item) => {
+               if (item.isTotal) {
+                  return `<strong style="font-size:12px;">${isGu ? 'કુલ' : 'Total'} (${toGujaratiDigits(item.totalCount)} ${isGu ? 'રેકોર્ડ્સ' : 'Records'})</strong>`;
+               }
+               return `<strong>${displayIdentityName(item) || item.name || ''}</strong>`;
+            },
+            usePromptFont: true
+         },
+         {
+            header: isGu ? 'કોડ' : 'Code',
+            align: 'center',
+            width: '14%',
+            render: (item) => {
+               if (item.isTotal) return '';
+               return item.code || '—';
+            }
+         },
+         {
+            header: isGu ? 'ગણતરી' : 'Calc. Mode',
+            align: 'center',
+            width: '14%',
+            render: (item) => {
+               if (item.isTotal) return '';
+               return item.is_auto !== false
+                  ? (isGu ? 'ઓટો' : 'Auto')
+                  : (isGu ? 'મેન્યુઅલ' : 'Manual');
+            }
+         },
+         {
+            header: isGu ? 'કપાત રકમ (₹)' : 'Deduction (₹)',
+            align: 'right',
+            width: '22%',
+            render: (item) => {
+               const val = item.isTotal
+                  ? item.totalAmount.toFixed(2)
+                  : parseFloat(item.deduction_amount || 0).toFixed(2);
+               return `<strong>₹${isGu ? toGujaratiDigits(val) : val}</strong>`;
+            }
          }
+      ];
 
-         doc.save(`Kapat_Registry_${new Date().toISOString().split('T')[0]}.pdf`);
-         setMessage({ type: 'success', text: 'PDF report generated successfully.' });
-      } catch (err) {
-         console.error('PDF Export Error:', err);
-         setMessage({ type: 'error', text: 'Operational failure during PDF generation.' });
-      } finally {
-         setLoading(false);
-      }
+      const fy = localStorage.getItem('financialYear') || localStorage.getItem('financial_year') || '2026-27';
+      const metaInfo = [
+         {
+            label: isGu ? 'કુલ કપાત પાત્રો' : 'Total Targets',
+            value: isGu ? toGujaratiDigits(selectedIdentities.length) : String(selectedIdentities.length)
+         },
+         {
+            label: isGu ? 'કુલ કપાત' : 'Total Deduction',
+            value: `₹${isGu ? toGujaratiDigits(totalDeductionAmount.toFixed(2)) : totalDeductionAmount.toFixed(2)}`
+         }
+      ];
+
+      await exportToPDF({
+         title: isGu ? 'કપાત (Deduction) રજીસ્ટ્રી' : 'Deduction Registry',
+         columns,
+         rows: rowsToExport,
+         isGu,
+         metaInfo,
+         filename: `Kapat_Registry_${new Date().toISOString().split('T')[0]}.pdf`,
+         onStart: () => setLoading(true),
+         onComplete: () => setLoading(false)
+      });
    };
 
    const activeTarget = selectedIdentities.find(i => `${i.type}-${i.id}` === deductionPayload.target_identifier);

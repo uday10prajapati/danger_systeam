@@ -4,13 +4,12 @@ import {
   RefreshCcw, Box, X, Loader, Edit3, Calendar,
   MapPin, Shield, TrendingUp
 } from 'lucide-react';
-import jsPDF from 'jspdf';
 import api from '../api';
 import { formatBilingualText } from '../utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
-import html2canvas from 'html2canvas';
+import { exportToPDF } from '../utils/pdfExporter';
 
 const guDigits = {
   '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
@@ -118,117 +117,127 @@ export default function DangarMaster() {
 
   const handleExportPDF = async () => {
     const rows = filteredEntries;
-    if (!rows.length) { setMessage({ type: 'error', text: t('dangarMaster.noRecords') }); return; }
-    setLoading(true);
+    if (!rows.length) {
+      setMessage({ type: 'error', text: t('dangarMaster.noRecords') });
+      return;
+    }
 
-    const cName = isGu ? (company?.company_name_gu || company?.company_name || 'Company') : (company?.company_name || company?.company_name_gu || 'Company');
-    const reportTitle = t('dangarMaster.pdfReport.title');
-    const totalQtl = rows.reduce((a, c) => a + parseFloat(c.net_quintal || 0), 0);
-    const totalAmt = rows.reduce((a, c) => a + parseFloat(c.amount || 0), 0);
-
-    const tempWrap = document.createElement('div');
-    tempWrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:1120px;padding:40px;background:#ffffff;font-family:"Noto Sans Gujarati","NotoGujarati",sans-serif;';
-
-    const tableRows = rows.map((r, idx) => {
-      const displayIdx = isGu ? toGujaratiDigits(idx + 1) : String(idx + 1);
-      const displayDate = formatDisplayDate(r.entry_date);
-      const displayMemberName = isGu ? (r.member_name_gu || r.member_name || '') : (r.eng_name || r.member_name || '');
-      const displayMemberCode = isGu ? toGujaratiDigits(r.member_code) : String(r.member_code || '');
-      const displayVillageName = isGu ? (r.village_name_gu || r.village_name || '-') : (r.village_eng_name || r.village_name || '-');
-      const displayItemName = isGu ? (r.item_name_gu || r.item_name || '') : (r.item_name || r.item_name_gu || '—');
-      const displayClass = isGu ? toGujaratiDigits(r.quality_class?.match(/\d+/)?.[0] || '1') : String(r.quality_class?.match(/\d+/)?.[0] || '1');
-      const displayQtl = isGu ? toGujaratiDigits(parseFloat(r.net_quintal).toFixed(2)) : parseFloat(r.net_quintal).toFixed(2);
-      const displayRate = isGu ? toGujaratiDigits(parseFloat(r.rate).toFixed(2)) : parseFloat(r.rate).toFixed(2);
-      const displayAmt = isGu ? toGujaratiDigits(parseFloat(r.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(r.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-
-      return `
-        <tr style="border-bottom:1px solid #e2e8f0;">
-          <td style="padding:8px 10px;text-align:center;">${displayIdx}</td>
-          <td style="padding:8px 10px;text-align:center;${isGu ? "font-family:'Noto Sans Gujarati','NotoGujarati',sans-serif;" : 'font-family:monospace;'}">${displayDate}</td>
-          <td style="padding:8px 10px;font-weight:700;${isGu ? "font-family:'Noto Sans Gujarati','NotoGujarati',sans-serif;" : 'text-transform:uppercase;font-family:Arial,sans-serif;'}">${displayMemberName} <span style="font-weight:normal;color:#64748b;">(${displayMemberCode})</span></td>
-          <td style="padding:8px 10px;${isGu ? "font-family:'Noto Sans Gujarati','NotoGujarati',sans-serif;" : 'font-family:Arial,sans-serif;'}">${displayVillageName}</td>
-          <td style="padding:8px 10px;${isGu ? "font-family:'Noto Sans Gujarati','NotoGujarati',sans-serif;" : 'text-transform:uppercase;font-family:Arial,sans-serif;'}">${displayItemName}</td>
-          <td style="padding:8px 10px;text-align:center;">${displayClass}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">${displayQtl}</td>
-          <td style="padding:8px 10px;text-align:right;">₹${displayRate}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1d5f84;">₹${displayAmt}</td>
-        </tr>
-      `;
-    }).join('');
+    const columns = [
+      {
+        header: isGu ? 'ક્રમ' : '#',
+        align: 'center',
+        width: '6%',
+        render: (row, idx) => isGu ? toGujaratiDigits(idx + 1) : (idx + 1)
+      },
+      {
+        header: isGu ? 'તારીખ' : 'Date',
+        align: 'center',
+        width: '12%',
+        render: (row) => formatDisplayDate(row.entry_date)
+      },
+      {
+        header: isGu ? 'સભ્ય' : 'Member',
+        align: 'left',
+        width: '24%',
+        render: (row) => {
+          const displayMemberName = isGu
+            ? (row.member_name_gu || row.member_name || '')
+            : (row.eng_name || row.member_name || '');
+          const displayMemberCode = isGu
+            ? toGujaratiDigits(row.member_code)
+            : String(row.member_code || '');
+          return `${displayMemberName} (${displayMemberCode})`;
+        },
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'ગામ' : 'Village',
+        align: 'left',
+        width: '14%',
+        render: (row) => isGu
+          ? (row.village_name_gu || row.village_name || '—')
+          : (row.village_eng_name || row.village_name || '—'),
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'વસ્તુ' : 'Item',
+        align: 'left',
+        width: '12%',
+        render: (row) => isGu ? (row.item_name_gu || row.item_name || '') : (row.item_name || ''),
+        usePromptFont: true
+      },
+      {
+        header: isGu ? 'વર્ગ' : 'Class',
+        align: 'center',
+        width: '6%',
+        render: (row) => isGu
+          ? toGujaratiDigits(row.quality_class?.match(/\d+/)?.[0] || row.quality_class || '1')
+          : (row.quality_class?.match(/\d+/)?.[0] || row.quality_class || '1')
+      },
+      {
+        header: isGu ? 'નેટ ક્વિ.' : 'Net Qtl.',
+        align: 'right',
+        width: '8%',
+        render: (row) => {
+          const qtlVal = parseFloat(row.net_quintal) || 0;
+          return isGu
+            ? `${toGujaratiDigits(qtlVal.toFixed(2))} ${isGu ? 'ક્વિ.' : 'qtl'}`
+            : `${qtlVal.toFixed(2)} qtl`;
+        }
+      },
+      {
+        header: isGu ? 'ભાવ' : 'Rate',
+        align: 'right',
+        width: '8%',
+        render: (row) => {
+          const rateVal = parseFloat(row.rate) || 0;
+          return `₹${isGu ? toGujaratiDigits(rateVal.toFixed(2)) : rateVal.toFixed(2)}`;
+        }
+      },
+      {
+        header: isGu ? 'રકમ' : 'Amount',
+        align: 'right',
+        width: '10%',
+        render: (row) => {
+          const amtVal = parseFloat(row.amount) || 0;
+          const formatted = amtVal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          return `₹${isGu ? toGujaratiDigits(formatted) : formatted}`;
+        }
+      }
+    ];
 
     const displayTotalQtl = isGu ? toGujaratiDigits(totalQtl.toFixed(2)) : totalQtl.toFixed(2);
     const displayTotalAmt = isGu ? toGujaratiDigits(totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })) : totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    const displayTotalRecords = isGu ? toGujaratiDigits(rows.length) : String(rows.length);
 
-    const labelTotal = isGu ? 'કુલ' : 'Total';
-    const labelQtl = isGu ? 'ક્વિન્ટલ' : 'Quintal';
-    const labelAmt = isGu ? 'રકમ' : 'Amount';
-    
-    // PDF Table Headers
-    const thSr = isGu ? 'ક્રમ' : 'Sr.';
-    const thDate = isGu ? 'તારીખ' : 'Date';
-    const thMember = isGu ? 'સભ્ય' : 'Member';
-    const thVillage = isGu ? 'ગામ' : 'Village';
-    const thItem = isGu ? 'વસ્તુ' : 'Item';
-    const thClass = isGu ? 'વર્ગ' : 'Class';
-    const thNetQtl = isGu ? 'નેટ ક્વિ.' : 'Net Qtl.';
-    const thRate = isGu ? 'ભાવ' : 'Rate';
-    const thAmount = isGu ? 'રકમ' : 'Amount';
+    const metaInfo = [
+      {
+        label: isGu ? 'કુલ એન્ટ્રીઝ' : 'Total Entries',
+        value: isGu ? toGujaratiDigits(rows.length) : rows.length
+      },
+      {
+        label: isGu ? 'કુલ ક્વિન્ટલ' : 'Total Net Qtl.',
+        value: `${displayTotalQtl} ${isGu ? 'ક્વિ.' : 'qtl'}`
+      },
+      {
+        label: isGu ? 'કુલ રકમ' : 'Total Amount',
+        value: `₹${displayTotalAmt}`
+      },
+      {
+        label: isGu ? 'ગામ ફિલ્ટર' : 'Village Filter',
+        value: selectedVillage === 'all' ? (isGu ? 'બધા' : 'All') : selectedVillage
+      }
+    ];
 
-    tempWrap.innerHTML = `
-      <div style="border:1px solid #cbd5e1;">
-        <div style="background:#1d5f84;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:18px;font-weight:700;">${cName}</div>
-          <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
-        </div>
-        <div style="padding:18px;">
-          <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">${labelTotal}: ${displayTotalRecords} | ${labelQtl}: ${displayTotalQtl} | ${labelAmt}: ₹${displayTotalAmt}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thSr}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thDate}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thMember}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thVillage}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thItem}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thClass}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thNetQtl}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thRate}</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">${thAmount}</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-            <tfoot>
-              <tr style="background:#f1f5f9;font-weight:900;">
-                <td colspan="6" style="padding:10px;border:1px solid #d1d5db;text-align:right;">${labelTotal} (${displayTotalRecords} Records)</td>
-                <td style="padding:10px;border:1px solid #d1d5db;text-align:right;">${displayTotalQtl}</td>
-                <td style="padding:10px;border:1px solid #d1d5db;"></td>
-                <td style="padding:10px;border:1px solid #d1d5db;text-align:right;color:#1d5f84;">₹${displayTotalAmt}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(tempWrap);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      const canvas = await html2canvas(tempWrap, { scale: 3, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      document.body.removeChild(tempWrap);
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width / 3, canvas.height / 3] });
-      doc.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3, undefined, 'FAST');
-      doc.save(`Dangar_Registry_${new Date().toISOString().split('T')[0]}.pdf`);
-      setMessage({ type: 'success', text: 'PDF exported successfully.' });
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: 'PDF generation failed.' });
-      if (document.body.contains(tempWrap)) document.body.removeChild(tempWrap);
-    } finally {
-      setLoading(false);
-    }
+    await exportToPDF({
+      title: isGu ? 'ડાંગર રજીસ્ટ્રી' : 'Dangar Registry',
+      columns,
+      rows,
+      isGu,
+      metaInfo,
+      filename: `Dangar_Registry_${new Date().toISOString().split('T')[0]}.pdf`,
+      onStart: () => setLoading(true),
+      onComplete: () => setLoading(false)
+    });
   };
 
   const filteredEntries = entries.filter(e => {
@@ -244,7 +253,7 @@ export default function DangarMaster() {
       e.item_name_gu?.toLowerCase().includes(q) ||
       e.village_name?.toLowerCase().includes(q) ||
       e.village_eng_name?.toLowerCase().includes(q);
-    const matchesVillage = selectedVillage === 'all' || 
+    const matchesVillage = selectedVillage === 'all' ||
       (isGu ? e.village_name === selectedVillage : (e.village_eng_name || e.village_name) === selectedVillage);
     const matchesClass = selectedClass === 'all' || e.quality_class === selectedClass;
     return matchesSearch && matchesVillage && matchesClass;
@@ -442,7 +451,7 @@ export default function DangarMaster() {
                     <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 w-20">{isGu ? 'ક્રિયાઓ' : 'Actions'}</th>
                   </tr>
                 </thead>
-                 <tbody className="bg-white divide-y divide-slate-100">
+                <tbody className="bg-white divide-y divide-slate-100">
                   {paginatedEntries.map((row, idx) => (
                     <tr key={row.id} className="hover:bg-slate-50/75 transition-colors">
                       <td className="px-3.5 py-2 text-center font-mono text-slate-500 border-r border-slate-100">{isGu ? toGujaratiDigits(startIndex + idx + 1) : (startIndex + idx + 1)}</td>
@@ -530,7 +539,7 @@ export default function DangarMaster() {
           {filteredEntries.length > 0 && (
             <div className="bg-slate-50 border-t border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2">
               <span className="text-[10px] text-slate-400 font-bold uppercase">
-                {isGu 
+                {isGu
                   ? `${toGujaratiDigits(startIndex + 1)}-${toGujaratiDigits(Math.min(startIndex + ITEMS_PER_PAGE, filteredEntries.length))} / ${toGujaratiDigits(filteredEntries.length)}`
                   : `${startIndex + 1}-${Math.min(startIndex + ITEMS_PER_PAGE, filteredEntries.length)} / ${filteredEntries.length}`}
               </span>
@@ -543,7 +552,7 @@ export default function DangarMaster() {
                   Prev
                 </button>
                 <span className="text-xs font-bold text-slate-600 px-1.5">
-                  {isGu 
+                  {isGu
                     ? `${toGujaratiDigits(currentPage)} / ${toGujaratiDigits(totalPages)}`
                     : `${currentPage} / ${totalPages}`}
                 </span>

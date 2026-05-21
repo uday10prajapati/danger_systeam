@@ -10,9 +10,7 @@ import {
   CheckCircle2, History, Package, Printer
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { addGujaratiFont } from '../utils/pdfFonts';
+import { exportToPDF, toGujaratiDigits } from '../utils/pdfExporter';
 import PageHeader from '../components/PageHeader';
 import Toast from '../components/Toast';
 
@@ -26,6 +24,17 @@ const formatCurrency = (num) => {
 
 const formatQty = (qty) => {
   return parseFloat(qty || 0).toFixed(3);
+};
+
+const formatDate = (dateStr, isGu = false) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const formatted = `${day}/${month}/${year}`;
+  return isGu ? toGujaratiDigits(formatted) : formatted;
 };
 
 export default function SaleReport() {
@@ -126,136 +135,281 @@ export default function SaleReport() {
   const totalRevenueAudit = filteredReports.reduce((sum, s) => sum + parseFloat(s.total_amount || 0), 0);
 
   const handlePrint = () => {
-    const cName = company?.company_name_gu || company?.company_name || 'Company';
-    const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.total_amount || 0), 0);
-    const win = window.open('', '_blank', 'width=900,height=800');
-    const rows = filteredReports.map((s, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td>${s.customer_name_gu || s.customer_name || 'COUNTER SALE'}</td>
-        <td>${new Date(s.invoice_date).toLocaleDateString('en-GB')}</td>
-        <td>#${s.invoice_no}</td>
-        <td style="text-align:center">${s.item_count} ${t('common.items')}</td>
-        <td style="text-align:right">${formatCurrency(s.total_amount)}</td>
-        <td style="text-align:right">${formatCurrency(s.discount_amount || 0)}</td>
-        <td style="text-align:right;font-weight:700">${formatCurrency(s.net_amount)}</td>
-        <td style="text-align:center">${(s.payment_type || 'cash')}</td>
-      </tr>`);
-    win.document.write(`
-      <html><head><title>${cName} - Sale Report</title>
+    const isGu = i18n.language === 'gu';
+    const cName = isGu ? (company?.company_name_gu || company?.company_name || 'કંપની') : (company?.company_name || 'Company');
+    const fy = localStorage.getItem('financialYear') || '2026-27';
+    const formattedFy = isGu ? toGujaratiDigits(fy) : fy;
+    const today = new Date();
+    const formattedDate = formatDate(today, isGu);
+    const formattedPeriod = `${formatDate(startDate, isGu)} — ${formatDate(endDate, isGu)}`;
+
+    const fmtNum = (value, digits = 2) => {
+      const n = parseFloat(value || 0);
+      const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+      return isGu ? toGujaratiDigits(formatted) : formatted;
+    };
+
+    let tableHTML = '';
+
+    if (viewType === 'report') {
+      const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.net_amount || 0), 0);
+      const rows = filteredReports.map((s, i) => {
+        const customerName = isGu ? (s.customer_name_gu || s.customer_name || 'COUNTER SALE') : (s.customer_name || 'COUNTER SALE');
+        const codeFormatted = s.member_code ? (isGu ? `કોડ: ${toGujaratiDigits(s.member_code)}` : `CODE: ${s.member_code}`) : '';
+        const clientIdentity = `<strong>${customerName}</strong>${codeFormatted ? `<br/><small style="color:#64748b">${codeFormatted}</small>` : ''}`;
+        const formattedInvoiceDate = formatDate(s.invoice_date, isGu);
+        const formattedInvoiceNo = isGu ? toGujaratiDigits(s.invoice_no) : s.invoice_no;
+        const formattedItems = isGu ? `${toGujaratiDigits(s.item_count)} આઈટમ` : `${s.item_count} Items`;
+        const paymentTypeStr = s.payment_type === 'cash' ? (isGu ? 'રોકડ' : 'Cash') : (isGu ? 'જમા' : 'Credit');
+
+        return `
+          <tr>
+            <td style="border:1.5px solid #000000;padding:5px 8px;font-size:10px;font-family:'Prompt', sans-serif">${clientIdentity}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">${formattedInvoiceDate}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">#${formattedInvoiceNo}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${formattedItems}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(s.total_amount)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(s.discount_amount || 0)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">₹${fmtNum(s.net_amount)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${paymentTypeStr}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tableHTML = `
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:left">${isGu ? 'ગ્રાહક વિગત' : 'Client Identity'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:12%">${isGu ? 'તારીખ' : 'Date'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:12%">${isGu ? 'બિલ નં.' : 'Invoice #'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:10%">${isGu ? 'આઈટમ્સ' : 'Items'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:12%">${isGu ? 'કુલ રકમ' : 'Gross Amt'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:10%">${isGu ? 'ડિસ્કાઉન્ટ' : 'Discount'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:16%">${isGu ? 'ચોખ્ખી રકમ' : 'Net Proceeds'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:10%">${isGu ? 'ચુકવણી' : 'Payment'}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr>
+            <td colspan="4" style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right">${isGu ? 'સરવાળો:' : 'Total:'}</td>
+            <td colspan="2" style="border:1.5px solid #000000;"></td>
+            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totalAmt)}</td>
+            <td style="border:1.5px solid #000000;"></td>
+          </tr></tfoot>
+        </table>
+      `;
+    } else {
+      const totalAmt = filteredSummary.reduce((s, x) => s + (parseFloat(x.outward || 0) * parseFloat(x.sale_price || 0)), 0);
+      const rows = filteredSummary.map((item, i) => {
+        const itemDisplayName = isGu ? (item.item_name_gu || item.item_name || '') : (item.item_name || '');
+        const itemCodeFormatted = item.item_code ? (isGu ? `કોડ: ${toGujaratiDigits(item.item_code)}` : `CODE: ${item.item_code}`) : '';
+        const itemDetails = `<strong>${itemDisplayName}</strong>${itemCodeFormatted ? `<br/><small style="color:#64748b">${itemCodeFormatted}</small>` : ''}`;
+        const unitStr = item.unit || 'NOS';
+        const formattedUnit = isGu ? (unitStr === 'NOS' ? 'નંગ' : (unitStr === 'KG' ? 'કિલો' : unitStr)) : unitStr;
+
+        return `
+          <tr>
+            <td style="border:1.5px solid #000000;padding:5px 8px;font-size:10px;font-family:'Prompt', sans-serif">${itemDetails}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${formattedUnit}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${isGu ? toGujaratiDigits(parseFloat(item.outward || 0).toFixed(3)) : parseFloat(item.outward || 0).toFixed(3)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(item.sale_price)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">₹${fmtNum(parseFloat(item.outward || 0) * parseFloat(item.sale_price || 0))}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tableHTML = `
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:left">${isGu ? 'પ્રોડક્ટ વિગત' : 'Product Taxonomy'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:15%;text-align:center">${isGu ? 'એકમ' : 'Unit'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:15%;text-align:right">${isGu ? 'જથ્થો' : 'Yield Volume'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:15%;text-align:right">${isGu ? 'ભાવ' : 'Rate'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:20%">${isGu ? 'કુલ રકમ' : 'Gross Proceeds'}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr>
+            <td colspan="4" style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right">${isGu ? 'સરવાળો:' : 'Total:'}</td>
+            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totalAmt)}</td>
+          </tr></tfoot>
+        </table>
+      `;
+    }
+
+    const titleStr = viewType === 'report' ? (isGu ? 'વેચાણ અહેવાલ' : 'Sale Settlement Register') : (isGu ? 'પ્રોડક્ટ વેચાણ વિવરણ' : 'Product Sale Summary');
+
+    const win = window.open('', '_blank', 'width=1100,height=800');
+    win.document.write(`<html><head>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box }
-        body { font-family: 'Noto Sans Gujarati', 'Prompt', Arial, sans-serif; font-size: 10px; color: #1e293b; padding: 32px }
-        .logo-bar{background:#0f172a;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-radius:4px}
-        .logo-bar h1{font-size:13px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
-        .logo-bar span{font-size:9px;color:#94a3b8}
-        .report-title{font-size:18px;font-weight:900;text-transform:uppercase;color:#0f172a;margin-bottom:2px}
-        .report-sub{font-size:9px;color:#64748b;margin-bottom:10px}
-        .divider{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
-        table{width:100%;border-collapse:collapse;margin-top:6px}
-        thead tr{background:#0f172a;color:#fff}
-        th{padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left}
-        td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:9px}
-        tfoot tr{background:#1e293b;color:#fff;font-weight:700}
-        @media print{@page{size:A4 portrait;margin:1.5cm}}
-      </style></head><body>
-      <div class='logo-bar'><h1>${cName}</h1><span>Sale Report / Analytics &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-IN')}</span></div>
-      <div class='report-title'>${t('saleReport.title')}</div>
-      <div class='report-sub'>Period: ${startDate} &rarr; ${endDate} &nbsp;|&nbsp; ${t('common.records')}: ${filteredReports.length} &nbsp;|&nbsp; ${t('saleReport.generated') || 'Generated'}: ${new Date().toLocaleString('en-IN')}</div>
-      <hr class='divider'/>
-      <table>
-        <thead><tr>
-          <th>${t('common.client')}</th><th>${t('common.date')}</th><th>${t('common.invoice')}</th><th>${t('common.items')}</th>
-          <th style='text-align:right'>${t('common.grossAmt')}</th>
-          <th style='text-align:right'>${t('common.discount')}</th>
-          <th style='text-align:right'>${t('common.netAmt')}</th>
-          <th style='text-align:center'>${t('common.mode')}</th>
-        </tr></thead>
-        <tbody>${rows.join('')}</tbody>
-        <tfoot><tr>
-          <td colspan='4'>${t('common.totals')} &mdash; ${filteredReports.length} ${t('common.records')}</td>
-          <td colspan='2'></td>
-          <td style='text-align:right'>${formatCurrency(totalAmt)}</td>
-          <td></td>
-        </tr></tfoot>
-      </table>
-      </body></html>`);
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&family=Outfit:wght@400;600;700&display=swap');
+        @font-face {
+          font-family: 'Prompt';
+          src: url('/fonts/Prompt.ttf') format('truetype');
+          font-weight: normal;
+          font-style: normal;
+        }
+        @page { size: A4 landscape; margin: 10mm; }
+        body { margin: 0; padding: 16px; font-family: ${isGu ? `'Prompt', 'Noto Sans Gujarati', sans-serif` : 'Arial, sans-serif'}; }
+      </style>
+    </head><body>
+      <div style="border:1.5px solid #000000;overflow:hidden;">
+        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:18px;font-weight:bold">${cName}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:8px;text-align:center;font-size:14px;font-weight:bold">${titleStr}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:8px 12px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold">
+          <span>${isGu ? 'સમયગાળો' : 'Period'}: ${formattedPeriod}</span>
+          <span style="display:flex;gap:16px"><span>${isGu ? 'તારીખ' : 'Date'}: ${formattedDate}</span><span>|</span><span>${isGu ? 'નાણાકીય વર્ષ' : 'Financial Year'}: ${formattedFy}</span></span>
+        </div>
+        ${tableHTML}
+      </div>
+    </body></html>`);
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
   const handleExportPDF = async () => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    await addGujaratiFont(doc);
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 32;
-    const navy = [15, 23, 42], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
-    const cName = company?.company_name_gu || company?.company_name || 'Company';
-
-    const hdr = () => {
-      doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...white);
-      doc.text(cName, M, 17);
-      doc.setFontSize(7); doc.setTextColor(148, 163, 184);
-      doc.text('SALE REPORT / ANALYTICS', W / 2, 17, { align: 'center' });
-      doc.setFontSize(7); doc.setTextColor(239, 68, 68);
-      doc.text('CONFIDENTIAL', W - M, 17, { align: 'right' });
+    const isGu = i18n.language === 'gu';
+    const fmtNum = (value, digits = 2) => {
+      const n = parseFloat(value || 0);
+      const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+      return isGu ? toGujaratiDigits(formatted) : formatted;
     };
 
-    const ftr = (pg, tot) => {
-      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, H - 18, W - M, H - 18);
-      doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(7); doc.setTextColor(...gray);
-      doc.text(cName + ' - Sale Report', M, H - 9);
-      doc.text('Generated: ' + new Date().toLocaleString('en-IN'), W / 2, H - 9, { align: 'center' });
-      doc.text('Page ' + pg + ' of ' + tot, W - M, H - 9, { align: 'right' });
-    };
+    if (viewType === 'report') {
+      const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.net_amount || 0), 0);
+      const allRows = [
+        ...filteredReports,
+        { _isTotals: true, net_amount: totalAmt }
+      ];
 
-    hdr();
-    let y = 40;
-    doc.setFont('NotoGujarati', 'normal'); doc.setFontSize(15); doc.setTextColor(...navy);
-    doc.text(t('saleReport.title'), M, y);
-    doc.setFontSize(7.5); doc.setTextColor(...gray);
-    doc.text('Period: ' + startDate + ' to ' + endDate + '  |  Records: ' + filteredReports.length + '  |  Generated: ' + new Date().toLocaleString('en-IN'), M, y + 13);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4); doc.line(M, y + 18, W - M, y + 18);
-    y += 28;
-
-    const totalAmt = filteredReports.reduce((s, x) => s + parseFloat(x.net_amount || 0), 0);
-
-    const bodyRows = filteredReports.map(s => [
-      s.customer_name_gu || s.customer_name || 'COUNTER SALE',
-      new Date(s.invoice_date).toLocaleDateString('en-GB'),
-      '#' + s.invoice_no,
-      s.item_count + ' ' + t('common.items'),
-      'Rs.' + parseFloat(s.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-      'Rs.' + parseFloat(s.discount_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-      'Rs.' + parseFloat(s.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-      (s.payment_type || 'cash')
-    ]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [[t('saleReport.clientIdentity'), t('common.date'), t('common.invoice'), t('common.items'), t('common.grossAmt'), t('common.discount'), t('saleReport.netProceeds'), t('common.mode')]],
-      body: bodyRows,
-      foot: [['', '', '', '', '', t('common.totals'), 'Rs.' + totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }), '']],
-      styles: { font: 'NotoGujarati', fontSize: 7.5, cellPadding: [4, 5], textColor: dark, lineColor: [226, 232, 240], lineWidth: 0.3 },
-      headStyles: { font: 'NotoGujarati', fillColor: navy, textColor: white, fontStyle: 'normal' },
-      footStyles: { font: 'NotoGujarati', fillColor: [30, 41, 59], textColor: white },
-      alternateRowStyles: { fillColor: stripe },
-      didParseCell: (data) => {
-        const text = data.cell.text.join(' ');
-        if (text && !/[\u0A80-\u0AFF]/.test(text)) {
-          data.cell.styles.font = 'helvetica';
+      const columns = [
+        {
+          header: isGu ? 'ગ્રાહક વિગત' : 'Client Identity',
+          align: 'left',
+          width: '28%',
+          render: (row) => {
+            if (row._isTotals) return `<strong style="float: right;">${isGu ? 'સરવાળો:' : 'Total:'}</strong>`;
+            const customerName = isGu ? (row.customer_name_gu || row.customer_name || 'COUNTER SALE') : (row.customer_name || 'COUNTER SALE');
+            const codeFormatted = row.member_code ? (isGu ? `કોડ: ${toGujaratiDigits(row.member_code)}` : `CODE: ${row.member_code}`) : '';
+            return `<strong>${customerName}</strong>${codeFormatted ? `<br/><small style="color:#64748b">${codeFormatted}</small>` : ''}`;
+          }
+        },
+        {
+          header: isGu ? 'તારીખ' : 'Date',
+          align: 'center',
+          width: '12%',
+          render: (row) => row._isTotals ? '' : formatDate(row.invoice_date, isGu)
+        },
+        {
+          header: isGu ? 'બિલ નં.' : 'Invoice #',
+          align: 'center',
+          width: '12%',
+          render: (row) => row._isTotals ? '' : `#${isGu ? toGujaratiDigits(row.invoice_no) : row.invoice_no}`
+        },
+        {
+          header: isGu ? 'વસ્તુ સંખ્યા' : 'Items',
+          align: 'center',
+          width: '10%',
+          render: (row) => row._isTotals ? '' : (isGu ? `${toGujaratiDigits(row.item_count)} આઈટમ` : `${row.item_count} Items`)
+        },
+        {
+          header: isGu ? 'કુલ રકમ' : 'Gross Amt',
+          align: 'right',
+          width: '12%',
+          render: (row) => row._isTotals ? '' : `₹${fmtNum(row.total_amount)}`
+        },
+        {
+          header: isGu ? 'ડિસ્કાઉન્ટ' : 'Discount',
+          align: 'right',
+          width: '10%',
+          render: (row) => row._isTotals ? '' : `₹${fmtNum(row.discount_amount || 0)}`
+        },
+        {
+          header: isGu ? 'ચોખ્ખી રકમ' : 'Net Proceeds',
+          align: 'right',
+          width: '16%',
+          render: (row) => row._isTotals ? `<strong>₹${fmtNum(row.net_amount)}</strong>` : `₹${fmtNum(row.net_amount)}`
+        },
+        {
+          header: isGu ? 'ચુકવણી' : 'Payment',
+          align: 'center',
+          width: '10%',
+          render: (row) => row._isTotals ? '' : (row.payment_type === 'cash' ? (isGu ? 'રોકડ' : 'Cash') : (isGu ? 'જમા' : 'Credit'))
         }
-      },
-      theme: 'grid',
-      margin: { left: M, right: M }
-    });
+      ];
 
-    const tot = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= tot; i++) { doc.setPage(i); ftr(i, tot); }
-    doc.save('Sale_Report_' + startDate + '_to_' + endDate + '.pdf');
+      await exportToPDF({
+        title: isGu ? 'વેચાણ અહેવાલ' : 'Sale Settlement Register',
+        columns,
+        rows: allRows,
+        isGu,
+        metaInfo: [
+          { label: isGu ? 'સમયગાળો' : 'Period', value: isGu ? `${formatDate(startDate, true)} — ${formatDate(endDate, true)}` : `${startDate} — ${endDate}` }
+        ],
+        filename: `${isGu ? 'વેચાણ_અહેવાલ' : 'Sale_Report'}_${startDate}_${endDate}.pdf`
+      });
+    } else {
+      const totalAmt = filteredSummary.reduce((s, x) => s + (parseFloat(x.outward || 0) * parseFloat(x.sale_price || 0)), 0);
+      const allRows = [
+        ...filteredSummary,
+        { _isTotals: true, total_proceeds: totalAmt }
+      ];
+
+      const columns = [
+        {
+          header: isGu ? 'પ્રોડક્ટ વિગત' : 'Product Taxonomy',
+          align: 'left',
+          width: '35%',
+          render: (row) => {
+            if (row._isTotals) return `<strong style="float: right;">${isGu ? 'સરવાળો:' : 'Total:'}</strong>`;
+            const itemDisplayName = isGu ? (row.item_name_gu || row.item_name || '') : (row.item_name || '');
+            const itemCodeFormatted = row.item_code ? (isGu ? `કોડ: ${toGujaratiDigits(row.item_code)}` : `CODE: ${row.item_code}`) : '';
+            return `<strong>${itemDisplayName}</strong>${itemCodeFormatted ? `<br/><small style="color:#64748b">${itemCodeFormatted}</small>` : ''}`;
+          }
+        },
+        {
+          header: isGu ? 'એકમ' : 'Unit',
+          align: 'center',
+          width: '15%',
+          render: (row) => {
+            if (row._isTotals) return '';
+            const unitStr = row.unit || 'NOS';
+            return isGu ? (unitStr === 'NOS' ? 'નંગ' : (unitStr === 'KG' ? 'કિલો' : unitStr)) : unitStr;
+          }
+        },
+        {
+          header: isGu ? 'જથ્થો' : 'Yield Volume',
+          align: 'right',
+          width: '15%',
+          render: (row) => row._isTotals ? '' : (isGu ? toGujaratiDigits(parseFloat(row.outward || 0).toFixed(3)) : parseFloat(row.outward || 0).toFixed(3))
+        },
+        {
+          header: isGu ? 'ભાવ' : 'Rate',
+          align: 'right',
+          width: '15%',
+          render: (row) => row._isTotals ? '' : `₹${fmtNum(row.sale_price)}`
+        },
+        {
+          header: isGu ? 'કુલ રકમ' : 'Gross Proceeds',
+          align: 'right',
+          width: '20%',
+          render: (row) => {
+            const val = row._isTotals ? row.total_proceeds : (parseFloat(row.outward || 0) * parseFloat(row.sale_price || 0));
+            return row._isTotals ? `<strong>₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
+          }
+        }
+      ];
+
+      await exportToPDF({
+        title: isGu ? 'પ્રોડક્ટ વેચાણ વિવરણ' : 'Product Sale Summary',
+        columns,
+        rows: allRows,
+        isGu,
+        metaInfo: [
+          { label: isGu ? 'સમયગાળો' : 'Period', value: isGu ? `${formatDate(startDate, true)} — ${formatDate(endDate, true)}` : `${startDate} — ${endDate}` }
+        ],
+        filename: `${isGu ? 'પ્રોડક્ટ_વેચાણ_અહેવાલ' : 'Product_Sale_Report'}_${startDate}_${endDate}.pdf`
+      });
+    }
   };
 
   if (!company) {
