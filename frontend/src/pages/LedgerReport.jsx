@@ -13,6 +13,37 @@ import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 
 export default function LedgerReport() {
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
+
+  // Helper function to detect if text contains Gujarati characters
+  const containsGujarati = (text) => {
+    if (!text) return false;
+    return /[\u0A80-\u0AFF]/.test(text);
+  };
+
+  // Smart name selection: use appropriate field based on language
+  const getDisplayName = (account, isGujarati) => {
+    if (isGujarati) {
+      // For Gujarati mode: use account_name_gu if available, fallback to account_name
+      return account.account_name_gu || account.account_name;
+    } else {
+      // For English mode: use account_name if it's English, fallback to account_name_gu
+      return account.account_name || account.account_name_gu;
+    }
+  };
+
+  // Smart member name selection
+  const getMemberDisplayName = (member, isGujarati) => {
+    if (isGujarati) {
+      if (member.member_name_gu) return member.member_name_gu;
+      if (containsGujarati(member.member_name)) return member.member_name;
+      return member.member_name;
+    } else {
+      if (member.eng_name && !containsGujarati(member.eng_name)) return member.eng_name;
+      if (!containsGujarati(member.member_name)) return member.member_name;
+      return member.member_name;
+    }
+  };
 
   // States
   const [data, setData] = useState([]);
@@ -588,7 +619,7 @@ export default function LedgerReport() {
                       <tr key={idx} className="hover:bg-slate-50 transition-colors">
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[10px] text-slate-600 font-mono">{formatDate(row.transaction_date)}</td>
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[10px] text-slate-600 font-mono">{row.reference_no}</td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-slate-700 font-medium leading-tight">{formatBilingualText(row.description)}</td>
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-slate-700 font-medium leading-tight">{isGu ? formatBilingualText(row.description_gu || row.narration_text_gu || row.description || '') : (row.description_en || row.description || row.narration_text || row.eng_name || '—')}</td>
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-slate-500">
                           {parseFloat(row.opening_balance || 0) !== 0 ? `₹${parseFloat(row.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                         </td>
@@ -641,7 +672,7 @@ export default function LedgerReport() {
               <div className="flex items-center gap-2 select-none">
                 <Filter size={14} className="text-[#1d5f84]" />
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  Filter Parameters
+                  {isGu ? 'ફિલ્ટર પરિમાણો' : 'Filter Parameters'}
                 </span>
               </div>
               <button
@@ -662,7 +693,7 @@ export default function LedgerReport() {
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">{isGu ? 'થી' : 'From'}</span>
                     <input
                       ref={startDateRef}
                       type="date"
@@ -673,7 +704,7 @@ export default function LedgerReport() {
                     />
                   </div>
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">{isGu ? 'સુધી' : 'To'}</span>
                     <input
                       ref={endDateRef}
                       type="date"
@@ -699,7 +730,7 @@ export default function LedgerReport() {
                     onChange={(e) => { setAccountCodeSearch(e.target.value); setShowAccountDropdown(true); }}
                     onFocus={() => { setShowAccountDropdown(true); setShowMemberDropdown(false); }}
                     onKeyDown={handleAccountCodeKeyDown}
-                    placeholder="ID"
+                    placeholder={isGu ? 'આઈડી' : 'ID'}
                     className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
                   />
                   <input
@@ -731,7 +762,7 @@ export default function LedgerReport() {
                         className={`px-2.5 py-1 flex justify-between items-center cursor-pointer border-b border-slate-100 last:border-none ${accountActiveIdx === idx ? 'bg-slate-50 text-[#1d5f84]' : 'hover:bg-slate-50'}`}
                       >
                         <span className="text-[10px] font-bold truncate">
-                          {formatBilingualText(i18n.language === 'gu' ? (a.account_name_gu || a.account_name) : a.account_name)}
+                          {getDisplayName(a, isGu)}
                         </span>
                         <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{a.id}</span>
                       </div>
@@ -753,7 +784,7 @@ export default function LedgerReport() {
                     onChange={(e) => { setMemberCodeSearch(e.target.value); setShowMemberDropdown(true); }}
                     onFocus={() => { setShowMemberDropdown(true); setShowAccountDropdown(false); }}
                     onKeyDown={handleMemberCodeKeyDown}
-                    placeholder="ID"
+                    placeholder={isGu ? 'આઈડી' : 'ID'}
                     className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
                   />
                   <input
@@ -785,7 +816,7 @@ export default function LedgerReport() {
                         className={`px-2.5 py-1 flex justify-between items-center cursor-pointer border-b border-slate-100 last:border-none ${memberActiveIdx === idx ? 'bg-slate-50 text-[#1d5f84]' : 'hover:bg-slate-50'}`}
                       >
                         <span className="text-[10px] font-bold truncate">
-                          {formatBilingualText(i18n.language === 'gu' ? m.member_name : (m.eng_name || m.member_name))}
+                          {getMemberDisplayName(m, isGu)}
                         </span>
                         <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{m.id}</span>
                       </div>
@@ -831,7 +862,7 @@ export default function LedgerReport() {
                 }}
                 className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
               >
-                Reset All
+                {isGu ? 'રીસેટ કરો' : 'Reset All'}
               </button>
               <button
                 onClick={() => {
@@ -840,7 +871,7 @@ export default function LedgerReport() {
                 }}
                 className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
               >
-                View Statement
+                {isGu ? 'વિવરણ જુઓ' : 'View Statement'}
               </button>
             </div>
           </div>
