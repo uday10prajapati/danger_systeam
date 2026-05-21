@@ -26,6 +26,54 @@ export default function SabhasadLedgerSummary() {
   const { t, i18n } = useTranslation();
   const isGu = i18n.language === 'gu';
 
+  const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
+  const toGujaratiDigits = (value) => String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
+
+  const fmtAmount = (val, prefix = '') => {
+    const num = parseFloat(val) || 0;
+    const formatted = num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const str = prefix ? `${prefix}${formatted}` : formatted;
+    return isGu ? toGujaratiDigits(str) : str;
+  };
+
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return '—';
+    let dStr = dateString;
+    if (dStr.includes('T')) dStr = dStr.split('T')[0];
+    const parts = dStr.split('-');
+    if (parts.length !== 3) {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return dateString;
+      const formatted = d.toLocaleDateString('en-GB');
+      return isGu ? toGujaratiDigits(formatted) : formatted;
+    }
+    const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return isGu ? toGujaratiDigits(engDate) : engDate;
+  };
+
+  const displayAccountName = (acc) => {
+    if (!acc) return '';
+    return isGu
+      ? (acc.account_name_gu || translateSystemText(acc.account_name) || '')
+      : (acc.account_name || acc.account_name_gu || '');
+  };
+
+  const displayBilingualName = (en, gu) => {
+    return isGu ? (gu || en || '') : (en || gu || '');
+  };
+
+  const displayMemberName = (m) => {
+    if (!m) return '';
+    return displayBilingualName(m.eng_name || m.member_name, m.member_name_gu || m.member_name);
+  };
+
+  const displayItemName = (item) => {
+    if (!item) return '';
+    return isGu
+      ? (item.item_name_gu || item.item_name || '')
+      : (item.item_name || item.item_name_gu || '');
+  };
+
   const [data, setData] = useState([]);
   const [totals, setTotals] = useState({ opening_balance: 0, debit: 0, credit: 0, closing_balance: 0 });
   const [loading, setLoading] = useState(true);
@@ -79,10 +127,29 @@ export default function SabhasadLedgerSummary() {
   // Refs for navigation
   const startDateRef = React.useRef(null);
   const endDateRef = React.useRef(null);
+
   const accCodeRef = React.useRef(null);
   const accNameRef = React.useRef(null);
   const memCodeRef = React.useRef(null);
   const memNameRef = React.useRef(null);
+  const accDropRef = React.useRef(null);
+  const memDropRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (accDropRef.current && !accDropRef.current.contains(event.target)) {
+        setShowAccDrop(false);
+      }
+      if (memDropRef.current && !memDropRef.current.contains(event.target)) {
+        setShowMemDrop(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
 
   const [accActiveIdx, setAccActiveIdx] = useState(0);
   const [memActiveIdx, setMemActiveIdx] = useState(0);
@@ -222,7 +289,7 @@ export default function SabhasadLedgerSummary() {
     }
   };
 
-  const handleInputChangeWithAutocomplete = (e, inputRef, list, nameKey, setValue, setShowDrop) => {
+  const handleInputChangeWithAutocomplete = (e, inputRef, list, getNameFn, setValue, setShowDrop) => {
     const typedVal = e.target.value;
     const inputType = e.nativeEvent?.inputType || '';
 
@@ -238,8 +305,7 @@ export default function SabhasadLedgerSummary() {
     const match = list[0];
 
     if (match) {
-      const rawText = match[nameKey] || '';
-      const matchText = i18n.language === 'gu' ? translateSystemText(rawText) : rawText;
+      const matchText = typeof getNameFn === 'function' ? getNameFn(match) : (match[getNameFn] || '');
       if (matchText.toLowerCase().startsWith(typedVal.toLowerCase())) {
         setValue(matchText);
         setTimeout(() => {
@@ -350,7 +416,7 @@ export default function SabhasadLedgerSummary() {
         // Group rows by member to show consolidated totals per sabhasad
         const raw = response.data.data || [];
         const groupedMap = {};
-        const numericFields = ['opening_balance','debit','credit','balance','closing_balance','bardan_balance','bardan_self_jama','bardan_penalty_balance','net_quintal','amount','qty'];
+        const numericFields = ['opening_balance', 'debit', 'credit', 'balance', 'closing_balance', 'bardan_balance', 'bardan_self_jama', 'bardan_penalty_balance', 'net_quintal', 'amount', 'qty'];
 
         raw.forEach(r => {
           const key = r.member_id || r.member_code || (r.member_name || '_unknown_');
@@ -366,6 +432,8 @@ export default function SabhasadLedgerSummary() {
             // prefer earliest non-empty textual fields
             g.member_code = g.member_code || r.member_code;
             g.member_name = g.member_name || r.member_name;
+            g.member_name_gu = g.member_name_gu || r.member_name_gu;
+            g.eng_name = g.eng_name || r.eng_name;
             g.village_name = g.village_name || r.village_name;
             g.account_name = g.account_name || r.account_name;
             g.account_name_gu = g.account_name_gu || r.account_name_gu;
@@ -447,7 +515,7 @@ export default function SabhasadLedgerSummary() {
           if (isBardan) {
             r += `
               <td>${row.member_code || '-'}</td>
-              <td><strong>${translateSystemText(row.member_name || '-')}</strong></td>
+              <td><strong>${translateSystemText(displayMemberName(row) || '-')}</strong></td>
               <td>${translateSystemText(row.village_name || '-')}</td>
               <td style="text-align:right">${parseFloat(row.opening_balance || 0).toLocaleString()}</td>
               <td style="text-align:right">${parseFloat(row.debit || 0) > 0 ? parseFloat(row.debit || 0).toLocaleString() : '-'}</td>
@@ -460,7 +528,7 @@ export default function SabhasadLedgerSummary() {
             r += `
               <td>${formatDate(row.entry_date)}</td>
               <td>
-                ${row.member_name ? `<br><small style="color:#2563eb">${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]</small>` : ''}
+                ${row.member_name ? `<br><small style="color:#2563eb">${translateSystemText('Node')}: ${translateSystemText(displayMemberName(row))} [${row.member_id}]</small>` : ''}
               </td>
               <td style="text-align:right">₹${parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
               <td style="text-align:right">₹${parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -472,7 +540,7 @@ export default function SabhasadLedgerSummary() {
           r += `
             <td>${formatDate(row.entry_date)}</td>
             <td>${row.member_code || '-'}</td>
-            <td>${translateSystemText(row.member_name || '-')}</td>
+            <td>${translateSystemText(displayMemberName(row) || '-')}</td>
             <td>${translateSystemText(row.description)}</td>
             <td style="text-align:right">${displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             <td style="text-align:right">${displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -482,7 +550,7 @@ export default function SabhasadLedgerSummary() {
       } else if (isDangar) {
         r += `
           <td>${row.member_code}</td>
-          <td>${translateSystemText(row.member_name)}</td>
+          <td>${translateSystemText(displayMemberName(row))}</td>
           <td>${formatDate(row.entry_date)}</td>
           <td style="text-align:right">${parseFloat(row.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
           <td>${translateSystemText(row.item_name)}</td>
@@ -494,7 +562,7 @@ export default function SabhasadLedgerSummary() {
       } else {
         r += `
           <td>${row.member_code || '-'}</td>
-          <td style="font-weight:600">${translateSystemText(row.member_name || '-')}</td>
+          <td style="font-weight:600">${translateSystemText(displayMemberName(row) || '-')}</td>
           <td>${translateSystemText(row.account_name_gu || row.account_name || '-')}</td>
           <td style="text-align:right; color: ${parseFloat(row.opening_balance) >= 0 ? '#059669' : '#dc2626'}">${parseFloat(row.opening_balance) >= 0 ? '+' : '-'}${Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
           <td style="text-align:center">${row.last_activity_date ? formatDate(row.last_activity_date) : '-'}</td>
@@ -696,7 +764,7 @@ export default function SabhasadLedgerSummary() {
             return [
               String(i + 1).padStart(3, '0'),
               row.member_code || '-',
-              translateSystemText(row.member_name || '-'),
+              translateSystemText(displayMemberName(row) || '-'),
               translateSystemText(row.village_name || '-'),
               parseFloat(row.opening_balance || 0).toLocaleString(),
               parseFloat(row.debit || 0) > 0 ? parseFloat(row.debit || 0).toLocaleString() : '-',
@@ -711,7 +779,7 @@ export default function SabhasadLedgerSummary() {
               formatDate(row.entry_date),
               translateSystemText(row.village_name || '-'),
               row.member_name
-                ? `${translateSystemText(row.description || '-')}\n${translateSystemText('Node')}: ${translateSystemText(row.member_name)} [${row.member_id}]`
+                ? `${translateSystemText(row.description || '-')}\n${translateSystemText('Node')}: ${translateSystemText(displayMemberName(row))} [${row.member_id}]`
                 : translateSystemText(row.description || '-'),
               '₹' + parseFloat(displayDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
               '₹' + parseFloat(displayCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -724,7 +792,7 @@ export default function SabhasadLedgerSummary() {
           String(i + 1).padStart(3, '0'),
           formatDate(row.entry_date),
           row.member_code || '-',
-          translateSystemText(row.member_name || '-'),
+          translateSystemText(displayMemberName(row) || '-'),
           translateSystemText(row.village_name || '-'),
           translateSystemText(row.description || '-'),
           displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -735,7 +803,7 @@ export default function SabhasadLedgerSummary() {
       if (isDangar) return [
         String(i + 1).padStart(3, '0'),
         row.member_code,
-        translateSystemText(row.member_name),
+        translateSystemText(displayMemberName(row)),
         translateSystemText(row.village_name || '-'),
         formatDate(row.entry_date),
         parseFloat(row.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -749,7 +817,7 @@ export default function SabhasadLedgerSummary() {
       const base = [
         String(i + 1).padStart(3, '0'),
         row.member_code || '-',
-        translateSystemText(row.member_name || '-'),
+        translateSystemText(displayMemberName(row) || '-'),
         translateSystemText(row.village_name || '-'),
         translateSystemText(row.account_name_gu || row.account_name || '-'),
         (parseFloat(row.opening_balance) >= 0 ? '+' : '-') + Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -884,16 +952,32 @@ export default function SabhasadLedgerSummary() {
   const handleSelectAcc = (acc) => {
     setAccountId(acc?.id || 'all');
     setAccCode(acc ? String(acc.id) : '');
-    setAccName(acc ? (i18n.language === 'gu' ? (acc.account_name_gu || translateSystemText(acc.account_name)) : acc.account_name) : '');
+    setAccName(acc ? displayAccountName(acc) : '');
     setShowAccDrop(false);
   };
 
   const handleSelectMem = (mem) => {
     setMemberId(mem?.id || 'all');
     setMemCode(mem ? String(mem.id) : '');
-    setMemName(mem ? (i18n.language === 'gu' ? mem.member_name : (mem.eng_name || mem.member_name)) : '');
+    setMemName(mem ? displayMemberName(mem) : '');
     setShowMemDrop(false);
   };
+
+  // Translate input texts when language changes
+  useEffect(() => {
+    if (accountId !== 'all') {
+      const activeAcc = accounts.find(a => a.id === parseInt(accountId));
+      if (activeAcc) {
+        setAccName(displayAccountName(activeAcc));
+      }
+    }
+    if (memberId !== 'all') {
+      const activeMem = members.find(m => m.id === parseInt(memberId));
+      if (activeMem) {
+        setMemName(displayMemberName(activeMem));
+      }
+    }
+  }, [i18n.language, accounts, members, accountId, memberId]);
 
   useEffect(() => {
     if (accCode && accountId === 'all') {
@@ -1014,7 +1098,7 @@ export default function SabhasadLedgerSummary() {
             <div className="flex items-center gap-4">
               <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
                 {memberId !== 'all' || accountId !== 'all' ? (
-                  <span className="font-extrabold text-[#1d5f84]">
+                  <span className="font-extrabold text-[#1d5f84]" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
                     {formatBilingualText(
                       [
                         memberId !== 'all' ? memName : null,
@@ -1023,7 +1107,7 @@ export default function SabhasadLedgerSummary() {
                     )}
                   </span>
                 ) : (
-                  t('sabhasadLedgerSummary.ledgerRegistryList') || "Registry Transaction Records"
+                  t('sabhasadLedgerSummary.ledgerRegistryList', 'Registry Transaction Records')
                 )}
               </span>
             </div>
@@ -1033,12 +1117,12 @@ export default function SabhasadLedgerSummary() {
               <button
                 onClick={() => setShowFiltersDrawer(true)}
                 className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
-                    ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                  ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                   }`}
               >
                 <Filter size={13} className={hasActiveFilters ? "text-white" : "text-slate-500"} />
-                <span>{t('sabhasadLedgerSummary.filters') || "Filters"}</span>
+                <span>{t('sabhasadLedgerSummary.filters', 'Filters')}</span>
                 {hasActiveFilters && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -1057,21 +1141,21 @@ export default function SabhasadLedgerSummary() {
               )}
               <button
                 onClick={handlePrint}
-                title={t('sabhasadLedgerSummary.print') || "Print"}
+                title={t('sabhasadLedgerSummary.print', 'Print')}
                 className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
               >
                 <Printer size={13} className="text-slate-500" />
               </button>
               <button
                 onClick={handleExportPDF}
-                title={t('sabhasadLedgerSummary.pdf') || "PDF"}
+                title={t('sabhasadLedgerSummary.pdf', 'PDF')}
                 className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
               >
                 <FileText size={13} className="text-slate-500" />
               </button>
               <button
                 onClick={fetchReportData}
-                title={t('sabhasadLedgerSummary.refreshRegistry') || "Refresh"}
+                title={t('sabhasadLedgerSummary.refreshRegistry', 'Refresh')}
                 className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
               >
                 <RefreshCcw size={13} className={`text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
@@ -1173,7 +1257,7 @@ export default function SabhasadLedgerSummary() {
                     <td colSpan="13" className="py-24 text-center">
                       <RefreshCcw size={28} className="animate-spin text-slate-350 mx-auto mb-2 text-slate-400" />
                       <p className="text-slate-400 font-bold uppercase text-[9px] tracking-widest italic">
-                        {t('sabhasadLedgerSummary.synchronizingRegistry') || "Fetching Statement Data..."}
+                        {t('sabhasadLedgerSummary.synchronizingRegistry', 'Fetching Statement Data...')}
                       </p>
                     </td>
                   </tr>
@@ -1181,7 +1265,7 @@ export default function SabhasadLedgerSummary() {
                   <tr>
                     <td colSpan="13" className="py-24 text-center text-slate-400 font-bold text-xs tracking-wider bg-slate-50/20">
                       <Database size={32} className="mx-auto mb-2 opacity-40 text-[#1d5f84]" />
-                      {t('sabhasadLedgerSummary.noSabhasadRecordsFound') || "No transaction ledger records found."}
+                      {t('sabhasadLedgerSummary.noSabhasadRecordsFound', 'No transaction ledger records found.')}
                     </td>
                   </tr>
                 ) : (
@@ -1207,8 +1291,9 @@ export default function SabhasadLedgerSummary() {
                                 <span
                                   onClick={() => row.member_id && openAudit(row)}
                                   className={`font-bold text-[11px] text-slate-800 uppercase ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                  style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                 >
-                                  {formatBilingualText(row.member_name)}
+                                  {displayMemberName(row)}
                                 </span>
                                 {row.member_id && (
                                   <button
@@ -1219,9 +1304,7 @@ export default function SabhasadLedgerSummary() {
                                     <Activity size={10} />
                                   </button>
                                 )}
-                                {row.eng_name && (
-                                  <span className="text-[9px] font-sans text-slate-400 font-medium">({row.eng_name})</span>
-                                )}
+
                                 {row.bank_name && (
                                   <span className="text-[9px] font-sans text-blue-500 font-medium px-1 bg-blue-50 rounded-sm">Bank: {row.bank_name}</span>
                                 )}
@@ -1255,8 +1338,9 @@ export default function SabhasadLedgerSummary() {
                                       <span
                                         onClick={() => row.member_id && openAudit(row)}
                                         className={`font-bold text-[11px] text-slate-800 uppercase ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                        style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                       >
-                                        {formatBilingualText(row.member_name)}
+                                        {displayMemberName(row)}
                                       </span>
                                       {row.member_id && (
                                         <button
@@ -1267,7 +1351,7 @@ export default function SabhasadLedgerSummary() {
                                           <Activity size={10} />
                                         </button>
                                       )}
-                                      {row.eng_name && <span className="text-[9px] font-sans text-slate-400">({row.eng_name})</span>}
+
                                     </div>
                                   </td>
                                   <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 truncate">{formatBilingualText(row.village_name || '-')}</td>
@@ -1302,8 +1386,9 @@ export default function SabhasadLedgerSummary() {
                                       <span
                                         onClick={() => row.member_id && openAudit(row)}
                                         className={`font-bold text-[11px] text-slate-800 uppercase ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                        style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                       >
-                                        {row.member_name ? formatBilingualText(row.member_name) : '—'}
+                                        {displayMemberName(row) || '—'}
                                       </span>
                                       {row.member_id && (
                                         <button
@@ -1314,7 +1399,7 @@ export default function SabhasadLedgerSummary() {
                                           <Activity size={10} />
                                         </button>
                                       )}
-                                      {row.eng_name && <span className="text-[9px] font-sans text-slate-400">({row.eng_name})</span>}
+
                                     </div>
                                   </td>
                                   <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">
@@ -1345,8 +1430,9 @@ export default function SabhasadLedgerSummary() {
                                     <span
                                       onClick={() => row.member_id && openAudit(row)}
                                       className={`font-bold text-[11px] text-slate-800 uppercase ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                      style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                     >
-                                      {row.member_name ? formatBilingualText(row.member_name) : '—'}
+                                      {displayMemberName(row) || '—'}
                                     </span>
                                     {row.member_id && (
                                       <button
@@ -1357,7 +1443,7 @@ export default function SabhasadLedgerSummary() {
                                         <Activity size={10} />
                                       </button>
                                     )}
-                                    {row.eng_name && <span className="text-[9px] font-sans text-slate-400">({row.eng_name})</span>}
+
                                   </div>
                                 </td>
                                 <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">{row.description ? formatBilingualText(row.description) : '—'}</td>
@@ -1473,7 +1559,7 @@ export default function SabhasadLedgerSummary() {
                         if (isBardan) {
                           return (
                             <>
-                              <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.registryTotals') || "Registry Totals"}:</td>
+                              <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.registryTotals', 'Registry Totals')}:</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">{parseFloat(totals.opening_balance || 0).toLocaleString()}</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">{parseFloat(totals.debit || 0).toLocaleString()}</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">{parseFloat(totals.credit || 0).toLocaleString()}</td>
@@ -1505,7 +1591,7 @@ export default function SabhasadLedgerSummary() {
 
                           return (
                             <>
-                              <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.registryTotals') || "Registry Totals"}:</td>
+                              <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.registryTotals', 'Registry Totals')}:</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">₹{displayTotalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">₹{displayTotalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -1523,7 +1609,7 @@ export default function SabhasadLedgerSummary() {
                         if (isDangar) {
                           return (
                             <>
-                              <td colSpan="7" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals') || "Totals"}:</td>
+                              <td colSpan="7" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals', 'Totals')}:</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200">
                                 {data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[9px] font-sans">Qt</span>
                               </td>
@@ -1537,7 +1623,7 @@ export default function SabhasadLedgerSummary() {
                         if (isInterest) {
                           return (
                             <>
-                              <td colSpan="6" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals') || "Totals"}:</td>
+                              <td colSpan="6" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals', 'Totals')}:</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold">
                                 ₹{data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
@@ -1548,7 +1634,7 @@ export default function SabhasadLedgerSummary() {
                         if (isBrokerage || isLabour) {
                           return (
                             <>
-                              <td colSpan="5" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals') || "Totals"}:</td>
+                              <td colSpan="5" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals', 'Totals')}:</td>
                               <td className="px-3 py-2 text-right text-[11px] font-mono tracking-tighter text-[#1d5f84] font-bold">
                                 ₹{data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
@@ -1559,7 +1645,7 @@ export default function SabhasadLedgerSummary() {
                         // Consolidated Default footer
                         return (
                           <>
-                            <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.consolidatedTotals') || "Consolidated Totals"}:</td>
+                            <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.consolidatedTotals', 'Consolidated Totals')}:</td>
                             <td className="px-3 py-2 border-r border-slate-200 font-mono text-right text-[#1d5f84] font-bold text-[11px]">₹{parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                             <td className="px-3 py-2 border-r border-slate-200 font-sans"></td>
                             <td className="px-3 py-2 text-right text-[#1d5f84] font-mono text-[11px] border-r border-slate-200">₹{parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -1626,7 +1712,7 @@ export default function SabhasadLedgerSummary() {
               {/* Date range inputs */}
               <div className="space-y-2">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.dateRange') || "Date Range Period"}
+                  {t('sabhasadLedgerSummary.dateRange', 'Date Range Period')}
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
@@ -1655,9 +1741,9 @@ export default function SabhasadLedgerSummary() {
               </div>
 
               {/* Account Nomenclature Search */}
-              <div className="space-y-1.5 relative">
+              <div className="space-y-1.5 relative" ref={accDropRef}>
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.accountNomenclature') || "Account"}
+                  {t('sabhasadLedgerSummary.accountNomenclature', 'Account')}
                 </span>
                 <div className="flex gap-2">
                   <input
@@ -1674,7 +1760,7 @@ export default function SabhasadLedgerSummary() {
                     ref={accNameRef}
                     type="text"
                     value={accName}
-                    onChange={(e) => handleInputChangeWithAutocomplete(e, accNameRef, filteredAccs, 'account_name', setAccName, setShowAccDrop)}
+                    onChange={(e) => handleInputChangeWithAutocomplete(e, accNameRef, filteredAccs, displayAccountName, setAccName, setShowAccDrop)}
                     onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }}
                     onKeyDown={handleAccNameKeyDown}
                     placeholder="Search account..."
@@ -1699,8 +1785,8 @@ export default function SabhasadLedgerSummary() {
                         className={`px-2.5 py-1 flex justify-between items-center cursor-pointer border-b border-slate-100 last:border-none ${accActiveIdx === idx ? 'bg-slate-50 text-[#1d5f84]' : 'hover:bg-slate-50'
                           }`}
                       >
-                        <span className="text-[10px] font-bold truncate">
-                          {formatBilingualText(isGu ? (a.account_name_gu || a.account_name) : a.account_name)}
+                        <span className="text-[10px] font-bold truncate" translate="no" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                          {displayAccountName(a)}
                         </span>
                         <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{a.id}</span>
                       </div>
@@ -1710,9 +1796,9 @@ export default function SabhasadLedgerSummary() {
               </div>
 
               {/* Member Search */}
-              <div className="space-y-1.5 relative">
+              <div className="space-y-1.5 relative" ref={memDropRef}>
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.memberIdentity') || "Member"}
+                  {t('sabhasadLedgerSummary.memberIdentity', 'Member')}
                 </span>
                 <div className="flex gap-2">
                   <input
@@ -1729,7 +1815,7 @@ export default function SabhasadLedgerSummary() {
                     ref={memNameRef}
                     type="text"
                     value={memName}
-                    onChange={(e) => handleInputChangeWithAutocomplete(e, memNameRef, filteredMems, 'member_name', setMemName, setShowMemDrop)}
+                    onChange={(e) => handleInputChangeWithAutocomplete(e, memNameRef, filteredMems, displayMemberName, setMemName, setShowMemDrop)}
                     onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }}
                     onKeyDown={handleMemNameKeyDown}
                     placeholder="Search member..."
@@ -1754,8 +1840,8 @@ export default function SabhasadLedgerSummary() {
                         className={`px-2.5 py-1 flex justify-between items-center cursor-pointer border-b border-slate-100 last:border-none ${memActiveIdx === idx ? 'bg-slate-50 text-[#1d5f84]' : 'hover:bg-slate-50'
                           }`}
                       >
-                        <span className="text-[10px] font-bold truncate">
-                          {formatBilingualText(isGu ? m.member_name : (m.eng_name || m.member_name))}
+                        <span className="text-[10px] font-bold truncate" translate="no" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                          {displayMemberName(m)}
                         </span>
                         <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{m.id}</span>
                       </div>
@@ -1777,7 +1863,7 @@ export default function SabhasadLedgerSummary() {
                       value={fromMemberCode}
                       onChange={(e) => setFromMemberCode(e.target.value)}
                       placeholder="Start Code"
-                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full"
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold  outline-none w-full"
                     />
                   </div>
                   <div className="relative">
@@ -1787,7 +1873,7 @@ export default function SabhasadLedgerSummary() {
                       value={toMemberCode}
                       onChange={(e) => setToMemberCode(e.target.value)}
                       placeholder="End Code"
-                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full"
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold  outline-none w-full"
                     />
                   </div>
                 </div>
@@ -1801,24 +1887,24 @@ export default function SabhasadLedgerSummary() {
                 <select
                   value={dangarClass}
                   onChange={(e) => setDangarClass(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : ''}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : 'font-mono'}`}
                 >
-                  <option value="">{t('common.all') || "All Classes"}</option>
-                  <option value="1st">{t('dangarRateMaster.table.class1') || "1st Class"}</option>
-                  <option value="2nd">{t('dangarRateMaster.table.class2') || "2nd Class"}</option>
-                  <option value="3rd">{t('dangarRateMaster.table.class3') || "3rd Class"}</option>
+                  <option value="">{t('sabhasadLedgerSummary.allClasses', 'All Classes')}</option>
+                  <option value="1st">{t('dangarRateMaster.table.class1', '1st Class')}</option>
+                  <option value="2nd">{t('dangarRateMaster.table.class2', '2nd Class')}</option>
+                  <option value="3rd">{t('dangarRateMaster.table.class3', '3rd Class')}</option>
                 </select>
               </div>
 
               {/* Village selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.villageFilter') || "Village"}
+                  {t('sabhasadLedgerSummary.villageFilter', 'Village')}
                 </span>
                 <select
                   value={village}
                   onChange={(e) => setVillage(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : ''}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : 'font-mono'}`}
                 >
                   <option value="">{t('sabhasadLedgerSummary.allVillages')}</option>
                   {[...new Set(members.map(m => m.village_name).filter(Boolean))].sort().map(v => (
@@ -1830,14 +1916,14 @@ export default function SabhasadLedgerSummary() {
               {/* Bank selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.bankFilter') || "Bank"}
+                  {t('sabhasadLedgerSummary.bankFilter', 'Bank')}
                 </span>
                 <select
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full font-mono"
                 >
-                  <option value="">{t('sabhasadLedgerSummary.allBanks')}</option>
+                  <option value="">All Banks</option>
                   {banks.map(b => (
                     <option key={b.id} value={b.bank_name}>{b.bank_name}</option>
                   ))}
@@ -1847,14 +1933,14 @@ export default function SabhasadLedgerSummary() {
               {/* Season selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.seasonFilter') || "Crop Season"}
+                  {t('sabhasadLedgerSummary.seasonFilter', 'Crop Season')}
                 </span>
                 <select
                   value={season}
                   onChange={(e) => setSeason(e.target.value)}
-                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full font-mono"
                 >
-                  <option value="">{t('sabhasadLedgerSummary.allSeasons')}</option>
+                  <option value="">All Seasons</option>
                   {seasons.map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -1864,16 +1950,16 @@ export default function SabhasadLedgerSummary() {
               {/* Item / Stock selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.dangarName') || "Item Stock"}
+                  {t('sabhasadLedgerSummary.dangarName', 'Item Stock')}
                 </span>
                 <select
                   value={itemId}
                   onChange={(e) => setItemId(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : ''}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : 'font-mono'}`}
                 >
                   <option value="">{t('sabhasadLedgerSummary.allItems')}</option>
                   {items.map(i => (
-                    <option key={i.id} value={i.id}>{i.item_name}</option>
+                    <option key={i.id} value={i.id}>{displayItemName(i)}</option>
                   ))}
                 </select>
               </div>
@@ -1926,11 +2012,13 @@ export default function SabhasadLedgerSummary() {
                   <Activity size={16} />
                 </div>
                 <div>
-                  <h2 className="text-xs font-bold text-slate-800 uppercase tracking-tight">
-                    {formatBilingualText(auditMember.member_name)}
+                  <h2 className="text-xs font-bold text-slate-800 uppercase tracking-tight" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                    {displayMemberName(auditMember)}
                     <span className="text-[#1d5f84] ml-2 font-mono font-bold bg-blue-50 px-1 rounded-sm">#{auditMember.member_code}</span>
                   </h2>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Transaction Ledger Audit Stream</p>
+                  <p className={`text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider ${isGu ? 'font-prompt' : ''}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                    {t('sabhasadLedgerSummary.auditStream', 'Transaction Ledger Audit Stream')}
+                  </p>
                 </div>
               </div>
               <button
@@ -1951,41 +2039,41 @@ export default function SabhasadLedgerSummary() {
               ) : (
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <table className="w-full text-left font-sans text-xs border-collapse">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                    <thead className={`bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px] tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                       <tr>
-                        <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.date') || "Date"}</th>
-                        <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.description') || "Description"}</th>
-                        <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.reference') || "Ref No"}</th>
-                        <th className="px-3 py-2 text-right border-r border-slate-100">{t('sabhasadLedgerSummary.debit') || "Debit (Udhar)"}</th>
-                        <th className="px-3 py-2 text-right border-r border-slate-100">{t('sabhasadLedgerSummary.credit') || "Credit (Jama)"}</th>
-                        <th className="px-3 py-2 text-right border-r border-slate-100">{t('sabhasadLedgerSummary.selfJama') || "Self Jama"}</th>
-                        <th className="px-3 py-2 text-right">Running Position</th>
+                        <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.date', 'Date')}</th>
+                        <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.description', 'Description')}</th>
+                        <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.reference', 'Ref No')}</th>
+                        <th className="px-3 py-2 text-right border-r border-slate-100">{t('sabhasadLedgerSummary.debit', 'Debit (Udhar)')}</th>
+                        <th className="px-3 py-2 text-right border-r border-slate-100">{t('sabhasadLedgerSummary.credit', 'Credit (Jama)')}</th>
+                        <th className="px-3 py-2 text-right border-r border-slate-100">{t('sabhasadLedgerSummary.selfJama', 'Self Jama')}</th>
+                        <th className="px-3 py-2 text-right">{t('sabhasadLedgerSummary.runningPosition', 'Running Position')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-sans text-[11px]">
                       {auditTransactions.map((tx, i) => (
                         <tr key={i} className="hover:bg-slate-50 transition-colors">
                           <td className="px-3 py-2 text-slate-400 border-r border-slate-100 font-mono">
-                            {formatDate(tx.transaction_date)}
+                            {formatDisplayDate(tx.transaction_date)}
                           </td>
                           <td className="px-3 py-2 text-slate-800 border-r border-slate-100 font-medium uppercase">
                             {formatBilingualText(tx.description)}
                           </td>
                           <td className="px-3 py-2 text-slate-400 border-r border-slate-100 font-mono">
-                            {tx.reference_no || '—'}
+                            {isGu ? toGujaratiDigits(tx.reference_no || '—') : (tx.reference_no || '—')}
                           </td>
-                          <td className="px-3 py-2 text-right text-blue-600 border-r border-slate-100 font-mono font-bold">
-                            {(parseFloat(tx.debit) || 0) > 0 ? `₹${(parseFloat(tx.debit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                          <td className={`px-3 py-2 text-right text-blue-600 border-r border-slate-100 font-bold ${isGu ? 'font-prompt' : 'font-mono'}`}>
+                            {(parseFloat(tx.debit) || 0) > 0 ? fmtAmount(tx.debit, '₹') : '—'}
                           </td>
-                          <td className="px-3 py-2 text-right text-rose-600 border-r border-slate-100 font-mono font-bold">
-                            {parseFloat(tx.company_credit || 0) > 0 ? `₹${parseFloat(tx.company_credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                          <td className={`px-3 py-2 text-right text-rose-600 border-r border-slate-100 font-bold ${isGu ? 'font-prompt' : 'font-mono'}`}>
+                            {parseFloat(tx.company_credit || 0) > 0 ? fmtAmount(tx.company_credit, '₹') : '—'}
                           </td>
-                          <td className="px-3 py-2 text-right text-emerald-600 border-r border-slate-100 font-mono font-bold">
-                            {parseFloat(tx.self_credit || 0) > 0 ? parseFloat(tx.self_credit).toLocaleString() : '—'}
+                          <td className={`px-3 py-2 text-right text-emerald-600 border-r border-slate-100 font-bold ${isGu ? 'font-prompt' : 'font-mono'}`}>
+                            {parseFloat(tx.self_credit || 0) > 0 ? (isGu ? toGujaratiDigits(parseFloat(tx.self_credit).toLocaleString('en-IN')) : parseFloat(tx.self_credit).toLocaleString('en-IN')) : '—'}
                           </td>
-                          <td className={`px-3 py-2 text-right font-bold font-mono ${parseFloat(tx.running_balance || 0) >= 0 ? 'text-slate-800' : 'text-rose-600'
-                            }`}>
-                            ₹{Math.abs(parseFloat(tx.running_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          <td className={`px-3 py-2 text-right font-bold ${isGu ? 'text-slate-800 font-prompt' : 'font-mono text-slate-800'
+                            } ${parseFloat(tx.running_balance || 0) < 0 ? 'text-rose-600' : ''}`}>
+                            {fmtAmount(Math.abs(parseFloat(tx.running_balance || 0)), '₹')}
                             <span className="text-[9px] font-sans font-bold text-slate-400 ml-0.5">
                               {parseFloat(tx.running_balance || 0) >= 0 ? 'DR' : 'CR'}
                             </span>
@@ -2002,9 +2090,10 @@ export default function SabhasadLedgerSummary() {
             <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowAuditModal(false)}
-                className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-655 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+                className={`px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer ${isGu ? 'font-prompt' : ''}`}
+                style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
               >
-                Close Audit
+                {t('sabhasadLedgerSummary.closeAudit', 'Close Audit')}
               </button>
             </div>
           </div>
