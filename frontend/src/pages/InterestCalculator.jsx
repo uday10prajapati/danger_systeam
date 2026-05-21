@@ -15,7 +15,8 @@ import Toast from '../components/Toast';
 import Loading from '../components/Loading';
 
 export default function InterestCalculator() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [calculationDate, setCalculationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -27,6 +28,7 @@ export default function InterestCalculator() {
   const [settleAmount, setSettleAmount] = useState('');
   const [settleType, setSettleType] = useState('Credit');
   const [searchQuery, setSearchQuery] = useState('');
+  const [members, setMembers] = useState([]);
   const [isComputed, setIsComputed] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [customNarration, setCustomNarration] = useState('');
@@ -38,15 +40,41 @@ export default function InterestCalculator() {
     setExpandedRows(newSet);
   };
 
+  const getDisplayName = (row) => {
+    if (!row) return '';
+    return isGu
+      ? (row.member_name_gu || row.member_name || row.eng_name || '')
+      : (row.eng_name || row.member_name || row.member_name_gu || '');
+  };
+
+  const fetchMembers = async () => {
+    try {
+      const response = await api.get('/members');
+      if (response.data.success) {
+        const fetchedMembers = response.data.data || [];
+        setMembers(fetchedMembers);
+        return fetchedMembers;
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error);
+    }
+    return [];
+  };
+
   const fetchCalculations = async () => {
     try {
       setLoading(true);
+      let memberList = members;
+      if (!memberList.length) {
+        memberList = await fetchMembers();
+      }
       const response = await api.get('/account-ledger/interest-calculations', {
         params: { date: calculationDate }
       });
 
       if (response.data.success) {
         const initialData = response.data.data.map(row => {
+          const member = memberList.find(m => String(m.id) === String(row.member_id) || String(m.member_code) === String(row.member_code));
           const end = new Date(calculationDate);
 
           const start = new Date(row.transaction_date);
@@ -55,6 +83,8 @@ export default function InterestCalculator() {
 
           return {
             ...row,
+            member_name_gu: row.member_name_gu || member?.member_name_gu || row.member_name || '',
+            eng_name: member?.eng_name || member?.member_name || row.member_name || '',
             elapsedDays: elapsedDays,
             entries: (row.entries || []).map(entry => {
               const eStart = new Date(entry.transaction_date);
@@ -193,8 +223,8 @@ export default function InterestCalculator() {
 
     const tableRows = dataToPrint.map((row, i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td style="padding:8px;border:1px solid #e2e8f0;font-weight:700;"><span class="font-prompt tracking-wider">${row.member_name || '-'}</span> <br/><span style="font-size:9px;color:#94a3b8;">${row.member_code}</span></td>
-        <td style="padding:8px;border:1px solid #e2e8f0;"><span class="font-prompt tracking-wider" style="font-size:10px;">${row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}</span></td>
+        <td style="padding:8px;border:1px solid #e2e8f0;font-weight:700;"><span class="font-prompt-sm tracking-wider">${row.member_name || '-'}</span> <br/><span style="font-size:9px;color:#94a3b8;">${row.member_code}</span></td>
+        <td style="padding:8px;border:1px solid #e2e8f0;"><span class="font-prompt-sm tracking-wider" style="font-size:10px;">${row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}</span></td>
         <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.debit || 0).toFixed(2)}</td>
         <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.credit || 0).toFixed(2)}</td>
         <td style="padding:8px;border:1px solid #e2e8f0;text-align:right;font-weight:700;">${parseFloat(row.principal || 0).toFixed(2)}</td>
@@ -280,12 +310,12 @@ export default function InterestCalculator() {
     const tableRows = dataToPrint.map((row, i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
         <td style="padding:12px;border:1px solid #e2e8f0;font-weight:700;">
-          <span class="font-prompt tracking-wider">${row.member_name || '-'}</span>
+          <span class="font-prompt-sm tracking-wider">${getDisplayName(row) || '-'}</span>
           <div style="font-size:9px;color:#64748b;margin-top:2px;">CODE: ${row.member_code}</div>
         </td>
         <td style="padding:12px;border:1px solid #e2e8f0;">
-          <div class="font-prompt tracking-wider" style="font-size:11px;">${row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}</div>
-          <div style="font-size:9px;color:#64748b;margin-top:2px;">${row.reference_no === 'GROUPED' ? `<span class="font-prompt">${t('interestCalculator.grouped')}</span>` : '#' + row.reference_no}</div>
+          <div class="font-prompt-sm tracking-wider" style="font-size:11px;">${row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">${row.reference_no === 'GROUPED' ? `<span class="font-prompt-sm">${t('interestCalculator.grouped')}</span>` : '#' + row.reference_no}</div>
         </td>
         <td style="padding:12px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.debit || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
         <td style="padding:12px;border:1px solid #e2e8f0;text-align:right;">${parseFloat(row.credit || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
@@ -394,7 +424,7 @@ export default function InterestCalculator() {
   };
 
   const filteredResults = results.filter(row =>
-    (row.member_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    getDisplayName(row).toLowerCase().includes(searchQuery.toLowerCase()) ||
     (row.member_code || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (row.reference_no || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -402,296 +432,331 @@ export default function InterestCalculator() {
   if (loading) return <Loading />;
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-800 select-none animate-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+      <div className="max-w-[1600px] mx-auto space-y-4">
+            {/* Dynamic Parameter Ribbon with inline Stat Cards */}
+            <div className="flex flex-wrap items-center gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4 select-none">
+              <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.rateLabel')}</label>
+                <div className="flex items-center bg-white border border-slate-200 rounded-md px-2.5 h-8 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] transition w-full sm:w-28">
+                  <DollarSign className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="2.00"
+                    value={globalRate}
+                    onChange={handleGlobalRateChange}
+                    className="text-xs font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-full font-mono"
+                  />
+                </div>
+              </div>
 
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
-              <Calculator size={20} className="text-zinc-600" />
-              {t('interestCalculator.title')}
-            </h1>
-            <p className="text-xs font-bold text-zinc-500 mt-0.5 uppercase tracking-wider font-prompt">{t('interestCalculator.eyebrow')}</p>
-          </div>
+              <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.periodLabel')}</label>
+                <div className="flex items-center bg-white border border-slate-200 rounded-md px-2.5 h-8 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] transition w-full sm:w-36">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                  <select
+                    value={globalRateType}
+                    onChange={(e) => setGlobalRateType(e.target.value)}
+                    className="text-xs font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-full appearance-none pr-4"
+                  >
+                    <option value="per_month">{t('interestCalculator.perMonth')}</option>
+                    <option value="per_year">{t('interestCalculator.perYear')}</option>
+                    <option value="per_day">{t('interestCalculator.perDay')}</option>
+                  </select>
+                </div>
+              </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto select-none">
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <Printer size={14} />{t('common.print')}</button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <FileText size={14} />{t('common.pdf')}</button>
-          </div>
-        </div>
+              <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.targetDate')}</label>
+                <div className="flex items-center bg-white border border-slate-200 rounded-md px-2.5 h-8 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] transition w-full sm:w-36">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                  <input
+                    type="date"
+                    value={calculationDate}
+                    onChange={(e) => setCalculationDate(e.target.value)}
+                    className="text-xs font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-full font-mono"
+                  />
+                </div>
+              </div>
 
-        {/* Dynamic Parameter Ribbon */}
-        <div className="flex flex-wrap items-center gap-4 bg-zinc-50 border border-zinc-300 p-3 select-none">
-          <div className="flex items-center gap-3 px-3 flex-1 md:flex-initial">
-            <DollarSign className="w-4 h-4 text-zinc-600" />
-            <div className="flex flex-col">
-              <label className="text-[9px] font-bold tracking-widest text-zinc-400 uppercase">{t('interestCalculator.rateLabel')}</label>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="2.00"
-                value={globalRate}
-                onChange={handleGlobalRateChange}
-                className="text-xs font-bold text-zinc-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-16"
-              />
+              <div className="flex items-end pt-5 w-full sm:w-auto">
+                <button
+                  onClick={handleCompute}
+                  disabled={loading || !results.length}
+                  className={`h-8 flex items-center gap-1.5 px-4 text-xs font-bold text-white transition rounded-md cursor-pointer select-none shadow-none border w-full sm:w-auto ${
+                    isComputed 
+                      ? 'bg-slate-700 hover:bg-slate-800 border-slate-700' 
+                      : 'bg-[#1d5f84] hover:bg-[#154662] border-[#1d5f84]'
+                  } disabled:opacity-50`}
+                >
+                  <RefreshCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="uppercase tracking-wider">{isComputed ? 'RE-COMPUTE' : 'COMPUTE'}</span>
+                </button>
+              </div>
+
+              {/* Inline Stat Cards */}
+              <div className="flex items-center gap-3 ml-auto">
+                <div className="flex flex-col justify-between bg-white border border-slate-200 rounded-lg px-4 py-2 h-14 shadow-none min-w-[140px]">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.activePrincipal')}</span>
+                  <span className="text-sm font-black text-slate-800 font-mono tracking-tight">
+                    ₹{stats.totalPrincipal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex flex-col justify-between bg-white border border-slate-200 rounded-lg px-4 py-2 h-14 shadow-none min-w-[140px]">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.accruedInterest')}</span>
+                  <span className="text-sm font-black text-[#1d5f84] font-mono tracking-tight">
+                    ₹{stats.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="hidden md:block w-px h-8 bg-zinc-200" />
-          <div className="flex items-center gap-3 px-3 flex-1 md:flex-initial">
-            <Calendar className="w-4 h-4 text-zinc-400" />
-            <div className="flex flex-col">
-              <label className="text-[9px] font-bold tracking-widest text-zinc-400 uppercase">{t('interestCalculator.periodLabel')}</label>
-              <select
-                value={globalRateType}
-                onChange={(e) => setGlobalRateType(e.target.value)}
-                className="text-xs font-bold text-zinc-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-24 appearance-none"
-              >
-                <option value="per_month">{t('interestCalculator.perMonth')}</option>
-                <option value="per_year">{t('interestCalculator.perYear')}</option>
-                <option value="per_day">{t('interestCalculator.perDay')}</option>
-              </select>
+
+            {/* Dense Minimal Classic Interest Computation Table */}
+            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[500px] shadow-none select-none">
+              {/* Table Header Bar */}
+              <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                    {t('interestCalculator.calculationMatrix')}
+                  </span>
+                  <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                    {filteredResults.length} {t('interestCalculator.nodes')}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                  <div className="h-7 flex items-center gap-1.5 px-2 bg-white border border-slate-200 rounded-md focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] w-full sm:w-64 transition">
+                    <Search size={13} className="text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder={t("interestCalculator.searchIdentity")}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-none outline-none text-[11px] text-slate-700 placeholder:text-slate-400 w-full font-bold font-prompt-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={handlePrint}
+                    title={t('common.print') || "Print"}
+                    className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-none select-none"
+                  >
+                    <Printer size={13} className="text-slate-500" />
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    title={t('common.pdf') || "PDF"}
+                    className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-none select-none"
+                  >
+                    <FileText size={13} className="text-slate-500" />
+                  </button>
+                  <button
+                    onClick={fetchCalculations}
+                    title="Refresh"
+                    className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md shadow-none cursor-pointer"
+                  >
+                    <RefreshCcw size={13} className={`text-slate-500 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-x-auto bg-white select-none">
+                <table className="w-full text-left border-collapse font-sans text-xs select-none">
+                  <thead className="bg-slate-50 select-none">
+                    <tr className="text-left text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-200 bg-slate-50/50">
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 font-prompt-sm">{t('interestCalculator.table.entity')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 font-prompt-sm">{t('interestCalculator.table.reference')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 text-right font-prompt-sm">{t('interestCalculator.table.debit')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 text-right font-prompt-sm">{t('interestCalculator.table.credit')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 text-right font-prompt-sm">{t('interestCalculator.table.principal')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 text-center font-prompt-sm">{t('interestCalculator.table.days')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 text-center font-prompt-sm">{t('interestCalculator.table.rate')}</th>
+                      <th scope="col" className="px-4 py-2.5 border-r border-slate-100 text-right font-prompt-sm">{t('interestCalculator.table.yield')}</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-prompt-sm w-36">{t('interestCalculator.table.total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {loading ? (
+                      <tr>
+                        <td colSpan="9" className="py-20 text-center">
+                          <RefreshCcw className="w-8 h-8 text-[#1d5f84] animate-spin mx-auto mb-3" />
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-prompt-sm">{t('interestCalculator.processing')}</p>
+                        </td>
+                      </tr>
+                    ) : filteredResults.length === 0 ? (
+                      <tr>
+                        <td colSpan="9" className="py-20 text-center">
+                          <AlertCircle className="w-10 h-10 text-slate-200 mx-auto mb-4" />
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-prompt-sm">{t('interestCalculator.noNodes')}</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredResults.map((row, idx) => (
+                        <React.Fragment key={row.member_id || idx}>
+                          <tr
+                            className={`group hover:bg-slate-50/50 transition-all cursor-pointer ${expandedRows.has(row.member_id) ? 'bg-blue-50/30' : ''}`}
+                            onClick={() => row.entry_count > 1 && toggleRow(row.member_id)}
+                          >
+                            <td className="py-3 px-4 border-r border-slate-100">
+                              <div className="flex items-center gap-3">
+                                {row.entry_count > 1 && (
+                                  <ChevronRight size={13} className={`text-slate-400 transition-transform ${expandedRows.has(row.member_id) ? 'rotate-90' : ''}`} />
+                                )}
+                                <div>
+                                  <p className="text-[11px] font-bold text-slate-800 tracking-tight uppercase font-prompt-sm">{getDisplayName(row)}</p>
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">CODE: {row.member_code}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100">
+                              <p className="text-[11px] font-bold text-slate-600 truncate max-w-[200px] font-prompt-sm">
+                                {row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}
+                              </p>
+                              <p className="text-[9px] text-slate-400 font-mono">
+                                {row.reference_no === 'GROUPED' ? (
+                                  <span className="font-prompt-sm tracking-wider italic text-blue-600 font-bold">{t('interestCalculator.viewDetails')}</span>
+                                ) : (
+                                  `# ${row.reference_no || '-'}`
+                                )}
+                              </p>
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-rose-600 font-mono text-[11px]">
+                              ₹{parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-emerald-600 font-mono text-[11px]">
+                              ₹{parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-slate-800 font-mono text-[11px]">
+                              ₹{parseFloat(row.principal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100 text-center">
+                              <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono">
+                                {row.elapsedDays} D
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100 text-center text-[11px] font-bold text-slate-600 font-mono">
+                              {isComputed ? `${parseFloat(globalRate) || row.interest_percent}%` : '—'}
+                            </td>
+                            <td className="py-3 px-4 border-r border-slate-100 text-right font-black text-[#1d5f84] font-mono text-[11px]">
+                              ₹{parseFloat(calculateYield(row)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex justify-between items-center w-full gap-2">
+                                {isComputed && parseFloat(calculateYield(row)) > 0 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSettleModalRow(row);
+                                      setSettleAmount(calculateYield(row));
+                                    }}
+                                    className="h-5 flex items-center px-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-[#1d5f84] hover:text-[#154662] transition rounded font-bold text-[9px] uppercase tracking-wider select-none cursor-pointer"
+                                    title="Settle Interest"
+                                  >
+                                    SETTLE
+                                  </button>
+                                )}
+                                <span className="text-[11px] font-black text-slate-800 bg-slate-50 px-2 py-0.5 border border-slate-200 rounded font-mono ml-auto">
+                                  ₹{(parseFloat(row.principal) + parseFloat(calculateYield(row))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                          {expandedRows.has(row.member_id) && row.entries && row.entries.map((entry, eIdx) => (
+                            <tr key={`${row.member_id}-sub-${eIdx}`} className="bg-slate-50/30 border-t border-slate-100">
+                              <td className="py-2.5 px-4 pl-10 border-r border-slate-100">
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-prompt-sm">Node {eIdx + 1}</p>
+                              </td>
+                              <td className="py-2.5 px-4 border-r border-slate-100">
+                                <p className="text-[11px] font-bold text-slate-500 truncate max-w-[200px] font-prompt-sm">{entry.description}</p>
+                                <p className="text-[9px] text-slate-400 font-mono"># {entry.reference_no}</p>
+                              </td>
+                              <td className="py-2.5 px-4 border-r border-slate-100 text-right text-xs text-rose-600 font-mono">₹{parseFloat(entry.debit || 0).toFixed(2)}</td>
+                              <td className="py-2.5 px-4 border-r border-slate-100 text-right text-xs text-emerald-600 font-mono">₹{parseFloat(entry.credit || 0).toFixed(2)}</td>
+                              <td className="py-2.5 px-4 border-r border-slate-100 text-right text-xs font-bold text-slate-600 font-mono">₹{parseFloat(entry.principal).toFixed(2)}</td>
+                              <td className="py-2.5 px-4 border-r border-slate-100 text-center text-[10px] text-slate-400 font-mono">{entry.elapsedDays} d</td>
+                              <td className="py-2.5 px-4 border-r border-slate-100 text-center text-[10px] text-slate-400 font-mono">—</td>
+                              <td className="py-2.5 px-4 border-r border-slate-100 text-right font-bold text-[#1d5f84] text-xs font-mono">₹{isComputed ? parseFloat(calculateYield(entry)).toFixed(2) : '0.00'}</td>
+                              <td className="py-2.5 px-4 text-right font-bold text-slate-400 text-xs font-mono">₹{parseFloat(entry.principal).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-          <div className="hidden md:block w-px h-8 bg-zinc-200" />
-          <div className="flex items-center gap-3 px-3 flex-1 md:flex-initial">
-            <Calendar className="w-4 h-4 text-zinc-400" />
-            <div className="flex flex-col">
-              <label className="text-[9px] font-bold tracking-widest text-zinc-400 uppercase">{t('interestCalculator.targetDate')}</label>
-              <input
-                type="date"
-                value={calculationDate}
-                onChange={(e) => setCalculationDate(e.target.value)}
-                className="text-xs font-bold text-zinc-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-28"
-              />
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-8 bg-zinc-200" />
-          <div className="flex items-center px-3">
-            <button
-              onClick={handleCompute}
-              disabled={loading || !results.length}
-              className={`flex items-center gap-1.5 border px-4 py-2 text-white text-xs font-bold transition shadow-sm select-none ${
-                isComputed ? 'bg-zinc-700 hover:bg-zinc-800 border-zinc-600' : 'bg-blue-600 hover:bg-blue-700 border-blue-500'
-              } disabled:opacity-50`}
-            >
-              <RefreshCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              {isComputed ? 'RE-COMPUTE' : 'COMPUTE'}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-4 flex flex-col justify-between h-24">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase font-prompt">{t('interestCalculator.activePrincipal')}</span>
-            <span className="text-2xl font-bold text-zinc-800 mt-1 font-prompt">₹{stats.totalPrincipal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-
-          <div className="bg-zinc-50 border border-zinc-300 p-4 flex flex-col justify-between h-24">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase font-prompt">{t('interestCalculator.accruedInterest')}</span>
-            <span className="text-2xl font-bold text-zinc-800 mt-1 font-prompt">₹{stats.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-
-        {/* Dense Minimal Classic Interest Computation Table */}
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
-             <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider font-prompt">
-                   {t('interestCalculator.calculationMatrix')}
-                </span>
-                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-bold text-[10px] px-2 py-0.5 uppercase font-prompt">
-                   {filteredResults.length} {t('interestCalculator.nodes')}
-                </span>
-             </div>
-             <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-               <Search className="w-4 h-4 text-zinc-400" />
-               <input
-                 type="text"
-                 placeholder={t("interestCalculator.searchIdentity")}
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="bg-transparent text-xs font-bold text-zinc-700 outline-none w-64 placeholder:text-zinc-300 font-prompt"
-               />
-             </div>
-          </div>
-
-          <div className="flex-1 overflow-x-auto bg-white select-none">
-            <table className="w-full text-left border-collapse font-sans text-xs select-none">
-               <thead>
-                 <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-wider select-none font-sans">
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-left font-prompt">{t('interestCalculator.table.entity')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-left font-prompt">{t('interestCalculator.table.reference')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right font-prompt">{t('interestCalculator.table.debit')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right font-prompt">{t('interestCalculator.table.credit')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right font-prompt">{t('interestCalculator.table.principal')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-center font-prompt">{t('interestCalculator.table.days')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-center font-prompt">{t('interestCalculator.table.rate')}</th>
-                   <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right font-prompt">{t('interestCalculator.table.yield')}</th>
-                   <th scope="col" className="px-4 py-2 text-right font-prompt">{t('interestCalculator.table.total')}</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-zinc-200 text-xs">
-                 {loading ? (
-                   <tr>
-                     <td colSpan="9" className="py-20 text-center">
-                       <RefreshCcw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-prompt">{t('interestCalculator.processing')}</p>
-                     </td>
-                   </tr>
-                 ) : filteredResults.length === 0 ? (
-                   <tr>
-                     <td colSpan="9" className="py-20 text-center">
-                       <AlertCircle className="w-10 h-10 text-slate-200 mx-auto mb-4" />
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-prompt">{t('interestCalculator.noNodes')}</p>
-                     </td>
-                   </tr>
-                 ) : (
-                   filteredResults.map((row, idx) => (
-                     <React.Fragment key={row.member_id || idx}>
-                       <tr
-                         className={`group hover:bg-slate-50/50 transition-all cursor-pointer ${expandedRows.has(row.member_id) ? 'bg-blue-50/30' : ''}`}
-                         onClick={() => row.entry_count > 1 && toggleRow(row.member_id)}
-                       >
-                         <td className="py-3 px-4 border-r border-zinc-200">
-                           <div className="flex items-center gap-3">
-                             {row.entry_count > 1 && (
-                               <ChevronRight size={14} className={`text-slate-400 transition-transform ${expandedRows.has(row.member_id) ? 'rotate-90' : ''}`} />
-                             )}
-                             <div>
-                               <p className="text-sm font-bold text-slate-800 tracking-tight uppercase italic font-prompt tracking-wider">{row.member_name}</p>
-                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CODE: {row.member_code}</p>
-                             </div>
-                           </div>
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200">
-                           <p className="text-xs font-bold text-slate-600 truncate max-w-[200px] font-prompt tracking-wider">
-                              {row.description === 'Multiple Consolidated Nodes' ? t('interestCalculator.consolidatedTransactions') : row.description}
-                            </p>
-                           <p className="text-[10px] text-slate-400">
-                              {row.reference_no === 'GROUPED' ? (
-                                <span className="font-prompt tracking-wider italic text-blue-600">{t('interestCalculator.viewDetails')}</span>
-                              ) : (
-                                `# ${row.reference_no || '-'}`
-                              )}
-                            </p>
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200 text-right">
-                           <span className="text-sm font-bold text-rose-600">₹{parseFloat(row.debit || 0).toLocaleString('en-IN')}</span>
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200 text-right">
-                           <span className="text-sm font-bold text-emerald-600">₹{parseFloat(row.credit || 0).toLocaleString('en-IN')}</span>
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200 text-right">
-                           <span className="text-sm font-bold text-slate-800">₹{parseFloat(row.principal).toLocaleString('en-IN')}</span>
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200 text-center">
-                           <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 border border-zinc-300">
-                             {row.elapsedDays} D
-                           </span>
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200 text-center text-xs font-bold text-slate-600">
-                           {isComputed ? `${parseFloat(globalRate) || row.interest_percent}%` : '—'}
-                         </td>
-                         <td className="py-3 px-4 border-r border-zinc-200 text-right font-bold text-blue-600 text-sm">
-                           ₹{calculateYield(row)}
-                         </td>
-                         <td className="py-3 px-4 text-right font-bold">
-                           <span className="text-sm font-bold text-slate-900 bg-blue-50/50 px-2 py-1 border border-blue-200/60">
-                             ₹{(parseFloat(row.principal) + parseFloat(calculateYield(row))).toLocaleString('en-IN')}
-                           </span>
-                         </td>
-                       </tr>
-                       {expandedRows.has(row.member_id) && row.entries && row.entries.map((entry, eIdx) => (
-                         <tr key={`${row.member_id}-sub-${eIdx}`} className="bg-slate-50/30 border-t border-slate-100">
-                           <td className="py-2 px-4 pl-14 border-r border-zinc-200">
-                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-prompt">Node {eIdx + 1}</p>
-                           </td>
-                           <td className="py-2 px-4 border-r border-zinc-200">
-                             <p className="text-[11px] font-bold text-slate-500 truncate max-w-[200px] font-prompt">{entry.description}</p>
-                             <p className="text-[9px] text-slate-400"># {entry.reference_no}</p>
-                           </td>
-                           <td className="py-2 px-4 border-r border-zinc-200 text-right text-xs text-rose-600">₹{parseFloat(entry.debit || 0).toFixed(2)}</td>
-                           <td className="py-2 px-4 border-r border-zinc-200 text-right text-xs text-emerald-600">₹{parseFloat(entry.credit || 0).toFixed(2)}</td>
-                           <td className="py-2 px-4 border-r border-zinc-200 text-right text-xs font-bold text-slate-600">₹{parseFloat(entry.principal).toFixed(2)}</td>
-                           <td className="py-2 px-4 border-r border-zinc-200 text-center text-[10px] text-slate-400">{entry.elapsedDays} d</td>
-                           <td className="py-2 px-4 border-r border-zinc-200 text-center text-[10px] text-slate-400">—</td>
-                           <td className="py-2 px-4 border-r border-zinc-200 text-right font-bold text-blue-600 text-xs">₹{isComputed ? calculateYield(entry) : '0.00'}</td>
-                           <td className="py-2 px-4 text-right font-bold text-slate-400 text-xs">₹{parseFloat(entry.principal).toFixed(2)}</td>
-                         </tr>
-                       ))}
-                     </React.Fragment>
-                   ))
-                 )}
-               </tbody>
-            </table>
-          </div>
-        </div>
+      </div>
 
       {settleModalRow && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-          <div className="bg-white shadow-2xl w-full max-w-md overflow-hidden border border-zinc-300 animate-in zoom-in-95 duration-200">
-            <div className="bg-zinc-800 p-4 flex justify-between items-center font-prompt">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white shadow-xl max-w-md w-full rounded-lg overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200 select-none">
+            <div className="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center font-prompt-sm">
               <div>
-                <h2 className="text-xl font-bold text-white uppercase tracking-tight">{t('interestCalculator.settleAccount')}</h2>
-                <p className="text-[10px] text-zinc-300 uppercase tracking-widest mt-1">{settleModalRow.member_name} [{settleModalRow.member_code}]</p>
+                <h2 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">{t('interestCalculator.settleAccount')}</h2>
+                <p className="text-[10px] text-slate-400 font-bold tracking-widest mt-0.5">{settleModalRow.member_name} [{settleModalRow.member_code}]</p>
               </div>
-              <button onClick={() => setSettleModalRow(null)} className="p-2 text-white/50 hover:text-white transition-colors"><X size={20} /></button>
+              <button 
+                onClick={() => setSettleModalRow(null)} 
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={handleSettleSubmit} className="p-6 space-y-6">
-              <div className="flex bg-zinc-100 p-1 font-prompt">
+            <form onSubmit={handleSettleSubmit} className="p-5 space-y-4">
+              <div className="flex p-0.5 bg-slate-100 border border-slate-200 rounded-md gap-0.5 select-none font-prompt-sm">
                 <button
                   type="button"
                   onClick={() => setSettleType('Credit')}
-                  className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${settleType === 'Credit' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-400'}`}
+                  className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center font-bold text-[10px] uppercase tracking-wider select-none ${settleType === 'Credit'
+                    ? 'bg-white text-slate-800 shadow-xs'
+                    : 'text-slate-400 hover:text-slate-600'
+                    }`}
                 >
                   {t('interestCalculator.receiveCredit')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setSettleType('Debit')}
-                  className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${settleType === 'Debit' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-400'}`}
+                  className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center font-bold text-[10px] uppercase tracking-wider select-none ${settleType === 'Debit'
+                    ? 'bg-white text-slate-800 shadow-xs'
+                    : 'text-slate-400 hover:text-slate-600'
+                    }`}
                 >
                   {t('interestCalculator.giveDebit')}
                 </button>
               </div>
-              <div className="space-y-1.5 font-prompt">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('interestCalculator.settleAmount')}</label>
+
+              <div className="flex flex-col gap-1.5 font-prompt-sm">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.settleAmount')}</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={settleAmount}
                   onChange={(e) => setSettleAmount(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 text-xl font-black text-zinc-900 outline-none focus:bg-white focus:border-zinc-500 transition-all tracking-tighter"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-bold font-mono"
                 />
               </div>
-              <div className="space-y-1.5 font-prompt">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('interestCalculator.narration')}</label>
-                <div className="relative group">
+
+              <div className="flex flex-col gap-1.5 font-prompt-sm">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('interestCalculator.narration')}</label>
+                <div className="flex flex-col gap-2">
                   <input
                     type="text"
                     value={customNarration}
                     onChange={(e) => setCustomNarration(e.target.value)}
                     placeholder={t('interestCalculator.interestSettlement', { name: settleModalRow.member_name })}
-                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 text-xs font-bold text-zinc-700 outline-none focus:bg-white focus:border-zinc-500 transition-all"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-bold"
                   />
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {['interestAccrued', 'interestSettled', 'interestAdjustment', 'openingBalanceInterest'].map(key => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => setCustomNarration(t(`interestCalculator.narrations.${key}`))}
-                        className="text-[9px] font-bold bg-zinc-100 hover:bg-zinc-200 px-2 py-1 border border-zinc-300 text-zinc-600 transition-colors"
+                        className="text-[9px] font-bold bg-slate-50 hover:bg-slate-100 px-2 py-1 border border-slate-200 text-slate-600 rounded transition cursor-pointer"
                       >
                         {t(`interestCalculator.narrations.${key}`)}
                       </button>
@@ -699,15 +764,26 @@ export default function InterestCalculator() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 font-prompt">
-                <button type="button" onClick={() => setSettleModalRow(null)} className="flex-1 py-3 bg-zinc-100 text-zinc-600 font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 transition-all">{t('common.cancel')}</button>
-                <button type="submit" className="flex-2 py-3 bg-zinc-800 text-white font-bold uppercase tracking-widest text-xs hover:bg-zinc-900 transition-all shadow-sm">{t('interestCalculator.confirmSettlement')}</button>
+
+              <div className="flex gap-2 pt-2 font-prompt-sm">
+                <button 
+                  type="button" 
+                  onClick={() => setSettleModalRow(null)} 
+                  className="flex-1 h-8 flex items-center justify-center bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 font-bold text-xs uppercase tracking-wider rounded-md cursor-pointer transition"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-2 h-8 flex items-center justify-center text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] font-bold text-xs uppercase tracking-wider rounded-md cursor-pointer transition shadow-none"
+                >
+                  {t('interestCalculator.confirmSettlement')}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

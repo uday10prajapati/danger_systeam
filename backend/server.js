@@ -32,6 +32,7 @@ import dangarRoutes from './routes/dangarRoutes.js';
 import dangarRateRoutes from './routes/dangarRateRoutes.js';
 import bardanRoutes from './routes/bardanRoutes.js';
 import jamaBardanRoutes from './routes/jamaBardanRoutes.js';
+import bardanReportRoutes from './routes/bardanReportRoutes.js';
 import bankRoutes from './routes/bankRoutes.js';
 import deductionRoutes from './routes/deductionRoutes.js';
 import bardanPriceRoutes from './routes/bardanPriceRoutes.js';
@@ -135,6 +136,7 @@ async function startServer() {
     app.use('/api/dangar-rates', dangarRateRoutes);
     app.use('/api/bardan-entry', bardanRoutes);
     app.use('/api/jama-bardan-entry', jamaBardanRoutes);
+    app.use('/api/bardan-report', bardanReportRoutes);
     app.use('/api/banks', bankRoutes);
     app.use('/api/deductions', deductionRoutes);
     app.use('/api/bardan-price', bardanPriceRoutes);

@@ -423,6 +423,7 @@
     "accountLedger": "ખાતા લેજર",
     "viewAccountDetails": "ખાતાની વિગતો જુઓ",
     "sabhasadLedger": "સભાભાસદ લેજર",
+    "bardanReport": "બારદાન રિપોર્ટ",
     "viewSabhasadLedger": "સભાભાસદ લેજર સમરી જુઓ",
     "profitAndLoss": "નફો અને નુકસાન",
     "viewPnLStatements": "નફો અને નુકસાન નિવેદન જુઓ",
@@ -1736,6 +1737,7 @@
     "nameUpdate": "નામ અપડેટ",
     "temporary": "ટેમ્પરરી",
     "historyMemberRange": "સભાસદ રેન્જ",
+    "historyFiltersActive": "ફિલ્ટર ચાલુ છે",
     "form": {
       "bookType": "બુક પ્રકાર",
       "tuver": "તુવેર",
@@ -1790,6 +1792,24 @@
       "historyTitle": "વ્યવહાર ઇતિહાસ",
       "reference": "સંદર્ભ",
       "bardanDepositSlip": "બારદાન જમા સ્લિપ"
+    },
+    "messages": {
+      "loadFailed": "ડાંગર એન્ટ્રી ડેટા લોડ કરવામાં નિષ્ફળ.",
+      "validationRequired": "કૃપા કરીને બુક પ્રકાર, સભ્ય અને આઇટમ પસંદ કરો.",
+      "createSuccess": "એન્ટ્રી સફળતાપૂર્વક સેવ થઈ. SR નં: {{srNo}}",
+      "updateSuccess": "એન્ટ્રી સફળતાપૂર્વક અપડેટ થઈ.",
+      "commitFailed": "એન્ટ્રી સેવ કરવામાં નિષ્ફળ: {{error}}",
+      "historyLoadFailed": "ઇતિહાસ લોડ કરવામાં નિષ્ફળ.",
+      "deleteSuccess": "એન્ટ્રી સફળતાપૂર્વક કાઢી નાખી.",
+      "deleteFailed": "એન્ટ્રી કાઢવામાં નિષ્ફળ.",
+      "exportInfoRequired": "નિકાસ માટે જરૂરી માહિતી ખૂટે છે.",
+      "pdfFailed": "PDF બનાવવા નિષ્ફળ.",
+      "memberRequired": "કૃપા કરીને પહેલા સભ્ય પસંદ કરો.",
+      "bardanSlipFailed": "બારદાન સ્લિપ બનાવવા નિષ્ફળ.",
+      "noHistoryToExport": "નિકાસ માટે ઇતિહાસ ડેટા નથી.",
+      "reportFailed": "રિપોર્ટ બનાવવા નિષ્ફળ.",
+      "noHistoryRecords": "કોઈ ઇતિહાસ રેકોર્ડ મળ્યા નથી.",
+      "bulkExportFailed": "બલ્ક નિકાસ નિષ્ફળ."
     }
   },
   "bardanEntry": {
@@ -2187,6 +2207,7 @@
   "sabhasadLedgerSummary": {
     "title": "સભાષદ ખાતાવહી સારાંશ",
     "eyebrow": "રિપોર્ટ્સ / લેજર વિશ્લેષણ",
+    "filters": "ફિલ્ટર્સ",
     "clear": "સાફ કરો",
     "syncReport": "રિપોર્ટ સિંક કરો",
     "print": "પ્રિન્ટ",

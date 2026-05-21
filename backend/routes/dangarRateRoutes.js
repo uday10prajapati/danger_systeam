@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     }
 
     const results = await query(
-      `SELECT dr.*, im.item_name, im.item_code 
+      `SELECT dr.*, im.item_name, im.item_name_gu, im.item_code, im.category
        FROM dangar_rates dr
        JOIN item_master im ON dr.item_id = im.id
        WHERE dr.company_id = ? AND dr.financial_year = ?`,
@@ -34,7 +34,7 @@ router.get('/company/:companyId', async (req, res) => {
     const { year } = req.query; // e.g. 2026-27
     
     let sql = `
-      SELECT dr.*, im.item_name, im.item_code 
+      SELECT dr.*, im.item_name, im.item_name_gu, im.item_code, im.category
       FROM dangar_rates dr
       JOIN item_master im ON dr.item_id = im.id
       WHERE dr.company_id = ?

@@ -1935,7 +1935,7 @@ export async function getSaleDetails(saleId) {
     WHERE s.id = ?
   `, [saleId]);
   if (!sale) return null;
-  const items = await query(`SELECT si.*, it.item_name, it.item_code FROM sale_items si LEFT JOIN item_master it ON si.item_id = it.id WHERE si.sale_id = ?`, [saleId]);
+  const items = await query(`SELECT si.*, it.item_name, it.item_name_gu, it.item_code FROM sale_items si LEFT JOIN item_master it ON si.item_id = it.id WHERE si.sale_id = ?`, [saleId]);
   return { ...sale, items };
 }
 

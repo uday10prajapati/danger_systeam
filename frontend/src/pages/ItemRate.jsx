@@ -21,7 +21,7 @@ import Loading from '../components/Loading';
 import html2canvas from 'html2canvas';
 
 export default function ItemRate() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [company, setCompany] = useState(null);
   const [rateEntries, setRateEntries] = useState([]);
@@ -36,6 +36,20 @@ export default function ItemRate() {
   const [priceHistory, setPriceHistory] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const translateServerMessage = (message) => {
+    if (!message || i18n.language !== 'gu') return message;
+
+    const text = String(message);
+    const lower = text.toLowerCase();
+
+    if (/failed to load items/.test(lower)) return 'વસ્તુઓ લોડ કરવામાં નિષ્ફળ.';
+    if (/failed to save rate/.test(lower)) return 'દર સાચવવામાં નિષ્ફળ.';
+    if (/pdf generation failed/.test(lower)) return 'PDF બનાવવા નિષ્ફળ.';
+    if (/validation/.test(lower)) return 'કૃપા કરીને નીચેની ભૂલો સુધારો.';
+
+    return text;
+  };
 
   useEffect(() => {
     loadCompany();
@@ -75,8 +89,7 @@ export default function ItemRate() {
       const res = await api.get('/company');
       if (res.data.success && res.data.data) {
         setCompany(res.data.data);
-        fetchRates(res.data.data.id);
-        fetchItems(res.data.data.id);
+        await fetchData(res.data.data.id);
       }
     } catch (err) {
       console.error('Fetch company error:', err);
@@ -84,37 +97,40 @@ export default function ItemRate() {
     }
   };
 
-  const fetchRates = async (companyId) => {
+  const fetchData = async (companyId) => {
     try {
       setLoading(true);
-      const res = await api.get(`/item-rates/company/${companyId}`);
-      if (res.data.success) {
-        const fetchedRates = res.data.data || [];
+      const [ratesRes, itemsRes] = await Promise.all([
+        api.get(`/item-rates/company/${companyId}`),
+        api.get(`/items/company/${companyId}`)
+      ]);
+
+      let fetchedRates = [];
+      let fetchedItems = [];
+
+      if (ratesRes.data.success) {
+        fetchedRates = ratesRes.data.data || [];
         setRateEntries(fetchedRates);
-        const mergedRates = mergeRatesWithItems(fetchedRates, items);
-        setRates(mergedRates);
-        applyFilters(mergedRates, searchTerm, selectedStatus);
       }
+      
+      if (itemsRes.data.success) {
+        fetchedItems = itemsRes.data.data || [];
+        setItems(fetchedItems);
+      }
+
+      const mergedRates = mergeRatesWithItems(fetchedRates, fetchedItems);
+      setRates(mergedRates);
+      applyFilters(mergedRates, searchTerm, selectedStatus);
     } catch (err) {
-      console.error('Fetch rates error:', err);
+      console.error('Fetch data error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchItems = async (companyId) => {
-    try {
-      const res = await api.get(`/items/company/${companyId}`);
-      if (res.data.success) {
-        const fetchedItems = res.data.data || [];
-        setItems(fetchedItems);
-        const mergedRates = mergeRatesWithItems(rateEntries, fetchedItems);
-        setRates(mergedRates);
-        applyFilters(mergedRates, searchTerm, selectedStatus);
-      }
-    } catch (err) {
-      console.error('Fetch items error:', err);
-    }
+  // We keep fetchRates pointing to fetchData so we don't need to change other references
+  const fetchRates = async (companyId) => {
+    return fetchData(companyId);
   };
 
   const fetchPriceHistory = async (itemId) => {
@@ -179,6 +195,13 @@ export default function ItemRate() {
     }
   };
 
+  const displayItemName = (item) => {
+    if (!item) return '';
+    return i18n.language === 'gu'
+      ? (item.item_name_gu || item.item_name || '')
+      : (item.item_name || item.item_name_gu || '');
+  };
+
   const toGujaratiDigits = (num) => {
     const gujDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
     return num.toString().split('').map(digit => gujDigits[digit] || digit).join('');
@@ -238,7 +261,7 @@ export default function ItemRate() {
 
   const handleExportPDF = async () => {
     if (filteredRates.length === 0) {
-      setMessage({ type: 'error', text: t('itemMaster.errors.failedLoadItems') });
+      setMessage({ type: 'error', text: translateServerMessage(t('itemMaster.errors.failedLoadItems')) });
       return;
     }
     
@@ -293,7 +316,7 @@ export default function ItemRate() {
       doc.save('Tariff_Manifest_' + new Date().toISOString().split('T')[0] + '.pdf');
     } catch (err) {
       console.error('PDF Export Error:', err);
-      setMessage({ type: 'error', text: 'PDF Generation Failed' });
+      setMessage({ type: 'error', text: translateServerMessage('PDF Generation Failed') });
     } finally {
       setLoading(false);
     }
@@ -301,7 +324,7 @@ export default function ItemRate() {
 
   const handlePrint = () => {
     if (filteredRates.length === 0) {
-      setMessage({ type: 'error', text: t('itemMaster.errors.failedLoadItems') });
+      setMessage({ type: 'error', text: translateServerMessage(t('itemMaster.errors.failedLoadItems')) });
       return;
     }
     const cName = company?.company_name || 'Company';
@@ -345,163 +368,152 @@ export default function ItemRate() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-              <Tag size={20} className="text-zinc-600" />
-              {t('itemRate.title')}
-            </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('itemRate.eyebrow')}</p>
-          </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
-            >
-              <FileText size={14} />{t('common.pdf')}</button>
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
-            >
-              <Printer size={14} /> {t('dangarMaster.print')}
-            </button>
-            <button
-              onClick={() => { setEditingRate(null); setShowForm(true); }}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest select-none"
-            >
-              <Plus size={16} />
-              {t('itemRate.initializeTariff')}
-            </button>
-          </div>
-        </div>
-
+      
+      <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 select-none">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
             { label: t('itemRate.stats.globalTariffs'), val: rates.length },
             { label: t('itemRate.stats.verifiedNodes'), val: rateEntries.filter(r => Number(r.is_active) === 1).length },
             { label: t('itemRate.stats.activeInventory'), val: new Set(rates.filter(r => r.is_active === 1).map(r => r.item_id)).size },
             { label: t('itemRate.stats.auditProtocol'), val: t('itemRate.stats.symmetricalValue') || '?????' }
           ].map((stat, i) => (
-            <div key={i} className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-              <span className="text-sm font-sans text-zinc-500 font-prompt">{stat.label}</span>
-              <span className={`text-2xl font-bold font-sans text-zinc-800 mt-1 ${i < 3 ? 'force-en' : 'font-prompt'}`}>{stat.val}</span>
+            <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</span>
+              <span className={`text-[13px] font-bold font-sans text-slate-800 mt-1 ${i < 3 ? 'force-en' : 'font-prompt'}`}>{stat.val}</span>
             </div>
           ))}
         </div>
 
         {/* Table/Manifest Container */}
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[500px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
+          {/* Table Control Header Bar */}
+          <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-zinc-700  ">
-                   {t('itemRate.table.nomenclature')}
+                <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                   {t('itemRate.title')}
                 </span>
-                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 ">
+                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
                    {filteredRates.length} {t('itemRate.table.nomenclature')}
                 </span>
              </div>
              
-             <div className="flex items-center flex-wrap gap-2">
-               <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500">
-                 <Search className="w-4 h-4 text-zinc-400" />
+             <div className="flex items-center gap-2 flex-wrap">
+               {/* Search */}
+               <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                 <Search size={12} className="text-slate-400 mr-1.5" />
                  <input
                    type="text"
                    placeholder={t('itemRate.searchPlaceholder')}
                    value={searchTerm}
                    onChange={handleSearch}
-                   className="bg-transparent text-xs font-bold text-zinc-700 outline-none w-64 placeholder:text-zinc-300 font-mono"
+                   className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold font-mono"
                  />
+                 {searchTerm && (
+                   <button onClick={() => { setSearchTerm(''); applyFilters(rates, '', selectedStatus); }} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                     <X size={10} />
+                   </button>
+                 )}
                </div>
                
-               <div className="flex items-center border border-zinc-300 bg-white p-0.5">
+               {/* Status Filters */}
+               <div className="flex items-center border border-slate-200 bg-white rounded-md p-0.5">
                  {['active', 'inactive', 'all'].map(status => (
                    <button
                      key={status}
                      onClick={() => handleStatusFilter(status)}
-                     className={`px-3 py-1 text-[10px] font-bold uppercase select-none transition-all ${
+                     className={`px-2.5 py-1 text-[10px] font-bold uppercase select-none transition-all rounded-sm ${
                        selectedStatus === status 
-                         ? 'bg-blue-600 text-white' 
-                         : 'bg-transparent text-zinc-600 hover:bg-zinc-100'
+                         ? 'bg-[#1d5f84] text-white' 
+                         : 'bg-transparent text-slate-600 hover:bg-slate-100'
                      }`}
                    >
                      {t(`itemRate.table.${status}`)}
                    </button>
                  ))}
                </div>
-               
-               <button onClick={() => fetchRates(company.id)} className="px-3 py-1.5 bg-blue-600 text-white border border-blue-500 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all flex items-center gap-2">
-                 <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
-                 {t('itemRate.syncVectors')}
-               </button>
+
+               {/* Add/Export Actions */}
+               <div className="flex items-center gap-1.5 ml-1">
+                 <button onClick={() => fetchRates(company.id)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('itemRate.syncVectors')}>
+                   <RefreshCcw size={13} className={loading ? 'animate-spin' : ''} />
+                 </button>
+                 <button onClick={handleExportPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('common.pdf')}>
+                   <FileText size={13} />
+                 </button>
+                 <button onClick={handlePrint} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('dangarMaster.print')}>
+                   <Printer size={13} />
+                 </button>
+                 <button onClick={() => { setEditingRate(null); setShowForm(true); }} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
+                   <Plus size={13} />
+                   <span>{t('itemRate.initializeTariff')}</span>
+                 </button>
+               </div>
              </div>
           </div>
 
-          <div className="overflow-x-auto flex-1 bg-white">
+          <div className="overflow-x-auto w-full">
             {loading ? (
-              <div className="py-20 text-center">
-                <RefreshCcw className="animate-spin mx-auto text-blue-500 mb-2" size={24} />
-                <p className="text-xs font-bold text-zinc-400 font-mono uppercase tracking-widest">{t('itemRate.loadingStreams')}</p>
+              <div className="py-20 text-center flex flex-col items-center justify-center gap-2 h-64">
+                <RefreshCcw className="animate-spin text-slate-400 mb-2" size={24} />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('itemRate.loadingStreams')}</p>
               </div>
             ) : filteredRates.length === 0 ? (
-              <div className="py-20 text-center text-zinc-400 font-bold font-mono text-xs uppercase tracking-widest">
-                {t('itemRate.noNodesIsolated')}
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
+                <Box size={32} className="text-slate-300 opacity-30" />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.noNodesIsolated')}</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse font-sans text-xs select-none">
-                <thead>
-                  <tr className="bg-zinc-100 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-widest select-none">
-                    <th className="px-4 py-3 border-r border-zinc-200 font-prompt">{t('itemRate.table.nomenclature')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 font-prompt">{t('itemRate.table.systemId')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-right font-prompt">{t('itemRate.table.yieldIndex')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-center font-prompt">{t('itemRate.table.timeline')}</th>
-                    <th className="px-4 py-3 border-r border-zinc-200 text-center font-prompt">{t('itemRate.table.auditStatus')}</th>
-                    <th className="px-4 py-3 text-center font-prompt">{t('itemRate.table.actions')}</th>
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+                <thead className="bg-slate-50 font-sans">
+                  <tr>
+                    <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('itemRate.table.nomenclature')}</th>
+                    <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-32">{t('itemRate.table.systemId')}</th>
+                    <th className="px-3.5 py-2 text-right font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-32">{t('itemRate.table.yieldIndex')}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-32">{t('itemRate.table.timeline')}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{t('itemRate.table.auditStatus')}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 w-24">{t('itemRate.table.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200">
+                <tbody className="bg-white divide-y divide-slate-100">
                   {filteredRates.map((rate, idx) => (
-                    <tr key={idx} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-2 border-r border-zinc-200">
+                    <tr key={idx} className="hover:bg-slate-50/75 transition-colors">
+                      <td className="px-3.5 py-2 border-r border-slate-100">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-800 tracking-tight leading-tight font-prompt">{rate.item_name_gu || rate.item_name}</span>
-                          <span className="text-sm text-zinc-400 mt-0.5 ">
+                          <span className={`font-bold text-slate-800 uppercase tracking-wide ${i18n.language === 'gu' ? 'font-prompt text-base' : 'font-sans text-sm font-extrabold'}`}>{displayItemName(rate)}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                             {rate.is_pending_rate ? t('itemRate.table.pendingConfig') : `${t('itemRate.table.inward')}: ₹${parseFloat(rate.purchase_rate || 0).toFixed(2)}`}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200">
-                        <span className="text-sm font-bold text-zinc-700 font-sans  ">{rate.item_code}</span>
+                      <td className="px-3.5 py-2 border-r border-slate-100">
+                        <span className="font-bold text-[#1d5f84] text-[11px] font-mono">#{rate.item_code}</span>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800 force-en">
+                      <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 force-en">
                         <div className="flex flex-col items-end">
-                          <span>₹{(parseFloat(rate.sale_rate) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          <span className="text-sm font-bold text-emerald-600 mt-0.5">{t('itemRate.table.yield')}: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
+                          <span className="text-[11px]">₹{(parseFloat(rate.sale_rate) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <span className="text-[9px] font-bold text-emerald-600 mt-0.5">{t('itemRate.table.yield')}: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center font-sans font-bold text-zinc-600 force-en">
+                      <td className="px-3.5 py-2 border-r border-slate-100 text-center font-mono font-bold text-slate-500 force-en">
                         {new Date(rate.effective_from).toLocaleDateString('en-GB')}
                       </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${rate.is_pending_rate ? 'bg-amber-50 border-amber-300 text-amber-600' : (rate.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600')}`}>
+                      <td className="px-3.5 py-2 border-r border-slate-100 text-center">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${rate.is_pending_rate ? 'bg-amber-50 border-amber-200 text-amber-700' : (rate.is_active ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-600')}`}>
                           {rate.is_pending_rate ? t('itemRate.table.pending') : (rate.is_active ? t('itemRate.table.verified') : t('itemRate.table.redacted'))}
                         </span>
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-center gap-1">
+                      <td className="px-3.5 py-2">
+                        <div className="flex items-center justify-center gap-1.5">
                           {!rate.is_pending_rate && (
-                            <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm" title={t('itemRate.history.title')}>
-                              <History size={13} />
+                            <button onClick={() => fetchPriceHistory(rate.item_id)} className="p-1 border border-slate-200 rounded hover:bg-slate-50 text-slate-500 hover:text-emerald-600 transition cursor-pointer" title={t('itemRate.history.title')}>
+                              <History size={11} />
                             </button>
                           )}
-                          <button onClick={() => handleEdit(rate)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm" title={t('itemRate.editTariff')}>
-                            <Edit2 size={13} />
+                          <button onClick={() => handleEdit(rate)} className="p-1 border border-slate-200 rounded hover:bg-slate-50 text-slate-500 hover:text-[#1d5f84] transition cursor-pointer" title={t('itemRate.editTariff')}>
+                            <Edit2 size={11} />
                           </button>
                         </div>
                       </td>
@@ -516,47 +528,48 @@ export default function ItemRate() {
 
       {showHistory && priceHistory && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowHistory(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-none border border-zinc-400 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-mono text-xs select-none">
-            <div className="p-4 border-b border-zinc-300 bg-zinc-100 flex items-center justify-between">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-150" onClick={() => setShowHistory(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-sans text-xs select-none z-10">
+            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <History size={16} className="text-zinc-600" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('itemRate.history.title')}</h3>
+                <History size={14} className="text-slate-600" />
+                <h3 className={`text-xs font-bold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{t('itemRate.history.title')}</h3>
               </div>
-              <button onClick={() => setShowHistory(false)} className="p-1 text-zinc-400 hover:text-red-600 transition"><X size={18} /></button>
+              <button onClick={() => setShowHistory(false)} className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer"><X size={15} /></button>
             </div>
 
-            <div className="p-4 bg-white overflow-y-auto flex-1 space-y-4">
+            <div className="p-5 bg-white overflow-y-auto flex-1 space-y-3">
               {priceHistory.map((h, i) => (
-                <div key={i} className="bg-zinc-50 p-3 border border-zinc-300 space-y-3">
-                  <div className="flex justify-between items-center mb-1 border-b border-zinc-200 pb-2">
-                    <span className="text-sm font-bold text-zinc-800  font-sans ">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 border ${h.status === 'Active' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-zinc-200 border-zinc-300 text-zinc-500'}`}>{h.status}</span>
+                <div key={i} className="bg-slate-50 p-4 border border-slate-200 rounded-md space-y-3">
+                  <div className="flex justify-between items-center mb-1 border-b border-slate-200 pb-2">
+                    <span className="text-[11px] font-bold text-slate-700 font-mono">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-sm border ${h.status === 'Active' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>{h.status}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('itemRate.history.releaseYield')}</p>
-                      <p className="text-base font-bold text-zinc-800">₹{parseFloat(h.sale_rate).toFixed(2)}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.history.releaseYield')}</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">₹{parseFloat(h.sale_rate).toFixed(2)}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('itemRate.history.inwardValue')}</p>
-                      <p className="text-sm font-bold text-zinc-600">₹{parseFloat(h.purchase_rate).toFixed(2)}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.history.inwardValue')}</p>
+                      <p className="text-sm font-bold text-slate-600 font-mono">₹{parseFloat(h.purchase_rate).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
             
-            <div className="p-4 bg-zinc-50 border-t border-zinc-300 flex justify-end">
-              <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-blue-600 text-white font-bold uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all select-none">{t('common.close') || 'Close'}</button>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button onClick={() => setShowHistory(false)} className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer">{t('common.close') || 'Close'}</button>
             </div>
           </div>
         </div>
       )}
+
       {showForm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowForm(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-none border border-zinc-400 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px]" onClick={() => setShowForm(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh] z-10">
             <ItemRateForm
               rate={editingRate}
               items={items}

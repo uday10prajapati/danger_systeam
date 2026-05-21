@@ -96,33 +96,33 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
    return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-         <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => !loading && onClose()}></div>
+         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !loading && onClose()}></div>
          
-         <div className="bg-white border border-zinc-400 rounded-none w-full max-w-5xl shadow-lg relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh] font-mono text-xs select-none">
+         <div className="bg-white border border-slate-200 rounded-lg w-full max-w-5xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh] font-mono text-xs select-none">
             
             {/* Modal Header */}
-            <div className="px-5 py-3.5 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between">
+            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                <div className="flex items-center gap-2">
-                  <ArrowLeftRight size={16} className="text-blue-600" />
-                  <h2 className={`text-sm font-bold tracking-tight text-zinc-800 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
+                  <ArrowLeftRight size={16} className="text-[#1d5f84]" />
+                  <h2 className={`text-sm font-extrabold tracking-tight text-slate-800 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                      {t('jvEntry.title')}
                   </h2>
                </div>
-               <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
-                  <X size={18} />
+               <button onClick={onClose} className="p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-md transition">
+                  <X size={16} />
                </button>
             </div>
 
             {/* Global Settings Strip */}
-            <div className="p-4 px-6 bg-zinc-50 flex items-center justify-between border-b border-zinc-200">
+            <div className="p-4 px-6 bg-white flex items-center justify-between border-b border-slate-200">
                <div className="flex items-center gap-4">
                   <div className="flex items-center gap-3">
-                     <span className={`font-bold text-zinc-400 tracking-widest text-[9px] ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.voucherDate')} :</span>
+                     <span className={`font-bold text-slate-500 tracking-widest text-[9px] ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.voucherDate')} :</span>
                      <input
                         type="date"
                         value={voucherDate}
                         onChange={e => setVoucherDate(e.target.value)}
-                        className="bg-white border border-zinc-300 px-3 py-1.5 focus:border-zinc-500 outline-none transition font-bold text-zinc-800 text-xs h-9 force-en"
+                        className="bg-white border border-slate-300 rounded-md px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 text-xs h-9 force-en"
                      />
                   </div>
                </div>
@@ -142,15 +142,15 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
             {/* Matrix Vector Processing */}
             <div className="flex flex-1 overflow-hidden h-[400px]">
                {/* Credit Vector (Jama) */}
-               <div className="flex-1 flex flex-col border-r border-zinc-200">
-                  <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-100 flex justify-between items-center">
+               <div className="flex-1 flex flex-col border-r border-slate-200">
+                  <div className="bg-emerald-50/50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                         {t('jvEntry.creditSide')}
                      </span>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }}
-                        className={`bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white px-3 py-1 text-[9px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                        className={`bg-white border border-emerald-200 text-emerald-700 rounded-md hover:bg-emerald-600 hover:border-emerald-600 hover:text-white px-3 py-1 text-[9px] font-bold transition-colors ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                      >
                         + {t('jvEntry.addCredit')}
                      </button>
@@ -158,33 +158,33 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
                   <div className="flex-1 overflow-y-auto bg-white">
                      <table className="w-full">
-                        <thead className="sticky top-0 bg-zinc-50 text-[9px] font-bold text-zinc-400 uppercase border-b border-zinc-100">
+                        <thead className="sticky top-0 bg-slate-50 text-[9px] font-bold text-slate-500 uppercase border-b border-slate-200">
                            <tr>
                               <th className="px-4 py-2 text-left">{t('jvEntry.selectAccount')}</th>
                               <th className="px-4 py-2 text-right w-32">{t('rojmel.amount')}</th>
                               <th className="px-4 py-2 text-center w-10"></th>
                            </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-50">
+                        <tbody className="divide-y divide-slate-100">
                            {credits.map((item, i) => (
-                              <tr key={i} className="hover:bg-zinc-50 group transition-colors">
-                                 <td className="px-4 py-2.5">
-                                    <p className="font-bold text-zinc-800">{formatBilingualText(item.account_name)}</p>
-                                    <p className="text-[9px] text-zinc-400 italic mt-0.5">{item.particulars || t('jvEntry.noNarrative') || 'No narrative'}</p>
+                              <tr key={i} className="hover:bg-slate-50/75 group transition-colors">
+                                 <td className="px-4 py-3">
+                                    <p className="font-bold text-slate-800 text-[13px] font-sans" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{formatBilingualText(item.account_name)}</p>
+                                    <p className="text-[10px] text-slate-400 italic mt-0.5">{item.particulars || t('jvEntry.noNarrative') || 'No narrative'}</p>
                                  </td>
-                                 <td className="px-4 py-2.5 text-right font-bold text-zinc-700 font-mono italic">
+                                 <td className="px-4 py-3 text-right font-bold text-emerald-600 text-sm font-mono italic">
                                     ₹{parseFloat(item.amount).toFixed(2)}
                                  </td>
-                                 <td className="px-2 py-2.5 text-center">
-                                    <button onClick={() => removeItem('credit', i)} className="text-zinc-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">
-                                       <Trash2 size={13} />
+                                 <td className="px-2 py-3 text-center">
+                                    <button onClick={() => removeItem('credit', i)} className="p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-all">
+                                       <Trash2 size={14} />
                                     </button>
                                  </td>
                               </tr>
                            ))}
                            {credits.length === 0 && (
                               <tr>
-                                 <td colSpan="3" className="px-4 py-12 text-center text-zinc-300 uppercase tracking-widest text-[9px] italic">
+                                 <td colSpan="3" className="px-4 py-12 text-center text-slate-300 uppercase tracking-widest text-[9px] italic">
                                     {t('jvEntry.noEntries')}
                                  </td>
                               </tr>
@@ -193,22 +193,22 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      </table>
                   </div>
 
-                  <div className="p-3 px-5 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
-                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('jvEntry.creditTotal')}</span>
-                     <span className="font-bold font-mono text-emerald-600 text-sm italic">₹{totalCredit.toFixed(2)}</span>
+                  <div className="p-3 px-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('jvEntry.creditTotal')}</span>
+                     <span className="font-bold font-mono text-emerald-600 text-[15px] italic">₹{totalCredit.toFixed(2)}</span>
                   </div>
                </div>
 
                {/* Debit Vector (Udhar) */}
                <div className="flex-1 flex flex-col">
-                  <div className="bg-blue-50 px-4 py-2.5 border-b border-blue-100 flex justify-between items-center">
-                     <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                  <div className="bg-blue-50/50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                     <span className="text-[10px] font-bold text-[#1d5f84] uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#1d5f84]"></div>
                         {t('jvEntry.debitSide')}
                      </span>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }}
-                        className={`bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1 text-[9px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                        className={`bg-white border border-blue-200 text-[#1d5f84] rounded-md hover:bg-[#1d5f84] hover:border-[#1d5f84] hover:text-white px-3 py-1 text-[9px] font-bold transition-colors ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                      >
                         + {t('jvEntry.addDebit')}
                      </button>
@@ -216,33 +216,33 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
                   <div className="flex-1 overflow-y-auto bg-white">
                      <table className="w-full">
-                        <thead className="sticky top-0 bg-zinc-50 text-[9px] font-bold text-zinc-400 uppercase border-b border-zinc-100">
+                        <thead className="sticky top-0 bg-slate-50 text-[9px] font-bold text-slate-500 uppercase border-b border-slate-200">
                            <tr>
                               <th className="px-4 py-2 text-left">{t('jvEntry.selectAccount')}</th>
                               <th className="px-4 py-2 text-right w-32">{t('rojmel.amount')}</th>
                               <th className="px-4 py-2 text-center w-10"></th>
                            </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-50">
+                        <tbody className="divide-y divide-slate-100">
                            {debits.map((item, i) => (
-                              <tr key={i} className="hover:bg-zinc-50 group transition-colors">
-                                 <td className="px-4 py-2.5">
-                                    <p className="font-bold text-zinc-800">{formatBilingualText(item.account_name)}</p>
-                                    <p className="text-[9px] text-zinc-400 italic mt-0.5">{item.particulars || t('jvEntry.noNarrative') || 'No narrative'}</p>
+                              <tr key={i} className="hover:bg-slate-50/75 group transition-colors">
+                                 <td className="px-4 py-3">
+                                    <p className="font-bold text-slate-800 text-[13px] font-sans" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{formatBilingualText(item.account_name)}</p>
+                                    <p className="text-[10px] text-slate-400 italic mt-0.5">{item.particulars || t('jvEntry.noNarrative') || 'No narrative'}</p>
                                  </td>
-                                 <td className="px-4 py-2.5 text-right font-bold text-zinc-700 font-mono italic">
+                                 <td className="px-4 py-3 text-right font-bold text-[#1d5f84] text-sm font-mono italic">
                                     ₹{parseFloat(item.amount).toFixed(2)}
                                  </td>
-                                 <td className="px-2 py-2.5 text-center">
-                                    <button onClick={() => removeItem('debit', i)} className="text-zinc-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">
-                                       <Trash2 size={13} />
+                                 <td className="px-2 py-3 text-center">
+                                    <button onClick={() => removeItem('debit', i)} className="p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-all">
+                                       <Trash2 size={14} />
                                     </button>
                                  </td>
                               </tr>
                            ))}
                            {debits.length === 0 && (
                               <tr>
-                                 <td colSpan="3" className="px-4 py-12 text-center text-zinc-300 uppercase tracking-widest text-[9px] italic">
+                                 <td colSpan="3" className="px-4 py-12 text-center text-slate-300 uppercase tracking-widest text-[9px] italic">
                                     {t('jvEntry.noEntries')}
                                  </td>
                               </tr>
@@ -251,26 +251,26 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      </table>
                   </div>
 
-                  <div className="p-3 px-5 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
-                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('jvEntry.debitTotal')}</span>
-                     <span className="font-bold font-mono text-blue-600 text-sm italic">₹{totalDebit.toFixed(2)}</span>
+                  <div className="p-3 px-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('jvEntry.debitTotal')}</span>
+                     <span className="font-bold font-mono text-[#1d5f84] text-[15px] italic">₹{totalDebit.toFixed(2)}</span>
                   </div>
                </div>
             </div>
 
             {/* Action Bar */}
-            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-100 flex items-center justify-between shadow-inner">
-               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between rounded-b-lg">
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest italic">
                   * {t('jvEntry.commitNote') || 'Fiscal Balances must be standardized (Credit = Debit) for Commit.'}
                </p>
                <div className="flex gap-3">
-                  <button onClick={onClose} className={`px-5 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none text-[10px] tracking-widest shadow-sm ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
+                  <button onClick={onClose} className={`px-5 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold transition rounded-md text-[10px] tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                      {t('common.cancel') || 'Cancel'}
                   </button>
                   <button 
                      onClick={handleSave} 
                      disabled={loading || totalCredit === 0 || totalCredit !== totalDebit}
-                     className={`px-8 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 disabled:grayscale disabled:opacity-50 text-white font-bold transition rounded-none flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                     className={`px-8 py-2 bg-[#1d5f84] hover:bg-[#154662] disabled:grayscale disabled:opacity-50 text-white font-bold transition rounded-md flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                   >
                      {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {t('jvEntry.commit')}</>}
                   </button>
@@ -425,25 +425,25 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
    const typeLabel = isCredit ? t('jvEntry.credit') : t('jvEntry.debit');
 
    return (
-      <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
-         <div className="bg-white border border-zinc-400 rounded-none w-full max-w-lg shadow-2xl overflow-hidden flex flex-col font-mono text-xs">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
+         <div className="bg-white border border-slate-200 rounded-lg w-full max-w-lg shadow-2xl overflow-hidden flex flex-col font-mono text-xs">
             
-            <div className={`px-5 py-3.5 ${isCredit ? 'bg-emerald-50' : 'bg-blue-50'} border-b border-zinc-300 flex items-center justify-between`}>
+            <div className={`px-5 py-3.5 ${isCredit ? 'bg-emerald-50' : 'bg-slate-50'} border-b border-slate-200 flex items-center justify-between`}>
                <div className="flex items-center gap-2">
-                  <Database size={16} className={isCredit ? 'text-emerald-600' : 'text-blue-600'} />
-                  <span className={`text-[10px] font-bold tracking-widest ${isCredit ? 'text-emerald-800' : 'text-blue-800'} ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
+                  <Database size={16} className={isCredit ? 'text-emerald-600' : 'text-[#1d5f84]'} />
+                  <span className={`text-[11px] font-bold tracking-widest ${isCredit ? 'text-emerald-800' : 'text-[#1d5f84]'} ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                      {t('jvEntry.allocationTitle', { action: actionLabel, type: typeLabel })}
                   </span>
                </div>
-               <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
+               <button onClick={onClose} className="p-1 text-slate-400 hover:text-red-600 transition">
                   <X size={18} />
                </button>
             </div>
 
-            <div className="p-6 space-y-5 bg-zinc-50">
+            <div className="p-6 space-y-5 bg-white">
                {/* Account Picker */}
-               <div className="relative space-y-1">
-                  <label className={`text-[10px] font-bold text-zinc-500 tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.selectAccount')} *</label>
+               <div className="relative space-y-1.5">
+                  <label className={`text-[10px] font-bold text-slate-500 tracking-widest ml-1 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.selectAccount')} *</label>
                   <div className="flex gap-2">
                      <input
                         ref={codeRef}
@@ -453,7 +453,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); }}
                         onFocus={() => setShowDropdown(true)}
                         onKeyDown={handleSearchKeyDown}
-                        className="w-20 text-center border border-zinc-300 bg-white px-2 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase h-9"
+                        className="w-24 text-center border border-slate-300 rounded-md bg-white px-2 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 uppercase h-10"
                      />
                      <div className="flex-1 relative">
                         <input
@@ -464,19 +464,19 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                            onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); }}
                            onFocus={() => setShowDropdown(true)}
                            onKeyDown={handleSearchKeyDown}
-                           className={`w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9 ${i18n.language === 'gu' ? '' : 'uppercase'}`}
+                           className={`w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 h-10 ${i18n.language === 'gu' ? '' : 'uppercase'}`}
                            style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
                         />
                         {showDropdown && (
-                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-[1300] max-h-48 overflow-y-auto divide-y divide-zinc-100">
+                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-md z-[1300] max-h-48 overflow-y-auto divide-y divide-slate-100">
                               {filteredAccounts.map((acc, idx) => (
                                  <div
                                     key={acc.id}
                                     onClick={() => handleAccountSelect(acc)}
-                                    className={`px-4 py-2.5 flex justify-between items-center cursor-pointer transition-colors ${selectedIndex === idx ? `bg-blue-600 text-white` : 'hover:bg-zinc-50 text-zinc-800'}`}
+                                    className={`px-4 py-2.5 flex justify-between items-center cursor-pointer transition-colors ${selectedIndex === idx ? `bg-[#1d5f84] text-white` : 'hover:bg-slate-50 text-slate-800'}`}
                                  >
-                                    <span className="text-[11px] font-bold" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{acc.account_name_gu || acc.account_name}</span>
-                                    <span className={`text-[9px] font-bold ${selectedIndex === idx ? 'text-blue-100' : 'text-zinc-400'}`}>#{acc.id}</span>
+                                    <span className="text-[13px] font-bold" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{acc.account_name_gu || acc.account_name}</span>
+                                    <span className={`text-[10px] font-bold ${selectedIndex === idx ? 'text-blue-100' : 'text-slate-400'}`}>#{acc.id}</span>
                                  </div>
                               ))}
                            </div>
@@ -487,9 +487,9 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
                {/* Subledger Node */}
                {selectedAccount?.is_subledger === 1 && (
-                  <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
-                     <label className={`text-[10px] font-bold text-zinc-500 tracking-widest flex items-center gap-2 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
-                        <Users size={12} className="text-blue-600" /> {t('jvEntry.memberNode')} *
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                     <label className={`text-[10px] font-bold text-slate-500 tracking-widest flex items-center gap-2 ml-1 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
+                        <Users size={12} className="text-[#1d5f84]" /> {t('jvEntry.memberNode')} *
                      </label>
                      <div className="relative">
                         <input
@@ -500,11 +500,11 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                            onChange={(e) => { setMemberSearch(e.target.value); setShowMemberDropdown(true); }}
                            onFocus={() => setShowMemberDropdown(true)}
                            onKeyDown={e => e.key === 'Enter' && focusNext(amountRef)}
-                           className={`w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 h-9 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                           className={`w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 h-10 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                            style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
                         />
                         {showMemberDropdown && memberSearch.length > 0 && (
-                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-[1300] max-h-40 overflow-y-auto divide-y divide-zinc-100">
+                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-md z-[1300] max-h-40 overflow-y-auto divide-y divide-slate-100">
                               {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase())).map(m => (
                                  <div
                                     key={m.id}
@@ -515,10 +515,10 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                                        setShowMemberDropdown(false);
                                        focusNext(amountRef);
                                     }}
-                                    className="px-4 py-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center group transition-colors"
+                                    className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex justify-between items-center group transition-colors"
                                  >
-                                    <span className="text-[10px] font-bold text-zinc-700 tracking-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{m.member_name_gu || m.member_name}</span>
-                                    <span className="text-[9px] font-bold text-zinc-400 font-mono">#{m.member_code}</span>
+                                    <span className="text-[12px] font-bold text-slate-700 tracking-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{m.member_name_gu || m.member_name}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 font-mono">#{m.member_code}</span>
                                  </div>
                               ))}
                            </div>
@@ -528,8 +528,8 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                )}
 
                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                     <label className={`text-[10px] font-bold text-zinc-500 tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.financialValue')} *</label>
+                  <div className="space-y-1.5">
+                     <label className={`text-[10px] font-bold text-slate-500 tracking-widest ml-1 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.financialValue')} *</label>
                      <input
                         ref={amountRef}
                         type="number"
@@ -537,11 +537,11 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         onKeyDown={e => e.key === 'Enter' && focusNext(refNoRef)}
                         value={amount}
                         onChange={e => setAmount(e.target.value)}
-                        className="w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-blue-600 text-lg font-mono tracking-tighter h-11"
+                        className={`w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-${isCredit ? 'emerald-500' : '[#1d5f84]'} focus:ring-1 focus:ring-${isCredit ? 'emerald-500' : '[#1d5f84]'} outline-none transition font-bold ${isCredit ? 'text-emerald-600' : 'text-[#1d5f84]'} text-lg font-mono tracking-tighter h-11`}
                      />
                   </div>
-                  <div className="space-y-1">
-                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('jvEntry.refNode')}</label>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t('jvEntry.refNode')}</label>
                      <input
                         ref={refNoRef}
                         type="text"
@@ -549,32 +549,32 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         onKeyDown={e => e.key === 'Enter' && focusNext(partRef)}
                         value={refNo}
                         onChange={e => setRefNo(e.target.value)}
-                        className="w-full border border-zinc-300 bg-white px-3 py-1.5 focus:border-zinc-600 outline-none transition font-bold text-zinc-800 text-xs h-11 uppercase"
+                        className="w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 text-xs h-11 uppercase"
                      />
                   </div>
                </div>
 
-               <div className="space-y-1">
-                  <label className={`text-[10px] font-bold text-zinc-500 tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.narrative')}</label>
+               <div className="space-y-1.5">
+                  <label className={`text-[10px] font-bold text-slate-500 tracking-widest ml-1 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.narrative')}</label>
                   <textarea
                      ref={partRef}
                      placeholder={t('common.autoGeneratedPlaceholder')}
                      value={particulars}
                      onChange={e => setParticulars(e.target.value)}
                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
-                     className={`w-full border border-zinc-300 bg-white px-3 py-2 focus:border-zinc-600 outline-none transition font-bold text-zinc-600 text-[10px] h-16 resize-none italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                     className={`w-full border border-slate-300 rounded-md bg-white px-3 py-2 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-600 text-[11px] h-20 resize-none italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                   />
                </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-100 flex items-center justify-end gap-3 shadow-inner">
-               <button onClick={onClose} className={`px-5 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none text-[10px] tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
+            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 rounded-b-lg">
+               <button onClick={onClose} className={`px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold transition rounded-md text-[10px] tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                   {t('common.cancel') || 'Cancel'}
                </button>
                <button 
                   onClick={handleSubmit} 
                   disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}
-                  className={`px-8 py-2 ${isCredit ? 'bg-emerald-600 border-emerald-500 hover:bg-emerald-700' : 'bg-blue-600 border-blue-500 hover:bg-blue-700'} text-white font-bold transition rounded-none text-[10px] tracking-widest shadow-sm disabled:grayscale disabled:opacity-50 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                  className={`px-8 py-2.5 ${isCredit ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1d5f84] hover:bg-[#154662]'} text-white font-bold transition rounded-md text-[10px] tracking-widest shadow-sm disabled:grayscale disabled:opacity-50 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                >
                   {initialData ? t('jvEntry.applyModification') : t('jvEntry.initializeNode')}
                </button>

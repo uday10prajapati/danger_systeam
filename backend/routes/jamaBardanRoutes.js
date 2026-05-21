@@ -65,6 +65,48 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET jama bardan entry by pavti number (includes grid items)
+router.get('/by-pavti/:pavti', async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'];
+    const financialYear = req.headers['x-financial-year'];
+    const { pavti } = req.params;
+
+    let sql = 'SELECT * FROM jama_bardan_entry WHERE pavti_no = ?';
+    const params = [pavti];
+
+    if (companyId) {
+      sql += ' AND company_id = ?';
+      params.push(companyId);
+    }
+    if (financialYear) {
+      sql += ' AND financial_year = ?';
+      params.push(financialYear);
+    }
+
+    const entry = await queryOne(sql, params);
+    if (!entry) {
+      return res.status(404).json({ success: false, message: 'Entry not found' });
+    }
+
+    const items = await query('SELECT * FROM jama_bardan_items WHERE entry_id = ? ORDER BY id ASC', [entry.id]);
+    entry.gridRows = items.map(item => ({
+      col1: item.col1,
+      col2: item.col2,
+      col3: item.col3
+    }));
+
+    while (entry.gridRows.length < 8) {
+      entry.gridRows.push({ col1: '', col2: '', col3: '' });
+    }
+
+    res.json({ success: true, data: entry });
+  } catch (error) {
+    console.error('Fetch jama bardan entry by pavti error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // POST create new jama bardan entry
 router.post('/', async (req, res) => {
   try {

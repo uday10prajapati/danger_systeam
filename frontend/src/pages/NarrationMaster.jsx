@@ -3,25 +3,40 @@ import api from '../api';
 import {
   Plus, Edit2, Trash2, Search,
   FileText, X, AlertCircle, CheckCircle,
-  Hash, Activity, MessageSquare, Shield, RefreshCw, Loader,
-  Save, Database
+  Hash, MessageSquare, RefreshCcw, Loader,
+  Save
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Toast from '../components/Toast';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Loading from '../components/Loading';
 
+const TYPE_TABS = [
+  { id: 'all', labelEn: 'All', labelGu: 'બધા' },
+  { id: 'Credit', labelEn: 'Credit', labelGu: 'જમા' },
+  { id: 'Debit', labelEn: 'Debit', labelGu: 'ઉધાર' },
+  { id: 'JV', labelEn: 'JV', labelGu: 'અન્ય' },
+];
+
+const fmtVal = (v) => {
+  if (v === null || v === undefined || v === '') return '—';
+  return String(v);
+};
+
 export default function NarrationMaster() {
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
   const [narrations, setNarrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ narration_text: '', narration_text_gu: '', narration_code: '', narration_type: 'JV' });
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Delete Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -31,8 +46,17 @@ export default function NarrationMaster() {
   const narrationCodeRef = useRef(null);
   const narrationTypeRef = useRef(null);
   const narrationTextRef = useRef(null);
+  const narrationTextGURef = useRef(null);
 
   useEffect(() => { fetchNarrations(); }, []);
+
+  const getNextNarrationCode = () => {
+    const maxCode = narrations.reduce((max, n) => {
+      const parsed = Number.parseInt(String(n.narration_code || '').replace(/\D/g, ''), 10);
+      return Number.isFinite(parsed) ? Math.max(max, parsed) : max;
+    }, 0);
+    return String(maxCode + 1);
+  };
 
   const fetchNarrations = async () => {
     setLoading(true);
@@ -49,18 +73,21 @@ export default function NarrationMaster() {
   const handleOpenModal = (n = null) => {
     if (n) {
       setEditingId(n.id);
-      setFormData({ 
-        narration_text: n.narration_text, 
+      setFormData({
+        narration_text: n.narration_text,
         narration_text_gu: n.narration_text_gu || '',
         narration_code: n.narration_code || '',
         narration_type: n.narration_type || 'JV'
       });
     } else {
       setEditingId(null);
-      setFormData({ narration_text: '', narration_text_gu: '', narration_code: '', narration_type: 'JV' });
+      setFormData({ narration_text: '', narration_text_gu: '', narration_code: getNextNarrationCode(), narration_type: 'JV' });
     }
     setError(null);
     setShowModal(true);
+    setTimeout(() => {
+      narrationCodeRef.current?.focus();
+    }, 150);
   };
 
   const handleKeyDown = (e, nextRef) => {
@@ -74,12 +101,30 @@ export default function NarrationMaster() {
     }
   };
 
+  const handleTypeKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      narrationTextGURef.current?.focus();
+      return;
+    }
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const types = ['Credit', 'Debit', 'JV'];
+      const currentIndex = types.indexOf(formData.narration_type);
+      const nextIndex = e.key === 'ArrowRight'
+        ? (currentIndex + 1) % types.length
+        : (currentIndex - 1 + types.length) % types.length;
+      setFormData(prev => ({ ...prev, narration_type: types[nextIndex] }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!formData.narration_text.trim()) return;
 
-    const isDuplicate = narrations.some(n => 
-      n.narration_text.toLowerCase().trim() === formData.narration_text.toLowerCase().trim() && 
+    const isDuplicate = narrations.some(n =>
+      n.narration_text.toLowerCase().trim() === formData.narration_text.toLowerCase().trim() &&
       n.id !== editingId
     );
 
@@ -124,259 +169,355 @@ export default function NarrationMaster() {
     }
   };
 
-  const filtered = narrations.filter(n =>
-    n.narration_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (n.narration_text_gu && n.narration_text_gu.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (n.narration_code && n.narration_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (n.narration_type && n.narration_type.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filtered = narrations.filter(n => {
+    const matchesSearch =
+      n.narration_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (n.narration_text_gu && n.narration_text_gu.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (n.narration_code && n.narration_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (n.narration_type && n.narration_type.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = typeFilter === 'all' || n.narration_type === typeFilter;
+    return matchesSearch && matchesType;
+  });
 
-  if (loading) {
-    return <Loading />;
-  }
+  const ITEMS_PER_PAGE = 12;
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedItems = filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const getTypeBadge = (type) => {
+    if (type === 'Credit') return 'bg-emerald-50 border-emerald-100 text-emerald-700';
+    if (type === 'Debit') return 'bg-rose-50 border-rose-100 text-rose-700';
+    return 'bg-slate-50 border-slate-200 text-slate-600';
+  };
+
+  const getTypeLabel = (type) => {
+    if (type === 'Credit') return t('narrationMaster.types.credit');
+    if (type === 'Debit') return t('narrationMaster.types.debit');
+    return t('narrationMaster.types.jv');
+  };
+
+  const displayNarrationText = (n) => {
+    const text = isGu ? n?.narration_text_gu : n?.narration_text;
+    return text && String(text).trim() ? text : '—';
+  };
+
+  if (loading && narrations.length === 0) return <Loading />;
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
-      
-      {/* Toast Notification */}
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
+
       <Toast message={message} onClose={() => setMessage(null)} />
 
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+      <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
 
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-              <MessageSquare size={20} className="text-zinc-600" />
-              <span className={i18n.language === 'gu' ? 'font-prompt' : ''}>{t('narrationMaster.title')}</span>
-            </h1>
-            <p className="text-xs text-zinc-500 mt-0.5 tracking-wider">{t('narrationMaster.managementLedger')}</p>
+        {/* Stats Summary Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('narrationMaster.registryNodes') || 'Total Narrations'}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(narrations.length)}</span>
           </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={() => handleOpenModal()}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm select-none"
-            >
-              <Plus size={16} />
-              {t('narrationMaster.addNarration')}
-            </button>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'જમા' : 'Credit'}</span>
+            <span className="text-[13px] font-bold font-sans text-emerald-700 mt-1">{fmtVal(narrations.filter(n => n.narration_type === 'Credit').length)}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'ઉધાર' : 'Debit'}</span>
+            <span className="text-[13px] font-bold font-sans text-rose-600 mt-1">{fmtVal(narrations.filter(n => n.narration_type === 'Debit').length)}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('narrationMaster.codedEntities') || 'With Code'}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(narrations.filter(n => n.narration_code).length)}</span>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className={`text-[10px] font-mono text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('narrationMaster.registryNodes')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1 notranslate" translate="no">{narrations.length}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className={`text-[10px] font-mono text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('narrationMaster.codedEntities')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1 notranslate" translate="no">{narrations.filter(n => n.narration_code).length}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className={`text-[10px] font-mono text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('narrationMaster.activeFilter')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1 notranslate" translate="no">{filtered.length}</span>
-          </div>
-        </div>
+        {/* Registry Table Wrapper */}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
 
-        {/* Content Table Area */}
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+          {/* Table Control Header Bar */}
+          <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-bold text-zinc-700 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>
-                {t('narrationMaster.listTitle')}
+              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+                {t('narrationMaster.title') || 'Narration Master'}
               </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                {filtered.length} {t('narrationMaster.records')}
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                {filtered.length} {t('narrationMaster.records') || 'Records'}
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-                <Search size={16} className="text-zinc-400" />
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Search Bar */}
+              <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                <Search size={12} className="text-slate-400 mr-1.5" />
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={t('narrationMaster.searchPlaceholder')}
-                  className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  placeholder={t('narrationMaster.searchPlaceholder') || 'Search narrations...'}
+                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
+                {searchTerm && (
+                  <button onClick={() => setSearchTerm('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                    <X size={10} />
+                  </button>
+                )}
               </div>
-              <button onClick={fetchNarrations} className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm" title={t('narrationMaster.refreshRegistry')}>
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+
+              {/* Add Button */}
+              <button
+                onClick={() => handleOpenModal()}
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+              >
+                <Plus size={13} />
+                <span>{t('narrationMaster.addNarration') || 'Add Narration'}</span>
+              </button>
+
+              {/* Refresh Button */}
+              <button
+                onClick={fetchNarrations}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-none"
+                title={t('narrationMaster.refreshRegistry') || 'Refresh'}
+              >
+                <RefreshCcw size={13} className={`text-slate-500 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
 
-          <div className="flex-1 p-5 bg-white">
-            {loading && narrations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
-                <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">{t('narrationMaster.loadingData')}</p>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500 select-none">
-                <MessageSquare size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">{t('narrationMaster.noRecords')}</p>
-                <button 
-                  onClick={() => handleOpenModal()} 
-                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition"
+          {/* Type Filter Tabs */}
+          <div className="px-3.5 py-2.5 flex items-center gap-1.5 border-b border-slate-100 select-none">
+            {TYPE_TABS.map(tab => {
+              const count = tab.id === 'all' ? narrations.length : narrations.filter(n => n.narration_type === tab.id).length;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => { setTypeFilter(tab.id); setCurrentPage(1); }}
+                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold rounded-md transition-all shrink-0 cursor-pointer border ${
+                    typeFilter === tab.id
+                      ? 'bg-[#1d5f84] border-[#1d5f84] text-white'
+                      : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                  }`}
                 >
-                  {t('narrationMaster.addFirstNarration')}
+                  <span>{isGu ? tab.labelGu : tab.labelEn}</span>
+                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded-sm leading-none ${
+                    typeFilter === tab.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto w-full">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
+                <MessageSquare size={32} className="text-slate-300 opacity-30" />
+                <p className="text-xs font-bold text-slate-400">{t('narrationMaster.noRecords')}</p>
+                <button
+                  onClick={() => handleOpenModal()}
+                  className="text-xs font-bold text-[#1d5f84] hover:text-[#154662] transition uppercase tracking-wider cursor-pointer"
+                >
+                  + {t('narrationMaster.addFirstNarration') || 'Add First Narration'}
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 font-mono text-xs select-none">
-                {filtered.map(n => (
-                  <div key={n.id} className="bg-zinc-50 border border-zinc-300 p-4 flex flex-col justify-between gap-3 hover:bg-white hover:border-zinc-400 transition">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-2">
-                        <span className="inline-flex bg-zinc-200 text-zinc-800 border border-zinc-300 font-bold text-[9px] px-1.5 py-0.5 w-fit uppercase">
-                          <Hash size={10} className="mr-0.5" /> {n.narration_code || t('narrationMaster.untitled')}
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+                <thead className="bg-slate-50 font-sans">
+                  <tr>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-10">#</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-16">{isGu ? 'કોડ' : 'Code'}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{isGu ? 'પ્રકાર' : 'Type'}</th>
+                    <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{isGu ? 'વર્ણન' : 'Narration Text'}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 w-24">{isGu ? 'ક્રિયાઓ' : 'Actions'}</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-100">
+                  {paginatedItems.map((n, idx) => (
+                    <tr key={n.id} className="hover:bg-slate-50/75 transition-colors">
+                      <td className="px-3.5 py-2 text-center font-mono text-slate-500 border-r border-slate-100">{fmtVal(startIndex + idx + 1)}</td>
+                      <td className="px-3.5 py-2 text-center border-r border-slate-100">
+                        <span className="inline-flex items-center gap-0.5 bg-slate-50 text-[#1d5f84] border border-slate-200 font-bold text-[9px] px-1.5 py-0.5 rounded-md font-mono">
+                          <Hash size={8} className="opacity-60" />{n.narration_code || '—'}
                         </span>
-                        <span className={`inline-flex font-bold text-[9px] px-1.5 py-0.5 w-fit border uppercase notranslate ${
-                          n.narration_type === 'Credit' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' :
-                          n.narration_type === 'Debit' ? 'bg-red-50 border-red-200 text-red-600' :
-                          'bg-zinc-100 border-zinc-300 text-zinc-700'
-                        } ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`} translate="no">
-                          {n.narration_type === 'Credit' ? t('narrationMaster.types.credit') : n.narration_type === 'Debit' ? t('narrationMaster.types.debit') : t('narrationMaster.types.jv')}
+                      </td>
+                      <td className="px-3.5 py-2 text-center border-r border-slate-100">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${getTypeBadge(n.narration_type)}`}>
+                          {getTypeLabel(n.narration_type)}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleOpenModal(n)}
-                          className="p-1 border border-zinc-300 bg-white hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                          title={t('narrationMaster.edit')}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => confirmDelete(n)}
-                          className="p-1 border border-zinc-300 bg-white hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
-                          title={t('narrationMaster.delete')}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                    <p className={`text-zinc-800 font-bold leading-relaxed tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans'}`}>
-                      "{n.narration_text_gu || n.narration_text}"
-                    </p>
-                    {n.narration_text_gu && (
-                      <p className="text-zinc-400 text-[10px] uppercase tracking-widest mt-1 font-mono notranslate" translate="no">
-                        {n.narration_text}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      </td>
+                      <td className={`px-3.5 py-2 border-r border-slate-100 font-bold ${isGu ? 'text-slate-800' : 'text-slate-600 font-mono text-[10px] uppercase'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                        {displayNarrationText(n)}
+                      </td>
+                      <td className="px-3.5 py-2 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenModal(n)}
+                            className="p-1 border border-slate-200 rounded hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                            title={t('narrationMaster.edit')}
+                          >
+                            <Edit2 size={11} />
+                          </button>
+                          <button
+                            onClick={() => confirmDelete(n)}
+                            className="p-1 border border-rose-100 rounded text-rose-500 bg-rose-50 hover:bg-rose-100 transition cursor-pointer"
+                            title={t('narrationMaster.delete')}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
+
+          {/* Pagination */}
+          {filtered.length > 0 && (
+            <div className="bg-slate-50 border-t border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">
+                {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)} / {filtered.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-40 transition text-[10px] font-extrabold text-slate-600 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Prev
+                </button>
+                <span className="text-xs font-bold text-slate-600 px-1.5">
+                  {fmtVal(currentPage)} / {fmtVal(totalPages)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-2.5 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-40 transition text-[10px] font-extrabold text-slate-600 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Form Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-none">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-none border border-zinc-400 shadow-xl overflow-hidden font-mono text-xs select-none">
-            <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-150" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden text-xs select-none z-10">
+
+            {/* Modal Header */}
+            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
               <div>
-                <h2 className={`text-sm font-bold text-zinc-800 uppercase tracking-tight ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>
+                <h2 className={`text-xs font-bold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                   {editingId ? t('narrationMaster.editModalTitle') : t('narrationMaster.addModalTitle')}
                 </h2>
-                <p className={`text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}>{t('narrationMaster.configureNode')}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('narrationMaster.configureNode')}</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-1 text-zinc-400 hover:text-red-600 transition">
-                <X size={18} />
+              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer">
+                <X size={15} />
               </button>
             </div>
 
-            <div className="p-5">
+            {/* Modal Body */}
+            <div className="p-5 flex flex-col gap-4">
               {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-800 text-[11px] font-bold uppercase flex items-center gap-2">
-                  <AlertCircle size={15} />
-                  {error}
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-bold uppercase flex items-center gap-2 rounded-md">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-none">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('narrationMaster.referenceCode')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('narrationMaster.referenceCode') || 'Code'}</label>
                     <input
                       ref={narrationCodeRef}
                       type="text"
                       value={formData.narration_code}
                       onChange={e => setFormData({ ...formData, narration_code: e.target.value })}
                       onKeyDown={(e) => handleKeyDown(e, narrationTypeRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 uppercase tracking-widest font-prompt"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 uppercase force-en font-sans"
                       placeholder="E.G. 1"
                     />
                   </div>
-
                   <div className="flex flex-col gap-1">
-                    <label className={`text-[10px] font-bold text-zinc-500 ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`}>{t('narrationMaster.narrationType')}</label>
-                    <select
-                      ref={narrationTypeRef}
-                      value={formData.narration_type}
-                      onChange={e => setFormData({ ...formData, narration_type: e.target.value })}
-                      onKeyDown={(e) => handleKeyDown(e, narrationTextRef)}
-                      className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 cursor-pointer uppercase tracking-widest ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : ''}`}
-                    >
-                      <option value="Credit" className="notranslate" translate="no">{t('narrationMaster.types.credit')}</option>
-                      <option value="Debit" className="notranslate" translate="no">{t('narrationMaster.types.debit')}</option>
-                      <option value="JV" className="notranslate" translate="no">{t('narrationMaster.types.jv')}</option>
-                    </select>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('narrationMaster.narrationType') || 'Type'}</label>
+                    <div className="grid grid-cols-3 gap-1 bg-slate-50 p-1 rounded-md border border-slate-100">
+                      {['Credit', 'Debit', 'JV'].map(type => (
+                        <button
+                          key={type}
+                          ref={formData.narration_type === type ? narrationTypeRef : null}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, narration_type: type })}
+                          onKeyDown={handleTypeKeyDown}
+                          className={`py-1 flex items-center justify-center text-[9px] font-bold transition rounded border cursor-pointer uppercase tracking-wider ${
+                            formData.narration_type === type
+                              ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
+                              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          {type === 'Credit' ? (isGu ? 'જમા' : 'Credit') : type === 'Debit' ? (isGu ? 'ઉધાર' : 'Debit') : (isGu ? 'અન્ય' : 'JV')}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className={`text-[10px] font-bold text-zinc-500 notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`} translate="no">
-                    {t('narrationMaster.narrationDescription')} (ENG)
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">
+                    {t('narrationMaster.narrationDescription') || 'Description'} (GUJ)
+                  </label>
+                  <input
+                    ref={narrationTextGURef}
+                    type="text"
+                    value={formData.narration_text_gu}
+                    onChange={e => setFormData({ ...formData, narration_text_gu: e.target.value })}
+                    onKeyDown={(e) => handleKeyDown(e, narrationTextRef)}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800"
+                    style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
+                    placeholder="ગુજરાતીમાં વર્ણન લખો..."
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">
+                    {t('narrationMaster.narrationDescription') || 'Description'} (ENG)
                   </label>
                   <input
                     ref={narrationTextRef}
                     type="text"
                     value={formData.narration_text}
                     onChange={e => setFormData({ ...formData, narration_text: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-800 font-mono uppercase force-en notranslate"
+                    onKeyDown={(e) => handleKeyDown(e, null)}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 force-en font-sans"
                     placeholder="ENTER ENGLISH DESCRIPTION..."
                     required
                   />
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className={`text-[10px] font-bold text-zinc-500 notranslate ${i18n.language === 'gu' ? 'font-prompt uppercase-none' : 'uppercase'}`} translate="no">
-                    {t('narrationMaster.narrationDescription')} (GUJ)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.narration_text_gu}
-                    onChange={e => setFormData({ ...formData, narration_text_gu: e.target.value })}
-                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-800 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans'}`}
-                    placeholder={t('narrationMaster.enterDescription')}
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-3 border-t border-zinc-200 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
-                  >
-                    {t('narrationMaster.cancel')}
-                  </button>
-              <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
-                  >
-                    {submitting ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {editingId ? t('narrationMaster.update') : t('narrationMaster.save')}</>}
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex gap-2.5 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+              >
+                {t('narrationMaster.cancel') || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
+                <span>{editingId ? t('narrationMaster.update') : t('narrationMaster.save')}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -386,7 +527,7 @@ export default function NarrationMaster() {
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
         title={t('narrationMaster.deleteTitle')}
-        message={t('narrationMaster.deleteConfirm', { name: narrationToDelete?.narration_tex || '' })}
+        message={t('narrationMaster.deleteConfirm', { name: narrationToDelete ? displayNarrationText(narrationToDelete) : '' })}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalOpen(false)}
       />

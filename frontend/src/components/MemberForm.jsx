@@ -121,6 +121,10 @@ export default function MemberForm({
       initNewForm()
       fetchNextPCode(false)
     }
+    const tId = setTimeout(() => {
+      sabhasadNameRef.current?.focus();
+    }, 150);
+    return () => clearTimeout(tId);
   }, [editingMember, loadMasterData, initNewForm])
 
   const handleCodeFetch = async (code) => {
@@ -200,8 +204,18 @@ export default function MemberForm({
     setMessage(null)
     setErrors({})
 
-    if (!formData.sabhasadName || !formData.sabhasadName.trim()) {
-      setMessage({ type: 'error', text: t('memberMaster.nameRequired') });
+    if (!formData.member_name_gu || !formData.member_name_gu.trim()) {
+      setMessage({ type: 'error', text: t('memberMaster.nameRequiredGuj') || 'Gujarati Member Name is required.' });
+      return;
+    }
+
+    if (!formData.engName || !formData.engName.trim()) {
+      setMessage({ type: 'error', text: t('memberMaster.nameRequiredEng') || 'English Member Name is required.' });
+      return;
+    }
+
+    if (!formData.villageCode || !formData.villageCode.trim()) {
+      setMessage({ type: 'error', text: t('memberMaster.villageRequired') || 'Village is required.' });
       return;
     }
 
@@ -234,101 +248,106 @@ export default function MemberForm({
   }
 
   return (
-    <div className="bg-white p-0 overflow-hidden rounded-none border border-zinc-400 font-mono text-xs select-none animate-none">
-      <div className="bg-zinc-100 px-5 py-3 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
+    <div className="bg-white rounded-lg overflow-hidden border border-slate-200 shadow-xl flex flex-col font-mono text-xs select-none">
+      
+      {/* Title Bar */}
+      <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center select-none">
         <div>
-          <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight animate-none">
+          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
             {localEditId || editingMember ? t('memberForm.editTitle') : t('memberForm.addTitle')}
           </h2>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">{t('memberForm.subtitle')}</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('memberForm.subtitle')}</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
-            <X size={18} />
+          <button 
+            onClick={onClose} 
+            className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md"
+          >
+            <X size={15} />
           </button>
         )}
       </div>
 
-      <div className="p-5 animate-none">
+      {/* Form Content */}
+      <div className="p-5 flex-1 overflow-y-auto">
         {message && (
-          <div className={`mb-4 p-3 border text-xs flex items-center gap-2 ${
-            message.type === 'error' ? 'bg-red-50 border-red-300 text-red-800' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+          <div className={`mb-4 p-2.5 border font-bold text-[11px] rounded-md flex items-center gap-2 shadow-sm ${
+            message.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
           }`}>
-            {message.type === 'error' ? <AlertCircle size={15} /> : <CheckCircle size={15} />}
-            <span className="font-bold uppercase leading-none">{message.text}</span>
+            {message.type === 'error' ? <AlertCircle size={14} className="shrink-0" /> : <CheckCircle size={14} className="shrink-0" />}
+            <span className="uppercase leading-none tracking-wider">{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-none">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             
             {/* Left Column */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
-                <User size={15} className="text-zinc-500" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('memberForm.basicInfo')}</h3>
+              <div className="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
+                <User size={13} className="text-[#1d5f84]" />
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t('memberForm.basicInfo')}</h3>
               </div>
               
               <div className="grid grid-cols-5 gap-3">
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.code')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.code')}</label>
                   <div className="relative">
                     <input
                       ref={sabhasadCodeRef}
                       type="text"
                       name="sabhasadCode"
                       value={formData.sabhasadCode}
-                      onChange={handleChange}
-                      onBlur={(e) => handleCodeFetch(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, pCodeRef)}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none font-bold text-slate-500 cursor-not-allowed"
+                      readOnly
+                      tabIndex={-1}
                       translate="no"
                       lang="en"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 force-en notranslate"
                     />
-                    {isFetchingCode && <Loader size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-blue-600" />}
+                    {isFetchingCode && <Loader size={11} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-[#1d5f84]" />}
                   </div>
                 </div>
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.pCode')}</label>
-                    <input
-                      ref={pCodeRef}
-                      type="text"
-                      name="p_code"
-                      value={formData.p_code}
-                      onChange={handleChange}
-                      onKeyDown={(e) => handleKeyDown(e, sabhasadNameRef)}
-                      translate="no"
-                      lang="en"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 force-en notranslate"
-                    />
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.pCode')}</label>
+                  <input
+                    ref={pCodeRef}
+                    type="text"
+                    name="p_code"
+                    value={formData.p_code}
+                    onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, sabhasadNameRef)}
+                    translate="no"
+                    lang="en"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
+                  />
                 </div>
-                  <div className="col-span-3 flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 font-sans">{t('memberMaster.memberNameGU')}</label>
-                    <input
-                      ref={sabhasadNameRef}
-                      type="text"
-                      name="member_name_gu"
-                      value={formData.member_name_gu}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          member_name_gu: val,
-                          sabhasadName: val // sync with primary name field for DB compatibility
-                        }));
-                      }}
-                      onKeyDown={(e) => handleKeyDown(e, engNameRef)}
-                      required
-                      placeholder="ગુજરાતી નામ લખો"
-                      translate="no"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
-                      style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
-                    />
-                  </div>
+                <div className="col-span-3 flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 font-sans">{t('memberMaster.memberNameGU')}</label>
+                  <input
+                    ref={sabhasadNameRef}
+                    type="text"
+                    name="member_name_gu"
+                    value={formData.member_name_gu}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        member_name_gu: val,
+                        sabhasadName: val 
+                      }));
+                    }}
+                    onKeyDown={(e) => handleKeyDown(e, engNameRef)}
+                    required
+                    placeholder="ગુજરાતી નામ લખો"
+                    translate="no"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700"
+                    style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.engName')}</label>
+                <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.engName')}</label>
                 <input
                   ref={engNameRef}
                   type="text"
@@ -339,21 +358,21 @@ export default function MemberForm({
                   lang="en"
                   onKeyDown={(e) => handleKeyDown(e, villageCodeRef)}
                   placeholder={t('memberForm.enterName')}
-                  className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-600 force-en notranslate font-sans"
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
                   spellCheck="false"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.village')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.village')}</label>
                   <select
                     ref={villageCodeRef}
                     name="villageCode"
                     value={formData.villageCode}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, phoneNoRef)}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 cursor-pointer"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 cursor-pointer"
                   >
                     <option value="">{t('memberForm.selectVillage')}</option>
                     {villageList.map(v => (
@@ -362,7 +381,7 @@ export default function MemberForm({
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.mobile')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.mobile')}</label>
                   <input
                     ref={phoneNoRef}
                     type="tel"
@@ -371,21 +390,21 @@ export default function MemberForm({
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, bankNameRef)}
                     placeholder={t('memberForm.mobilePlaceholder')}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className={`text-[10px] font-bold text-zinc-500 font-sans ${i18n.language !== 'gu' ? 'uppercase' : ''}`}>{t('memberForm.classification')}</label>
-                <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-1">
+                <label className={`text-[9px] font-bold text-slate-400 font-sans ${i18n.language !== 'gu' ? 'uppercase' : ''}`}>{t('memberForm.classification')}</label>
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1 rounded-md border border-slate-100">
                   <button
                     type="button"
                     onClick={() => {
                       setFormData(p => ({ ...p, nominalMember: false }));
                       if (!editingMember) fetchNextPCode(false);
                     }}
-                    className={`py-1.5 text-[10px] font-bold transition rounded-none ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${!formData.nominalMember ? 'bg-blue-600 border border-blue-500 text-white' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    className={`py-1 flex items-center justify-center text-[10px] font-bold transition rounded-md border cursor-pointer uppercase tracking-wider ${!formData.nominalMember ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'}`}
                   >
                     {t('memberForm.sabhasad')}
                   </button>
@@ -395,7 +414,7 @@ export default function MemberForm({
                       setFormData(p => ({ ...p, nominalMember: true }));
                       if (!editingMember) fetchNextPCode(true);
                     }}
-                    className={`py-1.5 text-[10px] font-bold transition rounded-none ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${formData.nominalMember ? 'bg-blue-600 border border-blue-500 text-white' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    className={`py-1 flex items-center justify-center text-[10px] font-bold transition rounded-md border cursor-pointer uppercase tracking-wider ${formData.nominalMember ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'}`}
                   >
                     {t('memberForm.nominal')}
                   </button>
@@ -405,14 +424,14 @@ export default function MemberForm({
 
             {/* Right Column */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
-                <Building2 size={15} className="text-zinc-500" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('memberForm.bankingDetails')}</h3>
+              <div className="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
+                <Building2 size={13} className="text-[#1d5f84]" />
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t('memberForm.bankingDetails')}</h3>
               </div>
 
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.bankInstitution')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.bankInstitution')}</label>
                   <select
                     ref={bankNameRef}
                     name="bankName"
@@ -421,18 +440,18 @@ export default function MemberForm({
                     translate="no"
                     lang="en"
                     onKeyDown={(e) => handleKeyDown(e, ifscCodeRef)}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700 cursor-pointer force-en notranslate"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 cursor-pointer force-en"
                   >
-                    <option value="" className="force-en notranslate">{t('memberForm.selectBank')}</option>
+                    <option value="" className="force-en">{t('memberForm.selectBank')}</option>
                     {bankList.map(b => (
-                      <option key={b.id} value={b.bank_name} className="force-en notranslate">{b.bank_name}</option>
+                      <option key={b.id} value={b.bank_name} className="force-en">{b.bank_name}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase label-ifsc-gu notranslate" translate="no"></label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase label-ifsc-gu" translate="no"></label>
                     <input
                       ref={ifscCodeRef}
                       type="text"
@@ -443,11 +462,11 @@ export default function MemberForm({
                       lang="en"
                       onKeyDown={(e) => handleKeyDown(e, fullAcNumberRef)}
                       placeholder={t('memberForm.ifscPlaceholder')}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold uppercase text-zinc-700 force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold uppercase text-slate-700 force-en"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.accountNo')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.accountNo')}</label>
                     <input
                       ref={fullAcNumberRef}
                       type="text"
@@ -458,21 +477,21 @@ export default function MemberForm({
                       lang="en"
                       onKeyDown={(e) => handleKeyDown(e, accountTypeRef)}
                       placeholder={t('memberForm.accountNoPlaceholder')}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700 font-bold force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition text-slate-700 font-bold force-en"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.accountType')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.accountType')}</label>
                     <select
                       ref={accountTypeRef}
                       name="accountType"
                       value={formData.accountType}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, bardanOpeningRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 cursor-pointer"
                     >
                       <option value="">{t('memberForm.selectType')}</option>
                       <option value="Savings">{t('memberForm.savings')}</option>
@@ -480,7 +499,7 @@ export default function MemberForm({
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.openingBardan')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.openingBardan')}</label>
                     <input
                       ref={bardanOpeningRef}
                       type="number"
@@ -490,22 +509,22 @@ export default function MemberForm({
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, addressNoRef)}
                       placeholder="0.00"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-700"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1 pt-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.registryStatus')}</label>
-                  <div className="flex items-center gap-4 bg-zinc-50 p-2 border border-zinc-300">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.registryStatus')}</label>
+                  <div className="flex items-center gap-4 bg-slate-50 p-2.5 border border-slate-200 rounded-md">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={formData.is_active}
                         onChange={(e) => setFormData(p => ({ ...p, is_active: e.target.checked }))}
-                        className="w-3.5 h-3.5 cursor-pointer accent-blue-600"
+                        className="w-3.5 h-3.5 cursor-pointer accent-[#1d5f84]"
                       />
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${formData.is_active ? 'text-zinc-800' : 'text-zinc-400'}`}>{t('memberForm.activeRecord')}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${formData.is_active ? 'text-slate-700' : 'text-slate-400'}`}>{t('memberForm.activeRecord')}</span>
                     </label>
                   </div>
                 </div>
@@ -514,7 +533,7 @@ export default function MemberForm({
           </div>
 
           <div className="flex flex-col gap-1 mt-1">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase font-sans">{t('memberForm.addressLocality')}</label>
+            <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.addressLocality')}</label>
             <textarea
               ref={addressNoRef}
               name="addressNo"
@@ -523,27 +542,30 @@ export default function MemberForm({
               rows="2"
               onKeyDown={(e) => handleKeyDown(e, null)}
               placeholder={t('memberForm.addressPlaceholder')}
-              className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition text-zinc-700"
+              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition text-slate-700"
             />
           </div>
-
-          <div className="flex gap-3 pt-3 border-t border-zinc-200 justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
-            >
-              {t('memberForm.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
-            >
-              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {localEditId || editingMember ? t('memberForm.update') : t('memberForm.save')}</>}
-            </button>
-          </div>
         </form>
+      </div>
+
+      {/* Modal Footer Actions */}
+      <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex gap-2.5 justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+        >
+          {t('memberForm.cancel')}
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+        >
+          {loading ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
+          <span>{localEditId || editingMember ? t('memberForm.update') : t('memberForm.save')}</span>
+        </button>
       </div>
     </div>
   )

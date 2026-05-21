@@ -3,81 +3,131 @@ import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
-  Plus, AlertCircle, Edit2, Trash2, CheckCircle,
-  XCircle, Eye, X, Download, Database, Shield,
-  Search, Filter, Users, Scale, TrendingUp,
-  Activity, ArrowRight, Loader, FileText, IndianRupee,
-  MoreVertical, Power, QrCode, Hash, Layers,
-  RefreshCcw, Building2, Globe, Printer
+  Plus, Edit2, Trash2, Eye, X, Download, Database, Shield,
+  Search, Loader, FileText, Power, RefreshCcw, Building2,
+  ChevronLeft, ChevronRight, Calculator, PieChart, Info,
+  CreditCard, Wallet, Copy, Check
 } from 'lucide-react';
 import AccountForm from '../components/AccountForm';
 import Toast from '../components/Toast';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Loading from '../components/Loading';
 import api from '../api';
+import { formatBilingualText } from '../utils/textUtils';
 
 export default function AccountMaster() {
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
+
   const [company, setCompany] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
-  const [balanceTypeFilter, setBalanceTypeFilter] = useState('all');
+  const [balTypeFilter, setBalTypeFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [copiedId, setCopiedId] = useState(null);
 
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState(null);
 
-  // Balance Modal state
-  const [balanceModal, setBalanceModal] = useState({
-    isOpen: false,
-    account: null,
-    data: null,
-    loading: false,
-    error: null
-  });
+  // Account Detail Modal states
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [activeDetailTab, setActiveDetailTab] = useState('general');
+  const [auditData, setAuditData] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
 
-  const accountTypes = [
-    { value: 'all', label: t('accountMaster.types.all') },
-    { value: 'customer', label: t('accountMaster.types.customer') },
-    { value: 'vendor', label: t('accountMaster.types.vendor') },
-    { value: 'supplier', label: t('accountMaster.types.supplier') },
-    { value: 'bank', label: t('accountMaster.types.bank') },
-    { value: 'cash', label: t('accountMaster.types.cash') },
-    { value: 'assets', label: t('accountMaster.types.assets') },
-    { value: 'liabilities', label: t('accountMaster.types.liabilities') },
-    { value: 'capital', label: t('accountMaster.types.capital') },
-    { value: 'revenue', label: t('accountMaster.types.revenue') },
-    { value: 'expense', label: t('accountMaster.types.expense') },
-    { value: 'purchase', label: t('accountMaster.types.purchase') },
-    { value: 'sales', label: t('accountMaster.types.sales') }
-  ];
+  const guDigits = {
+    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
+    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  };
+
+  const guLetters = {
+    'અ': 'A', 'આ': 'AA', 'ઇ': 'I', 'ઈ': 'II', 'ઉ': 'U', 'ઊ': 'UU',
+    'ઋ': 'R', 'એ': 'E', 'ઐ': 'AI', 'ઓ': 'O', 'ઔ': 'AU',
+    'ક': 'K', 'ખ': 'KH', 'ગ': 'G', 'ઘ': 'GH', 'ઙ': 'NG',
+    'ચ': 'CH', 'છ': 'CHH', 'જ': 'J', 'ઝ': 'JH', 'ઞ': 'NY',
+    'ટ': 'T', 'ઠ': 'TH', 'ડ': 'D', 'ઢ': 'DH', 'ણ': 'N',
+    'ત': 'T', 'થ': 'TH', 'દ': 'D', 'ધ': 'DH', 'ન': 'N',
+    'પ': 'P', 'ફ': 'F', 'બ': 'B', 'ભ': 'BH', 'મ': 'M',
+    'ય': 'Y', 'ર': 'R', 'લ': 'L', 'વ': 'V', 'શ': 'SH',
+    'ષ': 'SH', 'સ': 'S', 'હ': 'H',
+    '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4',
+    '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9'
+  };
+
+  const toGujaratiDigits = (value) => {
+    if (i18n.language !== 'gu') return String(value ?? '');
+    return String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
+  };
+  const toEnglishDigits = (value) => String(value ?? '').replace(/[૦-૯]/g, (d) => '0123456789'['૦૧૨૩૪૫૬૭૪૯'.indexOf(d)] || d);
+  const toEnglishText = (value) => String(value ?? '').split('').map(char => guLetters[char] || char).join('');
+  
+  const fmtVal = (val) => toGujaratiDigits(val);
+  const fmtAmount = (val) => {
+    const num = parseFloat(val) || 0;
+    const formatted = num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return toGujaratiDigits(formatted);
+  };
+
+  const displayAccountName = (acc) => {
+    return isGu
+      ? (acc.account_name_gu || acc.account_name || '')
+      : (acc.account_name || acc.account_name_gu || '');
+  };
+
+  // Toggle to show/hide the Code (account_code) column in the accounts table
+  const SHOW_CODE_COLUMN = false;
+
+  const getAvatarGradient = (name) => {
+    const s = name || 'A';
+    const charCode = s.charCodeAt(0) || 0;
+    const gradients = [
+      'from-slate-500 to-slate-700',
+      'from-sky-600 to-blue-700',
+      'from-emerald-600 to-teal-700',
+      'from-indigo-600 to-violet-700',
+      'from-amber-600 to-orange-700',
+      'from-rose-600 to-pink-700'
+    ];
+    return gradients[charCode % gradients.length];
+  };
+
+  const getInitials = (acc) => {
+    if (!acc) return 'A';
+    const name = displayAccountName(acc) || 'A';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleCopyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   useEffect(() => {
     loadCompany();
   }, []);
 
   useEffect(() => {
-    if (company) {
-      loadAccounts();
-    }
+    if (company) loadAccounts();
   }, [company, selectedType]);
 
   const loadCompany = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/company');
-      if (response.data.success && response.data.data) {
-        setCompany(response.data.data);
-      } else {
-        setMessage({ type: 'error', text: t('accountMaster.errors.noCompany') });
-      }
-    } catch (error) {
-      console.error('Failed to load company', error);
+      const r = await api.get('/company');
+      if (r.data.success && r.data.data) setCompany(r.data.data);
+      else setMessage({ type: 'error', text: t('accountMaster.errors.noCompany') });
+    } catch {
       setMessage({ type: 'error', text: t('accountMaster.errors.failedLoadContext') });
     } finally {
       setLoading(false);
@@ -87,16 +137,11 @@ export default function AccountMaster() {
   const loadAccounts = async () => {
     try {
       setLoading(true);
-      const url = selectedType === 'all'
-        ? `/accounts/company/${company.id}`
-        : `/accounts/company/${company.id}?type=${selectedType}`;
-
-      const response = await api.get(url);
-      if (response.data.success) {
-        setAccounts(response.data.data || []);
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || t('accountMaster.errors.failedLoadAccounts') });
+      const url = selectedType === 'all' ? `/accounts/company/${company.id}` : `/accounts/company/${company.id}?type=${selectedType}`;
+      const r = await api.get(url);
+      if (r.data.success) setAccounts(r.data.data || []);
+    } catch (e) {
+      setMessage({ type: 'error', text: e.response?.data?.error || t('accountMaster.errors.failedLoadAccounts') });
     } finally {
       setLoading(false);
     }
@@ -119,13 +164,15 @@ export default function AccountMaster() {
     setMessage({ type: 'success', text: msg || t('accountMaster.messages.accountSaved') });
   };
 
-  const handleStatusToggle = async (account) => {
+  const handleStatusToggle = async (acc) => {
     try {
-      const endpoint = account.is_active ? 'deactivate' : 'activate';
-      await api.post(`/accounts/${account.id}/${endpoint}`);
+      await api.post(`/accounts/${acc.id}/${acc.is_active ? 'deactivate' : 'activate'}`);
       setMessage({ type: 'success', text: t('accountMaster.messages.statusUpdatedSuccessfully') });
       loadAccounts();
-    } catch (error) {
+      if (selectedAccount && selectedAccount.id === acc.id) {
+        setSelectedAccount(prev => ({ ...prev, is_active: !prev.is_active }));
+      }
+    } catch {
       setMessage({ type: 'error', text: t('accountMaster.errors.failedUpdateStatus') });
     }
   };
@@ -143,69 +190,70 @@ export default function AccountMaster() {
       setMessage({ type: 'success', text: t('accountMaster.messages.accountDeletedSuccessfully') });
       setDeleteModalOpen(false);
       setAccountToDelete(null);
+      setSelectedAccount(null);
       loadAccounts();
-    } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || t('accountMaster.errors.deleteFailed') });
+    } catch (e) {
+      setMessage({ type: 'error', text: e.response?.data?.error || t('accountMaster.errors.deleteFailed') });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleShowBalance = async (account) => {
-    setBalanceModal({ isOpen: true, account, data: null, loading: true, error: null });
+  const handleSelectAccount = async (account) => {
+    setSelectedAccount(account);
+    setActiveDetailTab('general');
+    setAuditData(null);
+    if (!account) return;
+    
     try {
+      setAuditLoading(true);
       const response = await api.get(`/accounts/${account.id}/balance`);
       if (response.data.success) {
-        setBalanceModal({ isOpen: true, account, data: response.data.data, loading: false, error: null });
+        setAuditData(response.data.data);
       }
-    } catch (error) {
-      setBalanceModal({ isOpen: true, account, data: null, loading: false, error: t('accountMaster.errors.failedLoadBalance') });
+    } catch (e) {
+      console.error("Failed to load audit balance", e);
+    } finally {
+      setAuditLoading(false);
     }
   };
 
-  const filteredAccounts = (Array.isArray(accounts) ? accounts : []).filter(acc => {
-    const matchesSearch = searchQuery === '' ||
-      acc.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (acc.account_name_gu && acc.account_name_gu.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      acc.account_code?.toString().includes(searchQuery) ||
-      acc.id?.toString().includes(searchQuery);
-
-    const matchesBalanceType = balanceTypeFilter === 'all' || acc.balance_type === balanceTypeFilter;
-    return matchesSearch && matchesBalanceType;
-  });
-
-  const guDigits = {
-    '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪',
-    '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
+  const handleDownloadCSV = () => {
+    const headers = [
+      t('accountMaster.accountName'),
+      t('accountMaster.identity'),
+      t('accountMaster.accountType'),
+      t('accountMaster.status'),
+      t('accountMaster.closingBalance'),
+      t('accountMaster.balanceType')
+    ];
+    const rows = filteredAccounts.map(acc => [
+      `"${displayAccountName(acc)}"`,
+      `"${toEnglishText(acc.account_code || acc.id)}"`,
+      `"${t(`accountMaster.types.${acc.account_type}`)}"`,
+      `"${acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}"`,
+      parseFloat(acc.closing_balance || 0).toFixed(2),
+      `"${acc.balance_type === 'credit' ? t('accountMaster.jama') || 'Credit' : acc.balance_type === 'debit' ? t('accountMaster.udhar') || 'Debit' : t('accountMaster.zero')}"`
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Accounts_Export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
   };
-
-  const guLetters = {
-    'અ': 'A', 'આ': 'AA', 'ઇ': 'I', 'ઈ': 'II', 'ઉ': 'U', 'ઊ': 'UU',
-    'ઋ': 'R', 'એ': 'E', 'ઐ': 'AI', 'ઓ': 'O', 'ઔ': 'AU',
-    'ક': 'K', 'ખ': 'KH', 'ગ': 'G', 'ઘ': 'GH', 'ઙ': 'NG',
-    'ચ': 'CH', 'છ': 'CHH', 'જ': 'J', 'ઝ': 'JH', 'ઞ': 'NY',
-    'ટ': 'T', 'ઠ': 'TH', 'ડ': 'D', 'ઢ': 'DH', 'ણ': 'N',
-    'ત': 'T', 'થ': 'TH', 'દ': 'D', 'ધ': 'DH', 'ન': 'N',
-    'પ': 'P', 'ફ': 'F', 'બ': 'B', 'ભ': 'BH', 'મ': 'M',
-    'ય': 'Y', 'ર': 'R', 'લ': 'L', 'વ': 'V', 'શ': 'SH',
-    'ષ': 'SH', 'સ': 'S', 'હ': 'H',
-    '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4',
-    '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9'
-  };
-
-  const toGujaratiDigits = (value) => String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
-  const toEnglishDigits = (value) => String(value ?? '').replace(/[૦-૯]/g, (d) => '0123456789'['૦૧૨૩૪૫૬૭૪૯'.indexOf(d)] || d);
-  const toEnglishText = (value) => String(value ?? '').split('').map(char => guLetters[char] || char).join('');
 
   const handleExportPDF = async () => {
     setLoading(true);
 
     const cName = company ? (company.company_name || 'Company') : 'Company';
-    const reportTitle = 'ખાતા માસ્ટર';
+    const reportTitle = isGu ? 'ખાતા માસ્ટર' : 'Account Master';
     const rows = filteredAccounts.length ? filteredAccounts : accounts;
 
     if (!rows.length) {
       setMessage({ type: 'error', text: t('accountMaster.noRecords') });
+      setLoading(false);
       return;
     }
 
@@ -224,35 +272,35 @@ export default function AccountMaster() {
 
     const tableRows = rows.map((acc, idx) => `
       <tr>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(idx + 1)}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', monospace;">${acc.account_name || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${toGujaratiDigits(acc.account_code || acc.id || '')}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${isGu ? toGujaratiDigits(idx + 1) : (idx + 1)}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;font-family: 'Prompt', sans-serif;font-weight: bold;">${displayAccountName(acc) || ''}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;font-family: monospace;">${isGu ? toGujaratiDigits(acc.account_code || acc.id || '') : (acc.account_code || acc.id || '')}</td>
         <td style="padding:8px 10px;border:1px solid #d1d5db;">${t(`accountMaster.types.${acc.account_type}`) || acc.account_type || ''}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${acc.is_active ? 'સક્રિય' : 'નિષ્ક્રિય'}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">${toGujaratiDigits(parseFloat(acc.closing_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</td>
-        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${acc.balance_type === 'credit' ? 'જમા' : acc.balance_type === 'debit' ? 'ઉધાર' : 'શૂન્ય'}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${acc.is_active ? (isGu ? 'સક્રિય' : 'Active') : (isGu ? 'નિષ્ક્રિય' : 'Inactive')}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;font-family: monospace;font-weight: bold;">₹${toGujaratiDigits(parseFloat(acc.closing_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}</td>
+        <td style="padding:8px 10px;border:1px solid #d1d5db;text-align:center;">${acc.balance_type === 'credit' ? (isGu ? 'જમા' : 'CR') : acc.balance_type === 'debit' ? (isGu ? 'ઉધાર' : 'DR') : (isGu ? 'શૂન્ય' : '—')}</td>
       </tr>
     `).join('');
 
     tempWrap.innerHTML = `
       <div style="border:1px solid #cbd5e1;">
-        <div style="background:#2563eb;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="background:#1d5f84;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;">
           <div style="font-size:18px;font-weight:700;">${cName}</div>
           <div style="font-size:12px;font-weight:700;">${reportTitle}</div>
         </div>
         <div style="padding:18px;">
           <div style="font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;">${reportTitle}</div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">કુલ ખાતાઓ: ${toGujaratiDigits(rows.length)} | ફિલ્ટર: ${selectedType === 'all' ? 'બધા' : selectedType}</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:16px;">${isGu ? 'કુલ ખાતાઓ' : 'Total Accounts'}: ${isGu ? toGujaratiDigits(rows.length) : rows.length} | ${isGu ? 'ફિલ્ટર' : 'Filter'}: ${selectedType === 'all' ? (isGu ? 'બધા' : 'All') : selectedType}</div>
           <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
               <tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">ક્રમ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">ખાતાનું નામ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">ખાતા કોડ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">હિસાબ પ્રકાર</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">સ્થિતિ</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">બંધ નાણું</th>
-                <th style="padding:8px 10px;border:1px solid #d1d5db;">ડીબીટ/જમા</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ક્રમ' : '#'}</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ખાતાનું નામ' : 'Account Name'}</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ખાતા કોડ' : 'Account Code'}</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'હિસાબ પ્રકાર' : 'Account Type'}</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'સ્થિતિ' : 'Status'}</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;text-align:right;">${isGu ? 'બંધ નાણું' : 'Closing Balance'}</th>
+                <th style="padding:8px 10px;border:1px solid #d1d5db;">${isGu ? 'ડીબીટ/જમા' : 'DR/CR'}</th>
               </tr>
             </thead>
             <tbody>${tableRows}</tbody>
@@ -277,8 +325,7 @@ export default function AccountMaster() {
       backgroundColor: '#ffffff',
       useCORS: true,
       allowTaint: false,
-      logging: false,
-      fontEmbedCSS: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700&display=swap'
+      logging: false
     });
     document.body.removeChild(tempWrap);
 
@@ -312,379 +359,662 @@ export default function AccountMaster() {
     }
 
     doc.save(`Account_Master_${new Date().toISOString().split('T')[0]}.pdf`);
+    setLoading(false);
   };
 
-  const handleDownloadCSV = () => {
-    const headers = [
-      t('accountMaster.accountName'),
-      t('accountMaster.identity'),
-      t('accountMaster.accountType'),
-      t('accountMaster.status'),
-      t('accountMaster.closingBalance'),
-      t('accountMaster.balanceType')
-    ];
-    const rows = filteredAccounts.map(acc => [
-      `"${acc.account_name}"`,
-      `"${toEnglishText(acc.account_code || acc.id)}"`,
-      `"${t(`accountMaster.types.${acc.account_type}`)}"`,
-      `"${acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}"`,
-      parseFloat(acc.closing_balance || 0).toFixed(2),
-      `"${acc.balance_type === 'credit' ? t('accountMaster.jama') : acc.balance_type === 'debit' ? t('accountMaster.udhar') : t('accountMaster.zero')}"`
-    ]);
-    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Accounts_Export_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
+  const filteredAccounts = accounts.filter(acc => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = searchQuery === '' ||
+      acc.account_name.toLowerCase().includes(q) ||
+      (acc.account_name_gu && acc.account_name_gu.toLowerCase().includes(q)) ||
+      acc.account_code?.toString().includes(q) ||
+      acc.id?.toString().includes(q);
 
-  if (loading) {
-    return <Loading />;
-  }
+    const matchesType = selectedType === 'all' || acc.account_type === selectedType;
+    const matchesBalanceType = balTypeFilter === 'all' || acc.balance_type === balTypeFilter;
+
+    return matchesSearch && matchesType && matchesBalanceType;
+  });
+
+  const debitTotal = accounts.filter(a => a.balance_type === 'debit').reduce((s, a) => s + (parseFloat(a.closing_balance) || 0), 0);
+  const creditTotal = accounts.filter(a => a.balance_type === 'credit').reduce((s, a) => s + (parseFloat(a.closing_balance) || 0), 0);
+
+  if (loading && accounts.length === 0 && !company) return <Loading />;
 
   if (!company) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-6">
-        <Building2 className="w-16 h-16 text-slate-300 mb-4" />
-        <h2 className="text-xl font-bold text-slate-800 mb-2">{t('accountMaster.errors.noCompany')}</h2>
-        <p className="text-slate-500 mb-6 text-center max-w-md">
-          {t('accountMaster.errors.companyDescription')}
-        </p>
-        <div className="flex gap-4">
-          <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <RefreshCcw className="w-4 h-4 mr-2" /> {t('accountMaster.errors.retry')}
-          </button>
+        <div className="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6 shadow-sm">
+          <Building2 size={32} />
         </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">{t('accountMaster.errors.noCompany')}</h2>
+        <p className="text-slate-500 mb-6 text-center max-w-md text-sm">
+          {t('accountMaster.errors.companyDescription') || 'Please select a company to manage accounts.'}
+        </p>
+        <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white rounded-md shadow-sm transition-colors text-xs font-bold uppercase tracking-widest">
+          <RefreshCcw className="w-4 h-4 mr-2" /> {t('accountMaster.errors.retry')}
+        </button>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none notranslate" translate="no">
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredAccounts.length);
+  const paginatedAccounts = filteredAccounts.slice(startIndex, endIndex);
 
-      {/* Toast Notification */}
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
 
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className={`text-2xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
-              <Database size={24} className="text-zinc-600" />
-              {t('accountMaster.title')}
-            </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('accountMaster.managementAccounts')}</p>
+      <div className="px-4 py-4 max-w-[1600px] mx-auto space-y-4">
+        {/* Global Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ ખાતાઓ" : "Total Accounts"}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(accounts.length)}</span>
           </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <Download size={14} /> {t('accountMaster.downloadCSV')}
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-            >
-              <FileText size={14} /> {t('common.pdf')}
-            </button>
-            <button
-              onClick={handleCreateNew}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm"
-            >
-              <Plus size={16} />
-              {t('accountMaster.addAccount')}
-            </button>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "સક્રિય ખાતાઓ" : "Active Accounts"}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(accounts.filter(a => a.is_active).length)}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest">{isGu ? "કુલ ઉધાર બાકી" : "Total Debit Balance"}</span>
+            <span className="text-[13px] font-bold font-mono text-red-700 mt-1">₹{fmtAmount(debitTotal)}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">{isGu ? "કુલ જમા બાકી" : "Total Credit Balance"}</span>
+            <span className="text-[13px] font-bold font-mono text-blue-700 mt-1">₹{fmtAmount(creditTotal)}</span>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('accountMaster.totalAccounts')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{accounts.length}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('accountMaster.activeLedger')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{accounts.filter(a => a.is_active).length}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('accountMaster.assetNodes')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{accounts.filter(a => a.account_type === 'assets').length}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">{t('accountMaster.revenueStreams')}</span>
-            <span className="text-2xl font-bold font-mono text-zinc-800 mt-1">{accounts.filter(a => a.account_type === 'revenue').length}</span>
-          </div>
-        </div>
-
-        {/* Dense Minimal Classic Account Registry Table */}
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+        {/* Minimal Classic Registry Directory Wrapper (Full Width) */}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
+          
+          {/* Table Control Header Bar (First Line) */}
+          <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                {t('accountMaster.listTitle')}
+              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+                {t('accountMaster.title') || 'Account Master'}
               </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                {filteredAccounts.length} {t('accountMaster.records')}
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                {fmtVal(filteredAccounts.length)} {t('accountMaster.records') || 'Records'}
               </span>
             </div>
 
-            <div className="flex items-center flex-wrap gap-2">
-              <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-                <Search size={16} className="text-zinc-400" />
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Search Bar */}
+              <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                <Search size={12} className="text-slate-400 mr-1.5" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('accountMaster.searchPlaceholder')}
-                  translate="no"
-                  className={`bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans'}`}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder={t('accountMaster.searchPlaceholder') || "Search name or code..."}
+                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
-              </div>
-
-              <div className="flex items-center p-0.5 bg-zinc-200 border border-zinc-300">
-                {accountTypes.slice(0, 5).map((type) => (
-                  <button
-                    key={type.value}
-                    onClick={() => setSelectedType(type.value)}
-                    className={`px-3 py-1 text-[10px] font-bold uppercase transition select-none ${selectedType === type.value ? 'bg-white text-zinc-800 font-mono font-bold border border-zinc-300' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  >
-                    {t(`accountMaster.types.${type.value}`)}
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                    <X size={10} />
                   </button>
-                ))}
-                <select
-                  className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 cursor-pointer"
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                >
-                  <option value="all">{t('accountMaster.moreTypes')}</option>
-                  {accountTypes.slice(5).map(type => (
-                    <option key={type.value} value={type.value}>{t(`accountMaster.types.${type.value}`)}</option>
-                  ))}
-                </select>
+                )}
               </div>
 
-              <select
-                value={balanceTypeFilter}
-                onChange={(e) => setBalanceTypeFilter(e.target.value)}
-                className="bg-white border border-zinc-300 outline-none text-[10px] font-bold text-zinc-600 px-3 py-1.5 cursor-pointer uppercase tracking-widest"
+              {/* CSV Download Button */}
+              <button 
+                onClick={handleDownloadCSV}
+                title="Download CSV" 
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
               >
-                <option value="all">{t('accountMaster.balanceAll')}</option>
-                <option value="credit">{t('accountMaster.jamaCr')}</option>
-                <option value="debit">{t('accountMaster.udharDr')}</option>
-              </select>
+                <Download size={13} className="text-slate-500" />
+              </button>
 
+              {/* PDF Report Button */}
+              <button 
+                onClick={handleExportPDF}
+                title={t('common.pdf') || "PDF Report"}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <FileText size={13} className="text-slate-500" />
+              </button>
+
+              {/* Add Account Button */}
+              <button
+                onClick={handleCreateNew}
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+              >
+                <Plus size={13} />
+                <span>{t('accountMaster.addAccount') || "New Account"}</span>
+              </button>
+
+              {/* Refresh Button */}
               <button
                 onClick={loadAccounts}
-                className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                title={t('accountMaster.refreshRegistry')}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                title={t('accountMaster.refreshRegistry') || 'Refresh'}
               >
-                <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+                <RefreshCcw size={13} className={`text-slate-500 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-x-auto bg-white">
-            {loading && accounts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-400">
-                <Loader className="animate-spin text-zinc-500" size={24} />
-                <p className="text-xs font-mono">{t('accountMaster.loadingData')}</p>
+          {/* Directory Filter Content Panel (Second Line) */}
+          <div className="p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 select-none">
+            {/* Classification Type tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {['all', 'customer', 'vendor', 'bank', 'cash', 'assets'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setSelectedType(type);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all shrink-0 cursor-pointer border ${
+                    selectedType === type
+                      ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <span>{t(`accountMaster.types.${type}`)}</span>
+                </button>
+              ))}
+              
+              {/* More Types Dropdown inside tab list */}
+              <div className="flex flex-col bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 min-w-[120px] justify-center h-[26px]">
+                <select
+                  className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 cursor-pointer py-0 uppercase tracking-wider"
+                  value={['all', 'customer', 'vendor', 'bank', 'cash', 'assets'].includes(selectedType) ? 'more' : selectedType}
+                  onChange={(e) => {
+                    setSelectedType(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="more" disabled>{t('accountMaster.moreTypes') || 'More Types'}</option>
+                  {['supplier', 'liabilities', 'capital', 'revenue', 'expense', 'purchase', 'sales'].map(type => (
+                    <option key={type} value={type}>{t(`accountMaster.types.${type}`)}</option>
+                  ))}
+                </select>
               </div>
-            ) : filteredAccounts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-2 text-zinc-500">
-                <FileText size={32} className="text-zinc-400" />
-                <p className="text-xs font-mono">{t('accountMaster.noRecords')}</p>
+            </div>
+
+            {/* Right Side Filters: Balance Filter */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 min-w-[120px]">
+                <span className="text-[7px] text-slate-400 font-bold uppercase">{isGu ? "બેલેન્સ પ્રકાર" : "Balance Type"}</span>
+                <select
+                  value={balTypeFilter}
+                  onChange={(e) => {
+                    setBalTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 cursor-pointer py-0 uppercase"
+                >
+                  <option value="all">{t('accountMaster.balanceAll') || 'CR / DR (All)'}</option>
+                  <option value="credit">{t('accountMaster.jamaCr') || 'Credit'}</option>
+                  <option value="debit">{t('accountMaster.udharDr') || 'Debit'}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Full Width Table Registry */}
+          <div className="overflow-x-auto w-full">
+            {paginatedAccounts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
+                <Database size={32} className="text-slate-300 opacity-30" />
+                <p className="text-xs font-bold text-slate-400">{t('accountMaster.noRecords')}</p>
                 <button
                   onClick={handleCreateNew}
-                  className="text-white border border-blue-600 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-bold mt-2 transition select-none"
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
                 >
-                  {t('accountMaster.initializeFirst')}
+                  + {t('accountMaster.addAccount')}
                 </button>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse select-none">
-                <thead>
-                  <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600">
-                    <th className="px-4 py-2 border-r border-zinc-200">{t('accountMaster.accountName')}</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 w-28">{t('accountMaster.identity')}</th>
-                    <th className="px-4 py-2 border-r border-zinc-200">{t('accountMaster.classification')}</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-right">{t('accountMaster.closingBalance')}</th>
-                    <th className="px-4 py-2 border-r border-zinc-200 text-center w-24">{t('accountMaster.status')}</th>
-                    <th className="px-4 py-2 text-center w-28">{t('accountMaster.actions')}</th>
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+                <thead className="bg-slate-50 font-sans">
+                  <tr>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-12">#</th>
+                    {SHOW_CODE_COLUMN && (
+                      <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-20">{isGu ? "કોડ" : "Code"}</th>
+                    )}
+                    <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('accountMaster.accountName')}</th>
+                    <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('accountMaster.classification')}</th>
+                    <th className="px-3.5 py-2 text-right font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-36">{t('accountMaster.closingBalance')}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{t('accountMaster.status')}</th>
+                    <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 w-28">{t('accountMaster.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200">
-                  {filteredAccounts.map((acc) => (
-                    <tr key={acc.id} className="hover:bg-zinc-50/60 transition-colors">
-                        <td 
-                          className={`px-4 py-2 border-r border-zinc-200 font-bold tracking-tight text-zinc-800 ${i18n.language === 'gu' ? 'font-prompt text-base' : 'text-sm'}`}
-                          translate="no"
-                        >
-                          {i18n.language === 'en' ? (acc.account_name || acc.account_name_gu) : (acc.account_name_gu || acc.account_name)}
+                <tbody className="bg-white divide-y divide-slate-100">
+                  {paginatedAccounts.map((acc, idx) => {
+                    const globalIdx = startIndex + idx + 1;
+                    const bal = parseFloat(acc.closing_balance) || 0;
+                    return (
+                      <tr 
+                        key={acc.id}
+                        className="hover:bg-slate-50/75 transition-colors cursor-pointer select-none"
+                        onClick={() => handleSelectAccount(acc)}
+                      >
+                        <td className="px-3.5 py-2 text-center font-mono text-slate-500 border-r border-slate-100">{fmtVal(globalIdx)}</td>
+                        {SHOW_CODE_COLUMN && (
+                          <td className="px-3.5 py-2 text-center font-mono font-bold text-[#1d5f84] border-r border-slate-100">{fmtVal(acc.account_code || acc.id)}</td>
+                        )}
+                        <td className="px-3.5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>
+                          {displayAccountName(acc) || '—'}
                         </td>
-                      <td className="px-4 py-2 border-r border-zinc-200">
-                        <div className="flex flex-col leading-tight">
-                          <span
-                            className="inline-flex bg-zinc-100 text-zinc-800 border border-zinc-300 font-bold text-[9px] px-1.5 py-0.5 w-fit dynamic-en"
-                            style={{ '--en-text': `"${acc.account_code || acc.id || ''}"` }}
-                            translate="no"
-                          ></span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200">
-                        <div className="flex flex-col items-start gap-1">
-                          <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-300 text-zinc-700 text-[9px] font-bold uppercase tracking-wider">
-                            {t(`accountMaster.types.${acc.account_type}`)}
-                          </span>
-                          {acc.is_subledger && (
-                            <span className="px-1.5 py-0.5 bg-zinc-50 text-zinc-600 border border-zinc-200 text-[8px] font-bold uppercase">
-                              {t('accountMaster.subLedger')}
+                        <td className="px-3.5 py-2 border-r border-slate-100 text-slate-655 font-medium">
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-sm text-[9px] font-bold uppercase tracking-widest border border-slate-200/50">
+                              {t(`accountMaster.types.${acc.account_type}`)}
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-right font-bold text-zinc-800">
-                        <div className="flex flex-col items-end">
-                          <span>₹{(parseFloat(acc.closing_balance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          <span className={`text-[9px] font-bold uppercase mt-0.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : acc.balance_type === 'debit' ? 'text-red-600' : 'text-zinc-400'}`}>
-                            {acc.balance_type === 'credit' ? t('accountMaster.jamaCr') : acc.balance_type === 'debit' ? t('accountMaster.udharDr') : t('accountMaster.zero')}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 border-r border-zinc-200 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-bold border ${acc.is_active ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                          {acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-center gap-1">
+                            {acc.is_subledger && (
+                              <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-sm text-[8px] font-bold uppercase tracking-wider">
+                                {isGu ? "પેટા ખાતું" : "Sub Ledger"}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3.5 py-2 text-right border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col items-end">
+                            <span className={`font-mono text-[11px] ${isGu ? 'font-black' : 'font-bold'} text-slate-800`}>₹{fmtAmount(bal)}</span>
+                            <span className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : acc.balance_type === 'debit' ? 'text-rose-600' : 'text-slate-400'}`}>
+                              {acc.balance_type === 'credit' ? t('accountMaster.jamaCr') : acc.balance_type === 'debit' ? t('accountMaster.udharDr') : t('accountMaster.zero')}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3.5 py-2 text-center border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => handleShowBalance(acc)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                            title={t('accountMaster.table.audit')}
+                            onClick={() => handleStatusToggle(acc)}
+                            className={`px-2.5 py-0.5 text-[9px] font-bold rounded-md border transition cursor-pointer ${
+                              acc.is_active
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                            }`}
                           >
-                            <Eye size={13} />
+                            {acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
+                          </button>
+                        </td>
+                        <td className="px-3.5 py-2 text-center flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleSelectAccount(acc)}
+                            className="p-1 border border-slate-200 rounded hover:bg-slate-50 text-slate-500 hover:text-[#1d5f84] transition cursor-pointer"
+                            title={t('accountMaster.table.audit') || "Details"}
+                          >
+                            <Eye size={12} />
                           </button>
                           <button
                             onClick={() => handleEdit(acc)}
-                            className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition shadow-sm"
-                            title={t('accountMaster.edit')}
+                            className="p-1 border border-slate-200 rounded hover:bg-slate-50 text-slate-500 hover:text-[#1d5f84] transition cursor-pointer"
+                            title={t('accountMaster.edit') || "Edit"}
                           >
-                            <Edit2 size={13} />
+                            <Edit2 size={12} />
                           </button>
-                          {!acc.is_system && (
+                          {!acc.is_system ? (
                             <>
                               <button
                                 onClick={() => handleStatusToggle(acc)}
-                                className={`p-1 border border-zinc-300 bg-zinc-50 transition shadow-sm ${acc.is_active ? 'text-red-600 hover:bg-red-50 hover:border-red-300' : 'text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300'}`}
+                                className={`p-1 border border-slate-200 rounded hover:bg-slate-50 transition cursor-pointer ${acc.is_active ? 'text-slate-500 hover:text-rose-600 hover:bg-rose-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
                                 title={acc.is_active ? t('accountMaster.deactivate') : t('accountMaster.activate')}
                               >
-                                <Power size={13} />
+                                <Power size={12} />
                               </button>
                               <button
                                 onClick={() => confirmDelete(acc)}
-                                className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-red-50 hover:border-red-300 text-zinc-600 hover:text-red-700 transition shadow-sm"
-                                title={t('accountMaster.delete')}
+                                className="p-1 border border-rose-100 rounded text-rose-600 bg-rose-50 hover:bg-rose-150 transition cursor-pointer"
+                                title={t('accountMaster.delete') || "Delete"}
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={12} />
                               </button>
                             </>
-                          )}
-                          {acc.is_system && (
-                            <div className="p-1 bg-zinc-100 border border-zinc-200 text-zinc-400 cursor-not-allowed" title={t('accountMaster.table.systemProtected')}>
-                              <Shield size={13} />
+                          ) : (
+                            <div className="p-1 border border-transparent text-slate-350" title={t('accountMaster.table.systemProtected') || "System Protected"}>
+                              <Shield size={12} />
                             </div>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
           </div>
+
+          {/* Directory Pagination Panel */}
+          {filteredAccounts.length > 0 && (
+            <div className="bg-slate-50 border-t border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">
+                {startIndex + 1}-{endIndex} / {filteredAccounts.length}
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-40 transition text-[10px] font-extrabold text-slate-600 disabled:cursor-not-allowed cursor-pointer animate-duration-100"
+                >
+                  Prev
+                </button>
+                <span className="text-xs font-bold text-slate-600 px-1.5">
+                  {fmtVal(currentPage)} / {fmtVal(totalPages)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-2.5 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-40 transition text-[10px] font-extrabold text-slate-600 disabled:cursor-not-allowed cursor-pointer animate-duration-100"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Account Form Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-none border border-zinc-400 shadow-xl">
-            <AccountForm
-              companyId={company?.id}
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-150" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto z-10 scale-100 bg-white rounded-lg shadow-2xl border border-slate-200">
+            <AccountForm 
+              companyId={company?.id} 
               initialData={editingAccount}
               onSuccess={handleFormSuccess}
               onCancel={() => { setShowModal(false); setEditingAccount(null); }}
-              existingAccounts={accounts}
+              existingAccounts={accounts} 
             />
           </div>
         </div>
       )}
 
-      {/* Ledger Audit Balance Modal */}
-      {balanceModal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} />
-          <div className="relative w-full max-w-md bg-white rounded-none border border-zinc-400 shadow-xl overflow-hidden flex flex-col font-mono text-xs select-none">
-            <div className="p-4 border-b border-zinc-300 bg-zinc-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Eye size={16} className="text-zinc-600" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('accountMaster.ledgerAudit')}</h3>
+      {/* Modal for Account Details Console (Similar to MemberMaster) */}
+      {selectedAccount && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-150" onClick={() => handleSelectAccount(null)} />
+          <div className="relative w-full max-w-2xl bg-white border border-slate-200 rounded-lg p-5 shadow-xl z-10 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => handleSelectAccount(null)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer bg-slate-50 rounded-md hover:bg-slate-100 border border-slate-200/50"
+              title="Close details"
+            >
+              <X size={14} />
+            </button>
+
+            {/* Profile Header */}
+            <div className="border-b border-slate-100 pb-4 mb-4 mt-2">
+              <div className="flex items-center gap-3">
+                {/* Large Profile bubble */}
+                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getAvatarGradient(displayAccountName(selectedAccount) || selectedAccount.account_name)} text-white flex items-center justify-center text-sm font-black shrink-0 uppercase border border-slate-300/35 relative font-mono`}>
+                  {getInitials(selectedAccount)}
+                </div>
+
+                <div className="text-left">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2
+                      className="font-extrabold text-slate-800 text-base leading-tight"
+                      style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
+                    >
+                      {displayAccountName(selectedAccount)}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-md text-[8px] font-bold tracking-wider uppercase border bg-slate-50 border-slate-200 text-slate-655">
+                      {t(`accountMaster.types.${selectedAccount.account_type}`)}
+                    </span>
+                  </div>
+                  {!isGu && (
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-0.5">
+                      {selectedAccount.account_name}
+                    </p>
+                  )}
+                </div>
               </div>
-              <button onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })} className="p-1 text-zinc-400 hover:text-red-600 transition"><X size={18} /></button>
+
+              {/* Identification Badges */}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
+                  <span className="text-[8px] text-slate-400 uppercase">{isGu ? "ખાતા કોડ" : "Account Code"}:</span>
+                  <span className="font-mono text-[#1d5f84]">{fmtVal(selectedAccount.account_code || selectedAccount.id)}</span>
+                </span>
+                {selectedAccount.p_code && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
+                    <span className="text-[8px] text-slate-400 uppercase">P-Code:</span>
+                    <span className="font-mono text-[#1d5f84]">{selectedAccount.p_code}</span>
+                  </span>
+                )}
+                {selectedAccount.is_subledger && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-md">
+                    <span className="text-[8px] uppercase">{isGu ? "પેટા ખાતું" : "Sub Ledger"}</span>
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="p-4 bg-white space-y-4">
-              <div className="bg-zinc-50 p-3 border border-zinc-300">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">{t('accountMaster.entityName')}</p>
-                <p className="text-sm font-bold text-zinc-800 font-sans uppercase tracking-tight italic">{balanceModal.account?.account_name}</p>
-              </div>
+            {/* Detail Tabs */}
+            <div className="flex border-b border-slate-100 mb-4 w-full shrink-0">
+              {[
+                { id: 'general', label: isGu ? "સામાન્ય વિગત" : "General Info", icon: Info },
+                { id: 'financials', label: isGu ? "હિસાબી સિલક" : "Financial Audit", icon: Wallet },
+                { id: 'tax_contact', label: isGu ? "ટેક્સ અને સંપર્ક" : "Tax & Contact", icon: CreditCard }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveDetailTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold transition relative border-b-2 cursor-pointer ${
+                    activeDetailTab === tab.id
+                      ? 'text-[#1d5f84] border-[#1d5f84]'
+                      : 'text-slate-400 hover:text-slate-800 border-transparent'
+                  }`}
+                >
+                  <tab.icon size={12} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
 
-              {balanceModal.loading ? (
-                <div className="py-8 flex flex-col items-center gap-2 text-center text-zinc-400">
-                  <RefreshCcw className="w-8 h-8 text-zinc-500 animate-spin" />
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('accountMaster.aggregatingFiscal')}</p>
+            {/* Details Content Container */}
+            <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-1.5">
+              
+              {activeDetailTab === 'general' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતાનું ગુજરાતી નામ" : "English Name"}</p>
+                    <p
+                      className={`text-xs font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`}
+                      style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
+                    >
+                      {displayAccountName(selectedAccount) || '-'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા નંબર / કોડ" : "Account Code"}</p>
+                    <p className="text-xs font-bold text-[#1d5f84] font-mono">{fmtVal(selectedAccount.account_code || selectedAccount.id)}</p>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">P-Code</p>
+                    <p className="text-xs font-bold text-slate-800 font-mono">{selectedAccount.p_code || '-'}</p>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા પ્રકાર" : "Account Type"}</p>
+                    <p className="text-xs font-bold text-slate-800 uppercase">{t(`accountMaster.types.${selectedAccount.account_type}`)}</p>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઇન્ટરનલ આઈડી" : "Shard ID"}</p>
+                    <p className="text-xs font-bold text-slate-500 font-mono">#{selectedAccount.id}</p>
+                  </div>
                 </div>
-              ) : balanceModal.data ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-white border border-zinc-300">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase">{t('accountMaster.openingBalance')}</span>
-                    <span className="font-bold text-zinc-700">₹{Number(balanceModal.data.openingBalance || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-zinc-50 border border-zinc-300">
-                      <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mb-0.5">{t('accountMaster.totalUdhar')}</p>
-                      <p className="text-base font-bold text-red-600">₹{Number(balanceModal.data.totalDebit || 0).toFixed(2)}</p>
+              )}
+
+              {activeDetailTab === 'financials' && (
+                <div className="space-y-3 text-left">
+                  {auditLoading ? (
+                    <div className="py-8 flex flex-col items-center gap-2 text-center text-slate-400">
+                      <Loader className="w-6 h-6 text-[#1d5f84] animate-spin" />
+                      <p className="text-[9px] font-bold tracking-widest uppercase">{t('accountMaster.aggregatingFiscal') || 'Aggregating...'}</p>
                     </div>
-                    <div className="p-3 bg-zinc-50 border border-zinc-300">
-                      <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-0.5">{t('accountMaster.totalJama')}</p>
-                      <p className="text-base font-bold text-blue-600">₹{Number(balanceModal.data.totalCredit || 0).toFixed(2)}</p>
+                  ) : auditData ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{t('accountMaster.openingBalance') || 'Opening Balance'}</p>
+                        <p className="text-xs font-bold text-slate-700 font-mono">₹{fmtAmount(auditData.openingBalance || 0)}</p>
+                      </div>
+
+                      <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Closing Registry Balance</p>
+                        <p className="text-xs font-black text-slate-800 font-mono">₹{fmtAmount(selectedAccount.closing_balance || 0)}</p>
+                      </div>
+
+                      <div className="bg-rose-50/50 border border-rose-100 p-3 rounded-md">
+                        <p className="text-[8px] uppercase font-bold text-rose-500 tracking-wider mb-0.5">{t('accountMaster.totalUdhar') || 'Total Debit (Udhar)'}</p>
+                        <p className="text-xs font-bold text-rose-700 font-mono">₹{fmtAmount(auditData.totalDebit || 0)}</p>
+                      </div>
+
+                      <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-md">
+                        <p className="text-[8px] uppercase font-bold text-blue-500 tracking-wider mb-0.5">{t('accountMaster.totalJama') || 'Total Credit (Jama)'}</p>
+                        <p className="text-xs font-bold text-blue-700 font-mono">₹{fmtAmount(auditData.totalCredit || 0)}</p>
+                      </div>
+
+                      <div className="bg-slate-100 border border-slate-200 p-3 rounded-md sm:col-span-2">
+                        <p className="text-[8px] uppercase font-bold text-slate-500 tracking-wider mb-0.5">{t('accountMaster.synchronizedBalance') || 'Synchronized Current Balance'}</p>
+                        <p className="text-sm font-bold text-[#1d5f84] font-mono">₹{fmtAmount(auditData.currentBalance || 0)}</p>
+                      </div>
                     </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400">
+                      <p className="text-xs font-semibold">{isGu ? "સિલક વિગત લાવવામાં નિષ્ફળ" : "No balance summary data available"}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeDetailTab === 'tax_contact' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2 flex items-center justify-between gap-4">
+                    <div className="text-left">
+                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "મોબાઈલ નંબર" : "Phone"}</p>
+                      <p className="text-xs font-bold text-slate-800 font-mono">{selectedAccount.phone ? fmtVal(selectedAccount.phone) : '-'}</p>
+                    </div>
+                    {selectedAccount.phone && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyToClipboard(selectedAccount.phone, `acc-phone-${selectedAccount.id}`);
+                        }}
+                        className="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 transition text-slate-500 rounded-md cursor-pointer"
+                        title="Copy Phone"
+                      >
+                        {copiedId === `acc-phone-${selectedAccount.id}` ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                      </button>
+                    )}
                   </div>
-                  <div className="p-4 bg-zinc-100 border border-zinc-300 flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('accountMaster.synchronizedBalance')}</span>
-                    <span className="text-2xl font-bold text-zinc-800 italic">
-                      ₹{Number(balanceModal.data.currentBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2 flex items-center justify-between gap-4">
+                    <div className="text-left">
+                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઈમેલ આઈડી" : "Email"}</p>
+                      <p className="text-xs font-bold text-slate-800 font-mono truncate max-w-sm">{selectedAccount.email || '-'}</p>
+                    </div>
+                    {selectedAccount.email && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyToClipboard(selectedAccount.email, `acc-email-${selectedAccount.id}`);
+                        }}
+                        className="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 transition text-slate-500 rounded-md cursor-pointer"
+                        title="Copy Email"
+                      >
+                        {copiedId === `acc-email-${selectedAccount.id}` ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">GST No</p>
+                    <p className="text-xs font-bold text-slate-800 font-mono uppercase">{selectedAccount.gst_no || '-'}</p>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">TIN No</p>
+                    <p className="text-xs font-bold text-slate-800 font-mono uppercase">{selectedAccount.tin_no || '-'}</p>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "પેટા ખાતું સ્થિતિ" : "Sub Ledger Status"}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                      selectedAccount.is_subledger
+                        ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                        : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}>
+                      {selectedAccount.is_subledger ? (isGu ? "સક્રિય" : "Enabled") : (isGu ? "નિષ્ક્રિય" : "Disabled")}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
+                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા સ્થિતિ" : "Account Status"}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                      selectedAccount.is_active
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        : 'bg-rose-50 text-rose-700 border-rose-100'
+                    }`}>
+                      {selectedAccount.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
                     </span>
                   </div>
                 </div>
-              ) : null}
+              )}
+
             </div>
 
-            <div className="p-3 bg-zinc-50 border-t border-zinc-200 flex justify-end">
+            {/* Modal Footer Controls */}
+            <div className="bg-slate-50 -mx-5 -mb-5 mt-5 px-5 py-3 border-t border-slate-200 flex gap-2 justify-end rounded-b-lg">
+              {!selectedAccount.is_system && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStatusToggle(selectedAccount);
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md border transition cursor-pointer ${
+                    selectedAccount.is_active
+                      ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  <span>{selectedAccount.is_active ? t('accountMaster.deactivate') : t('accountMaster.activate')}</span>
+                </button>
+              )}
               <button
-                onClick={() => setBalanceModal({ isOpen: false, account: null, data: null, loading: false })}
-                className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold uppercase transition rounded-none text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(selectedAccount);
+                  handleSelectAccount(null);
+                }}
+                className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-xs font-bold text-slate-650 hover:bg-slate-50 transition cursor-pointer"
+                title="Edit Account"
               >
-                {t('accountMaster.closeAudit')}
+                <Edit2 size={12} />
+                <span>{t('accountMaster.edit') || "Edit"}</span>
               </button>
+              {!selectedAccount.is_system && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    confirmDelete(selectedAccount);
+                  }}
+                  className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-xs font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
+                  title="Delete Account"
+                >
+                  <Trash2 size={12} />
+                  <span>{t('accountMaster.delete') || "Delete"}</span>
+                </button>
+              )}
             </div>
+
           </div>
         </div>
       )}
@@ -693,7 +1023,7 @@ export default function AccountMaster() {
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
         title={t('accountMaster.deleteTitle')}
-        message={t('accountMaster.deleteConfirm', { name: accountToDelete?.account_name || '' })}
+        message={t('accountMaster.deleteConfirm', { name: accountToDelete ? displayAccountName(accountToDelete) : '' })}
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalOpen(false)}
       />

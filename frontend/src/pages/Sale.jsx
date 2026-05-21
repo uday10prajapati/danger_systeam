@@ -14,6 +14,7 @@ import Toast from '../components/Toast';
 import api from '../api';
 export default function Sale() {
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -86,9 +87,24 @@ export default function Sale() {
   const applyFilters = (salesData = sales) => {
     const filtered = salesData.filter(sale =>
       sale.invoice_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ((sale.customer_name_gu || sale.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+      ((sale.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
+      ((sale.customer_name_gu || '').toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredSales(filtered);
+  };
+
+  const displaySaleCustomer = (sale) => {
+    if (!sale) return '';
+    return isGu
+      ? (sale.customer_name_gu || sale.customer_name || '')
+      : (sale.customer_name || sale.customer_name_gu || '');
+  };
+
+  const displaySaleItem = (item) => {
+    if (!item) return '';
+    return isGu
+      ? (item.item_name_gu || item.item_name || '')
+      : (item.item_name || item.item_name_gu || '');
   };
 
   const viewSaleDetails = async (saleId) => {
@@ -284,7 +300,7 @@ export default function Sale() {
               </div>
               <div class="meta-item">
                 <span class="meta-label">${t('saleMaster.bill.customer')}:</span>
-                <span class="meta-value">${selectedSale.customer_name}</span>
+                <span class="meta-value">${displaySaleCustomer(selectedSale)}</span>
               </div>
             </div>
             <div>
@@ -316,7 +332,7 @@ export default function Sale() {
             <tbody>
               ${(selectedSale.items || []).map(item => `
                 <tr>
-                  <td>${item.item_name}</td>
+                  <td>${displaySaleItem(item)}</td>
                   <td class="text-center">${item.quantity}</td>
                   <td class="text-right">₹${parseFloat(item.sale_rate || 0).toFixed(2)}</td>
                   <td class="text-right">₹${parseFloat(item.amount || 0).toFixed(2)}</td>
@@ -378,7 +394,7 @@ export default function Sale() {
     const rows = filteredSales.map(sale => [
       `"${sale.invoice_no}"`,
       `"${sale.invoice_date}"`,
-      `"${sale.customer_name}"`,
+      `"${displaySaleCustomer(sale)}"`,
       `"${sale.member_code || 'Walk-In'}"`,
       sale.item_count,
       parseFloat(sale.net_amount || 0).toFixed(2),
@@ -399,7 +415,7 @@ export default function Sale() {
     const win = window.open('', '_blank', 'width=900,height=800');
     const rows = filteredSales.map((s, i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td>${s.customer_name || 'Walk-In'}</td>
+        <td>${displaySaleCustomer(s) || 'Walk-In'}</td>
         <td>${s.invoice_date}</td>
         <td>#${s.invoice_no}</td>
         <td style="text-align:center">${s.item_count} ${t('common.items')}</td>
@@ -451,165 +467,154 @@ export default function Sale() {
     totalSales: filteredSales.length,
     totalAmount: filteredSales.reduce((sum, s) => sum + (parseFloat(s.net_amount) || 0), 0),
     totalItems: filteredSales.reduce((sum, s) => sum + (parseInt(s.item_count) || 0), 0),
-    uniqueCustomers: new Set(filteredSales.map(s => s.customer_name)).size
+    uniqueCustomers: new Set(filteredSales.map(s => displaySaleCustomer(s))).size
   };
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-8 font-sans">
-        <div className="text-center font-bold text-zinc-400">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 font-sans">
+        <div className="text-center font-bold text-slate-400">
           <p className="text-xs mb-4 uppercase tracking-widest font-mono">{t('common.loading')}</p>
-          <RefreshCcw className="animate-spin mx-auto text-blue-500" size={24} />
+          <RefreshCcw className="animate-spin mx-auto text-[#1d5f84]" size={24} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-              <ShoppingBag size={20} className="text-zinc-600" />
-              {t('saleMaster.title')}
-            </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('saleMaster.subtitle')}</p>
+      
+      <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
+        {/* Stats Summary Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.totalSales')}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{stats.totalSales}</span>
           </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
-            >
-              <Download size={14} /> {t('saleMaster.csv')}
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
-            >
-              <FileText size={14} /> {t('saleMaster.pdf')}
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest select-none"
-            >
-              <Plus size={16} />
-              {t('saleMaster.initializeSale')}
-            </button>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.totalProceeds')}</span>
+            <span className="text-[13px] font-bold font-sans text-emerald-600 mt-1">₹{stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.densityUnits')}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{stats.totalItems}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.activeIdentities')}</span>
+            <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{stats.uniqueCustomers}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-sm font-sans text-zinc-500  ">{t('saleMaster.stats.totalSales')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{stats.totalSales}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-sm font-sans text-zinc-500  ">{t('saleMaster.stats.totalProceeds')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">₹{stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-sm font-sans text-zinc-500  ">{t('saleMaster.stats.densityUnits')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{stats.totalItems}</span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-sm font-sans text-zinc-500  ">{t('saleMaster.stats.activeIdentities')}</span>
-            <span className="text-2xl font-bold font-sans text-zinc-800 mt-1">{stats.uniqueCustomers}</span>
-          </div>
-        </div>
-
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[500px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
+        {/* Registry Table Wrapper */}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
+          {/* Table Control Header Bar */}
+          <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-zinc-700  ">
-                   {t('saleMaster.listTitle')}
+                <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+                   {t('saleMaster.title')}
                 </span>
-                <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 ">
+                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
                    {filteredSales.length} {t('saleMaster.records')}
                 </span>
              </div>
              
-             <div className="flex items-center flex-wrap gap-2">
-               <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500">
-                 <Search className="w-4 h-4 text-zinc-400" />
+             <div className="flex items-center gap-2 flex-wrap">
+               {/* Search Bar */}
+               <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                 <Search size={12} className="text-slate-400 mr-1.5" />
                  <input
                    type="text"
                    placeholder={t('saleMaster.searchPlaceholder')}
                    value={searchTerm}
-                   onChange={(e) => {
-                     setSearchTerm(e.target.value);
-                     applyFilters(sales);
-                   }}
-                   className="bg-transparent text-xs font-bold text-zinc-700 outline-none w-64 placeholder:text-zinc-300 font-prompt"
+                   onChange={(e) => { setSearchTerm(e.target.value); applyFilters(sales); }}
+                   className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                  />
+                 {searchTerm && (
+                   <button onClick={() => {setSearchTerm(''); applyFilters(sales);}} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                     <X size={10} />
+                   </button>
+                 )}
                </div>
-               <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500">
-                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 font-mono" />
-                 <ArrowRight size={14} className="text-zinc-400" />
-                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-zinc-700 font-mono" />
+               
+               {/* Date Range */}
+               <div className="flex items-center gap-1.5 border border-slate-200 rounded-md bg-white px-2 py-0.5">
+                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-600 uppercase" />
+                 <ArrowRight size={10} className="text-slate-400" />
+                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-600 uppercase" />
                </div>
-               <button onClick={fetchSales} className="px-3 py-1.5 bg-blue-600 text-white border border-blue-500 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all flex items-center gap-2">
-                 <Filter size={14} />
-                 {t('saleMaster.sync')}
+
+               {/* Sync/Filter Button */}
+               <button onClick={fetchSales} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
+                 <Filter size={13} />
+                 <span>{t('saleMaster.sync')}</span>
+               </button>
+
+               {/* Export CSV/PDF */}
+               <button onClick={handleDownloadCSV} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('saleMaster.csv')}>
+                 <Download size={13} className="text-slate-500" />
+               </button>
+               <button onClick={handleExportPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('saleMaster.pdf')}>
+                 <FileText size={13} className="text-slate-500" />
+               </button>
+               
+               {/* Add New */}
+               <button onClick={() => setShowForm(true)} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider ml-1">
+                 <Plus size={13} />
+                 <span>{t('saleMaster.initializeSale')}</span>
                </button>
              </div>
           </div>
 
-          <div className="flex-1 overflow-x-auto bg-white select-none">
-            <table className="w-full text-left border-collapse font-sans text-xs select-none">
-              <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-wider select-none font-sans">
-                  <th className="px-4 py-2 border-r border-zinc-200">{t('saleMaster.table.invoice')}</th>
-                  <th className="px-4 py-2 border-r border-zinc-200">{t('saleMaster.table.identityNode')}</th>
-                  <th className="px-4 py-2 border-r border-zinc-200 text-center">{t('saleMaster.table.density')}</th>
-                  <th className="px-4 py-2 border-r border-zinc-200 text-right">{t('saleMaster.table.grossYield')}</th>
-                  <th className="px-4 py-2 border-r border-zinc-200 text-center">{t('saleMaster.table.settlement')}</th>
-                  <th className="px-4 py-2 border-r border-zinc-200 text-center">{t('saleMaster.table.timeline')}</th>
-                  <th className="px-4 py-2 text-center">{t('saleMaster.table.audit')}</th>
+          <div className="overflow-x-auto w-full">
+            <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <thead className="bg-slate-50 font-sans">
+                <tr>
+                  <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{t('saleMaster.table.invoice')}</th>
+                  <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('saleMaster.table.identityNode')}</th>
+                  <th className="px-3.5 py-2 text-right font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('saleMaster.table.grossYield')}</th>
+                  <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{t('saleMaster.table.settlement')}</th>
+                  <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 w-20">{t('saleMaster.table.audit')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 text-xs font-mono">
+              <tbody className="bg-white divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="py-20 text-center">
-                      <RefreshCcw className="animate-spin mx-auto mb-4 text-blue-500" size={24} />
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('saleMaster.loadingData')}</p>
+                    <td colSpan="5" className="py-20 text-center">
+                      <RefreshCcw className="animate-spin mx-auto mb-4 text-slate-400" size={24} />
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('saleMaster.loadingData')}</p>
                     </td>
                   </tr>
                 ) : filteredSales.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-20 text-center">
-                      <Layout className="text-zinc-300 mx-auto mb-4" size={40} strokeWidth={1} />
-                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('saleMaster.noRecords')}</p>
+                    <td colSpan="5" className="py-20 text-center">
+                      <Layout className="text-slate-300 mx-auto mb-4" size={40} strokeWidth={1} />
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.noRecords')}</p>
                     </td>
                   </tr>
                 ) : (
                   filteredSales.map((sale, idx) => (
-                    <tr key={idx} className="group hover:bg-zinc-50/60 transition-colors">
-                      <td className="px-4 py-3 border-r border-zinc-200">
-                        <span className="text-sm font-bold text-zinc-800 tracking-tight force-en">#{sale.invoice_no}</span>
+                    <tr key={idx} className="hover:bg-slate-50/75 transition-colors">
+                      <td className="px-3.5 py-2 text-center font-mono text-slate-600 border-r border-slate-100">
+                        <span className="font-bold text-[#1d5f84] text-[9px]">#{sale.invoice_no}</span>
                       </td>
-                      <td className="px-4 py-3 border-r border-zinc-200">
-                        <p className={`text-sm font-bold text-zinc-800 tracking-tight leading-none mb-1 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans uppercase italic'}`}>{sale.customer_name_gu || sale.customer_name}</p>
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono">ID: {sale.member_code || 'WALK-IN'}</p>
+                      <td className="px-3.5 py-2 border-r border-slate-100">
+                        <div className="flex flex-col">
+                          <span className={`font-bold text-slate-800 ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displaySaleCustomer(sale)}</span>
+                          <span className="text-[9px] font-mono text-slate-400">ID: {sale.member_code || 'WALK-IN'}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-center">
-                        <span className="px-2 py-0.5 border border-zinc-300 bg-zinc-100 text-sm font-bold text-zinc-600  ">{sale.item_count} {t('saleForm.nodes')}</span>
+                      <td className="px-3.5 py-2 text-right font-mono font-bold text-emerald-600 border-r border-slate-100">
+                        ₹{parseFloat(sale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-blue-600 text-sm force-en">₹{parseFloat(sale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-center">
-                        <span className={`px-3 py-1 text-[9px] font-bold tracking-widest border ${sale.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                      <td className="px-3.5 py-2 text-center border-r border-slate-100">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${sale.payment_type === 'cash' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                           {sale.payment_type === 'cash' ? t('sale.cash') : t('sale.credit')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 border-r border-zinc-200 text-center text-zinc-500 text-sm force-en">{sale.invoice_date}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button onClick={() => viewSaleDetails(sale.id)} className="w-8 h-8 bg-white border border-zinc-300 flex items-center justify-center text-zinc-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-all mx-auto active:scale-95">
-                          <Eye size={14} />
+                      <td className="px-3.5 py-2 text-center">
+                        <button onClick={() => viewSaleDetails(sale.id)} className="p-1 border border-slate-200 rounded hover:bg-slate-50 text-slate-500 hover:text-[#1d5f84] transition cursor-pointer">
+                          <Eye size={11} />
                         </button>
                       </td>
                     </tr>
@@ -623,55 +628,52 @@ export default function Sale() {
 
       {showDetails && selectedSale && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => setShowDetails(false)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-none border border-zinc-400 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-sans animate-none select-none">
-            <div className="bg-zinc-100 p-4 border-b border-zinc-300 flex justify-between items-center relative overflow-hidden shrink-0">
-              <div className="relative z-10 flex items-center gap-3">
-                <div className="w-8 h-8 border border-zinc-300 bg-white flex items-center justify-center text-zinc-600"><FileText size={16} /></div>
-                <div>
-                  <h2 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('saleMaster.details.isolation')}</h2>
-                  <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest mt-1">{t('saleMaster.details.manifestNode')}: #{selectedSale.invoice_no}</p>
-                </div>
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-150" onClick={() => setShowDetails(false)} />
+          <div className="relative w-full max-w-2xl bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-sans select-none z-10">
+            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
+              <div>
+                <h2 className={`text-xs font-bold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>{t('saleMaster.details.isolation')}</h2>
+                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('saleMaster.details.manifestNode')}: #{selectedSale.invoice_no}</p>
               </div>
-              <div className="flex gap-2 relative z-10">
-                <button onClick={handlePrintBill} className="p-1 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-600 transition-all select-none" title={t('common.print') + ' (Enter)'}><Printer size={16} /></button>
-                <button onClick={() => setShowDetails(false)} className="p-1 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-600 hover:text-red-600 transition-all"><X size={16} /></button>
+              <div className="flex gap-2">
+                <button onClick={handlePrintBill} className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer" title={t('common.print')}><Printer size={15} /></button>
+                <button onClick={() => setShowDetails(false)} className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer"><X size={15} /></button>
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 bg-zinc-50">
-              <div className="grid grid-cols-2 gap-4 mb-6 bg-white p-4 border border-zinc-300">
+            <div className="p-5 overflow-y-auto flex-1 bg-white">
+              <div className="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-4 border border-slate-200 rounded-md">
                 <div className="space-y-1">
-                  <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('saleMaster.details.identityVector')}</p>
-                  <p className={`text-sm font-bold text-zinc-800 italic tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans uppercase'}`}>{selectedSale.customer_name}</p>
-                  <p className="text-[10px] font-mono text-blue-600 font-bold">ID: {selectedSale.member_code || 'GENERIC'}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.details.identityVector')}</p>
+                  <p className={`text-xs font-bold text-slate-800 ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displaySaleCustomer(selectedSale)}</p>
+                  <p className="text-[10px] font-mono text-[#1d5f84] font-bold">ID: {selectedSale.member_code || 'GENERIC'}</p>
                 </div>
                 <div className="text-right space-y-1">
-                  <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{t('saleMaster.details.settlementLog')}</p>
-                  <p className="text-sm font-bold text-zinc-800 uppercase italic tracking-tight font-prompt">{selectedSale.payment_type === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}</p>
-                  <p className="text-[10px] font-mono text-zinc-500">{selectedSale.invoice_date}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.details.settlementLog')}</p>
+                  <p className="text-xs font-bold text-slate-800 uppercase font-sans">{selectedSale.payment_type === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}</p>
+                  <p className="text-[10px] font-mono text-slate-500">{selectedSale.invoice_date}</p>
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <div className="mb-4">
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                    {t('saleMaster.details.payloadBreakdown')}
                 </h4>
-                <div className="border border-zinc-300 overflow-hidden bg-white">
-                  <table className="w-full text-left font-mono text-xs border-collapse">
-                    <thead className="bg-zinc-50 text-sm font-bold text-zinc-500   border-b border-zinc-300 font-sans">
+                <div className="border border-slate-200 rounded-md overflow-hidden bg-white">
+                  <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 border-r border-zinc-200">{t('saleMaster.details.inventoryNode')}</th>
-                        <th className="px-4 py-3 text-center border-r border-zinc-200">{t('saleMaster.details.qty')}</th>
-                        <th className="px-4 py-3 text-right">{t('saleMaster.details.yield')}</th>
+                        <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('saleMaster.details.inventoryNode')}</th>
+                        <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{t('saleMaster.details.qty')}</th>
+                        <th className="px-3.5 py-2 text-right font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">{t('saleMaster.details.yield')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-200 text-zinc-700 font-bold font-sans uppercase">
+                    <tbody className="bg-white divide-y divide-slate-100">
                       {(selectedSale.items || []).map((item, idx) => (
-                        <tr key={idx} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-3 border-r border-zinc-200 font-prompt">{item.item_name}</td>
-                          <td className="px-4 py-3 text-center border-r border-zinc-200">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right font-sans">₹{parseFloat(item.amount || 0).toFixed(2)}</td>
+                        <tr key={idx} className="hover:bg-slate-50/75 transition-colors">
+                          <td className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-700 ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displaySaleItem(item)}</td>
+                          <td className="px-3.5 py-2 text-center border-r border-slate-100 font-mono text-slate-600">{item.quantity}</td>
+                          <td className="px-3.5 py-2 text-right font-mono font-bold text-slate-800">₹{parseFloat(item.amount || 0).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -679,12 +681,12 @@ export default function Sale() {
                 </div>
               </div>
 
-              <div className="bg-zinc-100 p-4 border border-zinc-300 text-zinc-800 flex justify-between items-end">
+              <div className="bg-slate-50 p-4 border border-slate-200 rounded-md flex justify-between items-center">
                 <div>
-                  <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">{t('saleMaster.details.totalFiscalProceeds')}</p>
-                  <h5 className="text-xl font-bold uppercase leading-none tracking-tight italic">{t('saleMaster.details.netYield')}</h5>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{t('saleMaster.details.totalFiscalProceeds')}</p>
+                  <h5 className={`text-xs font-bold text-slate-800 uppercase tracking-wide ${isGu ? 'font-prompt' : ''}`}>{t('saleMaster.details.netYield')}</h5>
                 </div>
-                <p className="text-2xl font-bold tracking-tighter text-blue-600 force-en">₹{parseFloat(selectedSale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                <p className="text-lg font-mono font-bold text-emerald-600">₹{parseFloat(selectedSale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
           </div>

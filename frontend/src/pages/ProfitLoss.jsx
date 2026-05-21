@@ -7,7 +7,7 @@ import {
    Briefcase, ShoppingBag, CreditCard, ChevronRight,
    Info, RefreshCw, Printer, Download, Activity, Database,
    CheckCircle, ShieldCheck, Layout, Layers, RefreshCcw,
-   Activity as ActivityIcon, CheckCircle2, X, ArrowRight
+   Activity as ActivityIcon, CheckCircle2, X, ArrowRight, Filter
 } from 'lucide-react';
 
 export default function ProfitLoss() {
@@ -19,6 +19,7 @@ export default function ProfitLoss() {
    const [endDate, setEndDate] = useState('');
    const [viewMode, setViewMode] = useState('summary'); // summary or monthly
    const [company, setCompany] = useState(null);
+   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
    useEffect(() => {
       loadCompany();
@@ -109,296 +110,355 @@ export default function ProfitLoss() {
       );
    }
 
+   const hasActiveFilters = startDate !== new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0] || endDate !== new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
+
    return (
-      <div className="min-h-screen bg-zinc-100 p-6 text-zinc-900 select-none animate-none font-bold">
-         <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6 shadow-sm rounded-none">
+      <div className="min-h-screen bg-slate-50 font-sans select-none text-slate-800 pb-8">
+         <div className="max-w-[1600px] mx-auto px-4 py-4">
+            
+            {/* Main Application Area */}
+            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col relative shadow-none">
+               
+               {/* Unified Header Bar */}
+               <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none print:hidden">
+                  <div className="flex items-center gap-4">
+                     <span className="text-xs font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
+                        <PieChart size={14} className="text-[#1d5f84]" />
+                        {t('profitLoss.dossier')}
+                     </span>
 
-            {/* Top Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4 print:hidden">
-               <div>
-                  <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
-                     <PieChart size={20} className="text-zinc-600" />
-                     {t('profitLoss.dossier')}
-                  </h1>
-                  <p className="text-[10px] font-mono text-zinc-500 mt-0.5 uppercase tracking-wider select-none">{t('profitLoss.eyebrow')}</p>
-               </div>
+                     <div className="flex items-center bg-white border border-slate-200 rounded-md overflow-hidden h-7 shadow-sm">
+                        <button
+                           onClick={() => setViewMode('summary')}
+                           className={`px-3 h-full text-[10px] font-bold uppercase tracking-wider transition-colors ${viewMode === 'summary' ? 'bg-[#1d5f84] text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                           {t('profitLoss.summary')}
+                        </button>
+                        <button
+                           onClick={() => { setViewMode('monthly'); fetchMonthlyData(); }}
+                           className={`px-3 h-full text-[10px] font-bold uppercase tracking-wider transition-colors ${viewMode === 'monthly' ? 'bg-[#1d5f84] text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                           {t('profitLoss.heatmap')}
+                        </button>
+                     </div>
+                  </div>
 
-               <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex bg-zinc-100 p-1 border border-zinc-300 rounded-none">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1.5">
                      <button
-                        onClick={() => setViewMode('summary')}
-                        className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all rounded-none ${viewMode === 'summary' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'}`}
-                     >{t('profitLoss.summary')}</button>
+                        onClick={() => setShowFiltersDrawer(true)}
+                        className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
+                              ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
+                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                           }`}
+                     >
+                        <Filter size={13} className={hasActiveFilters ? "text-white" : "text-slate-500"} />
+                        <span>{t('sabhasadLedgerSummary.filters') || "Filters"}</span>
+                        {hasActiveFilters && (
+                           <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 border border-white"></span>
+                           </span>
+                        )}
+                     </button>
                      <button
-                        onClick={() => { setViewMode('monthly'); fetchMonthlyData(); }}
-                        className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all rounded-none ${viewMode === 'monthly' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'}`}
-                     >{t('profitLoss.heatmap')}</button>
-                  </div>
-
-                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-zinc-300 rounded-none">
-                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-xs font-bold text-zinc-600 focus:text-zinc-900 transition-all font-mono" />
-                     <ArrowRight size={14} className="text-zinc-300" />
-                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-xs font-bold text-zinc-600 focus:text-zinc-900 transition-all font-mono" />
-                  </div>
-
-                  <div className="flex gap-1.5">
-                     <button onClick={handlePrint} className="p-2 bg-white border border-zinc-300 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 transition shadow-sm rounded-none">
-                        <Printer size={15} />
+                        onClick={handlePrint}
+                        title={t('accountLedger.print') || "Print"}
+                        className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                     >
+                        <Printer size={13} className="text-slate-500" />
                      </button>
-                     <button onClick={fetchProfitLoss} className="p-2 bg-blue-600 border border-blue-500 text-white hover:bg-blue-700 transition shadow-sm rounded-none">
-                        <RefreshCcw size={15} className={loading ? 'animate-spin' : ''} />
+                     <button
+                        onClick={fetchProfitLoss}
+                        title="Refresh"
+                        className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                     >
+                        <RefreshCcw size={13} className={`text-slate-500 ${loading ? 'animate-spin' : ''}`} />
                      </button>
                   </div>
                </div>
-            </div>
 
-            {loading ? (
-               <div className="flex flex-col items-center justify-center py-24 space-y-3">
-                  <RefreshCcw className="animate-spin text-zinc-400" size={32} />
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('common.loading')}</p>
-               </div>
-            ) : (
-               <div className="space-y-6">
-
-                  {/* Summary Outcome Shard */}
-                  {plData && (
-                     <div className="bg-zinc-50 border border-zinc-300 p-6 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-none select-none shadow-sm">
-                        <div className="text-center sm:text-left space-y-2">
-                           <div className={`px-2 py-0.5 border text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 ${plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-700 border-red-300'}`}>
-                              {plData.netProfit >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                              System Audit: {plData.netProfit >= 0 ? t('profitLoss.surplus') : t('profitLoss.deficit')}
-                           </div>
-                           <div className="flex items-baseline justify-center sm:justify-start gap-1">
-                              <span className="text-sm font-bold text-zinc-400">₹</span>
-                              <span className="text-3xl font-mono font-bold text-zinc-900 leading-none">{formatCurrency(plData.netProfit)}</span>
-                           </div>
-                           <div className="text-[10px] font-sans text-zinc-500 uppercase tracking-wider">
-                              {t('profitLoss.returnEfficiency')} <span className={`px-1.5 py-0.5 font-mono font-bold ${plData.netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{plData.profitMargin}% {t('profitLoss.yield')}</span>
-                           </div>
-                        </div>
-
-                        <div className="text-center sm:text-right shrink-0">
-                           <div className="w-12 h-12 border border-zinc-300 bg-white text-zinc-700 flex items-center justify-center rounded-none shadow-sm font-mono font-black text-sm uppercase">
-                              P&L
-                           </div>
-                           <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider mt-1.5">Consolidated Impact</p>
-                        </div>
+               <div className="flex-1 min-h-[500px] p-4 bg-slate-50">
+                  {loading ? (
+                     <div className="flex flex-col items-center justify-center py-24 space-y-3">
+                        <RefreshCcw className="animate-spin text-slate-400" size={32} />
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.loading')}</p>
                      </div>
-                  )}
-
-                  {/* Core Operational Matrix */}
-                  {viewMode === 'summary' && plData && (
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                        {/* Expenditures Deck */}
-                        <div className="border border-zinc-300 bg-white rounded-none shadow-sm flex flex-col">
-                           <div className="bg-zinc-800 text-white px-4 py-3 flex justify-between items-center rounded-none font-bold uppercase text-xs">
-                              <div>
-                                 <span className="block">{t('profitLoss.expenditure')}</span>
-                                 <span className="text-[8px] text-zinc-400 font-mono tracking-wider">{t('saleReport.debitAlloc')}</span>
-                              </div>
-                              <TrendingDown size={16} className="text-red-400" />
-                           </div>
-
-                           <div className="flex-1 divide-y divide-zinc-200">
-                              <div className="p-4 flex justify-between items-center hover:bg-zinc-50 transition-colors">
-                                 <div>
-                                    <p className="font-bold text-zinc-800 text-sm uppercase font-prompt">{t('profitLoss.purchases')}</p>
-                                    <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider">{t('saleReport.inventoryValues')}</p>
+                  ) : (
+                     <div className="space-y-4">
+                        {/* Summary Outcome Shard */}
+                        {plData && (
+                           <div className="bg-white border border-slate-200 p-5 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-lg shadow-sm">
+                              <div className="text-center sm:text-left space-y-2">
+                                 <div className={`px-2 py-0.5 border text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 rounded-md ${plData.netProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                    {plData.netProfit >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                    System Audit: {plData.netProfit >= 0 ? t('profitLoss.surplus') : t('profitLoss.deficit')}
                                  </div>
-                                 <p className="text-base font-bold font-mono text-zinc-900">₹{formatCurrency(plData?.costOfGoodsSold?.netCostOfGoodsSold)}</p>
+                                 <div className="flex items-baseline justify-center sm:justify-start gap-1">
+                                    <span className="text-sm font-bold text-slate-400">₹</span>
+                                    <span className="text-3xl font-mono font-bold text-slate-800 leading-none">{formatCurrency(plData.netProfit)}</span>
+                                 </div>
+                                 <div className="text-[10px] font-sans text-slate-500 uppercase tracking-wider">
+                                    {t('profitLoss.returnEfficiency')} <span className={`px-1.5 py-0.5 font-mono font-bold rounded-sm ${plData.netProfit >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>{plData.profitMargin}% {t('profitLoss.yield')}</span>
+                                 </div>
                               </div>
 
-                              {plData.expenseAccounts?.map((acc, i) => (
-                                 <div key={i} className="p-4 flex justify-between items-center hover:bg-zinc-50 transition-colors">
-                                    <div>
-                                       <p className="font-bold text-zinc-800 text-sm uppercase font-prompt">{acc.account_name}</p>
-                                       <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider">{t('profitLoss.indirectOverheads')}</p>
-                                    </div>
-                                    <p className="text-base font-bold font-mono text-zinc-900">₹{formatCurrency(acc.amount)}</p>
+                              <div className="text-center sm:text-right shrink-0">
+                                 <div className="w-12 h-12 border border-slate-200 bg-slate-50 text-slate-500 flex items-center justify-center rounded-lg shadow-sm font-mono font-black text-sm uppercase">
+                                    P&L
                                  </div>
-                              ))}
-
-                              {plData.netProfit > 0 && (
-                                 <div className="p-4 bg-emerald-950 text-white flex justify-between items-center rounded-none font-mono mt-auto border-t border-zinc-300">
-                                    <div>
-                                       <span className="text-[9px] text-emerald-400 uppercase tracking-wider">{t('saleReport.surplusProvision')}</span>
-                                       <span className="text-sm font-bold block uppercase">{t('profitLoss.netProfit')}</span>
-                                    </div>
-                                    <span className="text-lg font-bold text-emerald-400">₹{formatCurrency(plData.netProfit)}</span>
-                                 </div>
-                              )}
-                           </div>
-                        </div>
-
-                        {/* Income Deck */}
-                        <div className="border border-zinc-300 bg-white rounded-none shadow-sm flex flex-col">
-                           <div className="bg-zinc-800 text-white px-4 py-3 flex justify-between items-center rounded-none font-bold uppercase text-xs">
-                              <div>
-                                 <span className="block">{t('profitLoss.revenue')}</span>
-                                 <span className="text-[8px] text-zinc-400 font-mono tracking-wider">{t('saleReport.creditAlloc')}</span>
+                                 <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider mt-1.5">Consolidated Impact</p>
                               </div>
-                              <TrendingUp size={16} className="text-emerald-400" />
                            </div>
+                        )}
 
-                           <div className="flex-1 divide-y divide-zinc-200">
-                              <div className="p-4 flex justify-between items-center hover:bg-zinc-50 transition-colors">
-                                 <div>
-                                    <p className="font-bold text-zinc-800 text-sm uppercase font-prompt">{t('profitLoss.sales')}</p>
-                                    <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider">{t('saleReport.inwardsRevenue')}</p>
+                        {/* Core Operational Matrix */}
+                        {viewMode === 'summary' && plData && (
+                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              {/* Expenditures Deck */}
+                              <div className="border border-slate-200 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
+                                 <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex justify-between items-center text-slate-700 font-bold uppercase text-xs">
+                                    <div>
+                                       <span className="block">{t('profitLoss.expenditure')}</span>
+                                       <span className="text-[9px] text-slate-400 font-mono tracking-wider">{t('saleReport.debitAlloc')}</span>
+                                    </div>
+                                    <TrendingDown size={16} className="text-rose-500" />
                                  </div>
-                                 <p className="text-base font-bold font-mono text-zinc-900">₹{formatCurrency(plData?.revenue?.netSales)}</p>
+
+                                 <div className="flex-1 divide-y divide-slate-100">
+                                    <div className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                       <div>
+                                          <p className="font-bold text-slate-700 text-[11px] uppercase">{t('profitLoss.purchases')}</p>
+                                          <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('saleReport.inventoryValues')}</p>
+                                       </div>
+                                       <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(plData?.costOfGoodsSold?.netCostOfGoodsSold)}</p>
+                                    </div>
+
+                                    {plData.expenseAccounts?.map((acc, i) => (
+                                       <div key={i} className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                          <div>
+                                             <p className="font-bold text-slate-700 text-[11px] uppercase">{acc.account_name}</p>
+                                             <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('profitLoss.indirectOverheads')}</p>
+                                          </div>
+                                          <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(acc.amount)}</p>
+                                       </div>
+                                    ))}
+
+                                    {plData.netProfit > 0 && (
+                                       <div className="p-3.5 bg-emerald-50 text-emerald-800 flex justify-between items-center font-mono mt-auto border-t border-emerald-100">
+                                          <div>
+                                             <span className="text-[9px] text-emerald-500 uppercase tracking-wider">{t('saleReport.surplusProvision')}</span>
+                                             <span className="text-xs font-bold block uppercase">{t('profitLoss.netProfit')}</span>
+                                          </div>
+                                          <span className="text-sm font-black text-emerald-600">₹{formatCurrency(plData.netProfit)}</span>
+                                       </div>
+                                    )}
+                                 </div>
                               </div>
 
-                              {plData.incomeAccounts?.map((acc, i) => (
-                                 <div key={i} className="p-4 flex justify-between items-center hover:bg-zinc-50 transition-colors">
+                              {/* Income Deck */}
+                              <div className="border border-slate-200 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
+                                 <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex justify-between items-center text-slate-700 font-bold uppercase text-xs">
                                     <div>
-                                       <p className="font-bold text-zinc-800 text-sm uppercase font-prompt">{acc.account_name}</p>
-                                       <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider">{t('profitLoss.secondaryInflow')}</p>
+                                       <span className="block">{t('profitLoss.revenue')}</span>
+                                       <span className="text-[9px] text-slate-400 font-mono tracking-wider">{t('saleReport.creditAlloc')}</span>
                                     </div>
-                                    <p className="text-base font-bold font-mono text-zinc-900">₹{formatCurrency(acc.amount)}</p>
+                                    <TrendingUp size={16} className="text-emerald-500" />
                                  </div>
-                              ))}
 
-                              {plData.netProfit < 0 && (
-                                 <div className="p-4 bg-red-950 text-white flex justify-between items-center rounded-none font-mono mt-auto border-t border-zinc-300">
-                                    <div>
-                                       <span className="text-[9px] text-red-400 uppercase tracking-wider">{t('saleReport.equityDeficit')}</span>
-                                       <span className="text-sm font-bold block uppercase">{t('profitLoss.netLoss')}</span>
+                                 <div className="flex-1 divide-y divide-slate-100">
+                                    <div className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                       <div>
+                                          <p className="font-bold text-slate-700 text-[11px] uppercase">{t('profitLoss.sales')}</p>
+                                          <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('saleReport.inwardsRevenue')}</p>
+                                       </div>
+                                       <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(plData?.revenue?.netSales)}</p>
                                     </div>
-                                    <span className="text-lg font-bold text-red-400">₹{formatCurrency(Math.abs(plData.netProfit))}</span>
+
+                                    {plData.incomeAccounts?.map((acc, i) => (
+                                       <div key={i} className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                          <div>
+                                             <p className="font-bold text-slate-700 text-[11px] uppercase">{acc.account_name}</p>
+                                             <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('profitLoss.secondaryInflow')}</p>
+                                          </div>
+                                          <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(acc.amount)}</p>
+                                       </div>
+                                    ))}
+
+                                    {plData.netProfit < 0 && (
+                                       <div className="p-3.5 bg-rose-50 text-rose-800 flex justify-between items-center font-mono mt-auto border-t border-rose-100">
+                                          <div>
+                                             <span className="text-[9px] text-rose-500 uppercase tracking-wider">{t('saleReport.equityDeficit')}</span>
+                                             <span className="text-xs font-bold block uppercase">{t('profitLoss.netLoss')}</span>
+                                          </div>
+                                          <span className="text-sm font-black text-rose-600">₹{formatCurrency(Math.abs(plData.netProfit))}</span>
+                                       </div>
+                                    )}
                                  </div>
-                              )}
+                              </div>
                            </div>
-                        </div>
+                        )}
 
-                     </div>
-                  )}
-
-                  {/* Verification Deck */}
-                  {plData && (
-                     <div className="bg-zinc-900 p-1 border border-zinc-800 rounded-none flex flex-col md:flex-row shadow-sm text-white font-mono text-xs">
-                        <div className="flex-1 p-4 border-b md:border-b-0 md:border-r border-zinc-800 flex justify-between items-center">
-                           <span className="text-zinc-500 uppercase tracking-wider">{t('profitLoss.aggregateExpenditure')}</span>
-                           <span className="text-base font-bold text-zinc-200">
-                              ₹{formatCurrency(Math.max(
-                                 (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-                                 (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
-                              ))}
-                           </span>
-                        </div>
-                        <div className="flex-1 p-4 flex justify-between items-center">
-                           <span className="text-zinc-500 uppercase tracking-wider">{t('profitLoss.aggregateRevenue')}</span>
-                           <span className="text-base font-bold text-zinc-200">
-                              ₹{formatCurrency(Math.max(
-                                 (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-                                 (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
-                              ))}
-                           </span>
-                        </div>
-                     </div>
-                  )}
-
-                  {/* Timeline Matrix */}
-                  {viewMode === 'monthly' && (
-                     <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px] rounded-none">
-                        <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
-                           <div>
-                              <span className="text-sm font-bold text-zinc-700 select-none">
-                                 {t('profitLoss.heatmap')}
-                              </span>
-                              <span className="ml-2 bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-xs px-2 py-0.5 select-none">
-                                 Monthly Timeline Vectors
-                              </span>
+                        {/* Verification Deck */}
+                        {viewMode === 'summary' && plData && (
+                           <div className="bg-[#1d5f84] p-[1px] border border-[#154662] rounded-lg flex flex-col md:flex-row shadow-sm text-white font-mono text-[11px]">
+                              <div className="flex-1 px-4 py-2 border-b md:border-b-0 md:border-r border-[#154662] flex justify-between items-center">
+                                 <span className="text-blue-200 uppercase tracking-wider font-bold">{t('profitLoss.aggregateExpenditure')}</span>
+                                 <span className="text-sm font-black text-white">
+                                    ₹{formatCurrency(Math.max(
+                                       (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                                       (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                                    ))}
+                                 </span>
+                              </div>
+                              <div className="flex-1 px-4 py-2 flex justify-between items-center">
+                                 <span className="text-blue-200 uppercase tracking-wider font-bold">{t('profitLoss.aggregateRevenue')}</span>
+                                 <span className="text-sm font-black text-white">
+                                    ₹{formatCurrency(Math.max(
+                                       (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+                                       (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+                                    ))}
+                                 </span>
+                              </div>
                            </div>
-                        </div>
+                        )}
 
-                        <div className="flex-1 overflow-x-auto bg-white">
-                           <table className="w-full text-left border-collapse select-none">
-                              <thead>
-                                 <tr className="bg-zinc-50 border-b border-zinc-300 text-zinc-600 text-xs font-bold uppercase tracking-wider">
-                                    <th className="px-4 py-3 border-r border-zinc-200">{t('common.date')}</th>
-                                    <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('profitLoss.revenueShard')}</th>
-                                    <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('profitLoss.costExposure')}</th>
-                                    <th className="px-4 py-3 border-r border-zinc-200 text-right">{t('profitLoss.resultantYield')}</th>
-                                    <th className="px-4 py-3 text-right">{t('profitLoss.intensity')}</th>
-                                 </tr>
-                              </thead>
-                              <tbody className="divide-y divide-zinc-200 font-mono text-xs">
-                                 {monthlyData.length > 0 ? (
-                                    monthlyData.map((m, i) => {
-                                       const yieldRate = m.netSales > 0 ? ((m.grossProfit / m.netSales) * 100).toFixed(1) : '0.0';
-                                       return (
-                                          <tr key={i} className="hover:bg-zinc-50/50">
-                                             <td className="px-4 py-3 border-r border-zinc-200">
-                                                <div className="flex items-center gap-3">
-                                                   <span className="w-7 h-7 bg-zinc-800 text-white flex items-center justify-center font-bold">{(i + 1).toString().padStart(2, '0')}</span>
-                                                   <span className="font-bold text-zinc-800 uppercase">{monthNames[m.month - 1]}</span>
-                                                </div>
-                                             </td>
-                                             <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-600">₹{formatCurrency(m.netSales)}</td>
-                                             <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-400">₹{formatCurrency(m.netCOGS)}</td>
-                                             <td className="px-4 py-3 border-r border-zinc-200 text-right">
-                                                <span className={`px-2 py-0.5 border text-xs font-bold ${m.grossProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-700 border-red-300'}`}>
-                                                   ₹{formatCurrency(m.grossProfit)}
-                                                </span>
-                                             </td>
-                                             <td className="px-4 py-3 text-right">
-                                                <div className="flex flex-col items-end gap-1 font-sans">
-                                                   <span className="text-[10px] font-bold text-zinc-500 font-mono">{yieldRate}% Yield</span>
-                                                   <div className="w-24 h-2 bg-zinc-100 border border-zinc-300 rounded-none overflow-hidden">
-                                                      <div className={`h-full ${parseFloat(yieldRate) > 15 ? 'bg-emerald-500' : 'bg-zinc-400'}`} style={{ width: `${Math.min(100, Math.max(0, parseFloat(yieldRate) * 3))}%` }}></div>
-                                                   </div>
-                                                </div>
+                        {/* Timeline Matrix */}
+                        {viewMode === 'monthly' && (
+                           <div className="border border-slate-200 bg-white flex flex-col min-h-[450px] rounded-lg shadow-sm overflow-hidden">
+                              <div className="flex-1 overflow-x-auto scroller-airy bg-white">
+                                 <table className="w-full text-left border-collapse select-none">
+                                    <thead className="sticky top-0 z-20 shadow-sm">
+                                       <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
+                                          <th className="px-4 py-2 border-r border-slate-200 whitespace-nowrap">{t('common.date')}</th>
+                                          <th className="px-4 py-2 border-r border-slate-200 text-right whitespace-nowrap">{t('profitLoss.revenueShard')}</th>
+                                          <th className="px-4 py-2 border-r border-slate-200 text-right whitespace-nowrap">{t('profitLoss.costExposure')}</th>
+                                          <th className="px-4 py-2 border-r border-slate-200 text-right whitespace-nowrap">{t('profitLoss.resultantYield')}</th>
+                                          <th className="px-4 py-2 text-right whitespace-nowrap">{t('profitLoss.intensity')}</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                                       {monthlyData.length > 0 ? (
+                                          monthlyData.map((m, i) => {
+                                             const yieldRate = m.netSales > 0 ? ((m.grossProfit / m.netSales) * 100).toFixed(1) : '0.0';
+                                             return (
+                                                <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-[11px] font-mono">
+                                                      <div className="flex items-center gap-3">
+                                                         <span className="w-6 h-6 bg-slate-100 border border-slate-200 text-slate-600 rounded flex items-center justify-center font-bold text-[10px]">{(i + 1).toString().padStart(2, '0')}</span>
+                                                         <span className="font-bold text-slate-800 uppercase">{monthNames[m.month - 1]}</span>
+                                                      </div>
+                                                   </td>
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right text-[11px] font-mono font-bold text-slate-700">₹{formatCurrency(m.netSales)}</td>
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right text-[11px] font-mono font-bold text-slate-500">₹{formatCurrency(m.netCOGS)}</td>
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right">
+                                                      <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-bold font-mono ${m.grossProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                                         ₹{formatCurrency(m.grossProfit)}
+                                                      </span>
+                                                   </td>
+                                                   <td className="px-4 py-2.5 text-right">
+                                                      <div className="flex flex-col items-end gap-1 font-sans">
+                                                         <span className="text-[10px] font-bold text-slate-500 font-mono">{yieldRate}% Yield</span>
+                                                         <div className="w-24 h-1.5 bg-slate-100 border border-slate-200 rounded-full overflow-hidden">
+                                                            <div className={`h-full ${parseFloat(yieldRate) > 15 ? 'bg-emerald-500' : 'bg-[#1d5f84]'}`} style={{ width: `${Math.min(100, Math.max(0, parseFloat(yieldRate) * 3))}%` }}></div>
+                                                         </div>
+                                                      </div>
+                                                   </td>
+                                                </tr>
+                                             )
+                                          })
+                                       ) : (
+                                          <tr>
+                                             <td colSpan="5" className="py-24 text-center">
+                                                <Layers size={32} className="mx-auto mb-2 text-slate-300" />
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">No Timeline Vectors Detected</p>
                                              </td>
                                           </tr>
-                                       )
-                                    })
-                                 ) : (
-                                    <tr>
-                                       <td colSpan="5" className="py-24 text-center">
-                                          <Layers size={32} className="mx-auto mb-2 text-zinc-300" />
-                                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">No Timeline Vectors Detected</p>
-                                       </td>
-                                    </tr>
-                                 )}
-                              </tbody>
-                           </table>
+                                       )}
+                                    </tbody>
+                                 </table>
+                              </div>
+                           </div>
+                        )}
+
+                        {/* Performance Indicators Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                           {[
+                              { label: t('profitLoss.operatingMargin'), val: `${plData?.profitMargin}%`, icon: <ActivityIcon size={16} /> },
+                              { label: t('profitLoss.expenseAbsorption'), val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={16} /> },
+                              { label: t('profitLoss.fiscalHealth'), val: plData?.netProfit >= 0 ? 'Optimal Surplus' : 'Risk Warning', icon: <ShieldCheck size={16} /> }
+                           ].map((stat, i) => (
+                              <div key={i} className="bg-white border border-slate-200 p-3 shadow-sm flex items-center justify-between rounded-lg">
+                                 <div>
+                                    <span className="text-[9px] font-sans text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                                    <span className={`text-[13px] font-bold block ${i === 2 && plData?.netProfit < 0 ? 'text-rose-600 animate-pulse' : 'text-slate-700'}`}>{stat.val}</span>
+                                 </div>
+                                 <div className="w-8 h-8 border border-slate-100 bg-slate-50 text-slate-400 flex items-center justify-center rounded-md shrink-0">
+                                    {stat.icon}
+                                 </div>
+                              </div>
+                           ))}
                         </div>
                      </div>
                   )}
+               </div>
 
-                  {/* Performance Indicators Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                     {[
-                        { label: t('profitLoss.operatingMargin'), val: `${plData?.profitMargin}%`, icon: <ActivityIcon size={16} /> },
-                        { label: t('profitLoss.expenseAbsorption'), val: `${((plData?.operatingExpenses / (plData?.revenue?.netSales || 1)) * 100).toFixed(1)}%`, icon: <CreditCard size={16} /> },
-                        { label: t('profitLoss.fiscalHealth'), val: plData?.netProfit >= 0 ? 'Optimal Surplus' : 'Risk Warning', icon: <ShieldCheck size={16} /> }
-                     ].map((stat, i) => (
-                        <div key={i} className="bg-zinc-50 border border-zinc-300 p-4 shadow-sm flex items-center justify-between rounded-none">
-                           <div>
-                              <span className="text-[10px] font-sans text-zinc-500 uppercase tracking-wider">{stat.label}</span>
-                              <span className={`text-lg font-bold mt-1 block ${i === 2 && plData?.netProfit < 0 ? 'text-red-700 animate-pulse' : 'text-zinc-800'}`}>{stat.val}</span>
-                           </div>
-                           <div className="w-10 h-10 border border-zinc-200 bg-white text-zinc-600 flex items-center justify-center rounded-none shrink-0">
-                              {stat.icon}
-                           </div>
-                        </div>
-                     ))}
+               {/* Footer */}
+               <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex justify-between items-center text-[9px] font-mono text-slate-400 uppercase tracking-wider select-none print:hidden">
+                  <div className="flex items-center gap-3">
+                     <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-[#1d5f84] rounded-full"></div> System Status: Verified</span>
+                  </div>
+                  <div>
+                     <span>{company?.company_name} / Registry Auth</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* Modern Slide-Out Filters Drawer (WOW design with animation in & out) */}
+         <div className={`fixed inset-0 z-[100] overflow-hidden ${showFiltersDrawer ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+            <div className={`absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-300 ${showFiltersDrawer ? 'opacity-100' : 'opacity-0'}`} onClick={() => setShowFiltersDrawer(false)} />
+
+            <div className={`fixed inset-y-0 right-0 max-w-full flex pl-10 transform transition-transform duration-300 ease-in-out ${showFiltersDrawer ? 'translate-x-0' : 'translate-x-full'}`}>
+               <div className="w-screen max-w-sm bg-white border-l border-slate-200 flex flex-col shadow-none">
+                  
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                     <div className="flex items-center gap-2 select-none">
+                        <Filter size={14} className="text-[#1d5f84]" />
+                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">Filter Parameters</span>
+                     </div>
+                     <button onClick={() => setShowFiltersDrawer(false)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer">
+                        <X size={15} />
+                     </button>
                   </div>
 
-               </div>
-            )}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                     <div className="space-y-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('sabhasadLedgerSummary.dateRange') || "Date Range Period"}</span>
+                        <div className="grid grid-cols-2 gap-2">
+                           <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
+                              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full" />
+                           </div>
+                           <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
+                              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full" />
+                           </div>
+                        </div>
+                     </div>
+                  </div>
 
-            {/* Global Registry Footer */}
-            <div className="border-t border-zinc-200 pt-4 flex flex-col sm:flex-row justify-between items-center text-[9px] font-mono text-zinc-400 uppercase tracking-wider gap-2 select-none print:hidden">
-               <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-blue-600"></div> Audit Mode: Active</span>
-                  <span>Repository: Synchronized</span>
+                  <div className="p-4 bg-slate-50 border-t border-slate-200">
+                     <button onClick={() => {
+                        const today = new Date();
+                        setStartDate(new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]);
+                        setEndDate(new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]);
+                     }} className="w-full flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs py-2 rounded-md transition cursor-pointer shadow-sm uppercase tracking-wider">
+                        <X size={14} /> {t('accountLedger.clear') || "Reset Parameters"}
+                     </button>
+                  </div>
                </div>
-               <div>Chrono: {new Date().toISOString()}</div>
             </div>
-
          </div>
       </div>
    );

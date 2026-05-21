@@ -36,7 +36,10 @@ import DangarSummaryReport from './pages/DangarSummaryReport'
 import JamaBardanEntry from './pages/JamaBardanEntry'
 import InterestCalculator from './pages/InterestCalculator'
 import Navbar from './components/Navbar'
+import Layout from './components/Layout'
 import Settings from './pages/Settings'
+import ReportsHub from './pages/ReportsHub'
+import BardanReport from './pages/BardanReport'
 
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem('user');
@@ -148,16 +151,13 @@ function AppContent() {
   }, [location, navigate])
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50">
-      {isAuth && location.pathname !== '/' && location.pathname !== '/login' && (
-        <div className="flex-none sticky top-0 z-40">
-          <Navbar backendStatus={backendStatus} />
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto">
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/login" element={<Login />} />
+      
+      {/* Protected Layout Routes */}
+      {isAuth && (
+        <Route element={<Layout backendStatus={backendStatus} />}>
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/company" element={<ProtectedRoute><Company /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><UserMaster /></ProtectedRoute>} />
@@ -183,18 +183,20 @@ function AppContent() {
           <Route path="/purchase-return" element={<ProtectedRoute><PurchaseReturn /></ProtectedRoute>} />
           <Route path="/barcode" element={<ProtectedRoute><BarcodeScannerPage /></ProtectedRoute>} />
           <Route path="/cashbook" element={<ProtectedRoute><Rojmel /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><ReportsHub /></ProtectedRoute>} />
           <Route path="/ledger" element={<ProtectedRoute><AccountLedger /></ProtectedRoute>} />
           <Route path="/ledger-report" element={<ProtectedRoute><LedgerReport /></ProtectedRoute>} />
           <Route path="/rojmel" element={<ProtectedRoute><Rojmel /></ProtectedRoute>} />
           <Route path="/sabhasad-ledger" element={<ProtectedRoute><SabhasadLedgerSummary /></ProtectedRoute>} />
+          <Route path="/bardan-report" element={<ProtectedRoute><BardanReport /></ProtectedRoute>} />
           <Route path="/profit-loss" element={<ProtectedRoute><ProfitLoss /></ProtectedRoute>} />
           <Route path="/stock" element={<ProtectedRoute><StockReport /></ProtectedRoute>} />
           <Route path="/purchase-report" element={<ProtectedRoute><PurchaseReport /></ProtectedRoute>} />
           <Route path="/sale-report" element={<ProtectedRoute><SaleReport /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        </Routes>
-      </div>
-    </div>
+        </Route>
+      )}
+    </Routes>
   )
 }
 

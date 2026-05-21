@@ -24,23 +24,22 @@ router.get('/account/:accountId', async (req, res) => {
     let openingBalance = 0;
     let whereClause    = '';
     let whereParams    = [];
+    let memberFilterId = req.query.memberId || null;
 
     if (isAll) {
       entityName     = 'All Accounts';
       openingBalance = 0;
-      whereClause    = 'company_id = ?';
+      whereClause    = 'al.company_id = ?';
       whereParams    = [companyId];
       
       if (req.query.memberId) {
         const member = await queryOne(
-          `SELECT member_name FROM member_master WHERE id = ?`,
+          `SELECT member_name, member_code FROM member_master WHERE id = ?`,
           [req.query.memberId]
         );
         if (member) {
           entityName += ` - ${member.member_name}`;
         }
-        whereClause += ' AND member_id = ?';
-        whereParams.push(req.query.memberId);
       }
     } else if (isMember) {
       const memberNumId = parseInt(rawId.slice(1), 10);
@@ -52,8 +51,9 @@ router.get('/account/:accountId', async (req, res) => {
       entityName     = member.member_name;
       entityNameGu   = member.member_name;
       openingBalance = 0;
-      whereClause    = 'member_id = ? AND company_id = ?';
-      whereParams    = [memberNumId, companyId];
+      whereClause    = 'al.company_id = ?';
+      whereParams    = [companyId];
+      memberFilterId = memberNumId;
     } else {
       const account = await queryOne(
         `SELECT account_name, account_name_gu, opening_balance FROM accounts WHERE id = ? AND company_id = ?`,
@@ -63,12 +63,12 @@ router.get('/account/:accountId', async (req, res) => {
       entityName     = account.account_name;
       entityNameGu   = account.account_name_gu;
       openingBalance = parseFloat(account.opening_balance || 0);
-      whereClause    = 'account_id = ? AND company_id = ?';
+      whereClause    = 'al.account_id = ? AND al.company_id = ?';
       whereParams    = [numericId, companyId];
 
       if (req.query.memberId) {
         const member = await queryOne(
-          `SELECT member_name FROM member_master WHERE id = ?`,
+          `SELECT member_name, member_code FROM member_master WHERE id = ?`,
           [req.query.memberId]
         );
         if (member) {
@@ -77,19 +77,22 @@ router.get('/account/:accountId', async (req, res) => {
             entityNameGu += ` - ${member.member_name}`;
           }
         }
-        whereClause += ' AND member_id = ?';
-        whereParams.push(req.query.memberId);
       }
     }
+
+    const memberFilterClause = memberFilterId ? ' AND COALESCE(al.member_id, de.member_id, s.member_id) = ?' : '';
+    const memberFilterParams = memberFilterId ? [memberFilterId] : [];
 
     // ── Historical totals before startDate (for opening row) ──
     const history = await queryOne(
       `SELECT 
          COALESCE(SUM(COALESCE(debit,  debit_amount,  0)), 0) AS total_debit_hist,
          COALESCE(SUM(COALESCE(credit, credit_amount, 0)), 0) AS total_credit_hist
-       FROM account_ledger
-       WHERE ${whereClause} AND transaction_date < ?`,
-      [...whereParams, startDate]
+       FROM account_ledger al
+       LEFT JOIN dangar_entry de ON (al.reference_type = 'dangar_entry' AND al.reference_id = de.id)
+       LEFT JOIN sales s ON ((al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') AND al.reference_id = s.id)
+       WHERE ${whereClause}${memberFilterClause} AND al.transaction_date < ?`,
+      [...whereParams, ...memberFilterParams, startDate]
     );
 
     const histDebit  = parseFloat(history.total_debit_hist  || 0);
@@ -108,16 +111,18 @@ router.get('/account/:accountId', async (req, res) => {
     // ── Transactions in date range ────────────────────────────
     const transactions = await query(
       `SELECT 
-         transaction_date,
-         reference_no,
-         reference_type,
-         description,
-         COALESCE(debit,  debit_amount,  0) AS debit,
-         COALESCE(credit, credit_amount, 0) AS credit
-       FROM account_ledger
-       WHERE ${whereClause} AND transaction_date BETWEEN ? AND ?
-       ORDER BY transaction_date ASC, id ASC`,
-      [...whereParams, startDate, endDate]
+         al.transaction_date,
+         al.reference_no,
+         al.reference_type,
+         al.description,
+         COALESCE(al.debit,  al.debit_amount,  0) AS debit,
+         COALESCE(al.credit, al.credit_amount, 0) AS credit
+       FROM account_ledger al
+       LEFT JOIN dangar_entry de ON (al.reference_type = 'dangar_entry' AND al.reference_id = de.id)
+       LEFT JOIN sales s ON ((al.reference_type = 'SALE' OR al.reference_type = 'dangar_sale') AND al.reference_id = s.id)
+       WHERE ${whereClause}${memberFilterClause} AND al.transaction_date BETWEEN ? AND ?
+       ORDER BY al.transaction_date ASC, al.id ASC`,
+      [...whereParams, ...memberFilterParams, startDate, endDate]
     );
 
     // ── Running balance ───────────────────────────────────────

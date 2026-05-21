@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 
 const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState(null)
@@ -44,6 +44,28 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
   const toApiRole = (role) => (role === 'hod' ? 'admin' : role)
   const fromApiRole = (role) => (role === 'admin' ? 'hod' : role)
+
+  const translateServerMessage = (message) => {
+    if (!message || i18n.language !== 'gu') return message
+
+    const text = String(message)
+    const lower = text.toLowerCase()
+
+    if (/username.*required/.test(lower)) return 'વપરાશકર્તાનામ આવશ્યક છે.'
+    if (/full name.*required/.test(lower) || /name.*required/.test(lower)) return 'વપરાશકર્તાનું નામ આવશ્યક છે.'
+    if (/email.*required/.test(lower)) return 'ઈમેલ આવશ્યક છે.'
+    if (/invalid email/.test(lower)) return 'અમાન્ય ઈમેલ સરનામું.'
+    if (/password.*required/.test(lower)) return 'પાસવર્ડ આવશ્યક છે.'
+    if (/company.*required/.test(lower)) return 'કંપની આવશ્યક છે.'
+    if (/company not found/.test(lower)) return 'કંપની મળી નથી.'
+    if (/failed to save user/.test(lower)) return 'વપરાશકર્તા સાચવવામાં નિષ્ફળ.'
+    if (/failed to load user/.test(lower)) return 'વપરાશકર્તા લોડ કરવામાં નિષ્ફળ.'
+    if (/failed to load users/.test(lower)) return 'વપરાશકર્તાઓ લોડ કરવામાં નિષ્ફળ.'
+    if (/company req before user/.test(lower)) return 'વપરાશકર્તા બનાવતા પહેલા કંપની સેટઅપ આવશ્યક છે.'
+    if (/validation/.test(lower)) return 'કૃપા કરીને નીચેની ભૂલો સુધારો.'
+
+    return text
+  }
 
   const modules = [
     { id: 'company', label: 'company', icon: <Building2 size={14} />, color: 'blue' },
@@ -178,10 +200,21 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
       }
     } catch (error) {
       if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors)
-        setMessage({ type: 'error', text: t('userMaster.validationError') })
+        const apiErrors = error.response.data.errors
+        if (Array.isArray(apiErrors)) {
+          setErrors({ general: apiErrors.map(translateServerMessage).join('\n') })
+        } else {
+          const translatedErrors = {}
+          Object.entries(apiErrors).forEach(([key, value]) => {
+            translatedErrors[key] = Array.isArray(value)
+              ? value.map(translateServerMessage).join(', ')
+              : translateServerMessage(value)
+          })
+          setErrors(translatedErrors)
+        }
+        setMessage({ type: 'error', text: translateServerMessage(t('userMaster.validationError')) })
       } else {
-        setMessage({ type: 'error', text: error.response?.data?.error || t('userMaster.failedToSaveUser') })
+        setMessage({ type: 'error', text: translateServerMessage(error.response?.data?.error || t('userMaster.failedToSaveUser')) })
       }
     } finally {
       setLoading(false)
@@ -189,12 +222,12 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-6 select-none font-sans">
+    <form onSubmit={handleSubmit} className="p-5 space-y-5 select-none font-sans">
       
       {message && (
-        <div className={`p-3 bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2`}>
+        <div className={`p-3 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold rounded-md flex items-start gap-2 shadow-sm`}>
           <AlertCircle size={14} className="mt-0.5 shrink-0" />
-          <p className="font-bold">{message.text}</p>
+          <p>{message.text}</p>
         </div>
       )}
 
@@ -204,7 +237,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ModalField label={t('userMaster.usernameLabel')} required error={errors.username}>
             <div className="relative">
-              <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 name="username"
@@ -212,7 +245,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 onChange={handleChange}
                 onKeyDown={e => handleKeyDown(e, emailRef)}
                 placeholder={t('userMaster.enterUsername')}
-                className={inputCls + ' pl-9 force-en'}
+                className={inputCls + ' pl-8 force-en'}
                 autoFocus
               />
             </div>
@@ -220,7 +253,7 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
           <ModalField label={t('userMaster.fullNameGU') || 'વપરાશકર્તાનું નામ (ગુજરાતી)'}>
             <div className="relative">
-              <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 name="full_name_gu"
@@ -228,14 +261,14 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 onChange={handleChange}
                 onKeyDown={e => handleKeyDown(e, emailRef)}
                 placeholder={t('userMaster.enterFullNameGU') || 'ગુજરાતીમાં નામ દાખલ કરો'}
-                className={inputCls + ' pl-9 font-sans'}
+                className={inputCls + ' pl-8 font-prompt'}
               />
             </div>
           </ModalField>
 
           <ModalField label={t('userMaster.identityLabel')} required error={errors.email}>
             <div className="relative">
-              <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Mail size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 ref={emailRef}
                 type="text"
@@ -244,14 +277,14 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 onChange={handleChange}
                 onKeyDown={e => handleKeyDown(e, passwordRef)}
                 placeholder={t('userMaster.identityPlaceholder')}
-                className={inputCls + ' pl-9 force-en'}
+                className={inputCls + ' pl-8 force-en'}
               />
             </div>
           </ModalField>
 
           <ModalField label={userId ? t('userMaster.updatePassword') : t('userMaster.securePassword')} required={!userId} error={errors.password}>
             <div className="relative">
-              <Lock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Lock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 ref={passwordRef}
                 type={showPassword ? 'text' : 'password'}
@@ -260,12 +293,12 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 onChange={handleChange}
                 onKeyDown={e => handleKeyDown(e, roleRef)}
                 placeholder={userId ? t('userMaster.passwordPlaceholder') : '********'}
-                className={inputCls + ' pl-9 pr-9 force-en'}
+                className={inputCls + ' pl-8 pr-8 force-en'}
               />
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)} 
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
@@ -274,14 +307,14 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
           <ModalField label={t('userMaster.accessRole')} required>
             <div className="relative">
-              <ShieldCheck size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <ShieldCheck size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <select
                 ref={roleRef}
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
                 onKeyDown={e => handleKeyDown(e, null)}
-                className={inputCls + ' pl-9 cursor-pointer appearance-none'}
+                className={inputCls + ' pl-8 cursor-pointer appearance-none'}
               >
                 <option value="cashier">{t('userMaster.roleCashier')}</option>
                 <option value="manager">{t('userMaster.roleManager')}</option>
@@ -296,9 +329,9 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SectionLabel>{t('userMaster.modulePrivileges')}</SectionLabel>
-          <span className="text-[10px] font-bold text-zinc-400 italic">{t('userMaster.preset')}: {formData.role}</span>
+          <span className="text-[10px] font-bold text-slate-400 italic force-en">{t('userMaster.preset')}: {formData.role}</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
           {modules.map((module) => {
             const isSelected = formData.module_access.includes(module.id)
             return (
@@ -306,16 +339,16 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 key={module.id}
                 type="button"
                 onClick={() => handleModuleToggle(module.id)}
-                className={`flex items-center gap-2 p-2 border transition-all text-left ${
+                className={`flex items-center gap-2 p-1.5 border transition-all text-left rounded-md shadow-sm cursor-pointer ${
                   isSelected
-                    ? `bg-blue-50 border-blue-200`
-                    : 'bg-zinc-50 border-zinc-200 hover:border-zinc-400 opacity-60 grayscale'
+                    ? `bg-blue-50/50 border-blue-200 ring-1 ring-blue-100`
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white grayscale opacity-70'
                 }`}
               >
-                <div className={`p-1.5 border ${isSelected ? `bg-white text-blue-600 border-blue-100` : 'bg-white text-zinc-400 border-zinc-100'}`}>
+                <div className={`p-1.5 rounded-sm border ${isSelected ? `bg-white text-blue-600 border-blue-200 shadow-sm` : 'bg-white text-slate-400 border-slate-200'}`}>
                   {module.icon}
                 </div>
-                <span className={`text-[9px] font-bold uppercase tracking-tighter truncate ${isSelected ? 'text-zinc-800' : 'text-zinc-400'}`}>
+                <span className={`text-[9px] font-bold uppercase tracking-wide truncate ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
                   {t(`modules.${module.label}`)}
                 </span>
               </button>
@@ -324,34 +357,34 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 p-3 bg-zinc-50 border border-zinc-200">
+      <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-md shadow-sm">
         <input
           type="checkbox"
           id="is_active"
           name="is_active"
           checked={formData.is_active}
           onChange={handleChange}
-          className="w-4 h-4 rounded-none border-zinc-300 text-blue-600 cursor-pointer"
+          className="w-4 h-4 rounded border-slate-300 text-[#1d5f84] focus:ring-[#1d5f84] cursor-pointer"
         />
-        <label htmlFor="is_active" className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest cursor-pointer">
+        <label htmlFor="is_active" className="text-[10px] font-bold text-slate-600 uppercase tracking-widest cursor-pointer">
           {t('userMaster.accountOperational')}
         </label>
       </div>
 
-      <div className="flex gap-3 pt-4 border-t border-zinc-200 justify-end">
+      <div className="flex gap-2.5 pt-4 border-t border-slate-100 justify-end">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
+          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold transition rounded-md uppercase text-[10px] tracking-wider cursor-pointer shadow-sm"
         >
           {t('userMaster.abort')}
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs disabled:opacity-50"
+          className="px-4 py-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white font-bold transition rounded-md uppercase flex items-center justify-center gap-1.5 text-[10px] tracking-wider disabled:opacity-50 cursor-pointer shadow-sm"
         >
-          {loading ? <Loader className="animate-spin" size={14} /> : <Save size={14} />}
+          {loading ? <Loader className="animate-spin" size={13} /> : <Save size={13} />}
           {userId ? t('userMaster.commitChanges') : t('userMaster.initUser')}
         </button>
       </div>
@@ -359,25 +392,25 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   )
 }
 
-const inputCls = 'w-full px-3 py-2 bg-white border border-zinc-300 rounded-none focus:border-zinc-600 outline-none transition font-prompt text-zinc-700 font-bold text-xs'
+const inputCls = 'w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt text-slate-700 font-bold text-xs shadow-sm'
 
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">{children}</span>
-      <div className="flex-1 h-px bg-zinc-200" />
+      <span className="text-[9px] font-bold uppercase tracking-widest text-[#1d5f84] whitespace-nowrap">{children}</span>
+      <div className="flex-1 h-px bg-slate-100" />
     </div>
   )
 }
 
 function ModalField({ label, children, required, error }) {
   return (
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+        {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
       </label>
       {children}
-      {error && <p className="text-[9px] text-red-500 font-bold uppercase">{error}</p>}
+      {error && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-wider">{error}</p>}
     </div>
   )
 }

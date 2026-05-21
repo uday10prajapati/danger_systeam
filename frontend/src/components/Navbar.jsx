@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Building2, Users, Users2, Package,
   DollarSign, ShoppingCart, TrendingUp, BarChart3, Book,
   RotateCcw, TrendingDown, BookOpen, BarChart2, FileText,
-  MapPin, Database, ArrowLeftRight, MessageSquare, Shield, Menu, X
+  MapPin, Database, ArrowLeftRight, MessageSquare, Shield, Menu, X, ChevronRight, ChevronLeft
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -69,10 +69,11 @@ const NAV_GROUPS = [
     ]
   },
   {
-    id: 'reports', label: 'modules.reports', icon: BarChart2,
+    id: 'reports', label: 'modules.reports', icon: BarChart2, path: '/reports',
     children: [
       { id: 'ledger', label: 'modules.accountLedger', icon: BookOpen, path: '/ledger' },
       { id: 'sabhasad-ledger', label: 'modules.sabhasadLedger', icon: Users, path: '/sabhasad-ledger' },
+      { id: 'bardan-report', label: 'modules.bardanReport', icon: Package, path: '/bardan-report' },
       { id: 'ledger-report', label: 'modules.ledgerAudit', icon: FileText, path: '/ledger-report' },
       { id: 'profit-loss', label: 'modules.profitAndLoss', icon: BarChart2, path: '/profit-loss' },
       { id: 'stock', label: 'modules.stockReport', icon: Package, path: '/stock' },
@@ -89,78 +90,87 @@ const NAV_GROUPS = [
   }
 ]
 
-function DropdownMenu({ group, onNavigate }) {
+const SidebarGroup = ({ group, onNavigate, isCollapsed, expandedGroup, setExpandedGroup, onUncollapse }) => {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
   const location = useLocation()
-  const closeTimer = useRef(null)
-
+  
   const isChildActive = group.children?.some(c => location.pathname === c.path)
+  const active = !group.children && location.pathname === group.path
+  const isOpen = expandedGroup === group.id || (isChildActive && expandedGroup === null);
 
-  const handleMouseEnter = () => {
-    clearTimeout(closeTimer.current)
-    setOpen(true)
-  }
-
-  const handleMouseLeave = () => {
-    closeTimer.current = setTimeout(() => setOpen(false), 120)
-  }
+  useEffect(() => {
+    if (isChildActive && expandedGroup === null) {
+      setExpandedGroup(group.id)
+    }
+  }, [isChildActive, expandedGroup, group.id, setExpandedGroup])
 
   if (!group.children) {
-    const active = location.pathname === group.path
     return (
       <button
-        onClick={() => onNavigate(group.path)}
-        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold transition select-none uppercase tracking-wider rounded-none border ${active
-            ? 'bg-blue-600 text-white border-blue-500 font-mono'
-            : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 border-transparent'
-          }`}
+        onClick={() => {
+          onNavigate(group.path);
+          setExpandedGroup(group.id);
+        }}
+        className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-bold transition select-none tracking-wide ${
+          active 
+            ? 'bg-[#1d5f84] text-white shadow-sm rounded-md' 
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md'
+        }`}
+        title={isCollapsed ? t(group.label) : ''}
       >
-        <group.icon size={13} />
-        {t(group.label)}
+        <group.icon size={16} className="shrink-0" />
+        {!isCollapsed && <span className="truncate uppercase">{t(group.label)}</span>}
       </button>
     )
   }
 
   return (
-    <div
-      ref={ref}
-      className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
+    <div className="space-y-1">
       <button
-        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold transition select-none uppercase tracking-wider rounded-none border ${isChildActive || open
-            ? 'bg-zinc-100 text-zinc-900 border-zinc-300 font-mono'
-            : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 border-transparent'
-          }`}
+        onClick={() => {
+           if (group.path) onNavigate(group.path);
+           if (isCollapsed) {
+               if (onUncollapse) onUncollapse();
+               if (!group.path) setExpandedGroup(group.id);
+               return;
+           }
+           setExpandedGroup(isOpen ? null : group.id)
+        }}
+        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold transition select-none tracking-wide rounded-md ${
+          isChildActive && !isOpen
+            ? 'bg-slate-100 text-slate-900 shadow-sm border border-slate-200'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
+        }`}
+        title={isCollapsed ? t(group.label) : ''}
       >
-        <group.icon size={13} />
-        {t(group.label)}
-        <ChevronDown size={12} className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+        <div className="flex items-center gap-3 overflow-hidden">
+          <group.icon size={16} className="shrink-0" />
+          {!isCollapsed && <span className="truncate uppercase">{t(group.label)}</span>}
+        </div>
+        {!isCollapsed && (
+          <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#1d5f84]' : 'text-slate-400'}`} />
+        )}
       </button>
 
-      {open && (
-        <div className="absolute top-full left-0 pt-0.5 z-50">
-          <div className="w-48 bg-white border border-zinc-400 rounded-none shadow-md py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-left font-mono">
-            {group.children.map(child => {
-              const childActive = location.pathname === child.path
-              return (
-                <button
-                  key={child.id}
-                  onClick={() => { onNavigate(child.path); setOpen(false) }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition select-none ${childActive
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
-                    }`}
-                >
-                  <child.icon size={13} className={childActive ? 'text-white' : 'text-zinc-400'} />
-                  {t(child.label)}
-                </button>
-              )
-            })}
-          </div>
+      {!isCollapsed && isOpen && (
+        <div className="pl-7 pr-2 space-y-0.5 mt-1 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+          {group.children.map(child => {
+            const childActive = location.pathname === child.path
+            return (
+              <button
+                key={child.id}
+                onClick={() => onNavigate(child.path)}
+                className={`w-full flex items-center gap-3 px-3 py-1.5 text-xs text-left transition select-none rounded-md ${
+                  childActive
+                    ? 'bg-blue-50 text-[#1d5f84] font-bold border border-blue-100'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-semibold border border-transparent'
+                }`}
+              >
+                <child.icon size={14} className={`shrink-0 ${childActive ? 'text-[#1d5f84]' : 'text-slate-400'}`} />
+                <span className="truncate">{t(child.label)}</span>
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
@@ -172,8 +182,14 @@ function Navbar({ backendStatus }) {
   const location = useLocation()
   const { i18n, t } = useTranslation()
   const [showProfile, setShowProfile] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [expandedGroup, setExpandedGroup] = useState(null)
   const profileRef = useRef(null)
+
+  // Use localStorage for sidebar state
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed')
+    return saved === 'true'
+  })
 
   const currentUser = JSON.parse(localStorage.getItem('user')) || {
     username: 'Admin',
@@ -193,148 +209,108 @@ function Navbar({ backendStatus }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const newState = !prev
+      localStorage.setItem('sidebarCollapsed', String(newState))
+      if (newState) {
+         setExpandedGroup(null);
+      }
+      return newState
+    })
+  }
 
   return (
-    <>
-      <nav className="bg-white border-b border-zinc-300 sticky top-0 z-40 select-none font-sans text-zinc-900">
-        {/* Top bar: brand + controls */}
-        <div className="flex items-center justify-between px-6 h-12">
-          {/* Brand */}
-          <div className="flex items-center gap-3 flex-shrink-0 cursor-pointer" onClick={() => navigate('/dashboard')}>
-            <div className="w-6 h-6 bg-zinc-800 flex items-center justify-center text-white font-mono text-xs font-bold border border-zinc-700 rounded-none shadow-sm">
-              DS
-            </div>
+    <aside className={`bg-white border-r border-slate-200 flex flex-col h-screen transition-all duration-300 z-40 relative select-none shadow-sm ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
+       {/* Top brand & toggle */}
+       <div className="h-14 flex items-center justify-between px-4 border-b border-slate-200 shrink-0">
+          <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => navigate('/dashboard')}>
+             <div className="w-8 h-8 bg-[#1d5f84] flex items-center justify-center text-white font-mono text-sm font-bold rounded-md shrink-0 shadow-sm border border-[#154662]">
+                DS
+             </div>
+             {!isCollapsed && (
+                 <div className="flex flex-col">
+                     <span className="font-extrabold text-sm text-slate-800 tracking-tight whitespace-nowrap">Danger Systeam</span>
+                     <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">{backendStatus}</span>
+                 </div>
+             )}
           </div>
+       </div>
 
-          {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-1 flex-1 justify-center px-4">
-            {NAV_GROUPS.map(group => (
-              <DropdownMenu key={group.id} group={group} onNavigate={navigate} />
-            ))}
-          </div>
+       {/* Toggle button on the edge */}
+       <button 
+         onClick={toggleSidebar}
+         className="absolute -right-3 top-4 bg-white border border-slate-200 rounded-full p-1 shadow-sm hover:bg-slate-50 z-50 text-slate-500 hover:text-slate-800"
+       >
+         {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+       </button>
 
-          {/* Right side controls */}
-          <div className="flex items-center gap-2 flex-shrink-0 font-mono text-xs">
-            {/* Financial Year */}
-            <div className="hidden sm:flex items-center bg-zinc-100 border border-zinc-300 px-2 py-1 select-none">
-              <span className="text-[10px] font-bold text-zinc-600 uppercase">
-                {t('modules.financialYear')} {currentUser.financial_year || '2026-27'}
-              </span>
-            </div>
+       {/* Nav Items */}
+       <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1 scrollbar-hide">
+         {NAV_GROUPS.map(group => (
+            <SidebarGroup 
+              key={group.id} 
+              group={group} 
+              onNavigate={navigate} 
+              isCollapsed={isCollapsed} 
+              expandedGroup={expandedGroup}
+              setExpandedGroup={setExpandedGroup}
+              onUncollapse={() => setIsCollapsed(false)}
+            />
+         ))}
+       </div>
 
-            {/* Language */}
-            <div className="flex bg-zinc-100 border border-zinc-300 p-0.5 notranslate" translate="no">
-              <button
-                onClick={() => changeLanguage('en')}
-                className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'en' ? 'bg-white text-zinc-900 border border-zinc-300 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-              >
-                <CanvasLabel text="EN" />
-              </button>
-              <button
-                onClick={() => changeLanguage('gu')}
-                className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'bg-white text-zinc-900 border border-zinc-300 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-              >
-                <CanvasLabel text="GU" />
-              </button>
-            </div>
+       {/* Bottom Actions */}
+       <div className="border-t border-slate-200 shrink-0 p-3 flex flex-col gap-2 bg-slate-50">
+         {!isCollapsed && (
+           <div className="bg-white border border-slate-200 rounded-md px-2 py-1.5 flex justify-center items-center shadow-sm">
+             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+               {t('modules.financialYear')} {currentUser.financial_year || '2026-27'}
+             </span>
+           </div>
+         )}
+         
+         <div className={`flex bg-white border border-slate-200 shadow-sm rounded-md p-0.5 notranslate ${isCollapsed ? 'flex-col gap-0.5' : 'flex-row gap-0.5'}`} translate="no">
+            <button onClick={() => changeLanguage('en')} className={`flex-1 flex items-center justify-center px-2 py-1 text-[10px] font-bold transition rounded ${i18n.language === 'en' ? 'bg-[#1d5f84] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
+              <CanvasLabel text="EN" />
+            </button>
+            <button onClick={() => changeLanguage('gu')} className={`flex-1 flex items-center justify-center px-2 py-1 text-[10px] font-bold transition rounded ${i18n.language === 'gu' ? 'bg-[#1d5f84] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
+              <CanvasLabel text="GU" />
+            </button>
+         </div>
 
-            {/* User Profile */}
-            <div ref={profileRef} className="relative">
-              <button
-                onClick={() => setShowProfile(o => !o)}
-                className="flex items-center gap-1.5 p-1 hover:bg-zinc-50 transition border border-transparent hover:border-zinc-300 rounded-none"
-              >
-                <span className="hidden lg:block text-xs font-bold text-zinc-700 font-prompt-sm">{currentUser.full_name_gu || currentUser.username}</span>
-                <ChevronDown size={12} className={`text-zinc-400 transition-transform ${showProfile ? 'rotate-180' : ''}`} />
-              </button>
+         <div ref={profileRef} className="relative mt-1">
+            <button
+               onClick={() => setShowProfile(o => !o)}
+               className="w-full flex items-center justify-center gap-2 p-2 bg-white hover:bg-slate-100 transition border border-slate-200 shadow-sm rounded-md"
+            >
+               <div className="w-6 h-6 rounded-md bg-blue-50 text-[#1d5f84] flex items-center justify-center shrink-0 border border-blue-100">
+                 <UserIcon size={14} />
+               </div>
+               {!isCollapsed && (
+                 <>
+                   <div className="flex-1 text-left truncate">
+                      <p className="text-[11px] font-bold text-slate-700 truncate">{currentUser.full_name_gu || currentUser.username}</p>
+                   </div>
+                   <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform ${showProfile ? 'rotate-180' : ''}`} />
+                 </>
+               )}
+            </button>
 
-              {showProfile && (
-                <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-400 rounded-none shadow-md py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right font-mono">
-                  <div className="px-3 py-1 mb-1 border-b border-zinc-200">
-                    <p className="text-xs font-bold text-zinc-800 font-prompt-sm">{(currentUser.full_name_gu || currentUser.username || 'ADMIN')}</p>
-                    <p className="text-[9px] text-zinc-400 mt-0.5 uppercase tracking-tight force-en">{currentUser.role || 'ADMIN'}</p>
+            {showProfile && (
+               <div className={`absolute bottom-full mb-2 bg-white border border-slate-200 rounded-md shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100 font-sans z-50 ${isCollapsed ? 'left-0 w-48 origin-bottom-left' : 'right-0 w-full origin-bottom'}`}>
+                  <div className="px-3 py-2 mb-1 border-b border-slate-100">
+                    <p className="text-xs font-bold text-slate-800">{(currentUser.full_name_gu || currentUser.username || 'ADMIN')}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide">{currentUser.role || 'ADMIN'}</p>
                   </div>
-                  <button onClick={() => { localStorage.removeItem('user'); navigate('/login') }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-700 hover:bg-red-50 transition font-bold text-xs uppercase select-none">
-                    <LogOut size={13} /> {t('modules.logout')}
+                  <button onClick={() => { localStorage.removeItem('user'); navigate('/login') }} className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 transition font-bold text-xs uppercase select-none">
+                    <LogOut size={14} /> {t('modules.logout')}
                   </button>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileOpen(o => !o)}
-              className="lg:hidden p-1.5 border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 transition rounded-none select-none"
-            >
-              {mobileOpen ? <X size={16} /> : <Menu size={16} />}
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile slide-down menu */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 top-12 bg-zinc-900/30 z-30" onClick={() => setMobileOpen(false)}>
-          <div className="bg-white border-b border-zinc-300 p-3 space-y-2 font-mono text-xs select-none" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-2 px-2 py-1 mb-1 border-b border-zinc-200">
-              <div className="flex bg-zinc-100 border border-zinc-300 px-2 py-1 select-none">
-                <span className="text-[10px] font-bold text-zinc-600">
-                  {t('modules.financialYear')} {currentUser.financial_year || '2026-27'}
-                </span>
-              </div>
-              <div className="flex bg-zinc-100 p-0.5 border border-zinc-300 notranslate" translate="no">
-                <button onClick={() => changeLanguage('en')} className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'en' ? 'bg-white text-zinc-800' : 'text-zinc-400'}`}>
-                  <CanvasLabel text="EN" />
-                </button>
-                <button onClick={() => changeLanguage('gu')} className={`flex items-center justify-center px-2 py-0.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'bg-white text-zinc-800' : 'text-zinc-400'}`}>
-                  <CanvasLabel text="GU" />
-                </button>
-              </div>
-            </div>
-            {NAV_GROUPS.map(group => {
-              if (!group.children) {
-                const active = location.pathname === group.path
-                return (
-                  <button
-                    key={group.id}
-                    onClick={() => navigate(group.path)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 transition ${active ? 'bg-blue-600 text-white font-bold' : 'text-zinc-700 hover:bg-zinc-50'}`}
-                  >
-                    <group.icon size={15} /> {t(group.label)}
-                  </button>
-                )
-              }
-              return (
-                <div key={group.id} className="pt-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-3 pb-1 border-b border-zinc-100 mb-1">{t(group.label)}</p>
-                  {group.children.map(child => {
-                    const active = location.pathname === child.path
-                    return (
-                      <button
-                        key={child.id}
-                        onClick={() => navigate(child.path)}
-                        className={`w-full flex items-center gap-2 px-5 py-1.5 transition ${active ? 'bg-blue-600 text-white font-bold' : 'text-zinc-600 hover:bg-zinc-50'}`}
-                      >
-                        <child.icon size={14} className={active ? 'text-white' : 'text-zinc-400'} />
-                        {t(child.label)}
-                      </button>
-                    )
-                  })}
-                </div>
-              )
-            })}
-            <div className="h-px bg-zinc-200 my-1" />
-            <button
-              onClick={() => { localStorage.removeItem('user'); navigate('/login') }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 transition font-bold"
-            >
-              <LogOut size={15} /> {t('modules.logout')}
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+               </div>
+            )}
+         </div>
+       </div>
+    </aside>
   )
 }
 

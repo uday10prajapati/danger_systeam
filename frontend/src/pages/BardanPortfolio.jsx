@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus, Trash2, Printer, Save,
   Search, X, RefreshCcw, Calendar,
@@ -14,9 +14,18 @@ import api, { bardanEntryApi, jamaBardanEntryApi, sabhasadMasterApi } from '../a
 import { addGujaratiFont, addPromptFont } from '../utils/pdfFonts';
 import { formatBilingualText } from '../utils/textUtils';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import Toast from '../components/Toast';
+
 
 const BardanPortfolio = () => {
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
+  const displayMemberName = (member) => {
+    if (!member) return '';
+    return isGu
+      ? (member.member_name_gu || member.member_name || member.eng_name || '')
+      : (member.eng_name || member.member_name || member.member_name_gu || '');
+  };
   const [formData, setFormData] = useState({
     id: null,
     type: 'GIVEN', // GIVEN or RETURNED
@@ -47,6 +56,32 @@ const BardanPortfolio = () => {
   const [dropdowns, setDropdowns] = useState({ code: false, name: false });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const entryFormRef = useRef(null);
+
+  const handleEnterFieldNavigation = (e) => {
+    if (e.key !== 'Enter') return;
+    const tagName = (e.target.tagName || '').toLowerCase();
+    if (tagName === 'textarea') return;
+
+    e.preventDefault();
+
+    const root = entryFormRef.current;
+    if (!root) return;
+
+    const focusable = Array.from(root.querySelectorAll('input, select, textarea, button, [tabindex]:not([tabindex="-1"])'))
+      .filter((el) => !el.disabled && el.offsetParent !== null && el.type !== 'hidden');
+
+    const currentIndex = focusable.indexOf(e.target);
+    if (currentIndex === -1) return;
+
+    const next = focusable[currentIndex + 1];
+    if (next) {
+      next.focus();
+      if (typeof next.select === 'function' && (next.tagName || '').toLowerCase() === 'input') {
+        next.select();
+      }
+    }
+  };
 
   useEffect(() => {
     const total = gridRows.reduce((acc, row) => {
@@ -54,10 +89,10 @@ const BardanPortfolio = () => {
       return acc + sum;
     }, 0);
     // Only auto-fill qty from grid if grid has data
-    if (total > 0) {
+    if (total > 0 && formData.type !== 'RETURNED') {
       setFormData(prev => ({ ...prev, qty: total.toFixed(2) }));
     }
-  }, [gridRows]);
+  }, [gridRows, formData.type]);
 
   useEffect(() => {
     loadData();
@@ -71,6 +106,17 @@ const BardanPortfolio = () => {
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (!formData.code) return;
+    const member = members.find(m => String(m.member_code) === String(formData.code));
+    if (!member) return;
+
+    const localizedName = displayMemberName(member);
+    if (localizedName && localizedName !== formData.name) {
+      setFormData(prev => ({ ...prev, name: localizedName }));
+    }
+  }, [isGu, members, formData.code, formData.name]);
 
   const loadData = async () => {
     try {
@@ -97,7 +143,7 @@ const BardanPortfolio = () => {
       const membersArr = membersRes.data.success ? (membersRes.data.data || membersRes.data) : (Array.isArray(membersRes.data) ? membersRes.data : []);
       const membersWithGu = (membersArr || []).map(m => ({
         ...m,
-        display_name: m.member_name_gu || m.member_name || m.eng_name || ''
+        display_name: m.eng_name || m.member_name || m.member_name_gu || ''
       }));
       setMembers(membersWithGu);
 
@@ -148,7 +194,7 @@ const BardanPortfolio = () => {
         const m = membersWithGu.find(mem => String(mem.member_code) === String(h.code));
         return {
           ...h,
-          name: m?.member_name_gu || m?.member_name || h.name || '',
+          name: displayMemberName(m) || h.name || '',
           display_balance: h.balance.toFixed(2),
           display_debit: h.debit.toFixed(2),
           display_credit: h.credit.toFixed(2)
@@ -173,8 +219,113 @@ const BardanPortfolio = () => {
         setBardanPrice(res.data.data?.price_per_bardan || 0);
         setPriceForm({ price_per_bardan: res.data.data?.price_per_bardan || '' });
       }
+
     } catch (err) {
       console.error('Bardan price fetch error:', err);
+    }
+  };
+
+  // Fetch entry by Pavti/Receipt number (search both bardan_entry and jama_bardan_entry)
+  const fetchByPavti = async (pavti) => {
+    if (!pavti) return;
+    try {
+      setLoading(true);
+      const isReturnMode = formData.type === 'RETURNED';
+
+      try {
+        const full = await bardanEntryApi.getEntryByPavti(pavti);
+        if (full.data?.success) {
+          const e = full.data.data;
+          let prefillQty = e.qty;
+          let prefillType = 'GIVEN';
+          let prefillId = e.id;
+          let prefillGridRows = e.gridRows || Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' }));
+
+          if (isReturnMode) {
+            try {
+              const balRes = await bardanEntryApi.getBalance(e.code);
+              const remaining = Math.max(0, parseFloat(balRes?.data?.data?.balance || 0));
+              prefillQty = '';
+              prefillType = 'RETURNED';
+              prefillId = null;
+              prefillGridRows = Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' }));
+
+              if (remaining <= 0) {
+                setMessage({ type: 'error', text: 'No remaining bardan for this member.' });
+                setTimeout(() => setMessage(null), 2500);
+              }
+            } catch (balErr) {
+              console.warn('Failed to fetch remaining balance during pavti lookup:', balErr);
+            }
+          }
+
+          setFormData(prev => ({
+            ...prev,
+            id: prefillId,
+            bookType: e.book_type,
+            pavtiNo: e.pavti_no,
+            date: e.entry_date ? new Date(e.entry_date).toISOString().split('T')[0] : prev.date,
+            memNominal: e.mem_nominal,
+            code: e.code,
+            name: e.name,
+            qty: prefillQty,
+            option: e.option_type || prev.option,
+            remark: e.remark || prev.remark,
+            dayQty: isReturnMode ? prefillQty : e.day_qty,
+            totalQty: isReturnMode ? prefillQty : e.total_qty,
+            type: prefillType
+          }));
+          setGridRows(prefillGridRows);
+          fetchBalance(e.code);
+          setMessage({
+            type: 'success',
+            text: isReturnMode ? `Loaded remaining bardan for #${e.pavti_no}` : `Loaded entry #${e.pavti_no}`
+          });
+          setTimeout(() => setMessage(null), 2500);
+          return;
+        }
+      } catch (err) {
+        // ignore and try jama
+      }
+
+      try {
+        const full = await jamaBardanEntryApi.getEntryByPavti(pavti);
+        if (full.data?.success) {
+          const e = full.data.data;
+          setFormData(prev => ({
+            ...prev,
+            id: e.id,
+            bookType: e.book_type,
+            pavtiNo: e.pavti_no,
+            date: e.entry_date ? new Date(e.entry_date).toISOString().split('T')[0] : prev.date,
+            memNominal: e.mem_nominal,
+            code: e.code,
+            name: e.name,
+            qty: e.qty,
+            option: e.option_type || prev.option,
+            remark: e.remark || prev.remark,
+            dayQty: e.day_qty,
+            totalQty: e.total_qty,
+            type: 'RETURNED'
+          }));
+          setGridRows(e.gridRows || Array.from({ length: 8 }).map(() => ({ col1: '', col2: '', col3: '' })));
+          fetchBalance(e.code);
+          setMessage({ type: 'success', text: `Loaded return #${e.pavti_no}` });
+          setTimeout(() => setMessage(null), 2500);
+          return;
+        }
+      } catch (err) {
+        // ignore and fall through
+      }
+
+      setMessage({ type: 'error', text: 'No entry found for that Pavti/Receipt number' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      console.error('Pavti lookup error:', err);
+      setMessage({ type: 'error', text: 'Lookup failed' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -297,7 +448,7 @@ const BardanPortfolio = () => {
     tempWrap.style.color = '#111827';
     tempWrap.style.fontFamily = '"Noto Sans Gujarati", "Prompt", sans-serif';
     tempWrap.style.padding = '24px';
-    tempWrap.className = 'font-prompt notranslate';
+    tempWrap.className = 'font-prompt-sm notranslate';
     tempWrap.setAttribute('translate', 'no');
 
     const tableRows = filteredRows.map((r, idx) => `
@@ -415,7 +566,7 @@ const BardanPortfolio = () => {
     if (name === 'code') {
       const member = members.find(m => m.member_code === value || String(m.member_code) === String(value));
       if (member) {
-        setFormData(prev => ({ ...prev, name: member.member_name_gu || member.display_name || member.member_name || '' }));
+        setFormData(prev => ({ ...prev, name: displayMemberName(member) || '' }));
         fetchBalance(value);
         setDropdowns(prev => ({ ...prev, code: false }));
       } else {
@@ -423,9 +574,15 @@ const BardanPortfolio = () => {
       }
     }
     if (name === 'name') {
-      const member = members.find(m => m.member_name === value || m.member_name_gu === value || m.display_name === value);
+      const member = members.find(m =>
+        m.member_name === value ||
+        m.member_name_gu === value ||
+        m.eng_name === value ||
+        m.display_name === value ||
+        displayMemberName(m) === value
+      );
       if (member) {
-        setFormData(prev => ({ ...prev, code: member.member_code, name: member.member_name_gu || member.display_name || member.member_name }));
+        setFormData(prev => ({ ...prev, code: member.member_code, name: displayMemberName(member) }));
         fetchBalance(member.member_code);
         setDropdowns(prev => ({ ...prev, name: false }));
       } else {
@@ -438,7 +595,7 @@ const BardanPortfolio = () => {
     setFormData(prev => ({
       ...prev,
       code: member.member_code,
-      name: member.member_name_gu || member.display_name || member.member_name,
+      name: displayMemberName(member),
       memNominal: member.nominal_member === 'Member' ? 'Member' : 'Nominal'
     }));
     setDropdowns({ code: false, name: false });
@@ -468,14 +625,37 @@ const BardanPortfolio = () => {
       };
 
       let res;
-      if (formData.id) {
-        res = formData.type === 'GIVEN'
-          ? await bardanEntryApi.updateEntry(formData.id, payload)
-          : await jamaBardanEntryApi.updateEntry(formData.id, payload);
-      } else {
-        res = formData.type === 'GIVEN'
-          ? await bardanEntryApi.createEntry(payload)
-          : await jamaBardanEntryApi.createEntry(payload);
+
+      // If no id but pavtiNo is provided, attempt to find existing entry and update it instead of creating duplicate
+      if (!formData.id && formData.pavtiNo) {
+        try {
+          const foundBardan = await bardanEntryApi.getEntryByPavti(formData.pavtiNo);
+          if (foundBardan.data?.success) {
+            res = await bardanEntryApi.updateEntry(foundBardan.data.data.id, payload);
+          }
+        } catch (lookupErr) {
+          try {
+            const foundJama = await jamaBardanEntryApi.getEntryByPavti(formData.pavtiNo);
+            if (foundJama.data?.success) {
+              res = await jamaBardanEntryApi.updateEntry(foundJama.data.data.id, payload);
+            }
+          } catch (nestedErr) {
+            console.warn('Pavti lookup during save failed', nestedErr);
+          }
+        }
+      }
+
+      // If res is still undefined, fall back to normal create/update flow
+      if (!res) {
+        if (formData.id) {
+          res = formData.type === 'GIVEN'
+            ? await bardanEntryApi.updateEntry(formData.id, payload)
+            : await jamaBardanEntryApi.updateEntry(formData.id, payload);
+        } else {
+          res = formData.type === 'GIVEN'
+            ? await bardanEntryApi.createEntry(payload)
+            : await jamaBardanEntryApi.createEntry(payload);
+        }
       }
 
       if (res.data.success) {
@@ -623,477 +803,491 @@ const BardanPortfolio = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 text-zinc-900 select-none animate-none font-bold">
-      {message && (
-        <div className={`p-4 mb-4 border text-xs font-bold ${message.type === 'error' ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-emerald-50 border-emerald-300 text-emerald-700'}`}>
-          {message.text}
-        </div>
-      )}
+    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-800 select-none animate-none pb-12">
+      <Toast message={message} onClose={() => setMessage(null)} />
 
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+      <div className="max-w-[1600px] mx-auto space-y-4">
         {showHistory ? (
-          <div className="space-y-6 select-none animate-none">
+          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[500px] shadow-none select-none animate-none">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-                  <History size={20} className="text-zinc-600" />
-                  {t('bardanPortfolio.historyTitle')}
-                </h1>
-                <p className="text-xs text-zinc-500 mt-0.5 uppercase tracking-wider">{t('bardanPortfolio.historyEyebrow')}</p>
-              </div>
+            <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                {t('bardanPortfolio.historyTitle')}
+                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm ml-1.5">
+                  {(formData.code ? ledgerData : history).length} {t('common.records')}
+                </span>
+              </span>
 
-              <div className="flex items-center gap-2 select-none w-full md:w-auto">
-                <button
-                  onClick={handleHistoryPrint}
-                  className="flex items-center gap-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold px-3 py-2 transition shadow-sm select-none"
-                >
-                  <Printer size={15} /> {t('common.print') || 'PRINT'}
-                </button>
-                <button
-                  onClick={handleHistoryExportPDF}
-                  className="flex items-center gap-1.5 bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-700 text-xs font-bold px-3 py-2 transition shadow-sm select-none"
-                >
-                  <FileText size={15} />{t('common.pdf')}</button>
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 transition shadow-sm select-none"
-                >
-                  <X size={16} /> {t('bardanPortfolio.exitHistory')}
-                </button>
-              </div>
-            </div>
-
-            {/* Dense Table Layout */}
-            <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[450px]">
-              <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                    {t('bardanPortfolio.historyLog')}
-                  </span>
-                  <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-bold text-[10px] px-2 py-0.5">
-                    {(formData.code ? ledgerData : history).length} {t('common.records')}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-                  <Search size={16} className="text-zinc-400" />
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="h-7 flex items-center gap-1.5 px-2 bg-white border border-slate-200 rounded-md focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] w-full sm:w-48 transition">
+                  <Search size={13} className="text-slate-400" />
                   <input
                     type="text"
                     value={historySearchQuery}
                     onChange={(e) => setHistorySearchQuery(e.target.value)}
-                    placeholder={t("bardanPortfolio.searchLogs")}
-                    className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48"
+                    placeholder={t("bardanPortfolio.searchLogs") || "Search logs..."}
+                    className="bg-transparent border-none outline-none text-[11px] text-slate-700 placeholder:text-slate-400 w-full font-bold"
                   />
                 </div>
+                <button
+                  onClick={handleHistoryPrint}
+                  title={t('common.print') || "Print"}
+                  className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                >
+                  <Printer size={13} className="text-slate-500" />
+                </button>
+                <button
+                  onClick={handleHistoryExportPDF}
+                  title={t('common.pdf') || "PDF"}
+                  className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                >
+                  <FileText size={13} className="text-slate-500" />
+                </button>
+                <button
+                  onClick={loadData}
+                  title="Refresh"
+                  className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                >
+                  <RefreshCcw size={13} className={`text-slate-500 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  title={t('bardanPortfolio.exitHistory') || "Close"}
+                  className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-[#ef4444] hover:border-rose-200 transition rounded-md cursor-pointer shadow-sm"
+                >
+                  <X size={13} className="text-slate-500" />
+                </button>
               </div>
+            </div>
 
-              <div className="overflow-x-auto bg-white">
-                <table className="min-w-full divide-y divide-zinc-200 select-none">
-                  <thead className="bg-zinc-50 select-none">
-                     <tr className="text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-300">
-                      <th className="px-4 py-3">{t('bardanPortfolio.table.date')}</th>
-                      <th className="px-4 py-3">{t('bardanPortfolio.table.particulars')}</th>
-                      <th className="px-4 py-3 text-right">{t('bardanPortfolio.table.debit')}</th>
-                      <th className="px-4 py-3 text-right">{t('bardanPortfolio.table.credit')}</th>
-                      <th className="px-4 py-3 text-right">{t('bardanPortfolio.table.balance')}</th>
-                      <th className="px-4 py-3 text-right w-24">{t('bardanPortfolio.table.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-zinc-200 text-xs select-none">
-                    {(formData.code ? ledgerData : history).filter(row => {
-                      const term = (historySearchQuery || '').toLowerCase();
-                      const dateStr = (row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—';
-                      const partStr = row.particulars || row.name || (row.type === 'GIVEN' ? (t('bardanPortfolio.given') || 'આપેલ') : (t('bardanPortfolio.returned') || 'પરત'));
-                      const pvtStr = row.pavti_no || '';
-                      return dateStr.toLowerCase().includes(term) || partStr.toLowerCase().includes(term) || pvtStr.toLowerCase().includes(term);
-                    }).map((row, i) => (
-                      <tr key={row.id || i} className="hover:bg-zinc-50 transition select-none">
-                        <td className="px-4 py-3 font-bold force-en">
-                          {(row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-') : '—'}
-                        </td>
-                        <td className={`px-4 py-3 text-zinc-800 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans italic'}`} style={i18n.language === 'gu' ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
-                          <span className={i18n.language === 'gu' ? '' : 'font-bold'}>
-                            {i18n.language === 'gu' ? formatBilingualText(row.particulars || row.name || (row.type === 'GIVEN' ? (t('bardanPortfolio.given') || 'આપેલ') : (t('bardanPortfolio.returned') || 'પરત'))) : (row.particulars || row.name || (row.type === 'GIVEN' ? (t('bardanPortfolio.given') || 'આપેલ') : (t('bardanPortfolio.returned') || 'પરત')))}
-                          </span>
-                          {row.pavti_no && <span className="block text-[10px] text-blue-600 mt-0.5 font-bold">{t('bardanEntry.pavti_no') || 'પાવતી'}: {formatBilingualText(row.pavti_no)}</span>}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-zinc-700 force-en">
-                          {row.debit ?? (row.type === 'GIVEN' ? row.qty : 0)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-emerald-600 force-en">
-                          {row.credit ?? (row.type === 'RETURNED' ? row.qty : 0)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-zinc-800 force-en">
-                          {row.balance != null ? row.balance : 0}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1.5">
-                            {!formData.code && (
+            <div className="overflow-x-auto bg-white">
+              <table className="min-w-full divide-y divide-slate-100 select-none">
+                <thead className="bg-slate-50 select-none">
+                  <tr className="text-left text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-200 bg-slate-50/50">
+                    <th className="px-4 py-2.5">{t('bardanPortfolio.table.date')}</th>
+                    <th className="px-4 py-2.5">{t('bardanPortfolio.table.particulars')}</th>
+                    <th className="px-4 py-2.5 text-right">{t('bardanPortfolio.table.debit')}</th>
+                    <th className="px-4 py-2.5 text-right">{t('bardanPortfolio.table.credit')}</th>
+                    <th className="px-4 py-2.5 text-right">{t('bardanPortfolio.table.balance')}</th>
+                    <th className="px-4 py-2.5 text-right w-24">{t('bardanPortfolio.table.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-100 text-xs select-none">
+                  {(formData.code ? ledgerData : history).filter(row => {
+                    const term = (historySearchQuery || '').toLowerCase();
+                    const dateStr = (row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—';
+                    const partStr = row.particulars || row.name || (row.type === 'GIVEN' ? (t('bardanPortfolio.given') || 'આપેલ') : (t('bardanPortfolio.returned') || 'પરત'));
+                    const pvtStr = row.pavti_no || '';
+                    return dateStr.toLowerCase().includes(term) || partStr.toLowerCase().includes(term) || pvtStr.toLowerCase().includes(term);
+                  }).map((row, i) => (
+                    <tr key={row.id || i} className="hover:bg-slate-50/75 transition border-b border-slate-100">
+                      <td className="px-4 py-2.5 font-bold force-en font-mono text-slate-700">
+                        {(row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString('en-GB').replace(/\//g, '-') : '—'}
+                      </td>
+                      <td className={`px-4 py-2.5 text-slate-800 ${i18n.language === 'gu' ? 'font-prompt-sm' : 'font-sans'}`}>
+                        <span className={i18n.language === 'gu' ? 'font-extrabold' : 'font-bold'}>
+                          {i18n.language === 'gu' ? formatBilingualText(row.particulars || row.name || (row.type === 'GIVEN' ? (t('bardanPortfolio.given') || 'આપેલ') : (t('bardanPortfolio.returned') || 'પરત'))) : (row.particulars || row.name || (row.type === 'GIVEN' ? (t('bardanPortfolio.given') || 'આપેલ') : (t('bardanPortfolio.returned') || 'પરત')))}
+                        </span>
+                        {row.pavti_no && <span className="block text-[10px] text-blue-600 mt-0.5 font-bold">{t('bardanEntry.pavti_no') || 'પાવતી'}: {formatBilingualText(row.pavti_no)}</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-bold text-slate-700 force-en font-mono">
+                        {row.debit ?? (row.type === 'GIVEN' ? row.qty : 0)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-bold text-emerald-600 force-en font-mono">
+                        {row.credit ?? (row.type === 'RETURNED' ? row.qty : 0)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-black text-slate-800 force-en font-mono">
+                        {row.balance != null ? row.balance : 0}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex justify-end gap-1.5">
+                          {!formData.code && (
+                            <button
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  code: row.code,
+                                  name: row.name
+                                }));
+                                fetchBalance(row.code);
+                              }}
+                              className="h-6 flex items-center gap-1 px-2 border border-slate-200 hover:bg-slate-50 text-[#1d5f84] hover:text-[#154662] transition rounded-md font-bold text-[9px] uppercase tracking-wide bg-white cursor-pointer select-none"
+                              title="View Ledger"
+                            >
+                              <Eye size={12} />
+                              <span>{t('bardanPortfolio.viewLedger') || 'View'}</span>
+                            </button>
+                          )}
+                          {(row.type === 'GIVEN' || row.type === 'RETURNED') && row.id && row.id !== 'OP' && (
+                            <>
                               <button
-                                onClick={() => {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    code: row.code,
-                                    name: row.name
-                                  }));
-                                  fetchBalance(row.code);
-                                }}
-                                className="p-1 border border-zinc-200 hover:bg-zinc-50 text-blue-600 hover:text-blue-800 transition flex items-center gap-1 font-bold text-[9px] uppercase tracking-wide bg-white"
-                                title="View Ledger"
+                                onClick={() => handleEdit(row)}
+                                className="p-1 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-[#1d5f84] transition rounded cursor-pointer"
                               >
-                                <Eye size={12} />
-                                <span>{t('bardanPortfolio.viewLedger') || 'View'}</span>
+                                <Edit2 size={13} />
                               </button>
-                            )}
-                            {(row.type === 'GIVEN' || row.type === 'RETURNED') && row.id && row.id !== 'OP' && (
-                              <>
-                                <button
-                                  onClick={() => handleEdit(row)}
-                                  className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-blue-600 transition"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                                <button
-                                  onClick={() => confirmDelete(row)}
-                                  className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-rose-600 transition"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                              <button
+                                onClick={() => confirmDelete(row)}
+                                className="p-1 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-rose-600 transition rounded cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         ) : (
-          <div className="space-y-6 select-none animate-none">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-                  <ArrowLeftRight size={20} className="text-zinc-600" />
-                  {t('bardanPortfolio.title')}
-                </h1>
-                <p className="text-xs font-prompt text-zinc-500 mt-0.5 uppercase tracking-wider">{t('bardanPortfolio.eyebrow')}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 select-none">
+            <div className="lg:col-span-8 bg-white border border-slate-200 rounded-lg flex flex-col shadow-none overflow-hidden">
+              {/* Form Section Header with Actions */}
+              <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                  {formData.id ? t('bardanPortfolio.form.updateNode') || 'Update Bardan Node' : t('bardanPortfolio.title')}
+                </span>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPriceModal(true)}
+                    className="h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
+                  >
+                    <Tag size={13} /> {t('bardanPortfolio.bardanRate')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHistory(true)}
+                    className="h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
+                  >
+                    <History size={13} /> {t('bardanPortfolio.history')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
+                  >
+                    <X size={13} /> {t('common.reset') || 'RESET'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="h-7 flex items-center gap-1.5 px-3.5 text-[11px] font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] rounded-md transition shadow-none select-none cursor-pointer"
+                  >
+                    <Save size={13} />
+                    {formData.id ? t('bardanPortfolio.form.updateNode') || 'Update' : t('bardanPortfolio.saveTransaction')}
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <button
-                  onClick={() => setShowPriceModal(true)}
-                  className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
-                >
-                  <Tag size={14} /> {t('bardanPortfolio.bardanRate')}
-                </button>
-                <button
-                  onClick={() => setShowHistory(true)}
-                  className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none transition"
-                >
-                  <History size={14} /> {t('bardanPortfolio.history')}
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white text-xs font-bold px-4 py-2 select-none transition shadow-sm"
-                >
-                  <Save size={14} /> {t('bardanPortfolio.saveTransaction')}
-                </button>
-              </div>
-            </div>
+              <div ref={entryFormRef} onKeyDown={handleEnterFieldNavigation} className="p-5 flex flex-col gap-5">
+                {/* Ledger Type Toggler */}
+                <div className="flex p-0.5 bg-slate-100 border border-slate-200 rounded-md gap-0.5 max-w-md select-none">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type: 'GIVEN' })}
+                    disabled={!!formData.id}
+                    className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'GIVEN'
+                      ? 'bg-white text-slate-800 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-600'
+                      } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <TrendingUp size={14} className={formData.type === 'GIVEN' ? "text-[#1d5f84]" : ""} />
+                    {t('bardanPortfolio.giveBags')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type: 'RETURNED' })}
+                    disabled={!!formData.id}
+                    className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'RETURNED'
+                      ? 'bg-white text-slate-800 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-600'
+                      } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <TrendingDown size={14} className={formData.type === 'RETURNED' ? "text-emerald-600" : ""} />
+                    {t('bardanPortfolio.returnBags')}
+                  </button>
+                </div>
 
-            {/* Entry Workspace Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              <div className="lg:col-span-8 space-y-4">
-                <div className="bg-white p-5 border border-zinc-300 space-y-5">
-                  {/* Ledger Type Toggler */}
-                  <div className="flex gap-1 bg-zinc-100 border border-zinc-300 p-1 select-none">
-                    <button
-                      onClick={() => setFormData({ ...formData, type: 'GIVEN' })}
-                      disabled={!!formData.id}
-                      className={`flex-1 py-2.5 rounded-sm flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'GIVEN'
-                        ? 'bg-blue-600 text-white border border-blue-600'
-                        : 'text-zinc-600'
-                        } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <TrendingUp size={15} /> {t('bardanPortfolio.giveBags')}
-                    </button>
-                    <button
-                      onClick={() => setFormData({ ...formData, type: 'RETURNED' })}
-                      disabled={!!formData.id}
-                      className={`flex-1 py-2.5 rounded-sm flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'RETURNED'
-                        ? 'bg-blue-600 text-white border border-blue-600'
-                        : 'text-zinc-600'
-                        } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <TrendingDown size={15} /> {t('bardanPortfolio.returnBags')}
-                    </button>
+                {/* Form Grid Details */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.pavti_no')}</label>
+                    <input
+                      name="pavtiNo"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en text-slate-700"
+                      placeholder={t("bardanEntry.enterPavtiNo")}
+                      value={formData.pavtiNo}
+                      onChange={handleChange}
+                      onBlur={() => fetchByPavti(formData.pavtiNo)}
+                    />
                   </div>
 
-                  {/* Form Grid Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.pavti_no')}</label>
-                      <input
-                        name="pavtiNo"
-                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-bold text-xs force-en"
-                        placeholder={t("bardanEntry.enterPavtiNo")}
-                        value={formData.pavtiNo}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.date')}</label>
-                      <input
-                        type="date"
-                        name="date"
-                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-bold text-xs force-en"
-                        value={formData.date}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1 relative member-select-container">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanPortfolio.memberCode')}</label>
-                      <input
-                        type="text"
-                        name="code"
-                        translate="no"
-                        lang="en"
-                        className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-bold text-xs force-en notranslate"
-                        placeholder={t("bardanEntry.code")}
-                        value={formData.code}
-                        autoComplete="off"
-                        onFocus={() => setDropdowns(prev => ({ ...prev, code: true }))}
-                        onChange={handleChange}
-                      />
-                      <div className="mt-1 text-xs text-zinc-500 select-none force-en">{formData.code}</div>
-                      {dropdowns.code && (
-                        <div className="absolute z-[100] w-full top-full left-0 mt-1 bg-white border border-zinc-300 shadow-lg max-h-[250px] overflow-y-auto">
-                          {members
-                            .filter(m => String(m.member_code).toLowerCase().includes(String(formData.code).toLowerCase()))
-                            .slice(0, 50)
-                            .map(m => (
-                              <div
-                                key={m.id}
-                                onClick={() => selectMember(m)}
-                                className="px-3 py-2 hover:bg-zinc-100 border-b border-zinc-200 cursor-pointer text-xs transition"
-                              >
-                                <div className="flex justify-between items-center select-none">
-                                  <span className="font-bold text-zinc-800 force-en">{m.member_code}</span>
-                                  <span className="text-[10px] font-bold text-zinc-400">{m.village_name}</span>
-                                </div>
-                                <p className={`text-[10px] text-zinc-500 tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'font-bold'}`} style={i18n.language === 'gu' ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(m.member_name_gu || m.display_name || m.member_name)}</p>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-1 relative member-select-container">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanPortfolio.memberName')}</label>
-                      <input
-                        type="text"
-                        name="name"
-                        lang="gu"
-                        className={`w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition text-xs ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans font-bold uppercase'}`}
-                        style={i18n.language === 'gu' ? { fontFamily: "'Prompt', sans-serif" } : {}}
-                        placeholder={t("bardanEntry.name")}
-                        value={formData.name}
-                        autoComplete="off"
-                        onFocus={() => setDropdowns(prev => ({ ...prev, name: true }))}
-                        onChange={handleChange}
-                      />
-                      {dropdowns.name && (
-                        <div className="absolute z-[100] w-full top-full left-0 mt-1 bg-white border border-zinc-300 shadow-lg max-h-[250px] overflow-y-auto">
-                          {members
-                            .filter(m => ((m.member_name_gu || m.display_name || m.member_name) || '').toLowerCase().includes(String(formData.name || '').toLowerCase()))
-                            .slice(0, 50)
-                            .map(m => (
-                              <div
-                                key={m.id}
-                                onClick={() => selectMember(m)}
-                                className="px-3 py-2 hover:bg-zinc-100 border-b border-zinc-200 cursor-pointer text-xs transition"
-                              >
-                                <div className="flex justify-between items-center select-none">
-                                  <span className={`text-zinc-800 ${i18n.language === 'gu' ? 'font-prompt' : 'font-bold'}`} style={i18n.language === 'gu' ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(m.member_name_gu || m.display_name || m.member_name)}</span>
-                                  <span className="text-[10px] font-bold text-zinc-400 uppercase">{m.member_code}</span>
-                                </div>
-                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">{m.village_name}</p>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 select-none">
-                    <div className="flex flex-col gap-1 relative">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanPortfolio.labels.bagsCount')}</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          name="qty"
-                          className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-bold text-xs force-en"
-                          placeholder="0.00"
-                          value={formData.qty}
-                          onChange={handleChange}
-                        />
-                        {formData.type === 'RETURNED' && (
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-zinc-50 border border-zinc-300 px-2 py-0.5 select-none">
-                            <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest leading-none">{t('bardanPortfolio.table.balance')}: </span>
-                            <span className="text-emerald-700 force-en font-bold text-xs leading-none">{balanceData.balance || 0}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanEntry.mem_nominal')}</label>
-                      <div className="flex items-center gap-3 bg-zinc-50 p-2 border border-zinc-300 select-none">
-                        <input
-                          type="checkbox"
-                          id="memNominalCheck"
-                          className="w-4 h-4 rounded text-zinc-600 border-zinc-300 focus:ring-zinc-500 transition-all cursor-pointer"
-                          checked={formData.memNominal === 'Member'}
-                          onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
-                        />
-                        <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-zinc-700 cursor-pointer select-none">
-                          {formData.memNominal === 'Member' ? t('bardanPortfolio.labels.sabhasadActive') : t('bardanPortfolio.labels.nominalMember')}
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1 select-none">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('bardanEntry.remark')}</label>
-                    <textarea
-                      name="remark"
-                      className={`w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition text-xs min-h-[70px] ${i18n.language === 'gu' ? 'font-prompt' : 'font-bold uppercase'}`}
-                      style={i18n.language === 'gu' ? { fontFamily: "'Prompt', sans-serif" } : {}}
-                      placeholder="ENTER REMARK..."
-                      value={formData.remark}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.date')}</label>
+                    <input
+                      type="date"
+                      name="date"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en text-slate-700 font-mono"
+                      value={formData.date}
                       onChange={handleChange}
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Side Panels - Metric Insights & Grid Matrix */}
-              <div className="lg:col-span-4 space-y-4 select-none">
-                <div className="bg-white p-4 border border-zinc-300 space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-300">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp size={15} className="text-zinc-600" />
-                      <p className="text-[10px] font-bold text-zinc-600 uppercase">{t('bardanPortfolio.labels.totalTaken')}</p>
-                    </div>
-                    <p className="text-base font-bold text-zinc-800 leading-none force-en">{((balanceData.opening || 0) + (balanceData.taken || 0)).toFixed(2)}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5 relative member-select-container">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanPortfolio.memberCode')}</label>
+                    <input
+                      type="text"
+                      name="code"
+                      translate="no"
+                      lang="en"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en notranslate text-slate-700 font-mono"
+                      placeholder={t("bardanEntry.code")}
+                      value={formData.code}
+                      autoComplete="off"
+                      onFocus={() => setDropdowns(prev => ({ ...prev, code: true }))}
+                      onChange={handleChange}
+                    />
+                    <div className="mt-1 text-[10px] text-slate-400 font-bold select-none force-en">{formData.code}</div>
+                    {dropdowns.code && (
+                      <div className="absolute z-[100] w-full top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-[250px] overflow-y-auto divide-y divide-slate-100">
+                        {members
+                          .filter(m => String(m.member_code).toLowerCase().includes(String(formData.code).toLowerCase()))
+                          .slice(0, 50)
+                          .map(m => (
+                            <div
+                              key={m.id}
+                              onClick={() => selectMember(m)}
+                              className="px-3.5 py-2 hover:bg-slate-50 cursor-pointer text-xs transition flex flex-col"
+                            >
+                              <div className="flex justify-between items-center select-none">
+                                <span className="font-bold text-slate-800 force-en font-mono">{m.member_code}</span>
+                                <span className="text-[10px] font-extrabold text-slate-400 uppercase">{m.village_name}</span>
+                              </div>
+                              <p className={`text-[10px] text-slate-500 mt-0.5 tracking-tight ${isGu ? 'font-prompt-sm' : 'font-bold'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(displayMemberName(m))}</p>
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-300">
-                    <div className="flex items-center gap-2">
-                      <TrendingDown size={15} className="text-zinc-600" />
-                      <p className="text-[10px] font-bold text-zinc-600 uppercase">{t('bardanPortfolio.labels.totalReturned')}</p>
-                    </div>
-                    <p className="text-base font-bold text-zinc-800 leading-none force-en">{balanceData.returned}</p>
-                  </div>
-
-                  <div className="p-4 bg-zinc-50 border border-zinc-300 flex justify-between items-center">
-                    <div className="flex flex-col justify-between">
-                      <span className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">{t('bardanPortfolio.labels.closingBalance')}</span>
-                      <span className="text-lg font-bold text-zinc-800 mt-1 leading-none force-en">{balanceData.balance}</span>
-                    </div>
-                    {bardanPrice > 0 && (
-                      <div className="text-right flex flex-col justify-between">
-                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Valuation</span>
-                        <span className="text-sm font-bold text-blue-600 mt-1 leading-none force-en">₹{(balanceData.balance * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <div className="flex flex-col gap-1.5 relative member-select-container">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanPortfolio.memberName')}</label>
+                    <input
+                      type="text"
+                      name="name"
+                      lang={isGu ? 'gu' : 'en'}
+                      className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition text-xs text-slate-700 font-bold ${isGu ? 'font-prompt-sm' : 'font-sans uppercase'}`}
+                      style={isGu ? { fontFamily: "'Prompt', sans-serif" } : {}}
+                      placeholder={t("bardanEntry.name")}
+                      value={formData.name}
+                      autoComplete="off"
+                      onFocus={() => setDropdowns(prev => ({ ...prev, name: true }))}
+                      onChange={handleChange}
+                    />
+                    {dropdowns.name && (
+                      <div className="absolute z-[100] w-full top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-[250px] overflow-y-auto divide-y divide-slate-100">
+                        {members
+                          .filter(m => {
+                            const term = String(formData.name || '').toLowerCase();
+                            return (
+                              String(displayMemberName(m) || '').toLowerCase().includes(term) ||
+                              String(m.member_name || '').toLowerCase().includes(term) ||
+                              String(m.member_name_gu || '').toLowerCase().includes(term) ||
+                              String(m.eng_name || '').toLowerCase().includes(term)
+                            );
+                          })
+                          .slice(0, 50)
+                          .map(m => (
+                            <div
+                              key={m.id}
+                              onClick={() => selectMember(m)}
+                              className="px-3.5 py-2 hover:bg-slate-50 cursor-pointer text-xs transition flex flex-col"
+                            >
+                              <div className="flex justify-between items-center select-none">
+                                <span className={`text-slate-800 ${isGu ? 'font-prompt-sm font-extrabold' : 'font-bold'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(displayMemberName(m))}</span>
+                                <span className="text-[10px] font-extrabold text-slate-400 font-mono uppercase">{m.member_code}</span>
+                              </div>
+                              <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tight">{m.village_name}</p>
+                            </div>
+                          ))}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-white border border-zinc-300 flex flex-col select-none">
-                  <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between select-none">
-                    <span className="text-xs font-bold text-zinc-700 uppercase">{t('bardanEntry.multiVectorMatrix')}</span>
-                  </div>
-
-                  <div className="p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 select-none">
+                  <div className="flex flex-col gap-1.5 relative">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanPortfolio.labels.bagsCount')}</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        name="qty"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en text-slate-700 font-mono pr-28"
+                        placeholder="0.00"
+                        value={formData.qty}
+                        onChange={handleChange}
+                      />
+                      {formData.type === 'RETURNED' && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 select-none flex items-center gap-1 h-6">
+                          <span className="text-slate-400 text-[8px] font-bold uppercase tracking-widest leading-none">{t('bardanPortfolio.table.balance')}: </span>
+                          <span className="text-[#1d5f84] force-en font-black text-xs leading-none font-mono">{balanceData.balance || 0}</span>
+                        </div>
+                      )}
+                    </div>
                     {formData.type === 'RETURNED' && (
-                      <div className="flex flex-col gap-1 select-none">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase italic">{t('bardanEntry.option')}</label>
-                        <select
-                          name="option"
-                          className="w-full px-3 py-1.5 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition font-bold text-xs select-none"
-                          value={formData.option}
-                          onChange={handleChange}
-                        >
-                          <option value="Company">{t('bardanPortfolio.labels.companyBags')}</option>
-                          <option value="Self">{t('bardanPortfolio.labels.personalBags')}</option>
-                        </select>
+                      <div className="text-[10px] font-bold text-[#1d5f84] force-en mt-1">
+                        Remaining Bardan Qty: {parseFloat(balanceData.balance || 0).toFixed(2)}
                       </div>
                     )}
-
-                    <div className="flex flex-col gap-1 select-none">
-                      <div className="max-h-[180px] overflow-y-auto border border-zinc-200">
-                        <table className="w-full text-xs select-none">
-                          <thead className="bg-zinc-50 select-none">
-                            <tr className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-300 select-none">
-                              <th className="py-2 text-center w-8">#</th>
-                              <th className="py-2 px-1 text-left">POS 1</th>
-                              <th className="py-2 px-1 text-left">POS 2</th>
-                              <th className="py-2 px-1 text-left">POS 3</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-200">
-                            {gridRows.map((row, i) => (
-                              <tr key={i} className="hover:bg-zinc-50 transition select-none">
-                                <td className="text-center font-bold text-zinc-400 text-[10px] select-none force-en">{i + 1}</td>
-                                <td className="px-1 py-1">
-                                  <input
-                                    className="w-full bg-white border border-zinc-300 px-2 py-1 font-bold text-zinc-700 outline-none focus:border-zinc-500 force-en"
-                                    value={row.col1}
-                                    onChange={(e) => {
-                                      const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
-                                    }}
-                                  />
-                                </td>
-                                <td className="px-1 py-1">
-                                  <input
-                                    className="w-full bg-white border border-zinc-300 px-2 py-1 font-bold text-zinc-700 outline-none focus:border-zinc-500 force-en"
-                                    value={row.col2}
-                                    onChange={(e) => {
-                                      const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
-                                    }}
-                                  />
-                                </td>
-                                <td className="px-1 py-1">
-                                  <input
-                                    className="w-full bg-white border border-zinc-300 px-2 py-1 font-bold text-zinc-700 outline-none focus:border-zinc-500 force-en"
-                                    value={row.col3}
-                                    onChange={(e) => {
-                                      const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
-                                    }}
-                                  />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
                   </div>
 
-                  <div className="p-4 border-t border-zinc-300 bg-zinc-50 select-none">
-                    <div className="flex justify-between items-center text-zinc-600">
-                      <p className="text-[10px] font-bold uppercase tracking-wider">{t('bardanPortfolio.labels.totalVolume')}</p>
-                      <p className="text-xl font-bold tracking-tight text-zinc-900 leading-none force-en">{parseFloat(formData.qty || 0).toFixed(2)}</p>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.mem_nominal')}</label>
+                    <div className="flex items-center gap-3 bg-slate-50 p-2 border border-slate-200 rounded-md select-none h-[31px]">
+                      <input
+                        type="checkbox"
+                        id="memNominalCheck"
+                        className="w-4 h-4 rounded text-[#1d5f84] border-slate-300 focus:ring-[#1d5f84] transition-all cursor-pointer"
+                        checked={formData.memNominal === 'Member'}
+                        onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
+                      />
+                      <label htmlFor="memNominalCheck" className="text-xs font-extrabold uppercase tracking-wider text-slate-600 cursor-pointer select-none">
+                        {formData.memNominal === 'Member' ? t('bardanPortfolio.labels.sabhasadActive') : t('bardanPortfolio.labels.nominalMember')}
+                      </label>
                     </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 select-none">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.remark')}</label>
+                  <textarea
+                    name="remark"
+                    className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition text-xs text-slate-700 min-h-[80px] ${i18n.language === 'gu' ? 'font-prompt-sm' : 'font-bold uppercase'}`}
+                    style={i18n.language === 'gu' ? { fontFamily: "'Prompt', sans-serif" } : {}}
+                    placeholder="ENTER REMARK..."
+                    value={formData.remark}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Side Panels - Metric Insights & Grid Matrix */}
+            <div className="lg:col-span-4 space-y-4 select-none">
+              <div className="bg-white p-4 border border-slate-200 rounded-lg flex flex-col shadow-none space-y-3">
+                <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={15} className="text-[#1d5f84]" />
+                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{t('bardanPortfolio.labels.totalTaken')}</p>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 leading-none force-en font-mono">{((balanceData.opening || 0) + (balanceData.taken || 0)).toFixed(2)}</p>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown size={15} className="text-emerald-600" />
+                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{t('bardanPortfolio.labels.totalReturned')}</p>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 leading-none force-en font-mono">{balanceData.returned}</p>
+                </div>
+
+                <div className="p-3 bg-slate-50/75 border border-slate-100 rounded-md flex justify-between items-center">
+                  <div className="flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">{t('bardanPortfolio.labels.closingBalance')}</span>
+                    <span className="text-base font-black text-slate-800 mt-1 leading-none force-en font-mono">{balanceData.balance}</span>
+                  </div>
+                  {bardanPrice > 0 && (
+                    <div className="text-right flex flex-col justify-between">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Valuation</span>
+                      <span className="text-sm font-black text-[#1d5f84] mt-1 leading-none force-en font-mono">₹{(balanceData.balance * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-lg flex flex-col shadow-none overflow-hidden select-none">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between select-none">
+                  <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">{t('bardanEntry.multiVectorMatrix')}</span>
+                </div>
+
+                <div className="p-4 space-y-4">
+                  {formData.type === 'RETURNED' && (
+                    <div className="flex flex-col gap-1.5 select-none">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.option')}</label>
+                      <select
+                        name="option"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-xs select-none rounded-md text-slate-700 cursor-pointer"
+                        value={formData.option}
+                        onChange={handleChange}
+                      >
+                        <option value="Company">{t('bardanPortfolio.labels.companyBags')}</option>
+                        <option value="Self">{t('bardanPortfolio.labels.personalBags')}</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1 select-none">
+                    <div className="max-h-[220px] overflow-y-auto border border-slate-100 rounded-md">
+                      <table className="w-full text-xs select-none">
+                        <thead className="bg-slate-50 select-none sticky top-0 z-10">
+                          <tr className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 select-none">
+                            <th className="py-2 text-center w-8">#</th>
+                            <th className="py-2 px-1 text-center">POS 1</th>
+                            <th className="py-2 px-1 text-center">POS 2</th>
+                            <th className="py-2 px-1 text-center">POS 3</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {gridRows.map((row, i) => (
+                            <tr key={i} className="hover:bg-slate-50/50 transition select-none">
+                              <td className="text-center font-bold text-slate-300 text-[10px] select-none force-en font-mono">{i + 1}</td>
+                              <td className="px-1 py-1">
+                                <input
+                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-xs focus:ring-1 focus:ring-[#1d5f84]"
+                                  value={row.col1}
+                                  onChange={(e) => {
+                                    const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
+                                  }}
+                                />
+                              </td>
+                              <td className="px-1 py-1">
+                                <input
+                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-xs focus:ring-1 focus:ring-[#1d5f84]"
+                                  value={row.col2}
+                                  onChange={(e) => {
+                                    const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
+                                  }}
+                                />
+                              </td>
+                              <td className="px-1 py-1">
+                                <input
+                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-xs focus:ring-1 focus:ring-[#1d5f84]"
+                                  value={row.col3}
+                                  onChange={(e) => {
+                                    const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 border-t border-slate-100 bg-slate-50/50 select-none">
+                  <div className="flex justify-between items-center text-slate-600">
+                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{t('bardanPortfolio.labels.totalVolume')}</p>
+                    <p className="text-base font-black tracking-tight text-[#1d5f84] leading-none force-en font-mono">{parseFloat(formData.qty || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -1104,34 +1298,39 @@ const BardanPortfolio = () => {
 
       {/* Bardan Rate Modal */}
       {showPriceModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
-          <div className="bg-white border border-zinc-300 p-5 w-full max-w-md flex flex-col animate-none">
-            <div className="flex justify-between items-center border-b border-zinc-300 pb-3 mb-4 select-none">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 select-none">
+          <div className="bg-white border border-slate-200 rounded-lg p-5 w-full max-w-md flex flex-col shadow-none select-none animate-none">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4 select-none">
               <div className="flex items-center gap-2">
-                <Tag size={18} className="text-zinc-600" />
+                <Tag size={16} className="text-[#1d5f84]" />
                 <div>
-                  <h2 className="text-base font-bold text-zinc-900">{t('bardanPortfolio.rateModal.title')}</h2>
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase">{t('bardanPortfolio.rateModal.subtitle')}</p>
+                  <h2 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">{t('bardanPortfolio.rateModal.title')}</h2>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{t('bardanPortfolio.rateModal.subtitle')}</p>
                 </div>
               </div>
-              <button onClick={() => setShowPriceModal(false)} className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-700 transition"><X size={16} /></button>
+              <button
+                onClick={() => setShowPriceModal(false)}
+                className="p-1 border border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition rounded-md cursor-pointer"
+              >
+                <X size={14} />
+              </button>
             </div>
 
             <div className="space-y-4 select-none">
-              <div className="p-4 bg-zinc-50 border border-zinc-300 flex justify-between items-center">
-                <div className="flex items-center gap-2 leading-none">
-                  <Database size={14} className="text-zinc-400" />
-                  <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-none">{t('bardanPortfolio.rateModal.activeRate')}</p>
+              <div className="p-3 bg-slate-50/75 border border-slate-100 rounded-md flex justify-between items-center">
+                <div className="flex items-center gap-1.5 leading-none">
+                  <Database size={13} className="text-slate-400" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">{t('bardanPortfolio.rateModal.activeRate')}</p>
                 </div>
-                <p className="text-lg font-bold text-zinc-800 leading-none force-en">₹{parseFloat(bardanPrice || 0).toFixed(2)}</p>
+                <p className="text-sm font-black text-slate-800 leading-none force-en font-mono">₹{parseFloat(bardanPrice || 0).toFixed(2)}</p>
               </div>
 
               <div className="flex flex-col gap-1 select-none">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-relaxed">{t('bardanPortfolio.rateModal.valuationLabel')}</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-relaxed">{t('bardanPortfolio.rateModal.valuationLabel')}</label>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-sm font-bold text-zinc-800 text-lg outline-none focus:border-zinc-500 transition force-en"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md font-bold text-slate-700 text-sm outline-none transition force-en font-mono"
                   placeholder="0.00"
                   value={priceForm.price_per_bardan}
                   onChange={(e) => setPriceForm({ ...priceForm, price_per_bardan: e.target.value })}
@@ -1139,23 +1338,23 @@ const BardanPortfolio = () => {
                     if (e.key === 'Enter') saveBardanPrice();
                   }}
                 />
-                <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider leading-relaxed select-none">
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-relaxed select-none">
                   {t('bardanPortfolio.rateModal.valuationNote')}
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-zinc-200">
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
                 <button
                   onClick={() => setShowPriceModal(false)}
-                  className="flex-1 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold select-none transition"
+                  className="flex-1 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[11px] font-bold select-none transition rounded-md cursor-pointer flex items-center justify-center"
                 >
                   {t('common.cancel') || 'Cancel'}
                 </button>
                 <button
                   onClick={saveBardanPrice}
-                  className="flex-[2] py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold select-none transition flex items-center justify-center gap-1.5"
+                  className="flex-[2] py-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] text-[11px] font-bold select-none transition rounded-md cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <Save size={15} />
+                  <Save size={13} />
                   <span>{t('bardanPortfolio.rateModal.updateRate')}</span>
                 </button>
               </div>

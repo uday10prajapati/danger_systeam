@@ -21,6 +21,7 @@ import Loading from '../components/Loading';
 const DangarPaymentReport = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -59,39 +60,63 @@ const DangarPaymentReport = () => {
   const [narration, setNarration] = useState('');
   const [seasons, setSeasons] = useState([]);
   const [currentSeason, setCurrentSeason] = useState(null);
+  const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
   useEffect(() => {
-    fetchInitialData().then(() => fetchReport());
-  }, []);
-
-  const fetchInitialData = async () => {
-    try {
-      const [mRes, iRes, cRes, bRes] = await Promise.all([
-        api.get('/members'),
-        api.get('/items'),
-        api.get('/company'),
-        api.get('/banks')
-      ]);
-      if (mRes.data.success) setMembers(mRes.data.data);
-      if (iRes.data.success) setItems(iRes.data.data);
-      if (cRes.data.success) {
-        const compData = cRes.data.data;
-        setCompany(compData);
-        setCompanyAccount(compData?.company_account_no || '');
-        const sRes = await api.get(`/seasons/company/${compData.id}`);
-        if (sRes.data.success) {
-          const sList = sRes.data.data || [];
-          setSeasons(sList);
-          if (sList.length > 0) setCurrentSeason(sList[0]);
-        }
-      }
-      if (bRes.data.success) setBanks(bRes.data.data);
-    } catch (err) {
-      console.error('Failed to load filter dependencies:', err);
-    }
+  const load = async () => {
+    const initialData = await fetchInitialData();
+    fetchReport(initialData?.members || []);
   };
 
-  const fetchReport = async () => {
+  load();
+}, []);
+
+  const fetchInitialData = async () => {
+  try {
+    const [mRes, iRes, cRes, bRes] = await Promise.all([
+      api.get('/members'),
+      api.get('/items'),
+      api.get('/company'),
+      api.get('/banks')
+    ]);
+
+    let fetchedMembers = [];
+
+    if (mRes.data.success) {
+      fetchedMembers = mRes.data.data;
+      setMembers(fetchedMembers);
+    }
+
+    if (iRes.data.success) setItems(iRes.data.data);
+
+    if (cRes.data.success) {
+      const compData = cRes.data.data;
+      setCompany(compData);
+      setCompanyAccount(compData?.company_account_no || '');
+
+      const sRes = await api.get(`/seasons/company/${compData.id}`);
+
+      if (sRes.data.success) {
+        const sList = sRes.data.data || [];
+        setSeasons(sList);
+
+        if (sList.length > 0) setCurrentSeason(sList[0]);
+      }
+    }
+
+    if (bRes.data.success) setBanks(bRes.data.data);
+
+    return {
+      members: fetchedMembers
+    };
+
+  } catch (err) {
+    console.error('Failed to load filter dependencies:', err);
+    return { members: [] };
+  }
+};
+
+  const fetchReport = async (membersList = members) => {
     try {
       setLoading(true);
       setError('');
@@ -111,6 +136,17 @@ const DangarPaymentReport = () => {
 
       if (res.data.success) {
         let rows = res.data.data || [];
+        
+        // Enrich rows with member English names from members list
+        rows = rows.map(r => {
+          const member = membersList.find(m => String(m.id) === String(r.member_id));
+          return {
+            ...r,
+            eng_name: member?.eng_name || '',
+            member_name_gu: r.member_name // Store original Gujarati name
+          };
+        });
+        
         if (filters.memberId) {
           rows = rows.filter(r => String(r.member_id) === String(filters.memberId));
         }
@@ -135,7 +171,7 @@ const DangarPaymentReport = () => {
         setData(rows);
         const s = rows.reduce((acc, r) => {
           let finalAmt = parseFloat(r.final_amount || 0);
-          
+
           // Adjust finalAmt by adding back excluded deductions
           if (r.other_deductions) {
             r.other_deductions.forEach(od => {
@@ -196,11 +232,11 @@ const DangarPaymentReport = () => {
     }, {}));
 
     if (!aggregated.length) { alert('No valid data to export.'); return; }
-    
+
     const rows = aggregated.map((r, i) => ({
       'Sr.': i + 1,
       'CODE': r.member_code,
-      'NAME': r.member_name,
+      'NAME': isGu ? (r.member_name_gu || r.member_name || '') : (r.eng_name || r.member_name || ''),
       'ACCOUNT NUMBER': r.full_ac_number || '',
       'IFSC': r.ifsc_code || '',
       'PAYABLE AMOUNT': parseFloat(r.final_amount || 0),
@@ -221,7 +257,7 @@ const DangarPaymentReport = () => {
     const H = doc.internal.pageSize.getHeight();
     const M = 32;
     const navy = [37, 99, 235], white = [255, 255, 255], gray = [100, 116, 139], dark = [30, 41, 59], stripe = [241, 245, 249];
-    const cName = (() => { try { const u = JSON.parse(localStorage.getItem('company')); return u?.company_name || 'Company'; } catch (e) { return 'Company'; } })();
+    const cName = getCompanyName();
 
     const hdr = () => {
       doc.setFillColor(...navy); doc.rect(0, 0, W, 26, 'F');
@@ -291,10 +327,12 @@ const DangarPaymentReport = () => {
         });
       }
 
+      const displayName = isGu ? (r.member_name_gu || r.member_name || '') : (r.member_name || r.member_name_gu || '');
+
       return [
         i + 1,
         r.member_code,
-        r.member_name,
+        displayName,
         r.quality_class,
         r.full_ac_number || '-',
         parseFloat(r.total_quintal || 0).toFixed(2),
@@ -332,6 +370,25 @@ const DangarPaymentReport = () => {
     doc.save('dangar_payment_' + filters.startDate + '_' + filters.endDate + '.pdf');
   };
 
+  // Helper: Get member name in correct language
+  const getMemberName = (member) => {
+    if (!member) return '';
+    return isGu ? (member.member_name || member.eng_name || '') : (member.eng_name || member.member_name || '');
+  };
+
+  // Helper: Get company name in correct language
+  const getCompanyName = (comp = null) => {
+    const activeComp = comp || company;
+    if (!activeComp) return isGu ? 'ડાંગર સિસ્ટમ' : 'Dangar System';
+    return isGu ? (activeComp.company_name_gu || activeComp.company_name || 'ડાંગર સિસ્ટમ') : (activeComp.company_name || 'Dangar System');
+  };
+
+  // Helper: Format number with language-appropriate representation
+  const formatNumber = (value, decimals = 2) => {
+    const num = Number(value || 0).toFixed(decimals);
+    return isGu ? toGujaratiDigits(num) : num;
+  };
+
   const num = (value) => {
     const parsed = parseFloat(value || 0);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -349,9 +406,9 @@ const DangarPaymentReport = () => {
   const guMoney = (value) => toGujaratiDigits(money(value));
 
   const guDate = (value) => toGujaratiDigits(new Date(value || new Date()).toLocaleDateString('en-GB'));
-  
+
   const fromGujaratiDigits = (value) => {
-    const guToEn = { '૦':'0', '૧':'1', '૨':'2', '૩':'3', '૪':'4', '૫':'5', '૬':'6', '૭':'7', '૮':'8', '૯':'9' };
+    const guToEn = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
     return String(value || '').replace(/[૦-૯]/g, (d) => guToEn[d] || d);
   };
 
@@ -381,7 +438,7 @@ const DangarPaymentReport = () => {
     const activeComp = comp || company || cachedCompany;
     const activeSeason = season || currentSeason;
 
-    const companyName = activeComp?.company_name_gu || activeComp?.company_name || 'ડાંગર સિસ્ટમ';
+    const companyName = getCompanyName(activeComp);
     const billDate = bill.entry_date || bill.date || new Date();
     const d = new Date(billDate);
     const yr = d.getFullYear();
@@ -389,7 +446,7 @@ const DangarPaymentReport = () => {
     const fyS = mo >= 4 ? yr : yr - 1;
     const fyE = fyS + 1;
     const calculatedFY = `${fyS}-${fyE % 100}`;
-    
+
     const seasonName = bill.season || activeSeason?.name || activeSeason?.season || '';
     const financialYear = bill.financial_year || activeSeason?.financial_year || activeSeason?.year || calculatedFY;
 
@@ -397,7 +454,9 @@ const DangarPaymentReport = () => {
     const seasonLabel = tSeason.includes('summer') ? 'ઉનાળુ' : (tSeason.includes('winter') ? 'શિયાળુ' : (seasonName || 'ડાંગર અહેવાલ'));
     const seasonText = `${seasonLabel} ${toGujaratiDigits(financialYear)}`;
 
-    const mName = bill.member_name_gu || member.member_name_gu || member.member_name || bill.member_name || member.eng_name || '';
+    const mName = isGu 
+      ? (bill.member_name_gu || member.member_name_gu || member.member_name || bill.member_name || member.eng_name || '')
+      : (member.eng_name || member.member_name || bill.member_name || bill.member_name_gu || member.member_name_gu || '');
     const vName = bill.village_name || member.village_name || member.village || '';
     const dName = bill.dangar_name_gu || bill.item_name_gu || bill.dangar_name || bill.item_name || '';
     const bName = member.bank_name || bill.bank_name || bank.bank_name || '';
@@ -485,12 +544,12 @@ const DangarPaymentReport = () => {
       return;
     }
     if (!data.length) { alert('No data to export.'); return; }
-    
+
     // Generate a clean default narration in English
     const date = new Date();
     const yr = date.getFullYear();
     setNarration(`DANGAR PAYMENT REPORT - ${yr}`);
-    
+
     setTxtModal(true);
   };
 
@@ -500,7 +559,7 @@ const DangarPaymentReport = () => {
       const s = String(val !== null && val !== undefined ? val : '').slice(0, len);
       return right ? s.padEnd(len, padChar) : s.padStart(len, padChar);
     };
-    const guToEnDigits = { '૦':'0', '૧':'1', '૨':'2', '૩':'3', '૪':'4', '૫':'5', '૬':'6', '૭':'7', '૮':'8', '૯':'9' };
+    const guToEnDigits = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
     const toEnglishText = (value) => String(value || '')
       .replace(/[૦-૯]/g, (d) => guToEnDigits[d] || d)
       .normalize('NFKD')
@@ -558,7 +617,7 @@ const DangarPaymentReport = () => {
       const freshMembers = deps.freshMembers || [];
       const freshBanks = deps.freshBanks || [];
       const freshCompany = deps.freshCompany || company;
-      
+
       // Use filtered season if selected, else default to freshSeason
       let targetSeason = deps.freshSeason || currentSeason;
       if (filters.season) {
@@ -574,7 +633,7 @@ const DangarPaymentReport = () => {
       const M = 10;
       const contentW = W - (M * 2);
       const slipH = (H - (M * 2)) / 2 - 2;
-      
+
       const navy = [15, 23, 42];
       const white = [255, 255, 255];
       const gray = [100, 116, 139];
@@ -583,7 +642,7 @@ const DangarPaymentReport = () => {
       const drawDynamicText = (p, text, x, y, options = {}) => {
         const str = String(text || '').trim();
         if (!str) return;
-        
+
         const isGujarati = options.forceGujarati || /[\u0A80-\u0AFF]/.test(str);
         p.setFont(isGujarati ? 'NotoGujarati' : 'helvetica', options.fontStyle || 'normal');
         p.text(str, x, y, options);
@@ -591,7 +650,7 @@ const DangarPaymentReport = () => {
 
       const drawSlip = (bill, yOffset, copyTitle) => {
         const meta = resolveBillMeta(bill, freshMembers, freshBanks, freshCompany, targetSeason);
-        
+
         // Outer border
         pdf.setDrawColor(203, 213, 225);
         pdf.setLineWidth(0.3);
@@ -637,12 +696,12 @@ const DangarPaymentReport = () => {
           const rawName = cls.dangar_name_gu || cls.dangar_name || cls.item_name_gu || cls.item_name || meta.itemName || 'DANGAR';
           const name = String(rawName).trim() || 'DANGAR';
           const isNameGuj = /[\u0A80-\u0AFF]/.test(name);
-          
+
           const clsVal = formatQualityClass(cls.quality_class || meta.qualityClass);
           // IMPORTANT: If name is English, we MUST use English class digits (1, 2, 3) 
           // because the NotoGujarati font cannot render English letters.
           const clsText = isNameGuj ? toGujaratiDigits(clsVal) : clsVal;
-          
+
           return [
             `${name} (${clsText})`,
             toGujaratiDigits(cls.entry_count || 1),
@@ -678,12 +737,12 @@ const DangarPaymentReport = () => {
         const boxW = (contentW - 12) / 2;
         pdf.setDrawColor(203, 213, 225);
         pdf.rect(M + 4, midY, boxW, 42);
-        
+
         pdf.setFontSize(7.5);
         pdf.setFont('NotoGujarati', 'normal');
         pdf.setTextColor(...gray);
         pdf.text('બેંક વિગત / બેંક નું નામ', M + 6, midY + 4);
-        
+
         pdf.setFontSize(7);
         pdf.setTextColor(...dark);
         pdf.setFont('NotoGujarati', 'normal');
@@ -697,7 +756,7 @@ const DangarPaymentReport = () => {
         pdf.setFont('helvetica', 'normal');
         pdf.text('IFSC:', M + 6, midY + 25);
         drawDynamicText(pdf, meta.ifscCode, M + 18, midY + 25);
-        
+
         pdf.setFont('NotoGujarati', 'normal');
         pdf.setFontSize(6);
         pdf.setTextColor(...gray);
@@ -771,7 +830,7 @@ const DangarPaymentReport = () => {
         acc[b.member_id].total_fund += parseFloat(b.godown_fund || 0);
         acc[b.member_id].total_int += parseFloat(b.total_interest || 0);
         acc[b.member_id].total_bardan_penalty += parseFloat(b.bardan_penalty || 0);
-        
+
         let subtotal = parseFloat(b.final_amount || 0);
 
         if (b.other_deductions) {
@@ -785,10 +844,10 @@ const DangarPaymentReport = () => {
             }
             const existing = acc[b.member_id].all_other_deductions.find(x => x.account_name === od.account_name);
             if (existing) existing.amount = (parseFloat(existing.amount) + parseFloat(od.amount)).toFixed(2);
-            else acc[b.member_id].all_other_deductions.push({...od});
+            else acc[b.member_id].all_other_deductions.push({ ...od });
           });
         }
-        
+
         acc[b.member_id].total_final += subtotal;
         return acc;
       }, {});
@@ -818,229 +877,143 @@ const DangarPaymentReport = () => {
 
   if (loading) return <Loading />;
 
+  const defaultStart = '2026-04-01';
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  const hasActiveFilters = filters.memberId !== '' || filters.bankName !== '' || filters.season !== '' || filters.qualityClass !== '' || filters.startDate !== defaultStart || filters.endDate !== defaultEnd;
+
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-800 select-none animate-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
-      <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2 select-none">
-              <TrendingUp size={20} className="text-zinc-600" />
-              {t('dangarPaymentReport.title')}
-            </h1>
-            <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('dangarPaymentReport.eyebrow')}</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 select-none w-full md:w-auto">
-            <button
-              onClick={() => { setBillModal(true); setSelectedBills([]); }}
-              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
-            >
-              <Printer size={14} /> {t('dangarPaymentReport.printBill')}
-            </button>
-            <button
-              onClick={openExportModal}
-              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
-            >
-              <FileText size={14} /> {t('dangarPaymentReport.txt')}
-            </button>
-            <button
-              onClick={exportExcel}
-              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
-            >
-              <Database size={14} /> {t('dangarPaymentReport.excel')}
-            </button>
-            <button
-              onClick={exportPDF}
-              className="px-3 py-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition select-none"
-            >
-              <FileText size={14} /> {t('dangarPaymentReport.pdf')}
-            </button>
-            <button
-              onClick={() => navigate('/dangar-summary')}
-              className="px-4 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-xs font-bold flex items-center gap-2 transition-all shadow-sm text-white select-none"
-            >
-              <TrendingUp size={15} /> {t('dangarPaymentReport.dangarSummary')}
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 border border-zinc-300 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('dangarPaymentReport.startDate')}</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-                <input
-                  type="date"
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('dangarPaymentReport.endDate')}</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-                <input
-                  type="date"
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('dangarPaymentReport.sabhasad')}</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-                <select
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700 appearance-none uppercase"
-                  value={filters.memberId}
-                  onChange={(e) => setFilters({ ...filters, memberId: e.target.value })}
-                >
-                  <option value="">{t('dangarPaymentReport.allIdentities')}</option>
-                  {members.map(m => <option key={m.id} value={m.id}>{m.member_code} - {m.member_name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('dangarPaymentReport.bankStream')}</label>
-              <div className="relative">
-                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-                <select
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none transition-all font-bold text-sm text-zinc-700 appearance-none uppercase"
-                  value={filters.bankName}
-                  onChange={(e) => setFilters({ ...filters, bankName: e.target.value })}
-                >
-                  <option value="">{t('dangarPaymentReport.allBanks')}</option>
-                  {banks.map(b => <option key={b.id} value={b.bank_name}>{b.bank_name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('dangarPaymentReport.season')}</label>
-              <select
-                className="w-full px-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none font-bold text-sm text-zinc-700 appearance-none uppercase"
-                value={filters.season}
-                onChange={(e) => setFilters({ ...filters, season: e.target.value })}
-              >
-                <option value="">{t('dangarPaymentReport.allSeasons')}</option>
-                {seasons.map(s => (
-                  <option key={s.id} value={s.name}>{s.name} ({s.financial_year})</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">{t('dangarPaymentReport.class')}</label>
-              <select
-                className="w-full px-4 py-2 bg-white border border-zinc-300 focus:border-zinc-500 outline-none font-bold text-sm text-zinc-700 appearance-none uppercase"
-                value={filters.qualityClass}
-                onChange={(e) => setFilters({ ...filters, qualityClass: e.target.value })}
-              >
-                <option value="">{t('dangarPaymentReport.allClasses')}</option>
-                <option value="1st">1st Class</option>
-                <option value="2nd">2nd Class</option>
-                <option value="3rd">3rd Class</option>
-              </select>
-            </div>
-            <button
-              onClick={fetchReport}
-              disabled={loading}
-              className="px-6 py-2.5 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-xs select-none shadow-sm"
-            >
-              {loading ? <RefreshCcw className="animate-spin" size={15} /> : <Filter size={15} />}
-              {t('dangarPaymentReport.generateReport')}
-            </button>
-          </div>
-        </div>
+      <div className="max-w-[1600px] mx-auto">
 
         {error && (
-          <div className="mb-4 p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-700 rounded-lg flex items-center gap-3">
-            <AlertCircle size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">{error}</span>
+          <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 flex items-center gap-2">
+            <AlertCircle size={14} />
+            <span className="text-xs font-bold uppercase tracking-wider">{error}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 select-none">
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('dangarPaymentReport.summary.totalVolume')}</span>
-            <span className={`text-2xl font-bold mt-1 ${i18n.language === 'gu' ? 'font-sans' : 'font-mono text-zinc-800'}`}>
-              {i18n.language === 'gu' ? toGujaratiDigits(summary.totalQuintal.toFixed(2)) : summary.totalQuintal.toFixed(2)}
-              <span className="text-xs ml-2 opacity-70">
-                {i18n.language === 'gu' ? t('dangarPaymentReport.table.quintal') : 'Qt'}
-              </span>
-            </span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('dangarPaymentReport.summary.bagPenalty')}</span>
-            <span className={`text-2xl font-bold mt-1 ${i18n.language === 'gu' ? 'font-sans' : 'font-mono text-zinc-800'}`}>
-              ₹{i18n.language === 'gu' ? toGujaratiDigits(summary.totalBardanPenalty?.toFixed(2) || '0.00') : (summary.totalBardanPenalty?.toFixed(2) || '0.00')}
-            </span>
-          </div>
-          <div className="bg-zinc-50 border border-zinc-300 p-3 flex flex-col justify-between h-24">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('dangarPaymentReport.summary.finalPayable')}</span>
-            <span className={`text-2xl font-bold mt-1 ${i18n.language === 'gu' ? 'font-sans' : 'font-mono text-zinc-800'}`}>
-              ₹{i18n.language === 'gu' ? toGujaratiDigits(summary.totalFinal.toFixed(2)) : summary.totalFinal.toFixed(2)}
-            </span>
-          </div>
-        </div>
+        {/* Main Table Card */}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[600px] shadow-none select-none">
 
-        <div className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[400px]">
-          <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between flex-wrap gap-3 select-none">
+          {/* Table Header Bar */}
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider select-none">
+              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
                 {t('dangarPaymentReport.paymentList')}
               </span>
-              <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5 select-none">
+              <span className="bg-slate-200 text-slate-600 font-bold text-[9px] px-1.5 py-0.5 rounded-sm font-mono">
                 {data.length} {t('dangarPaymentReport.records')}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 border border-zinc-300 bg-white px-3 py-1.5 focus-within:border-zinc-500 w-full md:w-auto">
-              <Search size={16} className="text-zinc-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("dangarPaymentReport.searchPlaceholder")}
-                className="bg-transparent border-none outline-none text-xs text-zinc-800 placeholder:text-zinc-400 w-full md:w-48 font-mono"
-              />
+            <div className="flex items-center gap-1.5">
+              {/* Search */}
+              <div className="h-7 flex items-center gap-1.5 px-2 bg-white border border-slate-200 rounded-md focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] w-52 transition">
+                <Search size={13} className="text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("dangarPaymentReport.searchPlaceholder")}
+                  className="bg-transparent border-none outline-none text-[11px] text-slate-700 placeholder:text-slate-400 w-full font-bold"
+                />
+              </div>
+
+              {/* Filter Drawer Button */}
+              <button
+                onClick={() => setShowFiltersDrawer(true)}
+                className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
+                  ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+              >
+                <Filter size={13} className={hasActiveFilters ? 'text-white' : 'text-slate-500'} />
+                <span>Filters</span>
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 border border-white"></span>
+                  </span>
+                )}
+              </button>
+
+              {/* Icon-only action buttons */}
+              <button
+                onClick={() => { setBillModal(true); setSelectedBills([]); }}
+                title={t('dangarPaymentReport.printBill')}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <Printer size={13} className="text-slate-500" />
+              </button>
+              <button
+                onClick={openExportModal}
+                title={t('dangarPaymentReport.txt')}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <FileText size={13} className="text-slate-500" />
+              </button>
+              <button
+                onClick={exportExcel}
+                title={t('dangarPaymentReport.excel')}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <Database size={13} className="text-slate-500" />
+              </button>
+              <button
+                onClick={exportPDF}
+                title={t('dangarPaymentReport.pdf')}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <Download size={13} className="text-slate-500" />
+              </button>
+              <button
+                onClick={() => navigate('/dangar-summary')}
+                title={t('dangarPaymentReport.dangarSummary')}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-[#1d5f84] transition rounded-md cursor-pointer shadow-sm"
+              >
+                <TrendingUp size={13} className="text-slate-500" />
+              </button>
+              <button
+                onClick={fetchReport}
+                title="Refresh"
+                className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+              >
+                <RefreshCcw size={13} className={`text-slate-500 ${loading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
 
+          {/* Table */}
           <div className="overflow-x-auto bg-white select-none flex-1">
             <table className="min-w-[1200px] w-full text-left border-collapse font-sans text-xs select-none">
               <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-300 text-[10px] font-bold text-zinc-600 uppercase tracking-wider select-none font-sans">
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 w-12 text-center select-none">#</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 select-none">{t('dangarPaymentReport.table.memberName')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 select-none">{t('dangarPaymentReport.class')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none">{t('dangarPaymentReport.table.quintal')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-zinc-800">{t('dangarPaymentReport.table.rateAmt')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-rose-600">{t('dangarPaymentReport.table.advance')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-blue-600">{t('dangarPaymentReport.table.interest')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-zinc-800">{t('dangarPaymentReport.table.godownFund')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-amber-600">{t('dangarPaymentReport.table.bagPenalty')}</th>
-                  <th scope="col" className="px-4 py-2 border-r border-zinc-200 text-right select-none text-rose-600">{t('dangarPaymentReport.table.totalDeduction')}</th>
-                  <th scope="col" className="px-4 py-2 text-right select-none text-emerald-600">{t('dangarPaymentReport.table.finalAmt')}</th>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 border-r border-slate-100 w-12 text-center">#</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100">{t('dangarPaymentReport.table.memberName')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-center">{t('dangarPaymentReport.class')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right">{t('dangarPaymentReport.table.quintal')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right">{t('dangarPaymentReport.table.rateAmt')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right text-rose-400">{t('dangarPaymentReport.table.advance')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right text-blue-400">{t('dangarPaymentReport.table.interest')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right">{t('dangarPaymentReport.table.godownFund')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right text-amber-400">{t('dangarPaymentReport.table.bagPenalty')}</th>
+                  <th className="px-4 py-2.5 border-r border-slate-100 text-right text-rose-400">{t('dangarPaymentReport.table.totalDeduction')}</th>
+                  <th className="px-4 py-2.5 text-right text-emerald-500">{t('dangarPaymentReport.table.finalAmt')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 text-xs font-mono">
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {loading ? (
                   <tr>
-                    <td colSpan="10" className="py-20 text-center">
-                      <RefreshCcw size={32} className="animate-spin text-blue-500 mx-auto mb-3" />
+                    <td colSpan="11" className="py-20 text-center">
+                      <RefreshCcw size={28} className="animate-spin text-[#1d5f84] mx-auto mb-3" />
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Report...</p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="py-20 text-center">
-                      <Info size={48} className="text-slate-100 mx-auto mb-3" />
+                    <td colSpan="11" className="py-20 text-center">
+                      <AlertCircle className="w-10 h-10 text-slate-200 mx-auto mb-4" />
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No transaction data available</p>
                     </td>
                   </tr>
@@ -1053,31 +1026,33 @@ const DangarPaymentReport = () => {
                   }).map((row, i, arr) => {
                     const isFirstOfMember = i === 0 || arr[i - 1].member_id !== row.member_id;
                     return (
-                      <tr key={`${row.member_id}-${row.quality_class}`} className="hover:bg-zinc-50/60 transition-all select-none border-b border-zinc-100">
-                        <td className="px-4 py-3 border-r border-zinc-200 text-xs font-bold text-zinc-400 text-center select-none">{i + 1}</td>
-                        <td className={`px-4 py-3 border-r border-zinc-200 select-none ${!isFirstOfMember ? 'opacity-20' : ''}`}>
+                      <tr key={`${row.member_id}-${row.quality_class}`} className="hover:bg-slate-50/50 transition-all select-none">
+                        <td className="py-3 px-4 border-r border-slate-100 text-[10px] font-bold text-slate-400 text-center">{i + 1}</td>
+                        <td className={`py-3 px-4 border-r border-slate-100 ${!isFirstOfMember ? 'opacity-20' : ''}`}>
                           {isFirstOfMember && (
                             <>
-                              <p className={`text-sm font-bold text-slate-800 tracking-tight italic ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase font-sans'}`}>{row.member_name}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">કોડ: {row.member_code}</p>
+                              <p className={`text-[11px] font-bold text-slate-800 tracking-tight uppercase ${isGu ? 'font-prompt' : ''}`}>
+                                {isGu ? (row.member_name_gu || row.member_name || '') : (row.eng_name ||  '')}
+                              </p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">CODE: {row.member_code}</p>
                             </>
                           )}
                         </td>
-                        <td className="px-4 py-3 border-r border-zinc-200 select-none font-bold text-zinc-600 uppercase text-center">
+                        <td className="py-3 px-4 border-r border-slate-100 font-bold text-slate-600 uppercase text-center text-[11px]">
                           {formatQualityClass(row.quality_class)}
                         </td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-slate-600 text-sm font-mono select-none">{row.total_quintal}</td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.rate_amount}</td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.member_advance}</td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-blue-600 text-sm font-mono select-none">₹{row.total_interest}</td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-zinc-800 text-sm font-mono select-none">₹{row.godown_fund}</td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right select-none">
-                          <p className="text-sm font-bold text-amber-600 font-mono">₹{row.bardan_penalty}</p>
-                          {isFirstOfMember && <p className="text-[9px] font-bold text-slate-400 font-sans uppercase tracking-wider">{row.bardan_remaining} ગુણ</p>}
+                        <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-slate-700 font-mono">{formatNumber(row.total_quintal)}</td>
+                        <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-slate-800 font-mono">₹{formatNumber(row.rate_amount)}</td>
+                        <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-rose-600 font-mono">₹{formatNumber(row.member_advance)}</td>
+                        <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-blue-600 font-mono">₹{formatNumber(row.total_interest)}</td>
+                        <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-slate-700 font-mono">₹{formatNumber(row.godown_fund)}</td>
+                        <td className="py-3 px-4 border-r border-slate-100 text-right">
+                          <p className="font-bold text-amber-600 font-mono">₹{formatNumber(row.bardan_penalty)}</p>
+                          {isFirstOfMember && <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{formatNumber(row.bardan_remaining)} {isGu ? 'ગુણ' : 'units'}</p>}
                         </td>
-                        <td className="px-4 py-3 border-r border-zinc-200 text-right font-bold text-rose-600 text-sm font-mono select-none">₹{row.total_deductions}</td>
-                        <td className="px-4 py-3 text-right select-none">
-                          <span className="text-base font-black text-emerald-600 tracking-tighter bg-emerald-50/50 px-3 py-1 border border-emerald-200/60 font-mono select-none">₹{row.final_amount}</span>
+                        <td className="py-3 px-4 border-r border-slate-100 text-right font-bold text-rose-600 font-mono">₹{formatNumber(row.total_deductions)}</td>
+                        <td className="py-3 px-4 text-right">
+                          <span className="font-black text-emerald-600 bg-emerald-50/50 px-2 py-0.5 border border-emerald-200/60 rounded font-mono text-[11px]">₹{formatNumber(row.final_amount)}</span>
                         </td>
                       </tr>
                     );
@@ -1088,6 +1063,146 @@ const DangarPaymentReport = () => {
           </div>
         </div>
       </div>
+
+      {/* Slide-Out Filters Drawer */}
+      <div className={`fixed inset-0 z-[100] overflow-hidden ${showFiltersDrawer ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-300 ${showFiltersDrawer ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setShowFiltersDrawer(false)}
+        />
+        {/* Drawer Panel */}
+        <div className={`fixed inset-y-0 right-0 max-w-full flex pl-10 transform transition-transform duration-300 ease-in-out ${showFiltersDrawer ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="w-screen max-w-sm bg-white border-l border-slate-200 flex flex-col shadow-none">
+
+            {/* Drawer Title Bar */}
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2 select-none">
+                <Filter size={14} className="text-[#1d5f84]" />
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">Filter Parameters</span>
+              </div>
+              <button
+                onClick={() => setShowFiltersDrawer(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Scrollable Filters Form */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+              {/* Date Range */}
+              <div className="space-y-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Date Range Period</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
+                    <input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full"
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
+                    <input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Member */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dangarPaymentReport.sabhasad')}</span>
+                <select
+                  value={filters.memberId}
+                  onChange={(e) => setFilters({ ...filters, memberId: e.target.value })}
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                >
+                  <option value="">{t('dangarPaymentReport.allIdentities')}</option>
+                  {members.map(m => <option key={m.id} value={m.id}>{m.member_code} - {getMemberName(m)}</option>)}
+                </select>
+              </div>
+
+              {/* Bank */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dangarPaymentReport.bankStream')}</span>
+                <select
+                  value={filters.bankName}
+                  onChange={(e) => setFilters({ ...filters, bankName: e.target.value })}
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                >
+                  <option value="">{t('dangarPaymentReport.allBanks')}</option>
+                  {banks.map(b => <option key={b.id} value={b.bank_name}>{b.bank_name}</option>)}
+                </select>
+              </div>
+
+              {/* Season */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dangarPaymentReport.season')}</span>
+                <select
+                  value={filters.season}
+                  onChange={(e) => setFilters({ ...filters, season: e.target.value })}
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                >
+                  <option value="">{t('dangarPaymentReport.allSeasons')}</option>
+                  {seasons.map(s => <option key={s.id} value={s.name}>{s.name} ({s.financial_year})</option>)}
+                </select>
+              </div>
+
+              {/* Quality Class */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dangarPaymentReport.class')}</span>
+                <select
+                  value={filters.qualityClass}
+                  onChange={(e) => setFilters({ ...filters, qualityClass: e.target.value })}
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                >
+                  <option value="">{t('dangarPaymentReport.allClasses')}</option>
+                  <option value="1st">1st Class</option>
+                  <option value="2nd">2nd Class</option>
+                  <option value="3rd">3rd Class</option>
+                </select>
+              </div>
+
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2">
+              <button
+                onClick={() => {
+                  setFilters({
+                    startDate: '2026-04-01',
+                    endDate: new Date().toISOString().split('T')[0],
+                    memberId: '',
+                    itemId: '',
+                    bankName: '',
+                    season: '',
+                    qualityClass: ''
+                  });
+                }}
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
+              >
+                Reset All
+              </button>
+              <button
+                onClick={() => { setShowFiltersDrawer(false); fetchReport(); }}
+                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
 
       {/* TXT Export Modal */}
       {txtModal && (
@@ -1259,10 +1374,10 @@ const DangarPaymentReport = () => {
             acc[b.member_id].total_bardan_penalty += parseFloat(b.bardan_penalty || 0);
             if (b.other_deductions) {
               b.other_deductions.forEach(od => {
-                 acc[b.member_id].total_other += parseFloat(od.amount || 0);
-                 const existing = acc[b.member_id].all_other_deductions.find(x => x.account_name === od.account_name);
-                 if (existing) existing.amount = (parseFloat(existing.amount || 0) + parseFloat(od.amount || 0)).toFixed(2);
-                 else acc[b.member_id].all_other_deductions.push({...od});
+                acc[b.member_id].total_other += parseFloat(od.amount || 0);
+                const existing = acc[b.member_id].all_other_deductions.find(x => x.account_name === od.account_name);
+                if (existing) existing.amount = (parseFloat(existing.amount || 0) + parseFloat(od.amount || 0)).toFixed(2);
+                else acc[b.member_id].all_other_deductions.push({ ...od });
               });
             }
             return acc;
@@ -1289,7 +1404,7 @@ const DangarPaymentReport = () => {
               <div className="w-full h-[148.5mm] border-b border-zinc-400 p-8 flex flex-col font-sans relative overflow-hidden" style={{ boxSizing: 'border-box' }}>
                 {/* Copy Badge */}
                 <div className="absolute top-4 right-4 text-[8px] font-bold text-zinc-400 uppercase tracking-widest">{title}</div>
-                
+
                 {/* Header */}
                 <div className="text-center mb-4">
                   <h1 className="text-xl font-bold text-zinc-900 mb-1 leading-none">{meta.companyName}</h1>
@@ -1352,11 +1467,11 @@ const DangarPaymentReport = () => {
                     <table className="w-full border-collapse">
                       <tbody>
                         <tr><td className="py-1 font-bold text-zinc-500 uppercase border-b border-zinc-200" colSpan={2}>બેંક વિગત / બેંક નું નામ</td></tr>
-                          <tr><td className="py-1 pr-2 font-bold w-28">કંપની :</td><td className="py-1">{meta.companyName}</td></tr>
-                          <tr><td className="py-1 pr-2 font-bold">બેંક :</td><td className="py-1">{meta.bankName}</td></tr>
-                          <tr><td className="py-1 pr-2 font-bold">શાખા :</td><td className="py-1">{meta.branchName}</td></tr>
-                          <tr><td className="py-1 pr-2 font-bold">એકાઉન્ટ નં. :</td><td className="py-1">{toGujaratiDigits(meta.accountNo)}</td></tr>
-                          <tr><td className="py-1 pr-2 font-bold">IFSC :</td><td className="py-1">{meta.ifscCode}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold w-28">કંપની :</td><td className="py-1">{meta.companyName}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">બેંક :</td><td className="py-1">{meta.bankName}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">શાખા :</td><td className="py-1">{meta.branchName}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">એકાઉન્ટ નં. :</td><td className="py-1">{toGujaratiDigits(meta.accountNo)}</td></tr>
+                        <tr><td className="py-1 pr-2 font-bold">IFSC :</td><td className="py-1">{meta.ifscCode}</td></tr>
                       </tbody>
                     </table>
                     <div className="mt-auto pt-2 border-t border-dashed border-zinc-300 italic text-zinc-400 text-[9px]">

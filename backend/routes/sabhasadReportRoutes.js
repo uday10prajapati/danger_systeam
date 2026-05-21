@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Company ID is required' });
     }
 
-    let { startDate, endDate, accountId, memberId, hideZeroBalance, village, bankName, season, itemId } = req.query;
+    let { startDate, endDate, accountId, memberId, hideZeroBalance, village, bankName, season, itemId, fromMemberCode, toMemberCode, dangarClass } = req.query;
 
     if (!endDate) {
       endDate = new Date().toISOString().split('T')[0];
@@ -24,6 +24,25 @@ router.get('/', async (req, res) => {
       const start = new Date();
       start.setDate(start.getDate() - 30);
       startDate = start.toISOString().split('T')[0];
+    }
+
+    let sharedMemberConditions = '';
+    const sharedMemberParams = [];
+
+    if (fromMemberCode && toMemberCode) {
+      sharedMemberConditions += " AND CAST(NULLIF(regexp_replace(m.member_code, '[^0-9]', '', 'g'), '') AS INTEGER) BETWEEN ? AND ?";
+      sharedMemberParams.push(parseInt(fromMemberCode), parseInt(toMemberCode));
+    } else if (fromMemberCode) {
+      sharedMemberConditions += " AND CAST(NULLIF(regexp_replace(m.member_code, '[^0-9]', '', 'g'), '') AS INTEGER) >= ?";
+      sharedMemberParams.push(parseInt(fromMemberCode));
+    } else if (toMemberCode) {
+      sharedMemberConditions += " AND CAST(NULLIF(regexp_replace(m.member_code, '[^0-9]', '', 'g'), '') AS INTEGER) <= ?";
+      sharedMemberParams.push(parseInt(toMemberCode));
+    }
+
+    if (dangarClass) {
+      sharedMemberConditions += " AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE quality_class = ?)";
+      sharedMemberParams.push(dangarClass);
     }
 
     // Prepare parameters and conditions
@@ -64,6 +83,7 @@ router.get('/', async (req, res) => {
         params.push(season, season);
     }
     conditions += seasonMemberFilter;
+    conditions += sharedMemberConditions;
 
     // Query to get all members and their specific ledger metrics
     const sql = `
@@ -157,7 +177,7 @@ router.get('/', async (req, res) => {
     if (accountFilter && !accountFilter.includes('IN')) queryParams.push(accountId);
 
     // Main query WHERE conditions
-    queryParams.push(...params);
+    queryParams.push(...params, ...sharedMemberParams);
 
     let selectedAcc = null;
     if (accountId && accountId !== 'all') {
@@ -204,6 +224,8 @@ router.get('/', async (req, res) => {
         conditions += ` AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)`;
         bParams.push(season, season);
       }
+      
+      conditions += sharedMemberConditions;
 
       const bardanSql = `
         SELECT 
@@ -291,7 +313,8 @@ router.get('/', async (req, res) => {
         // Self Credit subquery
         accountId, companyId, startDate, endDate,
         // Main WHERE conditions
-        ...bParams
+        ...bParams,
+        ...sharedMemberParams
       ];
 
       const bRows = await query(bardanSql, finalParams);
@@ -368,10 +391,11 @@ router.get('/', async (req, res) => {
         LEFT JOIN member_master m ON COALESCE(al.member_id, s.member_id) = m.id
         WHERE al.company_id = ? AND al.account_id = ?
         AND al.transaction_date BETWEEN ? AND ?
-        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${memberId && memberId !== 'all' ? ' AND COALESCE(al.member_id, s.member_id) = ?' : ''}
         ${village ? ' AND m.village_name = ?' : ''}
         ${bankName ? ' AND m.bank_name = ?' : ''}
         ${season ? ' AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)' : ''}
+        ${sharedMemberConditions}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
       const sParams = [companyId, accountId, startDate, endDate];
@@ -379,6 +403,7 @@ router.get('/', async (req, res) => {
       if (village) sParams.push(village);
       if (bankName) sParams.push(bankName);
       if (season) sParams.push(season, season);
+      sParams.push(...sharedMemberParams);
 
       const opSale = await query(`
         SELECT COALESCE(SUM(credit) - SUM(debit), 0) as op_bal
@@ -432,10 +457,11 @@ router.get('/', async (req, res) => {
         LEFT JOIN member_master m ON COALESCE(al.member_id, de.member_id) = m.id
         WHERE al.company_id = ? AND al.account_id = ?
         AND al.transaction_date BETWEEN ? AND ?
-        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${memberId && memberId !== 'all' ? ' AND COALESCE(al.member_id, de.member_id) = ?' : ''}
         ${village ? ' AND m.village_name = ?' : ''}
         ${bankName ? ' AND m.bank_name = ?' : ''}
         ${season ? ' AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)' : ''}
+        ${sharedMemberConditions}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
       const pParams = [companyId, accountId, startDate, endDate];
@@ -443,6 +469,7 @@ router.get('/', async (req, res) => {
       if (village) pParams.push(village);
       if (bankName) pParams.push(bankName);
       if (season) pParams.push(season, season);
+      pParams.push(...sharedMemberParams);
 
       const opPurchase = await query(`
         SELECT COALESCE(SUM(debit) - SUM(credit), 0) as op_bal
@@ -532,10 +559,11 @@ router.get('/', async (req, res) => {
           OR (${isBardan ? 'TRUE' : 'FALSE'} AND al.account_id IS NULL AND (al.reference_type ILIKE '%bardan%'))
         )
         AND al.transaction_date BETWEEN ? AND ?
-        ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${memberId && memberId !== 'all' ? ' AND COALESCE(al.member_id, de.member_id, s.member_id) = ?' : ''}
         ${village ? ' AND m.village_name = ?' : ''}
         ${bankName ? ' AND m.bank_name = ?' : ''}
         ${season ? ' AND m.id IN (SELECT DISTINCT member_id FROM dangar_entry WHERE season = ? OR book_type = ?)' : ''}
+        ${sharedMemberConditions}
         ORDER BY al.transaction_date ASC, al.id ASC
       `;
 
@@ -573,6 +601,7 @@ router.get('/', async (req, res) => {
       if (village) tParams.push(village);
       if (bankName) tParams.push(bankName);
       if (season) tParams.push(season, season);
+      tParams.push(...sharedMemberParams);
 
       const tRows = await query(transactionalSql, tParams);
       
@@ -628,10 +657,12 @@ router.get('/', async (req, res) => {
         WHERE al.company_id = ? AND al.account_id = ?
         AND DATE(al.transaction_date) BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${sharedMemberConditions}
         ORDER BY al.transaction_date DESC
       `;
       const bParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') bParams.push(memberId);
+      bParams.push(...sharedMemberParams);
 
       const bRows = await query(brokerageSql, bParams);
       return res.json({
@@ -659,10 +690,12 @@ router.get('/', async (req, res) => {
         WHERE al.company_id = ? AND al.account_id = ?
         AND DATE(al.transaction_date) BETWEEN ? AND ?
         ${memberId && memberId !== 'all' ? ' AND al.member_id = ?' : ''}
+        ${sharedMemberConditions}
         ORDER BY al.transaction_date DESC
       `;
       const lParams = [companyId, accountId, startDate, endDate];
       if (memberId && memberId !== 'all') lParams.push(memberId);
+      lParams.push(...sharedMemberParams);
 
       const lRows = await query(labourSql, lParams);
       return res.json({
@@ -705,10 +738,56 @@ router.get('/', async (req, res) => {
       };
     });
 
-    // Filter out zero balance accounts if requested
+    // If viewing all accounts, group rows per member to show total per sabhasad
     let finalData = reportData;
+    if (!accountId || accountId === 'all') {
+      const grouped = new Map();
+      finalData.forEach((row) => {
+        const key = row.member_id || row.member_code || row.member_name;
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            ...row,
+            account_name: 'All Accounts',
+            account_name_gu: 'બધા ખાતાઓ',
+            opening_balance: 0,
+            debit: 0,
+            credit: 0,
+            closing_balance: 0,
+            bardan_balance: 0,
+            bardan_penalty_balance: 0,
+            bardan_self_jama: 0
+          });
+        }
+
+        const g = grouped.get(key);
+        g.opening_balance += parseFloat(row.opening_balance || 0);
+        g.debit += parseFloat(row.debit || 0);
+        g.credit += parseFloat(row.credit || 0);
+        g.closing_balance += parseFloat(row.closing_balance || 0);
+        g.bardan_balance += parseFloat(row.bardan_balance || 0);
+        g.bardan_penalty_balance += parseFloat(row.bardan_penalty_balance || 0);
+        g.bardan_self_jama += parseFloat(row.bardan_self_jama || 0);
+
+        if (row.last_activity_date) {
+          const cur = g.last_activity_date ? new Date(g.last_activity_date) : null;
+          const next = new Date(row.last_activity_date);
+          if (!cur || next > cur) g.last_activity_date = row.last_activity_date;
+        }
+      });
+
+      finalData = Array.from(grouped.values()).map((row, index) => ({
+        ...row,
+        sr_no: index + 1,
+        opening_balance: parseFloat(row.opening_balance || 0).toFixed(2),
+        debit: parseFloat(row.debit || 0).toFixed(2),
+        credit: parseFloat(row.credit || 0).toFixed(2),
+        closing_balance: parseFloat(row.closing_balance || 0).toFixed(2)
+      }));
+    }
+
+    // Filter out zero balance accounts if requested
     if (hideZeroBalance === 'true') {
-      finalData = reportData.filter(row =>
+      finalData = finalData.filter(row =>
         parseFloat(row.opening_balance) !== 0 ||
         parseFloat(row.debit) !== 0 ||
         parseFloat(row.credit) !== 0 ||

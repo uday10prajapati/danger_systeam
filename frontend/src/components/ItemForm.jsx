@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  X, Check, Activity, Package, QrCode,
-  Building2, TrendingUp, IndianRupee, ShieldAlert,
-  Tag, Layers, FileText, Briefcase, Calendar,
-  ShieldCheck, Percent, HelpCircle, Save, RefreshCcw,
-  Box, ArrowUpRight, ArrowDownLeft, Smartphone,
-  CheckCircle, AlertCircle, Loader
+  X, Save, AlertCircle, CheckCircle, Loader, Package, TrendingUp, Layers
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
 
 export default function ItemForm({ item = null, company, onSubmit, onClose, existingItems = [] }) {
   const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [accounts, setAccounts] = useState([]);
@@ -38,6 +34,8 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
   // Focus Refs
   const itemCodeRef = useRef(null);
+  const pCodeRef = useRef(null);
+  const itemNameGuRef = useRef(null);
   const itemNameRef = useRef(null);
   const categoryRef = useRef(null);
   const unitRef = useRef(null);
@@ -181,29 +179,37 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
     }
   };
 
+  const categoryList = [...new Set(existingItems.map(i => i.category).filter(Boolean))];
+
   return (
-    <div className="bg-white p-0 overflow-hidden rounded-none border border-zinc-400 font-mono text-xs select-none animate-none">
-      <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none">
+    <div className={`bg-white rounded-lg overflow-hidden border border-slate-200 shadow-xl flex flex-col text-xs select-none ${isGu ? 'font-sans' : 'font-mono'}`}>
+      
+      {/* Title Bar */}
+      <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center select-none">
         <div>
-          <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-tight">
+          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
             {item?.id ? t('itemForm.editTitle') : t('itemForm.initTitle')}
           </h2>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5 tracking-wider">{t('itemForm.subtitle')}</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('itemForm.subtitle')}</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-red-600 transition">
-            <X size={18} />
+          <button 
+            onClick={onClose} 
+            className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer"
+          >
+            <X size={15} />
           </button>
         )}
       </div>
 
-      <div className="p-5">
+      {/* Form Content */}
+      <div className="p-5 flex-1 overflow-y-auto">
         {message && (
-          <div className={`mb-4 p-3 border text-xs flex items-center gap-2 ${
-            message.type === 'error' ? 'bg-red-50 border-red-300 text-red-800' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+          <div className={`mb-4 p-2.5 border font-bold text-[11px] rounded-md flex items-center gap-2 shadow-sm ${
+            message.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-[#1d5f84]'
           }`}>
-            {message.type === 'error' ? <AlertCircle size={15} /> : <CheckCircle size={15} />}
-            <span className="font-bold uppercase leading-none">{message.text}</span>
+            {message.type === 'error' ? <AlertCircle size={14} className="shrink-0" /> : <CheckCircle size={14} className="shrink-0" />}
+            <span className="uppercase leading-none tracking-wider">{message.text}</span>
           </div>
         )}
 
@@ -212,14 +218,14 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
             
             {/* Left Column: Basic Details */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
-                <Package size={15} className="text-zinc-500" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('itemForm.itemIdentity')}</h3>
+              <div className="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
+                <Package size={13} className="text-[#1d5f84]" />
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t('itemForm.itemIdentity')}</h3>
               </div>
               
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-5 gap-3">
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.code')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.code')}</label>
                   <input
                     ref={itemCodeRef}
                     type="text"
@@ -228,57 +234,91 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                     readOnly
                     translate="no"
                     lang="en"
-                    onKeyDown={(e) => handleKeyDown(e, itemNameRef)}
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none font-bold text-zinc-600 text-xs cursor-not-allowed force-en notranslate"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none font-bold text-slate-500 cursor-not-allowed force-en notranslate font-sans"
                   />
                 </div>
-                <div className="col-span-3 flex flex-col gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.itemName')}</label>
-                    <input
-                      ref={itemNameRef}
-                      type="text"
-                      name="item_name"
-                      value={formData.item_name}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          item_name: val
-                        }));
-                      }}
-                      onKeyDown={(e) => handleKeyDown(e, unitRef)}
-                      required
-                      placeholder={t('itemForm.enterItemName')}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-800 force-en notranslate"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.itemNameGU')}</label>
-                    <input
-                      type="text"
-                      name="item_name_gu"
-                      value={formData.item_name_gu}
-                      onChange={handleChange}
-                      translate="no"
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800"
-                      style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
-                      placeholder="ગુજરાતીમાં નામ લખો"
-                    />
-                  </div>
+                <div className="col-span-1 flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.pCode')}</label>
+                  <input
+                    ref={pCodeRef}
+                    type="text"
+                    name="p_code"
+                    value={formData.p_code}
+                    onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, itemNameGuRef)}
+                    translate="no"
+                    lang="en"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
+                  />
+                </div>
+                <div className="col-span-3 flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 font-sans">{t('itemForm.itemNameGU')}</label>
+                  <input
+                    ref={itemNameGuRef}
+                    type="text"
+                    name="item_name_gu"
+                    value={formData.item_name_gu}
+                    onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, itemNameRef)}
+                    required
+                    placeholder="ગુજરાતીમાં નામ લખો"
+                    translate="no"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700"
+                    style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.itemName')}</label>
+                <input
+                  ref={itemNameRef}
+                  type="text"
+                  name="item_name"
+                  value={formData.item_name}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      item_name: val
+                    }));
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, categoryRef)}
+                  required
+                  placeholder={t('itemForm.enterItemName')}
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.stockUnit')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.categorySector')}</label>
+                  <input
+                    ref={categoryRef}
+                    type="text"
+                    name="category"
+                    list="category-list"
+                    value={formData.category}
+                    onChange={handleChange}
+                    onKeyDown={(e) => handleKeyDown(e, unitRef)}
+                    placeholder={t('itemForm.categoryPlaceholder') || "E.G. RAW MATERIAL"}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
+                  />
+                  <datalist id="category-list">
+                    {categoryList.map(c => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.stockUnit')}</label>
                   <select
                     ref={unitRef}
                     name="unit"
                     value={formData.unit}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, purchaseCodeRef)}
-                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 cursor-pointer uppercase tracking-widest ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
+                    className={`w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 cursor-pointer uppercase tracking-widest ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
                   >
                     <option value="Nos">{t('units.Nos')}</option>
                     <option value="Kg">{t('units.Kg')}</option>
@@ -291,69 +331,65 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.purchaseCode')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchaseCode')}</label>
                   <input
                     ref={purchaseCodeRef}
                     type="text"
                     name="purchase_code"
                     value={formData.purchase_code}
                     onChange={handleChange}
-                    translate="no"
-                    lang="en"
                     onKeyDown={(e) => handleKeyDown(e, salesCodeRef)}
                     placeholder="1"
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 font-mono force-en notranslate"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 font-sans force-en"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.salesCode')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salesCode')}</label>
                   <input
                     ref={salesCodeRef}
                     type="text"
                     name="sales_code"
                     value={formData.sales_code}
                     onChange={handleChange}
-                    translate="no"
-                    lang="en"
                     onKeyDown={(e) => handleKeyDown(e, purchaseAccountIdRef)}
                     placeholder="2"
-                    className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 font-mono force-en notranslate"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 font-sans force-en"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.purchaseBook')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchaseBook')}</label>
                   <select
                     ref={purchaseAccountIdRef}
                     name="purchase_account_id"
                     value={formData.purchase_account_id}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, salesAccountIdRef)}
-                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 uppercase tracking-tighter cursor-pointer ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
+                    className={`w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 uppercase tracking-tighter cursor-pointer ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
                   >
                     <option value="">{t('itemForm.select')}</option>
                     {accounts.filter(a => a.account_type?.toLowerCase() === 'purchase').map(acc => (
-                      <option key={acc.id} value={acc.id} className="notranslate" translate="no">
+                      <option key={acc.id} value={acc.id}>
                         {i18n.language === 'en' ? acc.account_name : acc.account_name_gu}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.salesBook')}</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salesBook')}</label>
                   <select
                     ref={salesAccountIdRef}
                     name="sales_account_id"
                     value={formData.sales_account_id}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, purchasePriceRef)}
-                    className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-bold text-zinc-700 uppercase tracking-tighter cursor-pointer ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
+                    className={`w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 uppercase tracking-tighter cursor-pointer ${i18n.language === 'gu' ? 'font-prompt' : ''}`}
                   >
                     <option value="">{t('itemForm.select')}</option>
                     {accounts.filter(a => a.account_type?.toLowerCase() === 'sales').map(acc => (
-                      <option key={acc.id} value={acc.id} className="notranslate" translate="no">
+                      <option key={acc.id} value={acc.id}>
                         {i18n.language === 'en' ? acc.account_name : acc.account_name_gu}
                       </option>
                     ))}
@@ -364,15 +400,15 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
             {/* Right Column: Pricing & Stock */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 mb-1 border-b border-zinc-200 pb-1">
-                <TrendingUp size={15} className="text-zinc-500" />
-                <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-widest leading-none">{t('itemForm.fiscalStockControl')}</h3>
+              <div className="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
+                <TrendingUp size={13} className="text-[#1d5f84]" />
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t('itemForm.fiscalStockControl')}</h3>
               </div>
 
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.purchasePrice')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchasePrice')}</label>
                     <input
                       ref={purchasePriceRef}
                       type="number"
@@ -380,11 +416,11 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       value={formData.purchase_price}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, salePriceRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-mono text-zinc-700 font-bold force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-sans text-slate-700 font-bold force-en font-mono"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.salePrice')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salePrice')}</label>
                     <input
                       ref={salePriceRef}
                       type="number"
@@ -392,14 +428,14 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       value={formData.sale_price}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, openingStockRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-mono text-zinc-700 font-bold force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-sans text-slate-700 font-bold force-en font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.openingStock')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.openingStock')}</label>
                     <input
                       ref={openingStockRef}
                       type="number"
@@ -407,11 +443,11 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       value={formData.opening_stock}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, minimumStockRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-mono text-zinc-700 font-bold force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-sans text-slate-700 font-bold force-en font-mono"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.minStockAlert')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.minStockAlert')}</label>
                     <input
                       ref={minimumStockRef}
                       type="number"
@@ -419,14 +455,14 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       value={formData.minimum_stock}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, taxPercentageRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-mono text-zinc-700 font-bold force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-sans text-slate-700 font-bold force-en font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">
                       {t('itemForm.taxPercentage')} <span className="opacity-60 font-sans font-normal">(%)</span>
                     </label>
                     <input
@@ -436,11 +472,11 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       value={formData.tax_percentage}
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, hsnCodeRef)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-mono text-zinc-700 font-bold force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-sans text-slate-700 font-bold force-en font-mono"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('itemForm.hsnSacCode')}</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.hsnSacCode')}</label>
                     <input
                       ref={hsnCodeRef}
                       type="text"
@@ -450,41 +486,63 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       translate="no"
                       lang="en"
                       onKeyDown={(e) => handleKeyDown(e, null)}
-                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none outline-none focus:bg-white focus:border-zinc-600 transition font-mono text-zinc-700 font-bold uppercase force-en notranslate"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-sans text-slate-700 font-bold uppercase force-en"
                     />
                   </div>
                 </div>
 
-                <div className="bg-zinc-50 p-3 border border-zinc-300 mt-1 flex items-center gap-3">
-                  <div className="p-2 bg-white border border-zinc-200 text-zinc-600">
-                    <Layers size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('itemForm.internalShardId')}</p>
-                    <p className="text-base font-bold text-zinc-800">#{item?.id || '...'}</p>
+                <div className="flex flex-col gap-1 pt-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.registryStatus') || "STATUS"}</label>
+                  <div className="flex items-center gap-4 bg-slate-50 p-2.5 border border-slate-200 rounded-md">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData(p => ({ ...p, is_active: e.target.checked ? 1 : 0 }))}
+                        className="w-3.5 h-3.5 cursor-pointer accent-[#1d5f84]"
+                      />
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${formData.is_active ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {t('itemMaster.active') || "Active"}
+                      </span>
+                    </label>
                   </div>
                 </div>
+
+                {item?.id && (
+                  <div className="bg-slate-50 p-3 border border-slate-100 rounded-md mt-1 flex items-center gap-3">
+                    <div className="p-2 bg-white border border-slate-200 text-[#1d5f84] rounded-md shadow-sm">
+                      <Layers size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t('itemForm.internalShardId') || "Internal Shard ID"}</p>
+                      <p className="text-sm font-bold text-slate-700">#{item.id}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-
-          <div className="flex gap-3 pt-3 border-t border-zinc-200 justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-xs"
-            >
-              {t('itemForm.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-xs"
-            >
-              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {item?.id ? t('itemForm.update') : t('itemForm.save')}</>}
-            </button>
-          </div>
         </form>
+      </div>
+
+      {/* Modal Footer Actions */}
+      <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex gap-2.5 justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+        >
+          {t('itemForm.cancel') || "Cancel"}
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+        >
+          {loading ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
+          <span>{item?.id ? t('itemForm.update') || "Update" : t('itemForm.save') || "Save"}</span>
+        </button>
       </div>
     </div>
   );

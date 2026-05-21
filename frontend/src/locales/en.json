@@ -422,6 +422,7 @@
     "accountLedger": "Account Ledger",
     "viewAccountDetails": "View Account Details",
     "sabhasadLedger": "Sabhasad Ledger",
+    "bardanReport": "Bardan Report",
     "viewSabhasadLedger": "View Sabhasad Ledger Summary",
     "profitAndLoss": "Profit & Loss",
     "viewPnLStatements": "View P&L Statements",
@@ -1713,6 +1714,7 @@
     "editTitle": "Edit Transaction Node",
     "eyebrow": "Registry Management / Dangar Operations",
     "historyMemberRange": "Member Range",
+    "historyFiltersActive": "Filters Active",
     "form": {
       "bookType": "Book Type",
       "tuver": "TUVER",
@@ -1766,6 +1768,24 @@
     "pdf": {
       "historyTitle": "Transaction History",
       "reference": "Reference"
+    },
+    "messages": {
+      "loadFailed": "Failed to load Dangar entry data.",
+      "validationRequired": "Please select book type, member, and item.",
+      "createSuccess": "Entry saved successfully. SR No: {{srNo}}",
+      "updateSuccess": "Entry updated successfully.",
+      "commitFailed": "Failed to save entry: {{error}}",
+      "historyLoadFailed": "Failed to load history.",
+      "deleteSuccess": "Entry deleted successfully.",
+      "deleteFailed": "Failed to delete entry.",
+      "exportInfoRequired": "Required information is missing for export.",
+      "pdfFailed": "Failed to generate PDF.",
+      "memberRequired": "Please select a member first.",
+      "bardanSlipFailed": "Failed to generate bardan slip.",
+      "noHistoryToExport": "No history data to export.",
+      "reportFailed": "Failed to generate report.",
+      "noHistoryRecords": "No history records found.",
+      "bulkExportFailed": "Bulk export failed."
     }
   },
   "bardanEntry": {
@@ -2160,6 +2180,7 @@
   "sabhasadLedgerSummary": {
     "title": "Sabhasad Ledger Summary",
     "eyebrow": "Reports / Ledger Analysis",
+    "filters": "Filters",
     "clear": "Clear",
     "syncReport": "SYNC REPORT",
     "print": "Print",

@@ -16,9 +16,16 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'AppNumbers';
+  src: local('Segoe UI Bold'), local('Arial Bold');
+  unicode-range: U+0030-0039, U+002E, U+002C, U+20B9; /* Numbers, dot, comma, Rupee */
+  size-adjust: 110%;
+}
+
 @theme {
-  --font-sans: "Noto Sans Gujarati", "NotoGujarati", "Inter", "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Prompt", ui-monospace, SFMono-Regular, monospace !important;
+  --font-sans: "AppNumbers", "Noto Sans Gujarati", "NotoGujarati", "Inter", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "AppNumbers", "Prompt", ui-monospace, SFMono-Regular, monospace !important;
 }
 
 html {
@@ -33,12 +40,12 @@ html[lang="gu"] {
 /* Default Font for App (Unicode UI) */
 body,
 #root {
-  font-family: "Noto Sans Gujarati", "NotoGujarati", sans-serif !important;
+  font-family: "AppNumbers", "Noto Sans Gujarati", "NotoGujarati", sans-serif !important;
 }
 
 /* Legacy Style Font for specific data entry/display */
 .font-prompt {
-  font-family: 'Prompt', 'Noto Sans Gujarati', sans-serif !important;
+  font-family: "AppNumbers", 'Prompt', 'Noto Sans Gujarati', sans-serif !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   font-size: 1.2em !important;
@@ -47,7 +54,7 @@ body,
 
 /* Prompt font without size override — for small UI elements like navbar, badges, table cells */
 .font-prompt-sm {
-  font-family: 'Prompt', 'Noto Sans Gujarati', sans-serif !important;
+  font-family: "AppNumbers", 'Prompt', 'Noto Sans Gujarati', sans-serif !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   line-height: 1.4 !important;
@@ -82,7 +89,7 @@ input[type="email"],
 input[type="password"],
 input[name="username"],
 input[name="password"] {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-family: "AppNumbers", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
 }
 
 /* Optimize text size inside all input boxes */
@@ -134,13 +141,13 @@ html[lang="gu"] select {
 
 .dynamic-en::before {
   content: var(--en-text) !important;
-  font-family: ui-sans-serif, system-ui, sans-serif !important;
+  font-family: "AppNumbers", ui-sans-serif, system-ui, sans-serif !important;
 }
 
 .notranslate,
 .google-notranslate,
 .force-en {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-family: "AppNumbers", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   font-style: normal !important;

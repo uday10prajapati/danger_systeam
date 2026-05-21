@@ -12,13 +12,15 @@ import Loading from '../components/Loading';
 import { formatBilingualText } from '../utils/textUtils';
 
 export default function DeductionConsole() {
-   const { t } = useTranslation();
+   const { t, i18n } = useTranslation();
+   const isGu = i18n.language === 'gu';
    const [showMembersModal, setShowMembersModal] = useState(false);
    const [loading, setLoading] = useState(false);
    const [members, setMembers] = useState([]);
    const [accounts, setAccounts] = useState([]);
    const [selectedIdentities, setSelectedIdentities] = useState([]);
    const [identityTab, setIdentityTab] = useState('member');
+   const [filterQuery, setFilterQuery] = useState('');
    const [narrations, setNarrations] = useState([]);
    const [showDeductionModal, setShowDeductionModal] = useState(false);
    const [message, setMessage] = useState(null);
@@ -39,6 +41,18 @@ export default function DeductionConsole() {
       endDate: new Date().toISOString().split('T')[0]
    });
    const [activeAccountStats, setActiveAccountStats] = useState({ total_debit: 0, total_credit: 0, balance: 0, dangar_amount: 0 });
+
+   const displayIdentityName = (item) => {
+      if (item.type === 'member') {
+         return isGu 
+            ? (item.name_gu || item.name) 
+            : (item.eng_name || item.name || '—');
+      } else {
+         return isGu 
+            ? formatBilingualText(item.name_gu || item.name) 
+            : (item.name || '—');
+      }
+   };
 
    // Refs for Deduction Modal
    const codeInputRef = useRef(null);
@@ -170,11 +184,11 @@ export default function DeductionConsole() {
       } catch (e) { console.error(e); }
    };
 
-   const toggleIdentitySelection = (id, type, name, code) => {
+   const toggleIdentitySelection = (id, type, name, code, name_gu, eng_name) => {
       setSelectedIdentities(prev => {
          const exists = prev.find(i => i.id === id && i.type === type);
          if (exists) return prev.filter(i => !(i.id === id && i.type === type));
-         return [...prev, { id, type, name, code, deduction_amount: '', is_auto: true }];
+         return [...prev, { id, type, name, code, name_gu, eng_name, deduction_amount: '', is_auto: true }];
       });
    };
 
@@ -225,6 +239,7 @@ export default function DeductionConsole() {
    };
 
    const toGujaratiDigits = (value) => {
+      if (!isGu) return String(value ?? '');
       const guDigits = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
       return String(value ?? '').replace(/[0-9]/g, (d) => guDigits[d] || d);
    };
@@ -374,265 +389,297 @@ export default function DeductionConsole() {
    }
 
    return (
-      <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-none">
+      <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
          <Toast message={message} onClose={() => setMessage(null)} />
 
-         <div className="max-w-[1500px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+         <div className="px-4 py-4 max-w-[1600px] mx-auto space-y-4">
             
-            {/* Page Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4">
-               <div>
-                  <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-                     <Database size={20} className="text-zinc-600" />
-                     {t('kapatConsole.title')}
-                  </h1>
-                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('kapatConsole.eyebrow')}</p>
-               </div>
+            {/* Minimal Classic Registry Directory Wrapper (Full Width) */}
+            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
                
-               <div className="flex flex-wrap items-center gap-2">
-                  <button
-                     onClick={handleExportPDF}
-                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-                  >
-                     <FileText size={14} /> {t('kapatConsole.exportPDF')}
-                  </button>
-
-                  <button
-                     onClick={async () => {
-                        setIsSmartFilling(true);
-                        try {
-                           if (!deductionPayload.sabhasad_id) {
-                              let currentIdentities = [...selectedIdentities];
-                              
-                              if (currentIdentities.length === 0 && accounts.length > 0) {
-                                 currentIdentities = accounts.map(acc => ({
-                                    id: acc.id,
-                                    type: 'account',
-                                    name: acc.account_name,
-                                    code: acc.account_code || `ACC-${acc.id}`,
-                                    is_auto: true
-                                 }));
-                              }
-
-                              const freshIdentities = await preloadIdentityInsights(currentIdentities);
-                              
-                              const updated = freshIdentities.map(item => {
-                                 if (item.is_auto === false) return item;
-                                 const bal = parseFloat(item.balance) || 0;
-                                 if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
-                                 return item;
-                              });
-                              
-                              setSelectedIdentities(updated);
-                           } else {
-                              const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
-                              const updated = freshIdentities.map(item => {
-                                 if (item.is_auto === false) return item;
-                                 const udhar = parseFloat(item.total_debit) || 0;
-                                 const jama = parseFloat(item.dangar_amount) || 0;
-                                 const payAmount = Math.min(udhar, jama);
-                                 if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
-                                 return item;
-                              });
-                              setSelectedIdentities(updated);
-                           }
-                           setMessage({ type: 'success', text: 'Matrix filled successfully.' });
-                        } catch (err) { console.error(err); } finally { setIsSmartFilling(false); }
-                     }}
-                     disabled={isSmartFilling}
-                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none disabled:opacity-50"
-                  >
-                     <TrendingUp size={14} /> {t('kapatConsole.smartFill')}
-                  </button>
-
-                  <button
-                     onClick={async () => {
-                        setIsSmartFilling(true);
-                        try {
-                           let updatedIdentities = [];
-                           if (!deductionPayload.sabhasad_id) {
-                              // 1. Refresh balances for all items in matrix
-                              const freshIdentities = await preloadIdentityInsights(selectedIdentities);
-                              
-                              // 2. Populate deduction amounts for any item with a debit balance (Udhar)
-                              updatedIdentities = freshIdentities.map(item => {
-                                  if (item.is_auto === false) return item;
-                                 const bal = parseFloat(item.balance) || 0;
-                                 if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
-                                 return item;
-                              });
-                              setSelectedIdentities(updatedIdentities);
-                           } else {
-                              // Member-specific mode: settle debt using available credit (e.g., Dangar Jama)
-                              const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
-                              updatedIdentities = freshIdentities.map(item => {
-                                 if (item.is_auto === false) return item;
-                                 const udhar = parseFloat(item.total_debit) || 0; 
-                                 const jama = parseFloat(item.dangar_amount) || 0; 
-                                 const payAmount = Math.min(udhar, jama);
-                                 if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
-                                 return item;
-                              });
-                              setSelectedIdentities(updatedIdentities);
-                           }
-                           
-                           const identitiesToPay = updatedIdentities.filter(i => parseFloat(i.deduction_amount) > 0);
-                           if (identitiesToPay.length > 0) {
-                              await handleExecuteBatch(updatedIdentities);
-                           } else {
-                              setMessage({ type: 'error', text: 'No outstanding balances found to pay.' });
-                           }
-                        } catch (err) { console.error(err); } finally { setIsSmartFilling(false); }
-                     }}
-                     disabled={isSmartFilling}
-                     className="flex items-center gap-1.5 bg-emerald-600 border border-emerald-500 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 select-none disabled:opacity-50"
-                  >
-                     <CheckCircle size={14} /> {t('kapatConsole.smartPay')}
-                  </button>
-
-                  <button
-                     onClick={() => setShowMembersModal(true)}
-                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none"
-                  >
-                     <Plus size={14} /> {t('kapatConsole.addTargets')}
-                  </button>
-
-                  <button
-                     onClick={() => {
-                        setDeductionPayload(prev => ({ ...prev, target_identifier: 'all' }));
-                        setShowDeductionModal(true);
-                        preloadIdentityInsights(selectedIdentities);
-                     }}
-                     disabled={selectedIdentities.length === 0}
-                     className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold px-3 py-1.5 select-none disabled:opacity-50"
-                  >
-                     <Database size={14} /> {t('kapatConsole.processKapat')}
-                  </button>
-               </div>
-            </div>
-
-            {/* Matrix / Content Table */}
-            {selectedIdentities.length > 0 ? (
-               <div className="border border-zinc-300 bg-zinc-50 flex flex-col">
-                  <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex flex-wrap items-center justify-between gap-3">
-                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                           {t('kapatConsole.listTitle')}
-                        </span>
-                        <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-mono text-[10px] px-2 py-0.5">
-                           {selectedIdentities.length} {t('kapatConsole.records')}
-                        </span>
-                     </div>
+               {/* Table Control Header Bar (First Line) */}
+               <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
+                  <div className="flex items-center gap-2">
+                     <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                        {t('kapatConsole.title') || 'Kapat (Deduction) Console'}
+                     </span>
+                     <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                        {toGujaratiDigits(selectedIdentities.length)} {t('kapatConsole.records') || 'Records'}
+                     </span>
                   </div>
-                  <div className="overflow-x-auto bg-white select-none">
-                     <table className="min-w-full divide-y divide-zinc-200">
-                        <thead className="bg-zinc-50 select-none">
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                     {/* PDF Report Button */}
+                     <button
+                        onClick={handleExportPDF}
+                        title={t('kapatConsole.exportPDF') || "Export PDF"}
+                        className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-655 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-none"
+                     >
+                        <FileText size={13} className="text-slate-500" />
+                     </button>
+
+                     {/* Smart Fill Button */}
+                     <button
+                        onClick={async () => {
+                           setIsSmartFilling(true);
+                           try {
+                              if (!deductionPayload.sabhasad_id) {
+                                 let currentIdentities = [...selectedIdentities];
+                                 
+                                 if (currentIdentities.length === 0 && accounts.length > 0) {
+                                    currentIdentities = accounts.map(acc => ({
+                                       id: acc.id,
+                                       type: 'account',
+                                       name: acc.account_name,
+                                       name_gu: acc.account_name_gu,
+                                       code: acc.account_code || `ACC-${acc.id}`,
+                                       is_auto: true
+                                    }));
+                                 }
+
+                                 const freshIdentities = await preloadIdentityInsights(currentIdentities);
+                                 
+                                 const updated = freshIdentities.map(item => {
+                                    if (item.is_auto === false) return item;
+                                    const bal = parseFloat(item.balance) || 0;
+                                    if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                    return item;
+                                 });
+                                 
+                                 setSelectedIdentities(updated);
+                              } else {
+                                 const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
+                                 const updated = freshIdentities.map(item => {
+                                    if (item.is_auto === false) return item;
+                                    const udhar = parseFloat(item.total_debit) || 0;
+                                    const jama = parseFloat(item.dangar_amount) || 0;
+                                    const payAmount = Math.min(udhar, jama);
+                                    if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
+                                    return item;
+                                 });
+                                 setSelectedIdentities(updated);
+                              }
+                              setMessage({ type: 'success', text: 'Matrix filled successfully.' });
+                           } catch (err) { console.error(err); } finally { setIsSmartFilling(false); }
+                        }}
+                        disabled={isSmartFilling}
+                        className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 text-slate-655 hover:bg-slate-50 hover:text-slate-800 text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider disabled:opacity-50"
+                     >
+                        <TrendingUp size={13} className="text-slate-500" />
+                        <span>{t('kapatConsole.smartFill')}</span>
+                     </button>
+
+                     {/* Smart Pay Button */}
+                     <button
+                        onClick={async () => {
+                           setIsSmartFilling(true);
+                           try {
+                              let updatedIdentities = [];
+                              if (!deductionPayload.sabhasad_id) {
+                                 // 1. Refresh balances for all items in matrix
+                                 const freshIdentities = await preloadIdentityInsights(selectedIdentities);
+                                 
+                                 // 2. Populate deduction amounts for any item with a debit balance (Udhar)
+                                 updatedIdentities = freshIdentities.map(item => {
+                                     if (item.is_auto === false) return item;
+                                    const bal = parseFloat(item.balance) || 0;
+                                    if (bal < -0.01) return { ...item, deduction_amount: Math.abs(bal).toFixed(2) };
+                                    return item;
+                                 });
+                                 setSelectedIdentities(updatedIdentities);
+                              } else {
+                                 // Member-specific mode: settle debt using available credit (e.g., Dangar Jama)
+                                 const freshIdentities = await preloadIdentityInsights(selectedIdentities, deductionPayload.sabhasad_id);
+                                 updatedIdentities = freshIdentities.map(item => {
+                                    if (item.is_auto === false) return item;
+                                    const udhar = parseFloat(item.total_debit) || 0; 
+                                    const jama = parseFloat(item.dangar_amount) || 0; 
+                                    const payAmount = Math.min(udhar, jama);
+                                    if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
+                                    return item;
+                                 });
+                                 setSelectedIdentities(updatedIdentities);
+                              }
+                              
+                              const identitiesToPay = updatedIdentities.filter(i => parseFloat(i.deduction_amount) > 0);
+                              if (identitiesToPay.length > 0) {
+                                 await handleExecuteBatch(updatedIdentities);
+                              } else {
+                                 setMessage({ type: 'error', text: 'No outstanding balances found to pay.' });
+                              }
+                           } catch (err) { console.error(err); } finally { setIsSmartFilling(false); }
+                        }}
+                        disabled={isSmartFilling}
+                        className="h-7 flex items-center gap-1.5 px-2.5 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider disabled:opacity-50"
+                     >
+                        <CheckCircle size={13} />
+                        <span>{t('kapatConsole.smartPay')}</span>
+                     </button>
+
+                     {/* Add Targets Button */}
+                     <button
+                        onClick={() => setShowMembersModal(true)}
+                        className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 text-slate-655 hover:bg-slate-50 hover:text-slate-800 text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                     >
+                        <Plus size={13} className="text-slate-500" />
+                        <span>{t('kapatConsole.addTargets')}</span>
+                     </button>
+
+                     {/* Process Kapat Button */}
+                     <button
+                        onClick={() => {
+                           setDeductionPayload(prev => ({ ...prev, target_identifier: 'all' }));
+                           setShowDeductionModal(true);
+                           preloadIdentityInsights(selectedIdentities);
+                        }}
+                        disabled={selectedIdentities.length === 0}
+                        className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider disabled:opacity-50"
+                     >
+                        <Database size={13} />
+                        <span>{t('kapatConsole.processKapat')}</span>
+                     </button>
+                  </div>
+               </div>
+
+               {/* Full Width Table Registry */}
+               <div className="overflow-x-auto w-full">
+                  {selectedIdentities.length === 0 ? (
+                     <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
+                        <Database size={32} className="text-slate-300 opacity-35" />
+                        <p className="text-xs font-bold text-slate-400">{t('kapatConsole.modal.noMembers')}</p>
+                        <button
+                           onClick={() => setShowMembersModal(true)}
+                           className="text-xs font-bold text-blue-600 hover:text-blue-850 transition uppercase tracking-wider cursor-pointer"
+                        >
+                           + {t('kapatConsole.addTargets')}
+                        </button>
+                     </div>
+                  ) : (
+                     <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+                        <thead className="bg-slate-50 font-sans">
                            <tr>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.type')}</th>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.name')}</th>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.code')}</th>
-                              <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('kapatConsole.table.autoCalc')}</th>
-                              <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-wider w-24">{t('kapatConsole.table.action')}</th>
+                              <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-12">#</th>
+                              <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-32">{t('kapatConsole.table.type')}</th>
+                              <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('kapatConsole.table.name')}</th>
+                              <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-28">{t('kapatConsole.table.code')}</th>
+                              <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-28">{t('kapatConsole.table.autoCalc')}</th>
+                              <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 w-16">{t('kapatConsole.table.action')}</th>
                            </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-zinc-200 text-xs select-none">
+                        <tbody className="bg-white divide-y divide-slate-100">
                            {selectedIdentities.map((item, idx) => (
-                              <tr key={`${item.type}-${item.id}-${idx}`} className="hover:bg-zinc-50 transition">
-                                 <td className="px-4 py-3.5 select-none">
-                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 border text-[10px] font-bold uppercase tracking-wider ${
-                                       item.type === 'member' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-zinc-50 border-zinc-300 text-zinc-700'
+                              <tr
+                                 key={`${item.type}-${item.id}-${idx}`}
+                                 className="hover:bg-slate-50/75 transition-colors cursor-pointer select-none"
+                              >
+                                 <td className="px-3.5 py-2 text-center font-mono text-slate-500 border-r border-slate-100">{toGujaratiDigits(idx + 1)}</td>
+                                 <td className="px-3.5 py-2 border-r border-slate-100">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
+                                       item.type === 'member'
+                                          ? 'bg-sky-50 border-sky-200 text-sky-700'
+                                          : 'bg-slate-50 border-slate-200 text-slate-700'
                                     }`}>
-                                       {item.type === 'member' ? <User size={11} /> : <Layout size={11} />}
+                                       {item.type === 'member' ? <User size={10} /> : <Layout size={10} />}
                                        {item.type === 'member' ? t('kapatConsole.addTargetModal.members') : t('kapatConsole.addTargetModal.accounts')}
                                     </span>
                                  </td>
-                                 <td className="px-4 py-3.5 font-bold text-zinc-800 tracking-tight">
-                                    {item.type === 'member'
-                                       ? <span className="font-prompt-sm">{item.name}</span>
-                                       : formatBilingualText(item.name)
-                                    }
+                                 <td 
+                                    className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-800 ${isGu ? '' : 'font-sans uppercase'}`}
+                                    style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
+                                 >
+                                    {displayIdentityName(item)}
                                  </td>
-                                 <td className="px-4 py-3.5 font-sans font-bold text-zinc-500 force-en">{item.code}</td>
-                                 <td className="px-4 py-3.5">
-                                    <button 
+                                 <td className="px-3.5 py-2 text-center border-r border-slate-100 font-mono font-bold text-slate-600 force-en">
+                                    {item.code}
+                                 </td>
+                                 <td className="px-3.5 py-2 text-center border-r border-slate-100">
+                                    <button
                                        onClick={() => toggleAutoCalc(item.id, item.type)}
-                                       className={`px-3 py-1 border text-[10px] font-bold uppercase tracking-wider transition-all select-none ${
-                                          item.is_auto !== false ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-zinc-100 border-zinc-300 text-zinc-600'
+                                       className={`px-2.5 py-0.5 text-[9px] font-bold rounded-md border transition cursor-pointer ${
+                                          item.is_auto !== false
+                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                             : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                                        }`}
                                     >
                                        {item.is_auto !== false ? (t('kapatConsole.table.auto') || 'Auto') : (t('kapatConsole.table.manual') || 'Manual')}
                                     </button>
                                  </td>
-                                 <td className="px-4 py-3.5 text-right select-none">
-                                    <button onClick={() => removeIdentity(item.id, item.type)} className="p-1 border border-zinc-300 bg-zinc-50 hover:bg-rose-50 hover:text-rose-600 text-zinc-600 transition"><X size={14} /></button>
+                                 <td className="px-3.5 py-2 text-center flex items-center justify-center">
+                                    <button
+                                       onClick={() => removeIdentity(item.id, item.type)}
+                                       className="p-1 border border-rose-100 rounded text-rose-600 bg-rose-50 hover:bg-rose-150 transition cursor-pointer"
+                                       title="Remove"
+                                    >
+                                       <X size={12} />
+                                    </button>
                                  </td>
                               </tr>
                            ))}
                         </tbody>
                      </table>
-                  </div>
+                  )}
                </div>
-            ) : (
-               <div className="bg-white border border-zinc-300 p-12 flex flex-col items-center justify-center select-none">
-                  <div className="w-12 h-12 bg-zinc-100 border border-zinc-300 flex items-center justify-center text-zinc-400 mb-4"><Database size={24} /></div>
-                  <p className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest">{t('kapatConsole.modal.noMembers')}</p>
-               </div>
-            )}
+            </div>
          </div>
 
          {/* Process Kapat Modal */}
          {showDeductionModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
-               <div className="bg-white border border-zinc-300 p-5 w-full max-w-4xl flex flex-col max-h-[90vh] animate-none">
-                  <div className="flex justify-between items-center border-b border-zinc-300 pb-3 mb-4">
-                     <h2 className="text-base font-bold text-zinc-800 flex items-center gap-2">
-                        <Database size={18} className="text-zinc-600" />
-                        Kapat Entry Modal
-                     </h2>
-                     <button
-                        onClick={() => setShowDeductionModal(false)}
-                        className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-700 transition"
-                     >
-                        <X size={16} />
-                     </button>
-                  </div>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+               <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-150" onClick={() => setShowDeductionModal(false)} />
+               <div className="relative w-full max-w-4xl max-h-[92vh] bg-white border border-slate-200 rounded-lg p-5 shadow-xl z-10 flex flex-col animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                  
+                  {/* Close button */}
+                  <button
+                     onClick={() => setShowDeductionModal(false)}
+                     className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer bg-slate-50 rounded-md hover:bg-slate-100 border border-slate-200/50"
+                  >
+                     <X size={14} />
+                  </button>
 
-                  <div className="bg-zinc-50 border border-zinc-300 p-4 mb-4 space-y-3">
+                  <h2 className="text-base font-extrabold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3 mb-4 pr-8 font-prompt-sm">
+                     <Database size={16} className="text-[#1d5f84]" />
+                     <span>{t('kapatConsole.modal.processDeduction') || 'કપાત રજીસ્ટ્રી એન્ટ્રી (Process Deduction)'}</span>
+                  </h2>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-md p-4 mb-4 space-y-3 shrink-0">
                      <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
-                           <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('kapatConsole.modal.voucherNo')}</label>
-                           <div className="px-3 py-1.5 bg-zinc-100 border border-zinc-300 text-xs font-mono font-bold text-zinc-500 select-none">000001</div>
+                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('kapatConsole.modal.voucherNo')}</label>
+                           <div className="px-3 py-1.5 bg-slate-200/60 border border-slate-200 text-xs font-mono font-bold text-slate-500 rounded">000001</div>
                         </div>
                         <div className="flex flex-col gap-1">
-                           <label className="text-[10px] font-bold text-zinc-500 uppercase">{t('kapatConsole.modal.processDate')}</label>
+                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('kapatConsole.modal.processDate')}</label>
                            <input 
                               ref={dateInputRef}
                               type="date" 
                               value={deductionPayload.date}
                               onChange={e => setDeductionPayload(p => ({ ...p, date: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, codeInputRef)}
-                              className="w-full px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold" 
+                              className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded outline-none text-xs focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition font-mono font-bold" 
                            />
                         </div>
                      </div>
 
-                     <div className="flex justify-end gap-2 pt-1 select-none">
+                     <div className="flex justify-end gap-2 pt-1">
                         <button 
                            onClick={async () => {
                               setIsSmartFilling(true);
                               try {
                                  const updated = selectedIdentities.map(item => {
                                     if (item.is_auto === false) return item;
-                                    const udhar = parseFloat(item.total_debit) || 0; const dangar = parseFloat(item.dangar_amount) || 0; const payAmount = Math.min(udhar, dangar);
+                                    const udhar = parseFloat(item.total_debit) || 0;
+                                    const dangar = parseFloat(item.dangar_amount) || 0;
+                                    const payAmount = Math.min(udhar, dangar);
                                     if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                     return item;
                                  });
                                  setSelectedIdentities(updated);
                               } catch (e) { console.error(e); } finally { setIsSmartFilling(false); }
                            }}
-                           className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-3 py-1 select-none"
+                           className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 text-slate-655 hover:bg-slate-50 hover:text-slate-800 text-[10px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
                         >
-                           <TrendingUp size={12} /> Smart Fill
+                           <TrendingUp size={12} className="text-slate-500" />
+                           <span>Smart Fill</span>
                         </button>
                         <button 
                            onClick={async () => {
@@ -640,7 +687,9 @@ export default function DeductionConsole() {
                               try {
                                  const updated = selectedIdentities.map(item => {
                                     if (item.is_auto === false) return item;
-                                    const udhar = parseFloat(item.total_debit) || 0; const dangar = parseFloat(item.dangar_amount) || 0; const payAmount = Math.min(udhar, dangar);
+                                    const udhar = parseFloat(item.total_debit) || 0;
+                                    const dangar = parseFloat(item.dangar_amount) || 0;
+                                    const payAmount = Math.min(udhar, dangar);
                                     if (payAmount > 0) return { ...item, deduction_amount: payAmount.toFixed(2) };
                                     return item;
                                  });
@@ -648,14 +697,15 @@ export default function DeductionConsole() {
                                  await handleExecuteBatch(updated);
                               } catch (e) { console.error(e); } finally { setIsSmartFilling(false); }
                            }}
-                           className="flex items-center gap-1.5 bg-emerald-600 border border-emerald-500 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-1 select-none"
+                           className="h-7 flex items-center gap-1.5 px-2.5 bg-emerald-600 border border-emerald-500 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
                         >
-                           <CheckCircle size={12} /> Smart Pay
+                           <CheckCircle size={12} />
+                           <span>Smart Pay</span>
                         </button>
                      </div>
 
                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase">{isSubledger ? t('kapatConsole.modal.memberIdentity') : t('kapatConsole.modal.narration')}</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isSubledger ? t('kapatConsole.modal.memberIdentity') : t('kapatConsole.modal.narration')}</label>
                         <div className="flex gap-2">
                            <input
                               ref={codeInputRef}
@@ -675,7 +725,11 @@ export default function DeductionConsole() {
                                  setDeductionPayload(p => ({
                                     ...p,
                                     sabhasad_code: code,
-                                    sabhasad_name: match ? (isSubledger ? match.member_name : match.narration_text) : '',
+                                    sabhasad_name: match 
+                                       ? (isSubledger 
+                                          ? (isGu ? (match.member_name_gu || match.member_name) : (match.eng_name || match.member_name)) 
+                                          : match.narration_text) 
+                                       : '',
                                     sabhasad_id: match && isSubledger ? match.id : null
                                  }));
 
@@ -684,7 +738,7 @@ export default function DeductionConsole() {
                                  }
                               }}
                               onKeyDown={e => handleKeyDown(e, nameInputRef)}
-                              className="w-24 px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-mono font-bold text-center notranslate"
+                              className="w-24 px-3 py-1.5 bg-white border border-slate-200 rounded outline-none text-xs focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition font-mono font-bold text-center notranslate"
                               placeholder={t('kapatConsole.table.code') || 'Code'}
                            />
                            <input
@@ -694,7 +748,7 @@ export default function DeductionConsole() {
                               onChange={e => setDeductionPayload(p => ({ ...p, sabhasad_name: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, null)}
                               lang={isSubledger ? 'gu' : 'en'}
-                              className={`flex-1 px-3 py-1.5 bg-white border border-zinc-300 outline-none text-xs focus:border-zinc-600 transition font-sans font-bold ${isSubledger ? 'font-prompt' : ''}`}
+                              className={`flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded outline-none text-xs focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition font-bold ${(isSubledger && isGu) ? 'font-prompt-sm' : 'font-sans uppercase'}`}
                               placeholder={isSubledger ? (t('kapatConsole.modal.enterMemberName') || 'Enter Member Name...') : (t('kapatConsole.modal.enterNarration') || 'Enter Narration Text...')}
                            />
                         </div>
@@ -702,36 +756,36 @@ export default function DeductionConsole() {
                   </div>
 
                   {(deductionPayload.target_identifier || deductionPayload.sabhasad_id) && (
-                     <div className="bg-zinc-50 border border-zinc-300 p-3 mb-4 flex items-center justify-between gap-4 select-none">
+                     <div className="bg-slate-50 border border-slate-200 rounded-md p-3 mb-4 flex items-center justify-between gap-4 select-none shrink-0">
                         <div className="flex items-center gap-3">
                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-zinc-500 uppercase">Start</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start</span>
                               <input type="date" value={accountStatsRange.startDate}
                                  onChange={e => setAccountStatsRange(p => ({ ...p, startDate: e.target.value }))}
-                                 className="bg-transparent border border-zinc-300 text-xs font-mono font-bold text-zinc-700 px-2 py-0.5 outline-none" />
+                                 className="bg-transparent border border-slate-200 rounded text-xs font-mono font-bold text-slate-700 px-2 py-0.5 outline-none focus:border-[#1d5f84]" />
                            </div>
                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-zinc-500 uppercase">End</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End</span>
                               <input type="date" value={accountStatsRange.endDate}
                                  onChange={e => setAccountStatsRange(p => ({ ...p, endDate: e.target.value }))}
-                                 className="bg-transparent border border-zinc-300 text-xs font-mono font-bold text-zinc-700 px-2 py-0.5 outline-none" />
+                                 className="bg-transparent border border-slate-200 rounded text-xs font-mono font-bold text-slate-700 px-2 py-0.5 outline-none focus:border-[#1d5f84]" />
                            </div>
                         </div>
                         <div className="flex items-center gap-3">
-                           <div className="flex flex-col items-end px-3 py-1 bg-white border border-zinc-300">
-                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">{t('kapatConsole.modal.dangarJama')}</span>
+                           <div className="flex flex-col items-end px-3 py-1 bg-white border border-slate-200 rounded">
+                              <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">{t('kapatConsole.modal.dangarJama')}</span>
                               <span className="text-emerald-700 font-mono font-bold text-xs leading-none">
                                  {parseFloat(activeAccountStats.dangar_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                            </div>
-                           <div className="flex flex-col items-end px-3 py-1 bg-white border border-zinc-300">
-                              <span className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">{t('kapatConsole.modal.udhar')}</span>
+                           <div className="flex flex-col items-end px-3 py-1 bg-white border border-slate-200 rounded">
+                              <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">{t('kapatConsole.modal.udhar')}</span>
                               <span className="text-rose-700 font-mono font-bold text-xs leading-none">
                                  {parseFloat(activeAccountStats.net_debit || activeAccountStats.total_debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                            </div>
-                           <div className="flex flex-col items-end px-4 py-1 bg-zinc-800 text-white border border-zinc-800">
-                              <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest">{t('kapatConsole.modal.balance')}</span>
+                           <div className="flex flex-col items-end px-4 py-1 bg-[#1d5f84] text-white border border-[#1d5f84] rounded">
+                              <span className="text-slate-200 text-[8px] font-bold uppercase tracking-wider">{t('kapatConsole.modal.balance')}</span>
                               <span className="text-white font-mono font-bold text-sm leading-none">
                                  {parseFloat(activeAccountStats.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
@@ -741,17 +795,17 @@ export default function DeductionConsole() {
                   )}
 
                   {/* Modal Grid */}
-                  <div className="flex-1 overflow-y-auto border border-zinc-300 mb-4 select-none bg-white">
-                     <div className="grid border-b border-zinc-300 bg-zinc-50"
+                  <div className="flex-1 overflow-y-auto border border-slate-200 rounded-lg mb-4 select-none bg-white">
+                     <div className="grid border-b border-slate-200 bg-slate-50 font-sans"
                         style={{ gridTemplateColumns: '40px 80px 1fr 120px 110px' }}>
                         {[t('kapatConsole.modal.no'), t('kapatConsole.table.code'), t('kapatConsole.modal.accountName'), t('kapatConsole.modal.udhar'), t('kapatConsole.modal.amount')].map((h, i) => (
-                           <div key={h} className={`py-1.5 text-[10px] font-bold text-zinc-500 uppercase ${i < 4 ? 'border-r border-zinc-300' : ''} ${i >= 3 ? 'text-right px-3' : 'text-center'}`}>{h}</div>
+                           <div key={h} className={`py-1.5 text-[10px] font-bold text-slate-400 uppercase ${i < 4 ? 'border-r border-slate-200' : ''} ${i >= 3 ? 'text-right px-3' : 'text-center'}`}>{h}</div>
                         ))}
                      </div>
 
-                     <div className="divide-y divide-zinc-200">
+                     <div className="divide-y divide-slate-100">
                         {selectedIdentities.length === 0 ? (
-                           <div className="py-10 text-center text-xs text-zinc-400 font-bold">{t('kapatConsole.modal.noMembers')}</div>
+                           <div className="py-10 text-center text-xs text-slate-400 font-bold">{t('kapatConsole.modal.noMembers')}</div>
                         ) : selectedIdentities.map((item, idx) => {
                            const key = `${item.type}-${item.id}-${idx}`;
                            const isActive = key === deductionPayload.target_identifier;
@@ -768,31 +822,37 @@ export default function DeductionConsole() {
                                        handleUpdateTargetAmount(item.type, item.id, Math.abs(bal).toFixed(2));
                                     }
                                  }}
-                                 className={`grid cursor-pointer transition-colors ${isActive ? 'bg-zinc-100' : idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}`}
+                                 className={`grid cursor-pointer transition-all border-b border-slate-100 hover:bg-slate-50/60 ${
+                                    isActive
+                                       ? 'bg-sky-50/40 border-l-2 border-[#1d5f84]'
+                                       : idx % 2 === 0
+                                          ? 'bg-white border-l-2 border-transparent'
+                                          : 'bg-slate-50/30 border-l-2 border-transparent'
+                                 }`}
                                  style={{ gridTemplateColumns: '40px 80px 1fr 120px 110px' }}>
-                                 <div className="border-r border-zinc-200 py-2 text-center text-xs font-mono font-bold text-zinc-400">{idx + 1}</div>
-                                 <div className="border-r border-zinc-200 py-2 text-center text-xs font-sans font-bold text-zinc-700 force-en">{String(item.code || '').padStart(4, '0')}</div>
-                                 <div className="border-r border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-800 tracking-tight truncate">
-                                    {item.type === 'member'
-                                       ? <span className="font-prompt-sm">{item.name}</span>
-                                       : formatBilingualText(item.name)
-                                    }
-                                 </div>
-                                 <div className="border-r border-zinc-200 px-3 py-2 flex flex-col items-end justify-center select-none">
+                                 <div className="border-r border-slate-100 py-2 text-center text-xs font-mono font-bold text-slate-400">{idx + 1}</div>
+                                 <div className="border-r border-slate-100 py-2 text-center text-xs font-sans font-bold text-slate-700 force-en">{String(item.code || '').padStart(4, '0')}</div>
+                                 <div 
+                                     className={`border-r border-slate-100 px-3 py-2 text-xs font-bold text-slate-800 tracking-tight truncate ${isGu ? '' : 'font-sans uppercase'}`}
+                                     style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
+                                  >
+                                     {displayIdentityName(item)}
+                                  </div>
+                                 <div className="border-r border-slate-100 px-3 py-2 flex flex-col items-end justify-center select-none">
                                     <div className={`text-xs font-mono font-bold text-rose-600`}>
                                        {bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </div>
                                     {isActive && deducted !== 0 && (
-                                       <div className="text-[10px] font-mono font-bold italic text-zinc-400">
+                                       <div className="text-[10px] font-mono font-bold italic text-slate-400">
                                           {closing > 0 ? '+' : closing < 0 ? '-' : ''}{Math.abs(closing).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                        </div>
                                     )}
                                  </div>
-                                 <div className="px-2 py-1.5 flex items-center" onClick={e => e.stopPropagation()}>
+                                 <div className="px-2 py-1 flex items-center" onClick={e => e.stopPropagation()}>
                                     {(isActive || deducted !== 0) && (
                                        <input type="number" value={item.deduction_amount || ''}
                                           onChange={e => handleUpdateTargetAmount(item.type, item.id, e.target.value)}
-                                          className="w-full bg-white border border-zinc-300 px-2 py-1 text-right font-mono font-bold text-xs outline-none focus:border-zinc-500"
+                                          className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-right font-mono font-bold text-xs outline-none focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84]"
                                           placeholder="0.00" />
                                     )}
                                  </div>
@@ -802,17 +862,17 @@ export default function DeductionConsole() {
                      </div>
                   </div>
 
-                  <div className="flex justify-between items-center bg-zinc-50 border border-zinc-300 p-3 select-none">
+                  <div className="flex justify-between items-center bg-slate-50 border border-slate-200 rounded-md p-3 select-none shrink-0">
                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-600 uppercase">{t('kapatConsole.total')}</span>
-                        <span className="text-base font-mono font-bold text-zinc-800 bg-white border border-zinc-300 px-4 py-1 min-w-[120px] text-right">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('kapatConsole.total')}</span>
+                        <span className="text-base font-mono font-bold text-slate-700 bg-white border border-slate-200 rounded px-4 py-1 min-w-[120px] text-right">
                            {Number(totalDeductionAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                      </div>
 
                      <div className="flex gap-2">
-                        <button onClick={() => setShowDeductionModal(false)} className="px-4 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold select-none">Cancel</button>
-                        <button onClick={handleExecuteBatch} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold select-none transition flex items-center gap-1">
+                        <button onClick={() => setShowDeductionModal(false)} className="px-4 py-2 bg-white border border-slate-200 rounded-md hover:bg-slate-50 text-slate-655 text-xs font-bold select-none cursor-pointer transition">Cancel</button>
+                        <button onClick={handleExecuteBatch} className="px-5 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] rounded-md text-xs font-bold select-none transition flex items-center gap-1.5 cursor-pointer">
                            <CheckCircle size={14} /> {t('kapatConsole.modal.commitBatch')}
                         </button>
                      </div>
@@ -823,47 +883,127 @@ export default function DeductionConsole() {
 
          {/* Add Targets Modal */}
          {showMembersModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
-               <div className="bg-white border border-zinc-300 p-5 w-full max-w-lg flex flex-col max-h-[85vh] animate-none">
-                  <div className="flex justify-between items-center border-b border-zinc-300 pb-3 mb-4">
-                     <div>
-                        <h3 className="text-base font-bold text-zinc-900">{t('kapatConsole.addTargetModal.title')}</h3>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase">{t('kapatConsole.addTargetModal.subtitle')}</p>
-                     </div>
-                     <button onClick={() => setShowMembersModal(false)} className="p-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-700 transition"><X size={16} /></button>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+               <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-150" onClick={() => setShowMembersModal(false)} />
+               <div className="relative w-full max-w-lg max-h-[85vh] bg-white border border-slate-200 rounded-lg p-5 shadow-xl z-10 flex flex-col animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                  
+                  {/* Close button */}
+                  <button onClick={() => setShowMembersModal(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer bg-slate-50 rounded-md hover:bg-slate-100 border border-slate-200/50"><X size={14} /></button>
+
+                  <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 mb-4 pr-8 font-prompt-sm">
+                     {t('kapatConsole.addTargetModal.title') || 'કપાત લક્ષ્યો ઉમેરો (Add Deduction Targets)'}
+                  </h3>
+
+                  <div className="flex gap-1 bg-slate-50 border border-slate-200 rounded-lg p-1 mb-3 select-none shrink-0">
+                     <button
+                        onClick={() => { setIdentityTab('member'); setFilterQuery(''); }}
+                        className={`flex-1 py-1.5 text-xs font-bold transition-all rounded-md cursor-pointer select-none ${
+                           identityTab === 'member'
+                              ? 'bg-[#1d5f84] text-white shadow-none'
+                              : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                     >
+                        {t('kapatConsole.addTargetModal.members')}
+                     </button>
+                     <button
+                        onClick={() => { setIdentityTab('account'); setFilterQuery(''); }}
+                        className={`flex-1 py-1.5 text-xs font-bold transition-all rounded-md cursor-pointer select-none ${
+                           identityTab === 'account'
+                              ? 'bg-[#1d5f84] text-white shadow-none'
+                              : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                     >
+                        {t('kapatConsole.addTargetModal.accounts')}
+                     </button>
                   </div>
 
-                  <div className="flex gap-1 bg-zinc-100 border border-zinc-300 p-1 mb-4 select-none">
-                     <button onClick={() => setIdentityTab('member')} className={`flex-1 py-1.5 text-xs font-bold transition-all select-none ${identityTab === 'member' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-600'}`}>{t('kapatConsole.addTargetModal.members')}</button>
-                     <button onClick={() => setIdentityTab('account')} className={`flex-1 py-1.5 text-xs font-bold transition-all select-none ${identityTab === 'account' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-600'}`}>{t('kapatConsole.addTargetModal.accounts')}</button>
+                  {/* Search Bar */}
+                  <div className="relative mb-3 shrink-0">
+                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                     <input
+                        type="text"
+                        value={filterQuery}
+                        onChange={e => setFilterQuery(e.target.value)}
+                        placeholder={identityTab === 'member' ? "સભ્ય શોધો (નામ અથવા કોડ)..." : "ખાતું શોધો..."}
+                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs outline-none focus:border-[#1d5f84] focus:bg-white transition"
+                     />
+                     {filterQuery && (
+                        <button
+                           onClick={() => setFilterQuery('')}
+                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                           <X size={12} />
+                        </button>
+                     )}
                   </div>
 
-                  <div className="flex-1 overflow-y-auto divide-y divide-zinc-200 border border-zinc-300 mb-4 select-none bg-white">
-                     {(identityTab === 'member' ? members : accounts).map(idnt => {
-                        const id = idnt.id;
-                        const name = identityTab === 'member' ? idnt.member_name : idnt.account_name;
-                        const code = identityTab === 'member' ? idnt.member_code : (idnt.account_code || idnt.id);
-                        const isSelected = selectedIdentities.find(i => i.id === id && i.type === identityTab);
-                        return (
-                           <div key={id} onClick={() => toggleIdentitySelection(id, identityTab, name, code)} className={`flex items-center justify-between p-3 cursor-pointer transition-colors select-none ${isSelected ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}>
-                              <div className="flex items-center gap-3">
-                                 <div className={`w-7 h-7 rounded border border-zinc-300 flex items-center justify-center text-xs select-none ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'bg-zinc-50 text-zinc-400'}`}>
-                                    {isSelected ? <CheckCircle size={14} /> : (identityTab === 'member' ? <User size={14} /> : <Layout size={14} />)}
-                                 </div>
-                                 <div>
-                                    <p className="text-xs font-bold text-zinc-800 tracking-tight">{identityTab === 'member' ? <span className="font-prompt-sm">{name}</span> : formatBilingualText(name)}</p>
-                                    <p className="text-[10px] font-mono text-zinc-500 font-bold">#{code}</p>
-                                 </div>
+                  <div className="flex-1 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-lg mb-4 select-none bg-white">
+                     {(() => {
+                        const itemsToRender = (identityTab === 'member' ? members : accounts).filter(idnt => {
+                           const name = identityTab === 'member'
+                              ? (isGu ? (idnt.member_name_gu || idnt.member_name) : (idnt.eng_name || idnt.member_name))
+                              : (isGu ? (idnt.account_name_gu || idnt.account_name) : idnt.account_name);
+                           
+                           const altName = identityTab === 'member'
+                              ? (isGu ? (idnt.eng_name || idnt.member_name) : (idnt.member_name_gu || idnt.member_name))
+                              : (isGu ? idnt.account_name : (idnt.account_name_gu || idnt.account_name));
+
+                           const code = identityTab === 'member' ? idnt.member_code : (idnt.account_code || idnt.id);
+                           const query = filterQuery.toLowerCase();
+                           return (
+                              String(name || '').toLowerCase().includes(query) ||
+                              String(altName || '').toLowerCase().includes(query) ||
+                              String(code || '').toLowerCase().includes(query)
+                           );
+                        });
+
+                        if (itemsToRender.length === 0) {
+                           return (
+                              <div className="flex flex-col items-center justify-center py-10 gap-1 text-slate-400 font-bold text-xs">
+                                 <span>{t('common.noRecords') || "કોઈ માહિતી મળી નથી"}</span>
+                                 <span className="text-[10px] font-normal text-slate-350">Try refining your search query</span>
                               </div>
-                              {isSelected && <ArrowRight size={14} className="text-blue-500" />}
-                           </div>
-                        );
-                     })}
+                           );
+                        }
+
+                        return itemsToRender.map(idnt => {
+                           const id = idnt.id;
+                           const name = identityTab === 'member'
+                              ? (isGu ? (idnt.member_name_gu || idnt.member_name) : (idnt.eng_name || idnt.member_name))
+                              : (isGu ? (idnt.account_name_gu || idnt.account_name) : idnt.account_name);
+                           const code = identityTab === 'member' ? idnt.member_code : (idnt.account_code || idnt.id);
+                           const isSelected = selectedIdentities.find(i => i.id === id && i.type === identityTab);
+                           return (
+                              <div key={id} onClick={() => {
+                                 const nameVal = identityTab === 'member' ? idnt.member_name : idnt.account_name;
+                                 const nameGuVal = identityTab === 'member' ? idnt.member_name_gu : idnt.account_name_gu;
+                                 const engNameVal = identityTab === 'member' ? idnt.eng_name : idnt.account_name;
+                                 toggleIdentitySelection(id, identityTab, nameVal, code, nameGuVal, engNameVal);
+                              }} className={`flex items-center justify-between p-3 cursor-pointer transition-colors select-none ${isSelected ? 'bg-slate-50/70' : 'hover:bg-slate-50/40'}`}>
+                                 <div className="flex items-center gap-3">
+                                    <div className={`w-7 h-7 rounded border border-slate-200 flex items-center justify-center text-xs select-none ${isSelected ? 'bg-[#1d5f84] border-[#1d5f84] text-white' : 'bg-slate-50 text-slate-400'}`}>
+                                       {isSelected ? <CheckCircle size={14} /> : (identityTab === 'member' ? <User size={14} /> : <Layout size={14} />)}
+                                    </div>
+                                    <div>
+                                       <p 
+                                          className={`text-xs font-bold text-slate-850 tracking-tight ${isGu ? '' : 'font-sans uppercase'}`}
+                                          style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
+                                       >
+                                          {identityTab === 'member' ? name : (isGu ? formatBilingualText(name) : name)}
+                                       </p>
+                                       <p className="text-[10px] font-mono text-slate-400 font-bold">#{code}</p>
+                                    </div>
+                                 </div>
+                                 {isSelected && <ArrowRight size={14} className="text-[#1d5f84]" />}
+                              </div>
+                           );
+                        });
+                     })()}
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-zinc-200">
-                     <button onClick={() => setShowMembersModal(false)} className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-4 py-2 select-none">Cancel</button>
-                     <button onClick={confirmSelection} className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 text-xs font-bold px-4 py-2 select-none transition flex items-center gap-1">Confirm Selection</button>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 shrink-0">
+                     <button onClick={() => setShowMembersModal(false)} className="bg-white border border-slate-200 rounded-md hover:bg-slate-50 text-slate-655 text-xs font-bold px-4 py-2 cursor-pointer select-none">Cancel</button>
+                     <button onClick={confirmSelection} className="bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] rounded-md text-xs font-bold px-4 py-2 cursor-pointer select-none transition flex items-center gap-1">Confirm Selection</button>
                   </div>
                </div>
             </div>

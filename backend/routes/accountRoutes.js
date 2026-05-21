@@ -295,7 +295,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { account_code, p_code, account_name, account_name_gu, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
+    const { account_code, p_code, account_name, account_name_gu, account_type, phone, email, opening_balance, opening_balance_type, gst_no, tin_no, is_subledger } = req.body;
 
     let final_opening_balance = undefined;
     if (opening_balance !== undefined) {
@@ -347,6 +347,7 @@ router.put('/:id', async (req, res) => {
     if (p_code !== undefined) { updateFields.push('p_code = ?'); queryParams.push(p_code || null); }
     if (account_name !== undefined) { updateFields.push('account_name = ?'); queryParams.push(account_name || null); }
     if (account_name_gu !== undefined) { updateFields.push('account_name_gu = ?'); queryParams.push(account_name_gu || null); }
+    if (account_type !== undefined) { updateFields.push('account_type = ?'); queryParams.push(account_type || null); }
     if (phone !== undefined) { updateFields.push('phone = ?'); queryParams.push(phone || null); }
     if (email !== undefined) { updateFields.push('email = ?'); queryParams.push(email || null); }
     if (gst_no !== undefined) { updateFields.push('gst_no = ?'); queryParams.push(gst_no || null); }

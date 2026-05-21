@@ -3,7 +3,30 @@ import { useTranslation } from 'react-i18next';
 import { X, Save, RefreshCcw, Layers, Loader } from 'lucide-react';
 
 export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  
+  const displayItemName = (item) => {
+    if (!item) return '';
+    return i18n.language === 'gu'
+      ? (item.item_name_gu || item.item_name || '')
+      : (item.item_name || item.item_name_gu || '');
+  };
+
+  const translateServerMessage = (message) => {
+    if (!message || i18n.language !== 'gu') return message;
+
+    const text = String(message);
+    const lower = text.toLowerCase();
+
+    if (/sku.*required/.test(lower)) return 'SKU આવશ્યક છે.';
+    if (/purchase.*required/.test(lower) || /procurement/.test(lower)) return 'ખરીદ દર આવશ્યક છે.';
+    if (/sale.*required/.test(lower) || /release/.test(lower)) return 'વેચાણ દર આવશ્યક છે.';
+    if (/effective.*required/.test(lower)) return 'અસરકારક તારીખ આવશ્યક છે.';
+    if (/failed to save/i.test(lower)) return 'દર સાચવવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.';
+    if (/validation/.test(lower)) return 'કૃપા કરીને નીચેની ભૂલો સુધારો.';
+
+    return text;
+  };
   const [formData, setFormData] = useState({
     item_id: '',
     purchase_rate: '',
@@ -86,9 +109,9 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
     } catch (error) {
       const backendErrors = error.response?.data?.errors;
       if (Array.isArray(backendErrors)) {
-        setErrors(backendErrors);
+        setErrors(backendErrors.map(translateServerMessage));
       } else {
-        setErrors([error.response?.data?.message || error.response?.data?.error || t('itemRateForm.errors.syncFailure')]);
+        setErrors([translateServerMessage(error.response?.data?.message || error.response?.data?.error || t('itemRateForm.errors.syncFailure'))]);
       }
     } finally {
       setLoading(false);
@@ -134,12 +157,12 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
               onChange={handleChange}
               onKeyDown={(e) => handleKeyDown(e, purchaseRateRef)}
               disabled={loading || !!rate}
-              className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase disabled:bg-zinc-100 disabled:text-zinc-400 font-prompt"
+              className={`w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-300 rounded-none focus:bg-white focus:border-zinc-600 outline-none transition font-bold text-zinc-800 uppercase tracking-widest disabled:bg-zinc-100 disabled:text-zinc-400 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans text-sm font-extrabold'}`}
             >
               <option value="">{t('itemRateForm.selectSku')}</option>
               {items.filter(i => i.is_active === 1).map(item => (
-                <option key={item.id} value={item.id} className="font-prompt">
-                  {item.item_name_gu || item.item_name} ({item.item_code})
+                <option key={item.id} value={item.id} className={i18n.language === 'gu' ? 'font-prompt' : 'font-sans'}>
+                  {displayItemName(item)} ({item.item_code})
                 </option>
               ))}
             </select>

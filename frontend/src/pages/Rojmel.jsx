@@ -18,7 +18,7 @@ import api from '../api';
 import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 
 export default function Rojmel() {
-   const { t } = useTranslation();
+   const { t, i18n } = useTranslation();
 
    // Date State
    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -329,93 +329,77 @@ export default function Rojmel() {
    const normalizedUdhar = paddedUdhar;
 
    return (
-      <div className="min-h-screen bg-zinc-100 p-6 font-sans text-zinc-900 select-none animate-in fade-in duration-500">
-         <div className="max-w-[1400px] mx-auto bg-white border border-zinc-300 p-5 space-y-6">
+      <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
+         <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
 
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-300 pb-4 gap-4 print:hidden">
-               <div>
-                  <h1 className="text-xl font-bold tracking-tight text-zinc-800 flex items-center gap-2">
-                     <Calculator size={20} className="text-zinc-600" />
-                     {t('rojmel.title')}
-                  </h1>
-                  <p className="text-xs font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">{t('rojmel.eyebrow')}</p>
-               </div>
-
-               <div className="flex items-center gap-3 w-full md:w-auto">
-                  <button
-                     onClick={fetchRojmel}
-                     className="p-1.5 text-zinc-500 hover:text-zinc-800 border border-zinc-300 bg-white hover:bg-zinc-50 transition shadow-sm"
-                     title={t('common.refreshRegistry')}
-                  >
-                     <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} />
-                  </button>
-                  <button
-                     onClick={handlePrint}
-                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
-                  >
-                     <Printer size={14} />{t('common.print')}</button>
-                  <button
-                     onClick={handleDownloadPDF}
-                     className="flex items-center gap-1.5 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-bold px-3 py-1.5 select-none uppercase tracking-widest"
-                  >
-                     <FileText size={14} />{t('common.pdf')}</button>
-               </div>
-            </div>
-
-            {/* Toolbar Section */}
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-zinc-50 border border-zinc-300 p-3 print:hidden">
-               <div className="flex items-center gap-6">
-                  <div className="relative flex-1 min-w-[240px] group">
-                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
-                     <input
-                        type="text"
-                        placeholder={t('rojmel.searchPlaceholder')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 bg-white border border-zinc-300 outline-none focus:border-zinc-500 text-[10px] font-bold tracking-widest transition-all"
-                        style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
-                     />
+            {/* Registry Container */}
+            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
+               
+               {/* Control Header Bar */}
+               <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none print:hidden">
+                  <div className="flex items-center gap-2">
+                     <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                        {t('rojmel.title')}
+                     </span>
+                     <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                        {jamaList.length + udharList.length} {t('rojmel.postings')}
+                     </span>
                   </div>
 
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                     <input
-                        type="checkbox"
-                        checked={showSubledger}
-                        onChange={(e) => setShowSubledger(e.target.checked)}
-                        className="w-4 h-4 rounded-none border-zinc-300 text-blue-600 focus:ring-0 focus:ring-offset-0"
-                     />
-                     <span className="text-sm font-bold text-zinc-500   group-hover:text-zinc-700">{t('rojmel.showSubledger')}</span>
-                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                     {/* Search */}
+                     <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                        <Search size={12} className="text-slate-400 mr-1.5" />
+                        <input
+                           type="text"
+                           placeholder={t('rojmel.searchPlaceholder')}
+                           value={searchQuery}
+                           onChange={(e) => setSearchQuery(e.target.value)}
+                           className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                        />
+                        {searchQuery && (
+                           <button onClick={() => setSearchQuery('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                              <X size={10} />
+                           </button>
+                        )}
+                     </div>
 
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                     <input
-                        type="checkbox"
-                        checked={printItemDetails}
-                        onChange={(e) => setPrintItemDetails(e.target.checked)}
-                        className="w-4 h-4 rounded-none border-zinc-300 text-blue-600 focus:ring-0 focus:ring-offset-0"
-                     />
-                     <span className="text-sm font-bold text-zinc-500   group-hover:text-zinc-700">{t('rojmel.itemDetails')}</span>
-                  </label>
-               </div>
+                     {/* Options */}
+                     <div className="flex items-center gap-3 border border-slate-200 rounded-md bg-white px-2.5 py-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer group">
+                           <input
+                              type="checkbox"
+                              checked={showSubledger}
+                              onChange={(e) => setShowSubledger(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded-sm border-slate-300 text-[#1d5f84] focus:ring-[#1d5f84]"
+                           />
+                           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-700">{t('rojmel.showSubledger')}</span>
+                        </label>
+                        <div className="w-px h-3 bg-slate-200"></div>
+                        <label className="flex items-center gap-1.5 cursor-pointer group">
+                           <input
+                              type="checkbox"
+                              checked={printItemDetails}
+                              onChange={(e) => setPrintItemDetails(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded-sm border-slate-300 text-[#1d5f84] focus:ring-[#1d5f84]"
+                           />
+                           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-700">{t('rojmel.itemDetails')}</span>
+                        </label>
+                     </div>
 
-               <div className='flex gap-2'>
-                  <div className="flex items-center gap-3">
-                     <span className="text-sm font-bold text-zinc-400  ">{t('rojmel.journalTimeline')}:</span>
-                     <div className="flex items-center bg-white border border-zinc-300 shadow-sm">
+                     {/* Date Nav */}
+                     <div className="flex items-center border border-slate-200 rounded-md bg-white p-0.5">
                         <button
                            disabled={!navDates.prev}
                            onClick={() => setDate(navDates.prev)}
-                           className="p-1.5 hover:bg-zinc-50 text-zinc-400 hover:text-zinc-800 disabled:opacity-20 border-r border-zinc-300"
+                           className="p-1 hover:bg-slate-50 text-slate-400 hover:text-slate-700 disabled:opacity-30 rounded-sm"
                         >
-                           <ChevronLeft size={16} />
+                           <ChevronLeft size={13} />
                         </button>
-
-                        <div className="relative flex items-center px-3 py-1.5 min-w-[140px] justify-center group cursor-pointer" onClick={() => document.getElementById('rojmel-date-input').showPicker()}>
-                           <span className="text-sm font-bold text-zinc-700 font-sans ">
+                        <div className="relative flex items-center px-2 py-0.5 min-w-[90px] justify-center group cursor-pointer" onClick={() => document.getElementById('rojmel-date-input').showPicker()}>
+                           <span className="text-[11px] font-bold text-slate-700 font-mono tracking-wider">
                               {new Date(date).toLocaleDateString('en-GB').replace(/\//g, '-')}
                            </span>
-                           <Calendar size={14} className="ml-3 text-zinc-400 group-hover:text-blue-600 transition-colors" />
                            <input
                               id="rojmel-date-input"
                               type="date"
@@ -424,192 +408,181 @@ export default function Rojmel() {
                               className="absolute inset-0 opacity-0 cursor-pointer"
                            />
                         </div>
-
                         <button
                            disabled={!navDates.next}
                            onClick={() => setDate(navDates.next)}
-                           className="p-1.5 hover:bg-zinc-50 text-zinc-400 hover:text-zinc-800 disabled:opacity-20 border-l border-zinc-300"
+                           className="p-1 hover:bg-slate-50 text-slate-400 hover:text-slate-700 disabled:opacity-30 rounded-sm"
                         >
-                           <ChevronRight size={16} />
+                           <ChevronRight size={13} />
+                        </button>
+                     </div>
+
+                     {/* Actions */}
+                     <div className="flex items-center gap-1.5 ml-1">
+                        <button onClick={fetchRojmel} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('common.refreshRegistry')}>
+                           <RefreshCcw size={13} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button onClick={handleDownloadPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('common.pdf')}>
+                           <FileText size={13} />
+                        </button>
+                        <button onClick={handlePrint} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('common.print')}>
+                           <Printer size={13} />
                         </button>
                      </div>
                   </div>
                </div>
-            </div>
 
-            {/* Table Header Section like other pages */}
-            <div className="px-4 py-3 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between border-b-0 print:hidden select-none">
-               <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-zinc-700  ">
-                     {t('rojmel.registryShard')}
-                  </span>
-                  <span className="bg-zinc-200 border border-zinc-300 text-zinc-700 font-sans text-sm px-2 py-0.5 ">
-                     {jamaList.length + udharList.length} {t('rojmel.postings')}
-                  </span>
-               </div>
-               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('rojmel.journalTimeline')}: {new Date(date).toLocaleDateString('en-GB')}</p>
-            </div>
-
-            {/* Ledger Registry Table */}
-            <div id="rojmel-container" className="border border-zinc-300 bg-zinc-50 flex flex-col min-h-[600px] print:border-black print:rounded-none select-none">
-
-               {/* Dual Column Headers */}
-               <div className="grid grid-cols-2 text-center relative border-b border-zinc-300">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-zinc-300 print:bg-black"></div>
-
-                  <div className="py-5 bg-emerald-50/30 flex flex-col items-center justify-center relative select-none">
-                     <div className="flex items-center gap-2 mb-1">
-                        <ArrowUpRight size={16} className="text-emerald-700" />
-                        <h2 className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-mono">{t('rojmel.jamaBaju')}</h2>
-                     </div>
-                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{t('rojmel.creditSide')}</p>
-                  </div>
-
-                  <div className="py-5 bg-blue-50/30 flex flex-col items-center justify-center relative select-none">
-                     <div className="flex items-center gap-2 mb-1">
-                        <ArrowDownLeft size={16} className="text-blue-700" />
-                        <h2 className="text-xs font-bold text-blue-700 uppercase tracking-widest font-mono">{t('rojmel.udharBaju')}</h2>
-                     </div>
-                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{t('rojmel.debitSide')}</p>
-                  </div>
-               </div>
-
-               {/* Table Columns Sub-Headers */}
-               <div className="grid grid-cols-2 bg-zinc-100 border-b border-zinc-300 uppercase text-[10px] font-bold text-zinc-600 tracking-wider">
-                  <div className="grid grid-cols-12 border-r border-zinc-300">
-                     <div className="col-span-6 px-4 py-2 text-left">{t('rojmel.particulars')}</div>
-                     <div className="col-span-3 px-4 py-2 text-right">{t('rojmel.sub')}</div>
-                     <div className="col-span-3 px-4 py-2 text-right bg-emerald-100/50 text-emerald-800">{t('rojmel.amount')}</div>
-                  </div>
-                  <div className="grid grid-cols-12">
-                     <div className="col-span-6 px-4 py-2 text-left">{t('rojmel.particulars')}</div>
-                     <div className="col-span-3 px-4 py-2 text-right">{t('rojmel.sub')}</div>
-                     <div className="col-span-3 px-4 py-2 text-right bg-blue-100/50 text-blue-800">{t('rojmel.amount')}</div>
-                  </div>
-               </div>
-
-               {/* Ledger Data Rows */}
-               <div className="grid grid-cols-2 flex-1 divide-x divide-zinc-300 relative bg-white font-sans text-zinc-800">
-                  {/* Jama Side */}
-                  <div className="flex flex-col divide-y divide-zinc-200">
-                     {normalizedJama.map((row, idx) => {
-                        const isHighNode = row.isOpening || row.isClosing;
-                        return (
-                           <div
-                              key={idx}
-                              className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-zinc-50 font-bold' : 'hover:bg-zinc-50/50'}`}
-                              onDoubleClick={() => handleEditEntry(row, 'jama')}
-                           >
-                              <div className="col-span-6 px-4 py-2">
-                                 <div className="font-bold text-zinc-800">{formatBilingualText(row.details)}</div>
-                                 {showSubledger && row.sub_details && (
-                                    <div className="text-[11px] text-zinc-600 font-semibold mt-0.5 leading-tight">
-                                       {formatBilingualText(row.sub_details)}
-                                    </div>
-                                 )}
-                                 {printItemDetails && row.notes && (
-                                    <div className="text-[9px] text-zinc-600 font-bold mt-0.5 leading-tight italic">
-                                       {row.notes}
-                                    </div>
-                                 )}
-                              </div>
-                              <div className="col-span-3 px-4 py-2 text-right text-zinc-700 font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
-                              <div className={`col-span-3 px-4 py-2 text-right font-black ${isHighNode ? 'text-zinc-900' : 'text-emerald-700'}`}>
-                                 {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
-                              </div>
-                           </div>
-                        );
-                     })}
-                  </div>
-
-                  {/* Udhar Side */}
-                  <div className="flex flex-col divide-y divide-zinc-200">
-                     {normalizedUdhar.map((row, idx) => {
-                        const isHighNode = row.isOpening || row.isClosing;
-                        return (
-                           <div
-                              key={idx}
-                              className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-zinc-50 font-bold' : 'hover:bg-zinc-50/50'}`}
-                              onDoubleClick={() => handleEditEntry(row, 'udhar')}
-                           >
-                              <div className="col-span-6 px-4 py-2">
-                                 <div className="font-bold text-zinc-800">{formatBilingualText(row.details)}</div>
-                                 {showSubledger && row.sub_details && (
-                                    <div className="text-[11px] text-zinc-600 font-semibold mt-0.5 leading-tight">
-                                       {formatBilingualText(row.sub_details)}
-                                    </div>
-                                 )}
-                                 {printItemDetails && row.notes && (
-                                    <div className="text-[9px] text-zinc-600 font-bold mt-0.5 leading-tight italic">
-                                       {row.notes}
-                                    </div>
-                                 )}
-                              </div>
-                              <div className="col-span-3 px-4 py-2 text-right text-zinc-700 font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
-                              <div className={`col-span-3 px-4 py-2 text-right font-black ${isHighNode ? 'text-zinc-900' : 'text-blue-700'}`}>
-                                 {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
-                              </div>
-                           </div>
-                        );
-                     })}
-                  </div>
-               </div>
-
-               {/* Totals Footer */}
-               {data?.totals && (
-                  <div className="grid grid-cols-2 bg-blue-600 text-white uppercase text-[10px] font-bold tracking-widest border-t border-blue-500">
-                     <div className="grid grid-cols-12 items-center">
-                        <div className="col-span-9 px-4 py-3 text-white">{t('rojmel.grossJama')}</div>
-                        <div className="col-span-3 px-4 py-3 text-right text-white text-sm font-black font-mono tracking-tighter italic">
-                           ₹{parseFloat(data.totals.jama_total).toFixed(2)}
+               {/* Ledger Registry Table */}
+               <div id="rojmel-container" className="flex flex-col min-h-[600px] print:border-black print:rounded-none select-none">
+                  
+                  {/* Dual Column Headers */}
+                  <div className="grid grid-cols-2 text-center relative border-b border-slate-200">
+                     <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-slate-200 print:bg-black z-10"></div>
+                     <div className="py-2.5 bg-emerald-50/50 flex flex-col items-center justify-center relative">
+                        <div className="flex items-center gap-1.5">
+                           <ArrowUpRight size={14} className="text-emerald-700" />
+                           <h2 className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest font-mono">{t('rojmel.jamaBaju')}</h2>
                         </div>
                      </div>
-                     <div className="grid grid-cols-12 items-center border-l border-blue-500">
-                        <div className="col-span-9 px-4 py-3 text-white">{t('rojmel.grossUdhar')}</div>
-                        <div className="col-span-3 px-4 py-3 text-right text-white text-sm font-black font-mono tracking-tighter italic">
-                           ₹{parseFloat(data.totals.udhar_total).toFixed(2)}
+                     <div className="py-2.5 bg-blue-50/50 flex flex-col items-center justify-center relative">
+                        <div className="flex items-center gap-1.5">
+                           <ArrowDownLeft size={14} className="text-[#1d5f84]" />
+                           <h2 className="text-[11px] font-bold text-[#1d5f84] uppercase tracking-widest font-mono">{t('rojmel.udharBaju')}</h2>
                         </div>
                      </div>
                   </div>
-               )}
-            </div>
 
-            {/* Quick Actions Footer */}
-            <div className="flex items-center justify-between gap-4 p-3 bg-zinc-50 border border-zinc-300 print:hidden">
-               <div className="flex items-center gap-3">
-                  <button
-                     onClick={() => { setEditingEntry(null); setActiveModal('credit'); }}
-                     className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white text-[10px] font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest"
-                  >
-                     <Plus size={14} /> {t('rojmel.actions.jamaEntry')}
-                  </button>
-                  <button
-                     onClick={() => { setEditingEntry(null); setActiveModal('debit'); }}
-                     className="flex items-center gap-2 bg-red-600 hover:bg-red-700 border border-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-none transition shadow-sm uppercase tracking-widest"
-                  >
-                     <Plus size={14} /> {t('rojmel.actions.udharEntry')}
-                  </button>
+                  {/* Table Columns Sub-Headers */}
+                  <div className="grid grid-cols-2 bg-slate-50 border-b border-slate-200 uppercase text-[9px] font-bold text-slate-500 tracking-wider">
+                     <div className="grid grid-cols-12 border-r border-slate-200">
+                        <div className="col-span-6 px-3.5 py-2 text-left">{t('rojmel.particulars')}</div>
+                        <div className="col-span-3 px-3.5 py-2 text-right">{t('rojmel.sub')}</div>
+                        <div className="col-span-3 px-3.5 py-2 text-right bg-emerald-100/50 text-emerald-800 border-l border-emerald-100/50">{t('rojmel.amount')}</div>
+                     </div>
+                     <div className="grid grid-cols-12">
+                        <div className="col-span-6 px-3.5 py-2 text-left">{t('rojmel.particulars')}</div>
+                        <div className="col-span-3 px-3.5 py-2 text-right">{t('rojmel.sub')}</div>
+                        <div className="col-span-3 px-3.5 py-2 text-right bg-blue-100/30 text-[#1d5f84] border-l border-blue-100/30">{t('rojmel.amount')}</div>
+                     </div>
+                  </div>
+
+                  {/* Ledger Data Rows */}
+                  <div className="grid grid-cols-2 flex-1 divide-x divide-slate-200 relative bg-white font-sans text-slate-800">
+                     {/* Jama Side */}
+                     <div className="flex flex-col divide-y divide-slate-100">
+                        {normalizedJama.map((row, idx) => {
+                           const isHighNode = row.isOpening || row.isClosing;
+                           return (
+                              <div
+                                 key={idx}
+                                 className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-slate-50 font-bold' : 'hover:bg-slate-50/75 transition-colors cursor-pointer'}`}
+                                 onDoubleClick={() => handleEditEntry(row, 'jama')}
+                              >
+                                 <div className="col-span-6 px-3.5 py-2">
+                                    <div className={`font-bold text-slate-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{formatBilingualText(row.details)}</div>
+                                    {showSubledger && row.sub_details && (
+                                       <div className={`text-[10px] text-slate-500 font-semibold mt-0.5 leading-tight ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                                          {formatBilingualText(row.sub_details)}
+                                       </div>
+                                    )}
+                                    {printItemDetails && row.notes && (
+                                       <div className="text-[9px] text-slate-400 font-bold mt-0.5 leading-tight italic">
+                                          {row.notes}
+                                       </div>
+                                    )}
+                                 </div>
+                                 <div className="col-span-3 px-3.5 py-2 text-right text-slate-600 font-mono font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
+                                 <div className={`col-span-3 px-3.5 py-2 text-right font-mono font-bold ${isHighNode ? 'text-slate-800' : 'text-emerald-600'}`}>
+                                    {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
+                                 </div>
+                              </div>
+                           );
+                        })}
+                     </div>
+
+                     {/* Udhar Side */}
+                     <div className="flex flex-col divide-y divide-slate-100">
+                        {normalizedUdhar.map((row, idx) => {
+                           const isHighNode = row.isOpening || row.isClosing;
+                           return (
+                              <div
+                                 key={idx}
+                                 className={`grid grid-cols-12 items-center text-[11px] ${isHighNode ? 'bg-slate-50 font-bold' : 'hover:bg-slate-50/75 transition-colors cursor-pointer'}`}
+                                 onDoubleClick={() => handleEditEntry(row, 'udhar')}
+                              >
+                                 <div className="col-span-6 px-3.5 py-2">
+                                    <div className={`font-bold text-slate-700 ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{formatBilingualText(row.details)}</div>
+                                    {showSubledger && row.sub_details && (
+                                       <div className={`text-[10px] text-slate-500 font-semibold mt-0.5 leading-tight ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+                                          {formatBilingualText(row.sub_details)}
+                                       </div>
+                                    )}
+                                    {printItemDetails && row.notes && (
+                                       <div className="text-[9px] text-slate-400 font-bold mt-0.5 leading-tight italic">
+                                          {row.notes}
+                                       </div>
+                                    )}
+                                 </div>
+                                 <div className="col-span-3 px-3.5 py-2 text-right text-slate-600 font-mono font-bold">{row.sub_amount ? parseFloat(row.sub_amount).toFixed(2) : ''}</div>
+                                 <div className={`col-span-3 px-3.5 py-2 text-right font-mono font-bold ${isHighNode ? 'text-slate-800' : 'text-[#1d5f84]'}`}>
+                                    {row.amount ? parseFloat(row.amount).toFixed(2) : ''}
+                                 </div>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+
+                  {/* Totals Footer */}
+                  {data?.totals && (
+                     <div className="grid grid-cols-2 bg-slate-100 border-t border-slate-300 uppercase text-[10px] font-bold tracking-widest">
+                        <div className="grid grid-cols-12 items-center">
+                           <div className="col-span-9 px-4 py-3 text-slate-500 text-right">{t('rojmel.grossJama')}</div>
+                           <div className="col-span-3 px-4 py-3 text-right text-emerald-600 text-sm font-bold font-mono tracking-tighter">
+                              ₹{parseFloat(data.totals.jama_total).toFixed(2)}
+                           </div>
+                        </div>
+                        <div className="grid grid-cols-12 items-center border-l border-slate-300">
+                           <div className="col-span-9 px-4 py-3 text-slate-500 text-right">{t('rojmel.grossUdhar')}</div>
+                           <div className="col-span-3 px-4 py-3 text-right text-[#1d5f84] text-sm font-bold font-mono tracking-tighter">
+                              ₹{parseFloat(data.totals.udhar_total).toFixed(2)}
+                           </div>
+                        </div>
+                     </div>
+                  )}
                </div>
 
-               <div className="flex items-center gap-2">
-                  {/* <button
-                     onClick={() => setActiveModal('purchase')}
-                     className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-4 py-2 uppercase tracking-widest"
-                  >
-                     {t('rojmel.actions.procure')}
-                  </button> */}
-                  <button
-                     onClick={() => setActiveModal('sales')}
-                     className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-4 py-2 uppercase tracking-widest"
-                  >
-                     {t('rojmel.actions.sale')}
-                  </button>
-                  <button
-                     onClick={() => setActiveModal('jv')}
-                     className="bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-[10px] font-bold px-4 py-2 uppercase tracking-widest"
-                  >
-                     {t('rojmel.actions.journal')}
-                  </button>
+               {/* Quick Actions Footer */}
+               <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 border-t border-slate-200 print:hidden">
+                  <div className="flex items-center gap-2">
+                     <button
+                        onClick={() => { setEditingEntry(null); setActiveModal('credit'); }}
+                        className="h-7 flex items-center gap-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                     >
+                        <Plus size={13} /> {t('rojmel.actions.jamaEntry')}
+                     </button>
+                     <button
+                        onClick={() => { setEditingEntry(null); setActiveModal('debit'); }}
+                        className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] text-white text-[10px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                     >
+                        <Plus size={13} /> {t('rojmel.actions.udharEntry')}
+                     </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                     <button
+                        onClick={() => setActiveModal('sales')}
+                        className="h-7 flex items-center px-3 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-800 text-[10px] font-bold rounded-md transition uppercase tracking-wider cursor-pointer"
+                     >
+                        {t('rojmel.actions.sale')}
+                     </button>
+                     <button
+                        onClick={() => setActiveModal('jv')}
+                        className="h-7 flex items-center px-3 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-800 text-[10px] font-bold rounded-md transition uppercase tracking-wider cursor-pointer"
+                     >
+                        {t('rojmel.actions.journal')}
+                     </button>
+                  </div>
                </div>
             </div>
          </div>

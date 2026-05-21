@@ -180,11 +180,13 @@ router.get('/targets', async (req, res) => {
       const totalCredit = parseFloat(stats[0].total_credit || 0);
 
       if (type === 'member') {
-        const memRows = await query('SELECT member_name, member_code, village_name FROM member_master WHERE id = ?', [db_id]);
+        const memRows = await query('SELECT member_name, member_name_gu, eng_name, member_code, village_name FROM member_master WHERE id = ?', [db_id]);
         if (memRows && memRows.length > 0) {
           detailedIdentities.push({
             id: db_id, type: 'member',
             name: memRows[0].member_name,
+            name_gu: memRows[0].member_name_gu,
+            eng_name: memRows[0].eng_name,
             code: memRows[0].member_code,
             details: memRows[0].village_name || 'N/A',
             total_debit: totalDebit,
@@ -194,11 +196,12 @@ router.get('/targets', async (req, res) => {
           });
         }
       } else {
-        const accRows = await query('SELECT account_name, account_code, is_subledger FROM accounts WHERE id = ?', [db_id]);
+        const accRows = await query('SELECT account_name, account_name_gu, account_code, is_subledger FROM accounts WHERE id = ?', [db_id]);
         if (accRows && accRows.length > 0) {
           detailedIdentities.push({
              id: db_id, type: 'account',
              name: accRows[0].account_name,
+             name_gu: accRows[0].account_name_gu,
              code: accRows[0].account_code || `ACC-${db_id}`,
              details: 'LEDGER ACCOUNT',
              is_subledger: accRows[0].is_subledger,
