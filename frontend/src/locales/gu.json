@@ -2163,8 +2163,8 @@
   "cashEntry": {
     "editTitle": "{{title}} રેકોર્ડમાં ફેરફાર કરો",
     "newTitle": "નવો {{title}} રેકોર્ડ",
-    "jama": "જમા (આવક)",
-    "udhar": "ઉધાર (ચુકવણી)",
+    "jama": "જમા",
+    "udhar": "ઉધાર",
     "jamaSubtitle": "આવક કેપિટલ સ્ટ્રીમ",
     "udharSubtitle": "જાવક કેપિટલ સ્ટ્રીમ",
     "transactionDate": "વ્યવહારની તારીખ",

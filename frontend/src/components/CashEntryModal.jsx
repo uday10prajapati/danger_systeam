@@ -5,11 +5,11 @@ import {
   RefreshCcw, Layout, Database, Info, Trash2, Save
 } from 'lucide-react';
 import api from '../api';
-import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 import { toISTDateInput, formatToIST } from '../utils/dateUtils';
 
 export default function CashEntryModal({ company, type = 'debit', editId = null, onSubmit, onClose }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isGu = i18n.language === 'gu';
   const isCredit = type === 'credit';
   const titleKey = isCredit ? 'cashEntry.jama' : 'cashEntry.udhar';
   const title = t(titleKey);
@@ -42,6 +42,18 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
   const dropdownRef = useRef(null);
   const rowRefs = useRef({});
+
+  const getAccountDisplayName = (acc) => isGu
+    ? (acc?.account_name_gu || acc?.account_name || '')
+    : (acc?.account_name || acc?.account_name_gu || '');
+
+  const getMemberDisplayName = (member) => isGu
+    ? (member?.member_name_gu || member?.member_name || '')
+    : (member?.member_name || member?.member_name_gu || '');
+
+  const getNarrationDisplay = (narr) => isGu
+    ? (narr?.narration_text_gu || narr?.narration_text || '')
+    : (narr?.narration_text || narr?.narration_text_gu || '');
 
   useEffect(() => {
     if (company?.id) {
@@ -143,10 +155,10 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
         if (acc) {
           setSelectedAccount(acc);
           setSearchCode(String(acc.account_code || acc.id || ''));
-          setSearchText(translateSystemText(acc.account_name_gu || acc.account_name || ''));
+          setSearchText(getAccountDisplayName(acc));
         } else if (targetAccountId) {
           setSearchCode(String(targetAccountId));
-          setSearchText(entry.account_name_gu || entry.account_name || entry.description || '');
+          setSearchText(isGu ? (entry.account_name_gu || entry.account_name || entry.description || '') : (entry.account_name || entry.account_name_gu || entry.description || ''));
         }
 
         setFormData({
@@ -227,7 +239,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     setSelectedAccount(acc);
     setFormData(prev => ({ ...prev, account_id: acc.id }));
     setSearchCode(String(acc.account_code || acc.id));
-    setSearchText(acc.account_name_gu || acc.account_name);
+    setSearchText(getAccountDisplayName(acc));
     setShowDropdown(false);
   };
 
@@ -236,10 +248,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     const accCodeEn = toEnglishDigits(String(a.account_code || a.id));
     const codeMatch = searchCode ? (accCodeEn.includes(searchCodeEn)) : true;
 
-    const nameMatch = searchText ? (
-      (a.account_name && a.account_name.toLowerCase().includes(searchText.toLowerCase())) ||
-      (a.account_name_gu && a.account_name_gu.toLowerCase().includes(searchText.toLowerCase()))
-    ) : true;
+    const nameMatch = searchText ? getAccountDisplayName(a).toLowerCase().includes(searchText.toLowerCase()) : true;
     return codeMatch && nameMatch;
   });
 
@@ -318,7 +327,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
         <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between select-none">
           <div className="flex items-center gap-2">
             {isCredit ? <ArrowUpRight size={16} className="text-emerald-700" /> : <ArrowDownLeft size={16} className="text-[#1d5f84]" />}
-            <h2 className="text-sm font-extrabold tracking-tight text-slate-800 uppercase font-mono">
+            <h2 className={`text-sm font-extrabold tracking-tight text-slate-800 ${isGu ? 'font-prompt' : 'uppercase font-mono'}`}>
               {editId ? t('cashEntry.editTitle', { title }) : t('cashEntry.newTitle', { title })}
             </h2>
           </div>
@@ -338,7 +347,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           {/* Core Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+              <label className={`text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest mb-1.5 ml-1 ${isGu ? 'font-prompt' : ''}`}>
                 {t('cashEntry.transactionDate')} *
               </label>
               <div className="relative flex items-center border border-slate-300 bg-white rounded-md px-3 h-10 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] transition-all">
@@ -353,7 +362,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
             </div>
 
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+              <label className={`text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest mb-1.5 ml-1 ${isGu ? 'font-prompt' : ''}`}>
                 {t('cashEntry.reference')}
               </label>
               <div className="relative flex items-center border border-slate-300 bg-white rounded-md px-3 h-10 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] transition-all">
@@ -369,16 +378,16 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
             </div>
 
             <div className="flex flex-col md:col-span-2 relative" ref={dropdownRef}>
-              <label className="text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+              <label className={`text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest mb-1.5 ml-1 ${isGu ? 'font-prompt' : ''}`}>
                 {t('cashEntry.targetAccount')} *
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="CODE"
+                  placeholder={t('cashEntry.codePlaceholder')}
                   value={searchCode}
                   onChange={e => { setSearchCode(e.target.value); setShowDropdown(true); }}
-                  className="w-24 text-center border border-slate-300 bg-white rounded-md px-2 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] text-sm font-mono font-bold text-slate-800 outline-none h-10 uppercase transition-all"
+                  className={`w-24 text-center border border-slate-300 bg-white rounded-md px-2 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] text-sm font-mono font-bold text-slate-800 outline-none h-10 ${isGu ? '' : 'uppercase'} transition-all`}
                 />
                 <div className="flex-1 relative">
                   <input
@@ -402,14 +411,9 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                           onClick={() => handleAccountSelect(acc)}
                           className="p-2.5 hover:bg-slate-50 cursor-pointer flex justify-between items-center select-none transition-colors"
                         >
-                          <div>
-                            <span className="text-[13px] font-bold text-slate-800 leading-tight block">
-                              {formatBilingualText(acc.account_name_gu || acc.account_name)}
-                            </span>
-                            <span className="text-[12px] font-bold font-mono text-slate-400 uppercase tracking-widest mt-0.5">
-                              {acc.account_type || 'Ledger Node'}
-                            </span>
-                          </div>
+                          <span className="text-[13px] font-bold text-slate-800 leading-tight block" style={{ fontFamily: isGu ? "'Prompt', 'Noto Sans Gujarati', sans-serif" : 'sans-serif' }}>
+                            {getAccountDisplayName(acc)}
+                          </span>
                           <span className="text-[10px] font-bold font-mono text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 uppercase bg-slate-50">
                             #{acc.account_code || acc.id}
                           </span>
@@ -425,7 +429,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           {/* Matrix Ledger Subentries */}
           <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[260px] shadow-sm">
             <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-600 font-mono uppercase tracking-widest">{t('cashEntry.allocationMatrix')}</span>
+              <span className={`text-[10px] font-bold text-slate-600 font-mono uppercase tracking-widest ${isGu ? 'font-prompt' : ''}`}>{t('cashEntry.allocationMatrix')}</span>
               <button
                 disabled={!selectedAccount}
                 onClick={addNewRow}
@@ -511,10 +515,10 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                         {showMemberDropdown && activeRowId === row.id && row.description.length > 0 && (
                           <div className="absolute top-full left-1 right-1 mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-[100] max-h-48 overflow-y-auto divide-y divide-slate-100">
                             {(() => {
-                              const list = (selectedAccount?.is_subledger ? members : narrationsList)
+                                const list = (selectedAccount?.is_subledger ? members : narrationsList)
                                 .filter(m => {
-                                  const target = selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : m.narration_text;
-                                  const targetEng = selectedAccount?.is_subledger ? m.member_name : '';
+                                  const target = selectedAccount?.is_subledger ? getMemberDisplayName(m) : getNarrationDisplay(m);
+                                  const targetEng = selectedAccount?.is_subledger ? (m.member_name || '') : (m.narration_text || '');
                                   const code = selectedAccount?.is_subledger ? m.member_code : m.narration_code;
                                   return target.toLowerCase().includes(row.description.toLowerCase()) ||
                                     (targetEng && targetEng.toLowerCase().includes(row.description.toLowerCase())) ||
@@ -545,8 +549,8 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                                   }}
                                   className="p-2.5 hover:bg-slate-50 cursor-pointer flex justify-between items-center select-none transition-colors"
                                 >
-                                  <span className="text-[13px] font-bold text-slate-700 leading-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>
-                                    {selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : (m.narration_text_gu || m.narration_text)}
+                                    <span className="text-[13px] font-bold text-slate-700 leading-tight" style={{ fontFamily: isGu ? "'Prompt', 'Noto Sans Gujarati', sans-serif" : 'sans-serif' }}>
+                                    {selectedAccount?.is_subledger ? getMemberDisplayName(m) : getNarrationDisplay(m)}
                                   </span>
                                   <span className="text-[12px] font-bold font-mono text-slate-400 uppercase tracking-widest border border-slate-200 rounded px-1.5 py-0.5 bg-slate-50">
                                     #{selectedAccount?.is_subledger ? m.member_code : (m.narration_code || 'UNC')}
@@ -598,7 +602,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
             {/* Matrix Footer */}
             <div className="bg-slate-50 border-t border-slate-200 px-4 py-3 flex justify-between items-center">
-              <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest">{t('cashEntry.aggregate')}</span>
+              <span className={`text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest ${isGu ? 'font-prompt' : ''}`}>{t('cashEntry.aggregate')}</span>
               <span className={`text-[15px] font-bold font-mono ${isCredit ? 'text-emerald-700' : 'text-[#1d5f84]'}`}>
                 ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
@@ -612,7 +616,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                       <button
                         onClick={handleDelete}
                         disabled={loading}
-                        className="px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 font-bold rounded-md transition-colors uppercase flex items-center justify-center gap-2 text-[10px] tracking-wider disabled:opacity-50"
+                        className={`px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 font-bold rounded-md transition-colors flex items-center justify-center gap-2 text-[10px] tracking-wider disabled:opacity-50 ${isGu ? 'font-prompt' : 'uppercase'}`}
                       >
                         <Trash2 size={14} />
                         {t('common.delete') || 'DELETE'}
@@ -621,14 +625,14 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold rounded-md transition-colors uppercase text-[10px] tracking-wider"
+            className={`px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold rounded-md transition-colors text-[10px] tracking-wider ${isGu ? 'font-prompt' : 'uppercase'}`}
           >
             {t('common.cancel') || 'CANCEL'}
           </button>
           <button
             onClick={handleSave}
             disabled={loading || !selectedAccount}
-            className="px-6 py-2.5 bg-[#1d5f84] hover:bg-[#154662] text-white font-bold rounded-md transition-colors uppercase flex items-center justify-center gap-2 text-[10px] tracking-wider disabled:opacity-50 disabled:hover:bg-[#1d5f84] shadow-sm"
+            className={`px-6 py-2.5 bg-[#1d5f84] hover:bg-[#154662] text-white font-bold rounded-md transition-colors flex items-center justify-center gap-2 text-[10px] tracking-wider disabled:opacity-50 disabled:hover:bg-[#1d5f84] shadow-sm ${isGu ? 'font-prompt' : 'uppercase'}`}
           >
             {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Save size={14} />}
             {editId ? t('common.update') || 'UPDATE' : t('common.save') || 'SAVE'}

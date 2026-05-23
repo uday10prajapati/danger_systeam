@@ -2136,8 +2136,8 @@
   "cashEntry": {
     "editTitle": "Edit {{title}} Record",
     "newTitle": "New {{title}} Record",
-    "jama": "Jama (Receipts)",
-    "udhar": "Udhar (Payments)",
+    "jama": "Jama",
+    "udhar": "Udhar",
     "jamaSubtitle": "Incoming Capital Stream",
     "udharSubtitle": "Outgoing Capital Stream",
     "transactionDate": "Transaction Date",
