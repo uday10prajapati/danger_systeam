@@ -19,7 +19,8 @@
 @font-face {
   font-family: 'AppNumbers';
   src: local('Segoe UI Bold'), local('Arial Bold');
-  unicode-range: U+0030-0039, U+002E, U+002C, U+20B9; /* Numbers, dot, comma, Rupee */
+  unicode-range: U+0030-0039, U+002E, U+002C, U+20B9;
+  /* Numbers, dot, comma, Rupee */
   size-adjust: 110%;
 }
 
@@ -34,7 +35,7 @@ html {
 
 /* Global increase for Gujarati language mode */
 html[lang="gu"] {
-  font-size: 17.5px;
+  font-size: 18.5px;
 }
 
 /* Default Font for App (Unicode UI) */
@@ -61,7 +62,7 @@ body,
 }
 
 /* Target small Tailwind utilities when in Gujarati mode to prevent them from being too tiny */
-html[lang="gu"] .text-xs {
+html[lang="gu"] .text-sm {
   font-size: 0.9rem !important;
 }
 
@@ -70,7 +71,7 @@ html[lang="gu"] .text-sm {
 }
 
 html[lang="gu"] .text-\[10px\],
-html[lang="gu"] .text-\[9px\] {
+html[lang="gu"] .text-\[12px\] {
   font-size: 0.75rem !important;
 }
 

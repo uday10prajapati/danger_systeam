@@ -284,21 +284,21 @@ export default function DangarMaster() {
         {/* Stats Summary Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'કુલ એન્ટ્રીઝ' : 'Total Entries'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'કુલ એન્ટ્રીઝ' : 'Total Entries'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{isGu ? toGujaratiDigits(entries.length) : fmtVal(entries.length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'ફિલ્ટર કરેલ' : 'Filtered'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'ફિલ્ટર કરેલ' : 'Filtered'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{isGu ? toGujaratiDigits(filteredEntries.length) : fmtVal(filteredEntries.length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('dangarMaster.stats.totalNetVolume') || 'Net Quintal'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('dangarMaster.stats.totalNetVolume') || 'Net Quintal'}</span>
             <span className="text-[13px] font-bold font-mono text-slate-800 mt-1">
               {isGu ? toGujaratiDigits(totalQtl.toFixed(2)) : totalQtl.toFixed(2)} <span className="text-[10px] text-slate-400">{t('dangarMaster.table.unit')}</span>
             </span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('dangarMaster.stats.totalAmount') || 'Total Amount'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('dangarMaster.stats.totalAmount') || 'Total Amount'}</span>
             <span className="text-[13px] font-bold font-mono text-emerald-600 mt-1">
               ₹{isGu ? toGujaratiDigits(totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })) : totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
@@ -311,10 +311,10 @@ export default function DangarMaster() {
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                 {t('dangarMaster.title') || 'Dangar Registry'}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {isGu ? toGujaratiDigits(filteredEntries.length) : filteredEntries.length} {t('dangarMaster.records') || 'Records'}
               </span>
             </div>
@@ -328,7 +328,7 @@ export default function DangarMaster() {
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                   placeholder={t('dangarMaster.searchPlaceholder') || 'Search member, SR, village...'}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -340,7 +340,7 @@ export default function DangarMaster() {
               {/* Add New */}
               <button
                 onClick={() => window.location.hash = '#/dangar-entry'}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('dangarMaster.addNew') || 'Add New'}</span>
@@ -349,7 +349,7 @@ export default function DangarMaster() {
               {/* Filters Button */}
               <button
                 onClick={() => setShowFiltersDrawer(true)}
-                className={`h-7 flex items-center gap-1.5 px-2.5 border text-[11px] font-bold rounded-md transition cursor-pointer relative shadow-none ${hasActiveFilters
+                className={`h-7 flex items-center gap-1.5 px-2.5 border text-[12px] font-bold rounded-md transition cursor-pointer relative shadow-none ${hasActiveFilters
                   ? 'bg-blue-50 border-[#1d5f84] text-[#1d5f84]'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                   }`}
@@ -387,32 +387,32 @@ export default function DangarMaster() {
           {/* Active Filters Indicator Row */}
           {hasActiveFilters && (
             <div className="px-3.5 py-2 border-b border-slate-100 flex items-center gap-2 flex-wrap bg-blue-50/50">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{isGu ? 'સક્રિય ફિલ્ટર:' : 'Active:'}</span>
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">{isGu ? 'સક્રિય ફિલ્ટર:' : 'Active:'}</span>
               {season && (
-                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[9px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[12px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
                   <Calendar size={8} /> {t(`dangarMaster.filters.${season}`) || season}
                   <button onClick={() => { setSeason(''); fetchEntries(company?.id); }} className="text-slate-400 hover:text-red-500 ml-0.5 cursor-pointer"><X size={8} /></button>
                 </span>
               )}
               {selectedVillage !== 'all' && (
-                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[9px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[12px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
                   <MapPin size={8} /> {selectedVillage}
                   <button onClick={() => setSelectedVillage('all')} className="text-slate-400 hover:text-red-500 ml-0.5 cursor-pointer"><X size={8} /></button>
                 </span>
               )}
               {selectedClass !== 'all' && (
-                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[9px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[12px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
                   <Shield size={8} /> {selectedClass}
                   <button onClick={() => setSelectedClass('all')} className="text-slate-400 hover:text-red-500 ml-0.5 cursor-pointer"><X size={8} /></button>
                 </span>
               )}
               {(dateRange.start || dateRange.end) && (
-                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[9px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-[12px] font-bold text-slate-600 px-2 py-0.5 rounded-md">
                   <Calendar size={8} /> {formatDisplayDate(dateRange.start)} – {formatDisplayDate(dateRange.end)}
                   <button onClick={() => { setDateRange({ start: '', end: '' }); fetchEntries(company?.id); }} className="text-slate-400 hover:text-red-500 ml-0.5 cursor-pointer"><X size={8} /></button>
                 </span>
               )}
-              <button onClick={clearFilters} className="text-[9px] font-bold text-rose-500 hover:text-rose-700 uppercase tracking-wider cursor-pointer ml-auto">{isGu ? 'બધા ક્લિયર' : 'Clear All'}</button>
+              <button onClick={clearFilters} className="text-[12px] font-bold text-rose-500 hover:text-rose-700 uppercase tracking-wider cursor-pointer ml-auto">{isGu ? 'બધા ક્લિયર' : 'Clear All'}</button>
             </div>
           )}
 
@@ -421,21 +421,21 @@ export default function DangarMaster() {
             {loading && entries.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2">
                 <Loader className="animate-spin text-slate-400" size={24} />
-                <p className="text-xs font-bold text-slate-400">{t('dangarMaster.loadingData')}</p>
+                <p className="text-sm font-bold text-slate-400">{t('dangarMaster.loadingData')}</p>
               </div>
             ) : filteredEntries.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
                 <Box size={32} className="text-slate-300 opacity-30" />
-                <p className="text-xs font-bold text-slate-400">{t('dangarMaster.noRecords')}</p>
+                <p className="text-sm font-bold text-slate-400">{t('dangarMaster.noRecords')}</p>
                 <button
                   onClick={() => window.location.hash = '#/dangar-entry'}
-                  className="text-xs font-bold text-[#1d5f84] hover:text-[#154662] transition uppercase tracking-wider cursor-pointer"
+                  className="text-sm font-bold text-[#1d5f84] hover:text-[#154662] transition uppercase tracking-wider cursor-pointer"
                 >
                   + {t('dangarMaster.addNew') || 'Add Entry'}
                 </button>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-10">#</th>
@@ -480,22 +480,21 @@ export default function DangarMaster() {
                         {isGu ? (row.village_name_gu || row.village_name || '—') : (row.village_eng_name || row.village_name || row.village_name_gu || '—')}
                       </td>
                       <td className="px-3.5 py-2 text-center border-r border-slate-100">
-                        <span className="font-mono font-bold text-[#1d5f84] text-[9px]">#{isGu ? toGujaratiDigits(toEnglishDigits(row.sr_no)) : toEnglishDigits(row.sr_no)}</span>
+                        <span className="font-mono font-bold text-[#1d5f84] text-[12px]">#{isGu ? toGujaratiDigits(toEnglishDigits(row.sr_no)) : toEnglishDigits(row.sr_no)}</span>
                       </td>
                       <td
-                        className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-700 ${isGu ? '' : 'uppercase font-sans'}`}
-                        style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
+                        className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-700 break-words whitespace-normal ${isGu ? 'font-prompt' : 'uppercase font-sans'}`}
                       >
                         {isGu ? (row.item_name_gu || row.item_name) : (row.item_name || '—')}
                       </td>
                       <td className="px-3.5 py-2 text-center border-r border-slate-100">
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-slate-50 border-slate-200 text-slate-600 font-mono">
+                        <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-md border bg-slate-50 border-slate-200 text-slate-600 font-mono">
                           {isGu ? toGujaratiDigits(row.quality_class?.match(/\d+/)?.[0] || row.quality_class || '1') : (row.quality_class?.match(/\d+/)?.[0] || row.quality_class || '1')}
                         </span>
                       </td>
                       <td className="px-3.5 py-2 text-right font-mono font-bold text-slate-800 border-r border-slate-100">
                         {isGu ? toGujaratiDigits(parseFloat(row.net_quintal).toFixed(2)) : parseFloat(row.net_quintal).toFixed(2)}
-                        <span className="text-[9px] text-slate-400 ml-0.5">{isGu ? 'ક્વિ.' : 'qtl'}</span>
+                        <span className="text-[12px] text-slate-400 ml-0.5">{isGu ? 'ક્વિ.' : 'qtl'}</span>
                       </td>
                       <td className="px-3.5 py-2 text-right font-mono font-bold text-slate-700 border-r border-slate-100">
                         ₹{isGu ? toGujaratiDigits(parseFloat(row.rate).toFixed(2)) : parseFloat(row.rate).toFixed(2)}
@@ -551,7 +550,7 @@ export default function DangarMaster() {
                 >
                   Prev
                 </button>
-                <span className="text-xs font-bold text-slate-600 px-1.5">
+                <span className="text-sm font-bold text-slate-600 px-1.5">
                   {isGu
                     ? `${toGujaratiDigits(currentPage)} / ${toGujaratiDigits(totalPages)}`
                     : `${currentPage} / ${totalPages}`}
@@ -584,7 +583,7 @@ export default function DangarMaster() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between select-none">
               <div className="flex items-center gap-2">
                 <Filter size={14} className="text-[#1d5f84]" />
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                   {isGu ? 'ફિલ્ટર પેરામીટર' : 'Filter Parameters'}
                 </span>
               </div>
@@ -609,21 +608,21 @@ export default function DangarMaster() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase">{isGu ? 'શરૂ' : 'From'}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase">{isGu ? 'શરૂ' : 'From'}</label>
                     <input
                       type="date"
                       value={dateRange.start}
                       onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-sm font-bold text-slate-700 cursor-pointer"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase">{isGu ? 'અંત' : 'To'}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase">{isGu ? 'અંત' : 'To'}</label>
                     <input
                       type="date"
                       value={dateRange.end}
                       onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-sm font-bold text-slate-700 cursor-pointer"
                     />
                   </div>
                   <button
@@ -649,7 +648,7 @@ export default function DangarMaster() {
                     api.get('/dangar-entry', { params }).then(res => { if (res.data.success) setEntries(res.data.data); });
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-sm font-bold text-slate-700 cursor-pointer"
                 >
                   <option value="">{t('dangarMaster.filters.allSeasons') || 'All Seasons'}</option>
                   <option value="winter">{t('dangarMaster.filters.winter') || 'Winter'}</option>
@@ -666,7 +665,7 @@ export default function DangarMaster() {
                 <select
                   value={selectedVillage}
                   onChange={e => { setSelectedVillage(e.target.value); setCurrentPage(1); }}
-                  className={`w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-xs font-bold text-slate-700 cursor-pointer ${isGu ? 'font-prompt' : ''}`}
+                  className={`w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-sm font-bold text-slate-700 cursor-pointer ${isGu ? 'font-prompt' : ''}`}
                 >
                   <option value="all">{t('dangarMaster.filters.allVillages') || 'All Villages'}</option>
                   {villages.map(v => <option key={v} value={v}>{v}</option>)}
@@ -682,7 +681,7 @@ export default function DangarMaster() {
                 <select
                   value={selectedClass}
                   onChange={e => { setSelectedClass(e.target.value); setCurrentPage(1); }}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none text-sm font-bold text-slate-700 cursor-pointer"
                 >
                   <option value="all">{t('dangarMaster.filters.allClasses') || 'All Classes'}</option>
                   {classes.map(c => (
@@ -698,13 +697,13 @@ export default function DangarMaster() {
             <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2">
               <button
                 onClick={() => { clearFilters(); setShowFiltersDrawer(false); }}
-                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
               >
                 {isGu ? 'ક્લિયર' : 'Reset All'}
               </button>
               <button
                 onClick={() => setShowFiltersDrawer(false)}
-                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
+                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
               >
                 {isGu ? 'ઠીક છે' : 'Apply Filters'}
               </button>

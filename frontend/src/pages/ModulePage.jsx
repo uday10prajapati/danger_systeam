@@ -34,11 +34,11 @@ const ModulePage = ({ title, description }) => {
 
                   <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
                      <div className="p-4 bg-slate-50 rounded-lg border-2 border-slate-100 text-left">
-                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block mb-1">State</span>
+                        <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest block mb-1">State</span>
                         <span className="text-[10px] font-black text-slate-900 uppercase italic">In_Progress</span>
                      </div>
                      <div className="p-4 bg-slate-50 rounded-lg border-2 border-slate-100 text-left">
-                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block mb-1">Authorization</span>
+                        <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest block mb-1">Authorization</span>
                         <span className="text-[10px] font-black text-slate-900 uppercase italic">Admin_Only</span>
                      </div>
                   </div>
@@ -48,14 +48,14 @@ const ModulePage = ({ title, description }) => {
                <div className="bg-black py-4 px-8 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
                   <div className="flex gap-4 items-center">
                      <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                     <span className="text-[9px] font-black text-white uppercase tracking-[0.4em]">Construct Node V2.0</span>
+                     <span className="text-[12px] font-black text-white uppercase tracking-[0.4em]">Construct Node V2.0</span>
                   </div>
                   <ChevronRight className="text-white opacity-20" size={20} strokeWidth={3} />
                </div>
             </div>
 
             {/* Global Registry Summary Footer */}
-            <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[8px] italic pt-12 pb-10 border-t border-slate-200">
+            <div className="flex justify-between items-center text-slate-400 font-black uppercase tracking-widest text-[12px] italic pt-12 pb-10 border-t border-slate-200">
                <div className="flex items-center gap-4">
                   <span>MANIFEST_ID: MOD_PENDING</span>
                   <div className="w-1 h-1 bg-slate-100 rounded-full"></div>

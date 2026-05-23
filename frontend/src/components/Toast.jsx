@@ -17,21 +17,20 @@ export default function Toast({ message, onClose }) {
   if (!message) return null;
 
   return (
-    <div className={`fixed top-4 right-4 z-[110] flex items-center justify-between gap-3 p-3 bg-white border border-zinc-400 text-xs select-none animate-in fade-in slide-in-from-right-4 duration-150 rounded-none shadow-md min-w-[280px] max-w-sm ${isGu ? 'font-prompt-sm' : 'font-mono'}`}>
+    <div className={`fixed top-4 right-4 z-[110] flex items-center justify-between gap-3 p-3 bg-white border border-zinc-400 text-sm select-none animate-in fade-in slide-in-from-right-4 duration-150 rounded-none shadow-md min-w-[280px] max-w-sm ${isGu ? 'font-prompt-sm' : 'font-mono'}`}>
       <div className="flex items-center gap-2.5">
         {message.type === 'error' ? (
           <AlertCircle size={16} className="text-red-700 flex-shrink-0" />
         ) : (
           <CheckCircle size={16} className="text-emerald-700 flex-shrink-0" />
         )}
-        <p className={`font-bold leading-snug tracking-wide ${isGu ? '' : 'uppercase'} ${
-          message.type === 'error' ? 'text-red-800' : 'text-emerald-800'
-        }`}>
+        <p className={`font-bold leading-snug tracking-wide ${isGu ? '' : 'uppercase'} ${message.type === 'error' ? 'text-red-800' : 'text-emerald-800'
+          }`}>
           {message.text}
         </p>
       </div>
-      <button 
-        onClick={onClose} 
+      <button
+        onClick={onClose}
         className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition border border-transparent rounded-none"
       >
         <X size={14} />

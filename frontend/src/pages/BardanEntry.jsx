@@ -178,7 +178,7 @@ const BardanEntry = () => {
             </div>
             <button
               onClick={() => setShowHistory(false)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
+              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg text-sm font-black uppercase tracking-widest hover:scale-105 transition-all"
             >
               <X size={16} /> {t('bardanEntry.exitHistory')}
             </button>
@@ -207,7 +207,7 @@ const BardanEntry = () => {
                     </td>
                     <td className="px-10 py-6 text-right">
                       <p className="text-2xl font-black text-slate-800 italic font-mono">{row.qty}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">{t('bardanEntry.bagsRecorded')}</p>
+                      <p className="text-[12px] font-bold text-slate-400 uppercase leading-none">{t('bardanEntry.bagsRecorded')}</p>
                     </td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
@@ -246,8 +246,8 @@ const BardanEntry = () => {
               <History size={20} />
             </div>
             <div onClick={() => setShowHistory(true)} className="text-left cursor-pointer group">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-rose-500 transition-colors">{t('bardanEntry.viewRegistryLogs')}</p>
-              <p className="text-xs font-black text-slate-800 uppercase tracking-tight underline decoration-rose-500/30">{t('bardanEntry.registrySubtitle')}</p>
+              <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-rose-500 transition-colors">{t('bardanEntry.viewRegistryLogs')}</p>
+              <p className="text-sm font-black text-slate-800 uppercase tracking-tight underline decoration-rose-500/30">{t('bardanEntry.registrySubtitle')}</p>
             </div>
           </div>
         </div>
@@ -397,14 +397,14 @@ const BardanEntry = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-800 leading-none italic uppercase">{t('bardanEntry.item_details')}</h3>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('bardanEntry.multiVectorMatrix')}</p>
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('bardanEntry.multiVectorMatrix')}</p>
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scroller space-y-3 mb-6">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="italic text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <tr className="italic text-[12px] font-black text-slate-400 uppercase tracking-widest">
                       <th className="py-3 text-center w-8">#</th>
                       <th className="py-3 px-2 text-left">{t('bardanEntry.col1')}</th>
                       <th className="py-3 px-2 text-left">{t('bardanEntry.col2')}</th>
@@ -495,7 +495,7 @@ const BardanEntry = () => {
               <btn.icon size={20} className="relative z-10" />
               <div className="text-left relative z-10">
                 <p className="text-[10px] font-black uppercase leading-none">{btn.label}</p>
-                <p className="text-[8px] font-black uppercase opacity-60 mt-1">{btn.sub}</p>
+                <p className="text-[12px] font-black uppercase opacity-60 mt-1">{btn.sub}</p>
               </div>
             </button>
           ))}

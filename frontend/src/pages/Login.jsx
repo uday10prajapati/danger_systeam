@@ -127,7 +127,7 @@ function Login() {
                         {t('login.brandName')}
                      </h1>
                   </div>
-                  <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest leading-relaxed">
+                  <p className="text-sm font-mono text-zinc-500 uppercase tracking-widest leading-relaxed">
                      {t('login.systemDescription')}
                   </p>
                </div>
@@ -230,13 +230,13 @@ function Login() {
                   </ModalField>
 
                   <div className="flex items-center justify-end pt-1">
-                     <button type="button" className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline">{t('login.recoverAccess')}</button>
+                     <button type="button" className="text-[12px] font-bold text-blue-600 uppercase tracking-widest hover:underline">{t('login.recoverAccess')}</button>
                   </div>
 
                   <button
                      type="submit"
                      disabled={loading}
-                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border border-blue-500 text-white font-bold uppercase text-xs tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 rounded-none relative overflow-hidden group"
+                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border border-blue-500 text-white font-bold uppercase text-sm tracking-widest transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 rounded-none relative overflow-hidden group"
                   >
                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                      {loading ? (
@@ -263,7 +263,7 @@ function Login() {
    )
 }
 
-const inputCls = 'w-full px-3 py-3 bg-white border border-zinc-300 rounded-none focus:border-zinc-800 outline-none transition font-mono text-zinc-700 font-bold text-xs'
+const inputCls = 'w-full px-3 py-3 bg-white border border-zinc-300 rounded-none focus:border-zinc-800 outline-none transition font-mono text-zinc-700 font-bold text-sm'
 
 function SectionLabel({ children }) {
    return (
@@ -289,7 +289,7 @@ function BenefitItem({ icon, text }) {
    return (
       <div className="flex items-center gap-2.5">
          <div className="text-zinc-400">{icon}</div>
-         <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{text}</span>
+         <span className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider">{text}</span>
       </div>
    )
 }

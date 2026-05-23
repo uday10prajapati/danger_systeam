@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { exportToPDF } from '../utils/pdfExporter';
+import { toISTDateInput } from '../utils/dateUtils';
 import {
   Plus, Edit3, Trash2, MapPin, Search,
   RefreshCcw, Download, FileText, Loader,
@@ -15,25 +16,25 @@ export default function VillageMaster() {
   const { t, i18n } = useTranslation();
   const isGu = i18n.language === 'gu';
 
-  const [villages, setVillages]         = useState([]);
-  const [loading, setLoading]           = useState(false);
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [message, setMessage]           = useState(null);
-  const [showPanel, setShowPanel]       = useState(false);
-  const [isEditing, setIsEditing]       = useState(false);
+  const [villages, setVillages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [message, setMessage] = useState(null);
+  const [showPanel, setShowPanel] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [modalMessage, setModalMessage] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [villageToDelete, setVillageToDelete] = useState(null);
 
   const [form, setForm] = useState({ id: null, villageCode: '', villageName: '', talukaName: '', districtName: '', engName: '', noOfVillage: 0 });
 
-  const codeRef     = useRef(null);
-  const nameRef     = useRef(null);
-  const engRef      = useRef(null);
-  const talukaRef   = useRef(null);
+  const codeRef = useRef(null);
+  const nameRef = useRef(null);
+  const engRef = useRef(null);
+  const talukaRef = useRef(null);
   const districtRef = useRef(null);
 
-  const GU = { '0':'૦','1':'૧','2':'૨','3':'૩','4':'૪','5':'૫','6':'૬','7':'૭','8':'૮','9':'૯' };
+  const GU = { '0': '૦', '1': '૧', '2': '૨', '3': '૩', '4': '૪', '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯' };
   const toGu = v => String(v ?? '').replace(/[0-9]/g, d => GU[d] || d);
 
   useEffect(() => { load(); }, []);
@@ -102,7 +103,7 @@ export default function VillageMaster() {
     (v.talukaName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalTalukas   = [...new Set(villages.map(v => v.talukaName).filter(Boolean))].length;
+  const totalTalukas = [...new Set(villages.map(v => v.talukaName).filter(Boolean))].length;
   const totalDistricts = [...new Set(villages.map(v => v.districtName).filter(Boolean))].length;
 
   const exportPDF = async () => {
@@ -157,7 +158,7 @@ export default function VillageMaster() {
       rows,
       isGu,
       metaInfo,
-      filename: `Village_Master_${new Date().toISOString().split('T')[0]}.pdf`,
+      filename: `Village_Master_${toISTDateInput()}.pdf`,
       onStart: () => setLoading(true),
       onComplete: () => setLoading(false)
     });
@@ -170,40 +171,40 @@ export default function VillageMaster() {
       <Toast message={message} onClose={() => setMessage(null)} />
 
       <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
-        
+
         {/* Minimalist Stats Summary Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('villageMaster.totalVillages')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('villageMaster.totalVillages')}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{toGu(villages.length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('villageMaster.totalTalukas')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('villageMaster.totalTalukas')}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{toGu(totalTalukas)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('villageMaster.totalDistricts')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('villageMaster.totalDistricts')}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{toGu(totalDistricts)}</span>
           </div>
         </div>
 
         {/* Minimal Classic Registry Table Wrapper */}
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[500px] relative shadow-none">
-          
+
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-3">
-             
+
               <div className="flex items-baseline gap-2">
-                <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+                <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                   {t('villageMaster.title')}
                 </span>
-                <span className="bg-slate-200 text-slate-655 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                <span className="bg-slate-200 text-slate-655 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                   {filtered.length} {t('villageMaster.records')}
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2 border border-slate-200 rounded-md bg-white px-2.5 h-7 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] w-full md:w-auto transition-all">
                 <Search size={13} className="text-slate-400" />
@@ -212,7 +213,7 @@ export default function VillageMaster() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('villageMaster.searchPlaceholder')}
-                  className="bg-transparent border-none outline-none text-xs text-slate-800 placeholder:text-slate-400 w-full md:w-48 font-sans font-medium"
+                  className="bg-transparent border-none outline-none text-sm text-slate-800 placeholder:text-slate-400 w-full md:w-48 font-sans font-medium"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="cursor-pointer text-slate-300 hover:text-slate-600 transition">
@@ -222,7 +223,7 @@ export default function VillageMaster() {
               </div>
               <button
                 onClick={openCreate}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('villageMaster.newVillage')}</span>
@@ -255,8 +256,8 @@ export default function VillageMaster() {
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-slate-400">
                 <MapPin size={32} className="text-slate-300" />
                 <p className="text-[10px] font-mono tracking-widest uppercase">{t('villageMaster.noRecords')}</p>
-                <button 
-                  onClick={openCreate} 
+                <button
+                  onClick={openCreate}
                   className="text-[#1d5f84] hover:text-[#154662] underline text-[10px] font-bold mt-1 transition cursor-pointer"
                 >
                   {t('villageMaster.addFirst')}
@@ -268,7 +269,7 @@ export default function VillageMaster() {
                   <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-500 font-sans text-[10px] font-bold uppercase tracking-wider">
                     <th className="px-4 py-2 border-r border-slate-200 w-16 text-center whitespace-nowrap">#</th>
                     <th className="px-4 py-2 border-r border-slate-200 whitespace-nowrap">
-                      {t('villageMaster.villageName')} <span className="text-[9px] font-sans opacity-70">({isGu ? 'ગુજ' : 'Guj'})</span>
+                      {t('villageMaster.villageName')} <span className="text-[12px] font-sans opacity-70">({isGu ? 'ગુજ' : 'Guj'})</span>
                     </th>
                     <th className="px-4 py-2 border-r border-slate-200 w-32 text-center whitespace-nowrap">{t('villageMaster.villageCode')}</th>
                     <th className="px-4 py-2 border-r border-slate-200 whitespace-nowrap">{t('villageMaster.talukaName')}</th>
@@ -276,7 +277,7 @@ export default function VillageMaster() {
                     <th className="px-4 py-2 text-center w-32 whitespace-nowrap">{t('villageMaster.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-[11px]">
+                <tbody className="divide-y divide-slate-100 text-[12px]">
                   {filtered.map((v, idx) => (
                     <tr key={v.id} className="hover:bg-slate-50 font-mono transition-colors text-slate-700">
                       <td className="px-4 py-2.5 border-r border-slate-100 text-center font-bold text-slate-400">
@@ -324,14 +325,14 @@ export default function VillageMaster() {
       {/* Modern Centered Forms Modal */}
       <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden ${showPanel ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         {/* Backdrop Blur Overlay */}
-        <div 
+        <div
           className={`absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-300 ${showPanel ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => !loading && setShowPanel(false)}
         />
-        
+
         {/* Modal Panel Container */}
         <div className={`relative bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-xl max-w-sm w-full transform transition-all duration-300 ease-in-out ${showPanel ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-          
+
           {/* Modal Title Bar */}
           <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2 select-none">
@@ -342,37 +343,36 @@ export default function VillageMaster() {
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                   {isEditing ? t('villageMaster.editRecord') : t('villageMaster.registerNew')}
                 </span>
-                <h3 className={`text-xs font-bold text-slate-800 ${isGu ? 'font-prompt' : ''}`}>
+                <h3 className={`text-sm font-bold text-slate-800 ${isGu ? 'font-prompt' : ''}`}>
                   {isEditing ? (isGu ? form.villageName : form.engName || form.villageName) : t('villageMaster.newVillage')}
                 </h3>
               </div>
             </div>
-            <button 
-              onClick={() => setShowPanel(false)} 
+            <button
+              onClick={() => setShowPanel(false)}
               className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md"
             >
               <X size={15} />
             </button>
           </div>
-          
+
           {/* Form Content */}
-          <form onSubmit={save} className="p-4 space-y-4 font-mono text-xs">
+          <form onSubmit={save} className="p-4 space-y-4 font-mono text-sm">
             {modalMessage && (
-              <div className={`p-2 border font-bold text-[11px] rounded-md flex items-center gap-2 shadow-sm ${
-                modalMessage.type === 'error'
-                  ? 'bg-rose-50 border-rose-200 text-rose-800'
-                  : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              }`}>
+              <div className={`p-2 border font-bold text-[12px] rounded-md flex items-center gap-2 shadow-sm ${modalMessage.type === 'error'
+                ? 'bg-rose-50 border-rose-200 text-rose-800'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
                 <AlertCircle size={14} className="shrink-0" />
                 <p className="uppercase leading-none tracking-wider">{modalMessage.text}</p>
               </div>
             )}
-            
+
             <div className="space-y-1.5">
               <label className="block font-bold text-slate-500 uppercase tracking-wide">{t('villageMaster.villageCode')}</label>
-              <input 
+              <input
                 ref={codeRef}
-                type="text" 
+                type="text"
                 value={form.villageCode || ''}
                 className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none font-bold text-slate-500 cursor-not-allowed"
                 readOnly
@@ -382,11 +382,11 @@ export default function VillageMaster() {
 
             <div className="space-y-1.5">
               <label className="block font-bold text-slate-500 uppercase tracking-wide">
-                {t('villageMaster.villageName')} <span className="text-[9px] font-sans lowercase opacity-70">({isGu ? 'ગુજ' : 'Guj'})</span>
+                {t('villageMaster.villageName')} <span className="text-[12px] font-sans lowercase opacity-70">({isGu ? 'ગુજ' : 'Guj'})</span>
               </label>
-              <input 
+              <input
                 ref={nameRef}
-                type="text" 
+                type="text"
                 value={form.villageName || ''}
                 onChange={e => setForm({ ...form, villageName: e.target.value })}
                 onKeyDown={e => onKey(e, engRef)}
@@ -398,11 +398,11 @@ export default function VillageMaster() {
 
             <div className="space-y-1.5">
               <label className="block font-bold text-slate-500 uppercase tracking-wide">{t('villageMaster.villageNameEn')}</label>
-              <input 
+              <input
                 ref={engRef}
-                type="text" 
+                type="text"
                 value={form.engName || ''}
-                onChange={e => setForm({ ...form, engName: e.target.value.replace(/[^ -~]/g,'').toUpperCase() })}
+                onChange={e => setForm({ ...form, engName: e.target.value.replace(/[^ -~]/g, '').toUpperCase() })}
                 onKeyDown={e => onKey(e, talukaRef)}
                 className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 uppercase force-en font-sans"
                 placeholder={t('villageMaster.enterVillageNameEn')}
@@ -415,9 +415,9 @@ export default function VillageMaster() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="block font-bold text-slate-500 uppercase tracking-wide">{t('villageMaster.taluka')}</label>
-                <input 
+                <input
                   ref={talukaRef}
-                  type="text" 
+                  type="text"
                   value={form.talukaName || ''}
                   onChange={e => setForm({ ...form, talukaName: e.target.value })}
                   onKeyDown={e => onKey(e, districtRef)}
@@ -427,9 +427,9 @@ export default function VillageMaster() {
               </div>
               <div className="space-y-1.5">
                 <label className="block font-bold text-slate-500 uppercase tracking-wide">{t('villageMaster.district')}</label>
-                <input 
+                <input
                   ref={districtRef}
-                  type="text" 
+                  type="text"
                   value={form.districtName || ''}
                   onChange={e => setForm({ ...form, districtName: e.target.value })}
                   onKeyDown={e => onKey(e, null)}
@@ -442,18 +442,18 @@ export default function VillageMaster() {
 
           {/* Modal Footer Actions */}
           <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex gap-2.5 justify-end">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setShowPanel(false)}
-              className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+              className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-sm font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
             >
               {t('villageMaster.cancel')}
             </button>
-            <button 
-              type="submit" 
-              onClick={save} 
+            <button
+              type="submit"
+              onClick={save}
               disabled={loading}
-              className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 flex items-center gap-1.5 text-sm font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
             >
               {loading ? <Loader size={12} className="animate-spin" /> : <Save size={12} />}
               <span>{isEditing ? t('villageMaster.update') : t('villageMaster.save')}</span>
@@ -462,12 +462,12 @@ export default function VillageMaster() {
         </div>
       </div>
 
-      <DeleteConfirmModal 
+      <DeleteConfirmModal
         isOpen={deleteModalOpen}
         title={t('villageMaster.deleteConfirmTitle')}
         message={`${t('villageMaster.deleteConfirmMessage')} "${villageToDelete?.villageName || ''}"${t('villageMaster.deleteConfirmSuffix')}`}
         onConfirm={del}
-        onCancel={() => setDeleteModalOpen(false)} 
+        onCancel={() => setDeleteModalOpen(false)}
       />
     </div>
   );

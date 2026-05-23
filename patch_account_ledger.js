@@ -15,7 +15,7 @@ const tbodyEndRegex = /<\/tbody>\s*<\/table>/;
 
 const tfootString = `
                                  </tbody>
-                                 <tfoot className="bg-slate-50 font-black text-slate-800 text-[11px] uppercase tracking-widest border-t-2 border-slate-200">
+                                 <tfoot className="bg-slate-50 font-black text-slate-800 text-[12px] uppercase tracking-widest border-t-2 border-slate-200">
                                     <tr>
                                        <td colSpan="2" className="px-10 py-6 text-right">GROSS TOTALS:</td>
                                        <td className="px-10 py-6 text-right text-rose-600 italic">

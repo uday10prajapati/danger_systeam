@@ -13,7 +13,9 @@ const fetchMembers = async (companyId, financialYear) => {
 
   try {
     return await query(
-      `SELECT * FROM member_master
+      `SELECT m.*, v.village_name AS village_name_gu, v.eng_name AS village_name_en
+       FROM member_master m
+       LEFT JOIN village v ON v.village_code = m.village_code
        WHERE company_id = ? AND financial_year = ?
        ${safeOrderBy}`,
       [companyId, financialYear]
@@ -22,7 +24,9 @@ const fetchMembers = async (companyId, financialYear) => {
     const message = String(error?.message || '').toLowerCase();
     if (message.includes('unknown column') && message.includes('financial_year')) {
       return await query(
-        `SELECT * FROM member_master
+        `SELECT m.*, v.village_name AS village_name_gu, v.eng_name AS village_name_en
+         FROM member_master m
+         LEFT JOIN village v ON v.village_code = m.village_code
          WHERE company_id = ?
          ${safeOrderBy}`,
         [companyId]
@@ -246,7 +250,13 @@ router.put('/:id', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const row = await queryOne('SELECT * FROM member_master WHERE id = ?', [req.params.id]);
+    const row = await queryOne(
+      `SELECT m.*, v.village_name AS village_name_gu, v.eng_name AS village_name_en
+       FROM member_master m
+       LEFT JOIN village v ON v.village_code = m.village_code
+       WHERE m.id = ?`,
+      [req.params.id]
+    );
     res.json({ success: true, data: row });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -294,7 +304,10 @@ router.get('/code/:code', async (req, res) => {
 
   try {
     const member = await queryOne(
-      'SELECT * FROM member_master WHERE member_code = ? AND company_id = ? AND financial_year = ?',
+      `SELECT m.*, v.village_name AS village_name_gu, v.eng_name AS village_name_en
+       FROM member_master m
+       LEFT JOIN village v ON v.village_code = m.village_code
+       WHERE m.member_code = ? AND m.company_id = ? AND m.financial_year = ?`,
       [req.params.code, company_id, financial_year]
     );
 

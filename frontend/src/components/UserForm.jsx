@@ -116,8 +116,8 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
           password: '',
           role: fromApiRole(user.role),
           is_active: !!user.is_active,
-          module_access: (Array.isArray(user.module_access) && user.module_access.length > 0) 
-            ? user.module_access 
+          module_access: (Array.isArray(user.module_access) && user.module_access.length > 0)
+            ? user.module_access
             : (defaultModuleAccess[fromApiRole(user.role)] || [])
         })
       }
@@ -223,9 +223,9 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
 
   return (
     <form onSubmit={handleSubmit} className="p-5 space-y-5 select-none font-sans">
-      
+
       {message && (
-        <div className={`p-3 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold rounded-md flex items-start gap-2 shadow-sm`}>
+        <div className={`p-3 bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-bold rounded-md flex items-start gap-2 shadow-sm`}>
           <AlertCircle size={14} className="mt-0.5 shrink-0" />
           <p>{message.text}</p>
         </div>
@@ -295,9 +295,9 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 placeholder={userId ? t('userMaster.passwordPlaceholder') : '********'}
                 className={inputCls + ' pl-8 pr-8 force-en'}
               />
-              <button 
-                type="button" 
-                onClick={() => setShowPassword(!showPassword)} 
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -339,16 +339,15 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
                 key={module.id}
                 type="button"
                 onClick={() => handleModuleToggle(module.id)}
-                className={`flex items-center gap-2 p-1.5 border transition-all text-left rounded-md shadow-sm cursor-pointer ${
-                  isSelected
-                    ? `bg-blue-50/50 border-blue-200 ring-1 ring-blue-100`
-                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white grayscale opacity-70'
-                }`}
+                className={`flex items-center gap-2 p-1.5 border transition-all text-left rounded-md shadow-sm cursor-pointer ${isSelected
+                  ? `bg-blue-50/50 border-blue-200 ring-1 ring-blue-100`
+                  : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white grayscale opacity-70'
+                  }`}
               >
                 <div className={`p-1.5 rounded-sm border ${isSelected ? `bg-white text-blue-600 border-blue-200 shadow-sm` : 'bg-white text-slate-400 border-slate-200'}`}>
                   {module.icon}
                 </div>
-                <span className={`text-[9px] font-bold uppercase tracking-wide truncate ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
+                <span className={`text-[12px] font-bold uppercase tracking-wide truncate ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
                   {t(`modules.${module.label}`)}
                 </span>
               </button>
@@ -392,12 +391,12 @@ const UserForm = ({ userId = null, onSuccess, onCancel, company_id }) => {
   )
 }
 
-const inputCls = 'w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt text-slate-700 font-bold text-xs shadow-sm'
+const inputCls = 'w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt text-slate-700 font-bold text-sm shadow-sm'
 
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[9px] font-bold uppercase tracking-widest text-[#1d5f84] whitespace-nowrap">{children}</span>
+      <span className="text-[12px] font-bold uppercase tracking-widest text-[#1d5f84] whitespace-nowrap">{children}</span>
       <div className="flex-1 h-px bg-slate-100" />
     </div>
   )
@@ -410,7 +409,7 @@ function ModalField({ label, children, required, error }) {
         {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
       </label>
       {children}
-      {error && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-wider">{error}</p>}
+      {error && <p className="text-[12px] text-rose-500 font-bold uppercase tracking-wider">{error}</p>}
     </div>
   )
 }

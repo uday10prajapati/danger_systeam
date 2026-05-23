@@ -122,8 +122,10 @@ router.get('/payment-report', async (req, res) => {
       SELECT
         mm.id             AS member_id,
         COALESCE(de.quality_class, '1st') AS quality_class,
+        de.item_id,
         mm.member_code,
         COALESCE(mm.member_name, mm.eng_name, '') AS member_name,
+        mm.eng_name,
         mm.full_ac_number,
         mm.bank_name,
         mm.branch_name,
@@ -140,9 +142,22 @@ router.get('/payment-report', async (req, res) => {
       WHERE al.company_id = ?
         AND al.member_id IS NOT NULL
         ${dateFilter}
-      GROUP BY mm.id, COALESCE(de.quality_class, '1st'), mm.member_code, COALESCE(mm.member_name, mm.eng_name, ''), mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code, COALESCE(v.village_name, mm.village_name), mm.member_name_gu
-      ORDER BY mm.member_code ASC, COALESCE(de.quality_class, '1st') ASC
+      GROUP BY mm.id, COALESCE(de.quality_class, '1st'), de.item_id, mm.member_code, COALESCE(mm.member_name, mm.eng_name, ''), mm.eng_name, mm.full_ac_number, mm.bank_name, mm.branch_name, mm.ifsc_code, COALESCE(v.village_name, mm.village_name), mm.member_name_gu
+      ORDER BY mm.member_code ASC, de.item_id ASC, COALESCE(de.quality_class, '1st') ASC
     `, [companyId, ...dateParams]);
+
+    // Filter ledgerRows: group by member_id, if member has any row with non-null item_id, discard rows with null item_id
+    const memberHasNonNullItem = {};
+    ledgerRows.forEach(row => {
+      if (row.item_id !== null && row.item_id !== undefined) {
+        memberHasNonNullItem[row.member_id] = true;
+      }
+    });
+
+    const filteredLedgerRows = ledgerRows.filter(row => {
+      if (row.item_id !== null && row.item_id !== undefined) return true;
+      return !memberHasNonNullItem[row.member_id];
+    });
 
     // 1b. Individual kapat (deduction) entries per member — for sub-rows
     const kapatDateFilter = startDate && endDate ? 'AND al.transaction_date BETWEEN ? AND ?' : '';
@@ -189,6 +204,8 @@ router.get('/payment-report', async (req, res) => {
         (de.amount - de.total_deduction) AS net_amount,
         im.item_name_gu,
         im.item_name,
+        im.desc_en,
+        im.id AS item_id,
         de.season,
         de.financial_year
       FROM dangar_entry de
@@ -240,12 +257,16 @@ router.get('/payment-report', async (req, res) => {
     const memberDeductionsAssigned = new Set();
     const report = [];
 
-    for (const row of ledgerRows) {
-      // Filter entries by class (matching the grouping)
+    for (const row of filteredLedgerRows) {
+      // Filter entries by class and item (matching the grouping)
       const allMemberEntries = dangarMap[row.member_id] || [];
       const entries = allMemberEntries.filter(e => {
         const eClass = e.quality_class || '1st';
-        return eClass === row.quality_class;
+        const eItemId = e.item_id;
+        if (row.item_id === null || row.item_id === undefined) {
+          return eClass === row.quality_class && (eItemId === null || eItemId === undefined);
+        }
+        return eClass === row.quality_class && String(eItemId) === String(row.item_id);
       });
 
       // Skip row if no matching dangar entries for this class (unless it's a pure ledger adjustment)
@@ -259,6 +280,7 @@ router.get('/payment-report', async (req, res) => {
         : 0;
 
       const dangarNameGu = entries.length > 0 ? (entries[0].item_name_gu || entries[0].item_name || 'ગુર્જરી ચાઈનાકટ વગે-૧') : '---';
+      const dangarNameEn = entries.length > 0 ? (entries[0].desc_en || entries[0].item_name || '---') : '---';
 
       const bardanIssued = parseFloat(bardanIssuedMap[row.member_code] || 0);
       const bardanReturned = parseFloat(bardanReturnedMap[row.member_code] || 0);
@@ -319,7 +341,7 @@ router.get('/payment-report', async (req, res) => {
               const accName = accRow?.account_name || 'Uncategorized';
 
               // Filter out accounts requested by user
-              const excludedNames = ['uncategorized', 'sale account', 'purches account', 'purchase account', 'sales account'];
+              const excludedNames = ['uncategorized', 'sale account', 'purches account', 'purchase account', 'sales account', 'member purchase account'];
               if (!excludedNames.includes(accName.toLowerCase())) {
                 const existing = otherDeductionsList.find(d => d.account_name === accName);
                 if (existing) existing.amount += bal;
@@ -351,15 +373,18 @@ router.get('/payment-report', async (req, res) => {
 
       const bardanRemaining = Math.max(0, bardanPenaltyBalance);
       const bardanPenalty = bardanRemaining * pricePerBardan;
-      const totalDeductions = memberAdvance + pendingInterest + bardanPenalty + godownFund;
+      const totalDeductions = memberAdvance + pendingInterest + bardanPenalty + godownFund + otherUdhar;
       const finalAmount = rateAmount - totalDeductions;
 
       report.push({
         member_id: row.member_id,
         member_code: row.member_code,
-        member_name: row.member_name, member_name_gu: row.member_name_gu,
+        member_name: row.member_name,
+        member_name_gu: row.member_name_gu,
+        eng_name: row.eng_name || '',
         village_name: row.village_name || '',
-        dangar_name: dangarNameGu,
+        item_id: entries.length > 0 ? entries[0].item_id : null,
+        dangar_name: dangarNameEn,
         quality_class: row.quality_class || '1st',
         full_ac_number: row.full_ac_number || '',
         bank_name: row.bank_name || '',
@@ -429,6 +454,7 @@ router.get('/summary-report', async (req, res) => {
        SELECT 
          a.id AS account_id,
          a.account_name,
+         a.account_name_gu,
          a.account_code,
          SUM(al.debit - al.credit) as total_balance,
          SUM(al.debit) as total_debit,
@@ -440,7 +466,7 @@ router.get('/summary-report', async (req, res) => {
          AND (a.account_code IN ('L0001', 'GF0001', 'BS0001', 'IK0001') 
               OR a.account_name LIKE '%Kapat%' 
               OR a.account_name LIKE '%Deduction%')
-       GROUP BY a.id, a.account_name, a.account_code
+       GROUP BY a.id, a.account_name, a.account_name_gu, a.account_code
        ORDER BY ABS(SUM(al.debit - al.credit)) DESC
     `, [companyId, endDate]);
 
@@ -449,6 +475,7 @@ router.get('/summary-report', async (req, res) => {
       SELECT
         a.id AS account_id,
         a.account_name,
+        a.account_name_gu,
         a.account_code,
         a.account_type,
         COUNT(al.id) AS txn_count,
@@ -460,7 +487,7 @@ router.get('/summary-report', async (req, res) => {
       WHERE al.company_id = ?
         AND al.transaction_date BETWEEN ? AND ?
         AND al.account_id IS NOT NULL
-      GROUP BY a.id, a.account_name, a.account_code, a.account_type
+      GROUP BY a.id, a.account_name, a.account_name_gu, a.account_code, a.account_type
       ORDER BY SUM(al.credit) DESC
     `, [companyId, startDate, endDate]);
 

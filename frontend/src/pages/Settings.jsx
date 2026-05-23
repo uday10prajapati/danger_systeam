@@ -58,7 +58,7 @@ const Settings = () => {
               <Shield size={20} className="text-emerald-600" />
               <h3 className="font-bold text-zinc-800 uppercase tracking-wider text-sm">{t('settings.security')}</h3>
             </div>
-            <p className="text-xs text-zinc-500 leading-relaxed mb-4">
+            <p className="text-sm text-zinc-500 leading-relaxed mb-4">
               {t('settings.securityDesc')}
             </p>
             <div className="flex gap-2">

@@ -9,6 +9,7 @@ import {
   Filter, Calendar, ArrowRight, CheckCircle2, History
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toISTDateInput } from '../utils/dateUtils';
 
 const formatCurrency = (num) => {
   return parseFloat(num || 0).toLocaleString('en-IN', {
@@ -30,9 +31,9 @@ export default function PurchaseReport() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(
-    new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]
+    toISTDateInput(new Date(new Date().setDate(new Date().getDate() - 30)))
   );
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(toISTDateInput());
   const [company, setCompany] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -159,7 +160,7 @@ export default function PurchaseReport() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
         <div className="text-center font-black uppercase tracking-widest text-slate-300">
-          <p className="text-xs mb-6 italic tracking-[0.4em]">Initialising Procurement Bridge...</p>
+          <p className="text-sm mb-6 italic tracking-[0.4em]">Initialising Procurement Bridge...</p>
           <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
           </div>
@@ -175,7 +176,7 @@ export default function PurchaseReport() {
         {/* Superior Header - Dashboard Style */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4 print:hidden">
           <div>
-            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-widest mb-1 italic">
               <Database size={12} />
               <span>Procurement Core / Purchase Audit registry</span>
             </div>
@@ -234,18 +235,18 @@ export default function PurchaseReport() {
                 placeholder="SEARCH ACROSS ALL ENTITIES & INVENTORY..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[12px] tracking-widest"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm h-full">
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-sm font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
             <ArrowRight size={14} className="text-slate-200" />
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-sm font-bold text-slate-600 outline-none focus:border-blue-500 transition-all font-mono" />
           </div>
 
-          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Isolate window</button>
+          <button onClick={fetchData} className="bg-slate-900 text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest text-[12px] hover:bg-black transition-all shadow-xl active:scale-95 h-[52px]">Isolate window</button>
         </div>
 
         {/* Audit Manifest Canvas */}
@@ -292,7 +293,7 @@ export default function PurchaseReport() {
                   <>
                     {viewType === 'report' ? (
                       Object.values(groupedReports).length === 0 ? (
-                        <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-xs">Zero Manifests Isolated</td></tr>
+                        <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-sm">Zero Manifests Isolated</td></tr>
                       ) : (
                         Object.values(groupedReports).map((group, gIdx) => (
                           <React.Fragment key={gIdx}>
@@ -309,7 +310,7 @@ export default function PurchaseReport() {
                                 </div>
                               </td>
                               <td className="px-8 py-6 text-[10px] font-bold text-slate-300 uppercase italic">CONSOLIDATED_BATCH</td>
-                              <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
+                              <td className="px-8 py-6 text-center text-slate-300 font-bold text-sm">—</td>
                               <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(group.total)}</td>
                               <td className="px-8 py-6 text-center">
                                 <button onClick={(e) => exportGroupToExcel(e, group, 'report')} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm mx-auto active:scale-95">
@@ -319,15 +320,15 @@ export default function PurchaseReport() {
                             </tr>
                             {expandedGroups[group.name] && group.invoices.map((p, pIdx) => (
                               <tr key={pIdx} className="group hover:bg-[#F8FAFC]/50 transition-colors">
-                                <td className="px-10 py-5 pl-24 text-[11px] font-bold text-slate-400 font-mono italic">
+                                <td className="px-10 py-5 pl-24 text-[12px] font-bold text-slate-400 font-mono italic">
                                   {new Date(p.invoice_date).toLocaleDateString('en-GB')}
                                 </td>
                                 <td className="px-8 py-5">
-                                  <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase italic tracking-tight">
+                                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800 uppercase italic tracking-tight">
                                     <Hash size={14} className="text-slate-200" /> {p.invoice_no}
                                   </div>
                                 </td>
-                                <td className="px-8 py-5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                <td className="px-8 py-5 text-center text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                                   {p.item_count} SKU RECORDED
                                 </td>
                                 <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm opacity-60 italic">
@@ -343,7 +344,7 @@ export default function PurchaseReport() {
                       )
                     ) : (
                       Object.values(groupedSummary).length === 0 ? (
-                        <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-xs">Zero Catalog Data Isolated</td></tr>
+                        <tr><td colSpan="5" className="py-32 text-center italic font-bold text-slate-300 uppercase tracking-widest text-sm">Zero Catalog Data Isolated</td></tr>
                       ) : (
                         Object.values(groupedSummary).map((cat, cIdx) => (
                           <React.Fragment key={cIdx}>
@@ -359,8 +360,8 @@ export default function PurchaseReport() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-8 py-6 text-center text-slate-300 font-bold text-xs">—</td>
-                              <td className="px-8 py-6 text-right text-slate-300 font-bold text-xs">—</td>
+                              <td className="px-8 py-6 text-center text-slate-300 font-bold text-sm">—</td>
+                              <td className="px-8 py-6 text-right text-slate-300 font-bold text-sm">—</td>
                               <td className="px-8 py-6 text-right font-bold text-slate-900 italic text-lg">{formatCurrency(cat.total)}</td>
                               <td className="px-8 py-6 text-center">
                                 <button onClick={(e) => exportGroupToExcel(e, cat, 'summary')} className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm mx-auto active:scale-95">
@@ -374,12 +375,12 @@ export default function PurchaseReport() {
                                   <div className="flex items-center gap-3">
                                     <Box size={16} className="text-slate-100" />
                                     <div>
-                                      <p className="text-xs font-bold text-slate-800 uppercase italic tracking-tight leading-none mb-1">{item.item_name}</p>
-                                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] font-mono">#{item.item_code}</p>
+                                      <p className="text-sm font-bold text-slate-800 uppercase italic tracking-tight leading-none mb-1">{item.item_name}</p>
+                                      <p className="text-[12px] font-bold text-slate-300 uppercase tracking-[0.2em] font-mono">#{item.item_code}</p>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-8 py-5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">{item.unit || 'NOS'}</td>
+                                <td className="px-8 py-5 text-center text-[12px] font-bold text-slate-400 uppercase tracking-widest">{item.unit || 'NOS'}</td>
                                 <td className="px-8 py-5 text-right font-bold text-slate-400 font-mono text-sm leading-none italic">{formatQty(item.inward)}</td>
                                 <td className="px-8 py-5 text-right font-bold text-slate-600 font-mono text-sm leading-none opacity-60">
                                   {formatCurrency(parseFloat(item.inward || 0) * parseFloat(item.purchase_price || 0))}
@@ -400,7 +401,7 @@ export default function PurchaseReport() {
           </div>
 
           {/* Dashboard Insight Footer */}
-          <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
+          <div className="mt-auto p-10 border-t border-slate-50 bg-[#F8FAFC]/30 flex justify-between items-center text-[12px] font-bold text-slate-300 uppercase tracking-[0.4em] italic">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-50"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Audit Protocol: Symmetric</span>
               <span className="flex items-center gap-2"><Layout size={12} /> Repository Status: Validated</span>

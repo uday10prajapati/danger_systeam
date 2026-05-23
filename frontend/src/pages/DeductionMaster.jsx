@@ -141,7 +141,7 @@ export default function DeductionMaster() {
                      <span>Accounting Infrastructure / Deduction Master</span>
                   </div>
                   <h1 className="text-3xl font-black text-slate-800 tracking-tighter italic uppercase">Deduction Rules Registry</h1>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Configure automated fiscal extraction protocols</p>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Configure automated fiscal extraction protocols</p>
                </div>
 
                <div className="flex items-center gap-4">
@@ -157,7 +157,7 @@ export default function DeductionMaster() {
                   </div>
                   <button
                      onClick={() => { resetForm(); setShowModal(true); }}
-                     className="bg-slate-900 px-6 py-3.5 rounded-lg text-xs font-black text-white hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center gap-2 uppercase tracking-widest"
+                     className="bg-slate-900 px-6 py-3.5 rounded-lg text-sm font-black text-white hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center gap-2 uppercase tracking-widest"
                   >
                      <Plus size={18} />
                      Initialize New Protocol
@@ -181,11 +181,11 @@ export default function DeductionMaster() {
                   </div>
                   <div className="flex gap-4 shrink-0">
                      <div className="bg-white/10 backdrop-blur-md px-6 py-5 rounded-lg border border-white/20 text-center min-w-[120px]">
-                        <p className="text-[9px] font-black text-blue-200 uppercase tracking-widest mb-1 italic">Active Nodes</p>
+                        <p className="text-[12px] font-black text-blue-200 uppercase tracking-widest mb-1 italic">Active Nodes</p>
                         <p className="text-3xl font-black text-white italic tracking-tighter leading-none">{data.filter(d => d.is_active).length}</p>
                      </div>
                      <div className="bg-white/10 backdrop-blur-md px-6 py-5 rounded-lg border border-white/20 text-center min-w-[120px]">
-                        <p className="text-[9px] font-black text-blue-200 uppercase tracking-widest mb-1 italic">Auto-Apply</p>
+                        <p className="text-[12px] font-black text-blue-200 uppercase tracking-widest mb-1 italic">Auto-Apply</p>
                         <p className="text-3xl font-black text-white italic tracking-tighter leading-none">{data.filter(d => d.auto_apply).length}</p>
                      </div>
                   </div>
@@ -218,7 +218,7 @@ export default function DeductionMaster() {
                            <Layout size={48} />
                         </div>
                         <div className="space-y-2">
-                           <p className="text-slate-400 font-black uppercase tracking-widest text-xs italic">Registry Identity Null</p>
+                           <p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Registry Identity Null</p>
                            <p className="text-slate-300 text-[10px] font-bold uppercase tracking-widest">Initialization Required for Fiscal Integrity</p>
                         </div>
                         <button
@@ -258,13 +258,13 @@ export default function DeductionMaster() {
                                     <div className="flex items-center gap-2">
                                        <Layout size={14} className="text-slate-300" />
                                        <div>
-                                          <p className="text-xs font-black text-slate-700 uppercase italic tracking-tight">{item.account_name || 'NULL_NODE'}</p>
-                                          <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">System Shard Mapping</p>
+                                          <p className="text-sm font-black text-slate-700 uppercase italic tracking-tight">{item.account_name || 'NULL_NODE'}</p>
+                                          <p className="text-[12px] font-bold text-slate-300 uppercase tracking-widest">System Shard Mapping</p>
                                        </div>
                                     </div>
                                  </td>
                                  <td className="px-10 py-6">
-                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic border ${item.type === 'percentage' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-black uppercase tracking-widest italic border ${item.type === 'percentage' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                                        item.type === 'per_unit' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                           'bg-slate-100 text-slate-600 border-slate-200'
                                        }`}>
@@ -278,11 +278,11 @@ export default function DeductionMaster() {
                                  <td className="px-10 py-6">
                                     <div className="flex flex-col items-center gap-1.5">
                                        {item.is_active ?
-                                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest rounded-full border border-emerald-100 flex items-center gap-1"><CheckCircle size={8} /> Active</span> :
-                                          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[8px] font-black uppercase tracking-widest rounded-full border border-slate-200">Inactive</span>
+                                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 text-[12px] font-black uppercase tracking-widest rounded-full border border-emerald-100 flex items-center gap-1"><CheckCircle size={8} /> Active</span> :
+                                          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[12px] font-black uppercase tracking-widest rounded-full border border-slate-200">Inactive</span>
                                        }
                                        {item.auto_apply ?
-                                          <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-full border border-blue-100 italic">Auto-Apply</span> : null
+                                          <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 text-[12px] font-black uppercase tracking-widest rounded-full border border-blue-100 italic">Auto-Apply</span> : null
                                        }
                                     </div>
                                  </td>
@@ -305,8 +305,8 @@ export default function DeductionMaster() {
                      Accounting Shards Synchronized
                   </div>
                   <div className="flex items-center gap-3 bg-white/5 px-6 py-2.5 rounded-lg border border-white/5">
-                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Node Integrity Stage</p>
-                     <p className="text-xs font-black text-white italic tracking-tighter leading-none">V1.2 ALPHA RELAY</p>
+                     <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Node Integrity Stage</p>
+                     <p className="text-sm font-black text-white italic tracking-tighter leading-none">V1.2 ALPHA RELAY</p>
                   </div>
                </div>
             </div>
@@ -409,7 +409,7 @@ export default function DeductionMaster() {
                                  checked={formData.is_active === 1}
                                  onChange={e => setFormData({ ...formData, is_active: e.target.checked ? 1 : 0 })}
                               />
-                              <label htmlFor="is_active" className="text-xs font-black text-slate-700 uppercase italic cursor-pointer">Protocol Active Status</label>
+                              <label htmlFor="is_active" className="text-sm font-black text-slate-700 uppercase italic cursor-pointer">Protocol Active Status</label>
                            </div>
                            <div className="flex items-center gap-3">
                               <input
@@ -419,7 +419,7 @@ export default function DeductionMaster() {
                                  checked={formData.auto_apply === 1}
                                  onChange={e => setFormData({ ...formData, auto_apply: e.target.checked ? 1 : 0 })}
                               />
-                              <label htmlFor="auto_apply" className="text-xs font-black text-slate-700 uppercase italic cursor-pointer">Auto-Apply Calculation</label>
+                              <label htmlFor="auto_apply" className="text-sm font-black text-slate-700 uppercase italic cursor-pointer">Auto-Apply Calculation</label>
                            </div>
                         </div>
                         <div className="space-y-4">
@@ -431,15 +431,15 @@ export default function DeductionMaster() {
                                  checked={formData.show_balance === 1}
                                  onChange={e => setFormData({ ...formData, show_balance: e.target.checked ? 1 : 0 })}
                               />
-                              <label htmlFor="show_balance" className="text-xs font-black text-slate-700 uppercase italic cursor-pointer">Expose Node Balance</label>
+                              <label htmlFor="show_balance" className="text-sm font-black text-slate-700 uppercase italic cursor-pointer">Expose Node Balance</label>
                            </div>
                            <div className="flex items-center gap-2">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Sort Protocol Index:</label>
+                              <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest italic">Sort Protocol Index:</label>
                               <input
                                  type="number"
                                  value={formData.sort_order}
                                  onChange={e => setFormData({ ...formData, sort_order: e.target.value })}
-                                 className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-black text-slate-800 outline-none font-mono"
+                                 className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-lg text-sm font-black text-slate-800 outline-none font-mono"
                               />
                            </div>
                         </div>
@@ -449,14 +449,14 @@ export default function DeductionMaster() {
                         <button
                            type="button"
                            onClick={() => setShowModal(false)}
-                           className="flex-1 py-4 bg-white text-slate-500 font-black text-xs uppercase tracking-widest rounded-lg border border-slate-200 hover:bg-slate-50 transition-all active:scale-95 italic"
+                           className="flex-1 py-4 bg-white text-slate-500 font-black text-sm uppercase tracking-widest rounded-lg border border-slate-200 hover:bg-slate-50 transition-all active:scale-95 italic"
                         >
                            Decline Setup
                         </button>
                         <button
                            type="submit"
                            disabled={loading}
-                           className="flex-1 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-lg shadow-xl shadow-slate-200 hover:bg-blue-600 transition-all active:scale-95 flex items-center justify-center gap-3"
+                           className="flex-1 py-4 bg-slate-900 text-white font-black text-sm uppercase tracking-widest rounded-lg shadow-xl shadow-slate-200 hover:bg-blue-600 transition-all active:scale-95 flex items-center justify-center gap-3"
                         >
                            {loading ? <Loader className="animate-spin" size={18} /> : (
                               <>
@@ -477,7 +477,7 @@ export default function DeductionMaster() {
                <div className="bg-amber-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 border-2 border-amber-400">
                   <AlertCircle size={20} />
                   <div>
-                     <p className="text-xs font-black uppercase tracking-widest leading-none">Master Empty</p>
+                     <p className="text-sm font-black uppercase tracking-widest leading-none">Master Empty</p>
                      <p className="text-[10px] font-medium opacity-80">Initialization required for Console</p>
                   </div>
                   <button onClick={() => setShowModal(true)} className="ml-2 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/40 transition-colors">

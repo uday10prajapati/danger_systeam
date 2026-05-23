@@ -82,7 +82,7 @@ export const exportToPDF = async ({
     const FONT_BODY = isGu ? FONT_GU : FONT_EN;
 
     const numCols = columns.length;
-    const BORDER  = '1.5px solid #000000';
+    const BORDER = '1.5px solid #000000';
     const BORDER_THIN = '1px solid #dddddd';
 
     // ── 5. Build left meta string (e.g. "Period: ... | Total: ...") ──
@@ -101,7 +101,7 @@ export const exportToPDF = async ({
         <td style="padding:0; border-right:${BORDER_THIN}; border-bottom:${BORDER}; ${w}">
           <div style="
             background:#f7f7f7;
-            padding:9px 10px;
+            padding:12px 10px;
             font-family:${FONT_BODY};
             font-size:12px;
             font-weight:700;
@@ -128,7 +128,7 @@ export const exportToPDF = async ({
           <td style="padding:0; border-right:${BORDER_THIN}; border-bottom:${BORDER_THIN};">
             <div style="
               background:#ffffff;
-              padding:8px 10px;
+              padding:12px 10px;
               font-family:${cellFm};
               font-size:12px;
               color:#222222;
@@ -156,7 +156,7 @@ export const exportToPDF = async ({
             <td colspan="${numCols}" style="padding:0; border-bottom:${BORDER};">
               <div style="
                 background:#ffffff;
-                padding:18px 20px 14px 20px;
+                padding:112px 20px 14px 20px;
                 text-align:center;
               ">
                 <div style="
@@ -183,7 +183,7 @@ export const exportToPDF = async ({
                   font-size:13px;
                   font-weight:700;
                   color:#111111;
-                  letter-spacing:0.8px;
+                  letter-spacing:0.12px;
                   text-transform:uppercase;
                 ">${title}</div>
               </div>
@@ -199,7 +199,7 @@ export const exportToPDF = async ({
                   <td style="padding:0;">
                     <div style="
                       background:#ffffff;
-                      padding:9px 14px;
+                      padding:12px 14px;
                       font-family:${FONT_BODY};
                       font-size:12px;
                       color:#333333;
@@ -210,7 +210,7 @@ export const exportToPDF = async ({
                   <td style="padding:0; text-align:right;">
                     <div style="
                       background:#ffffff;
-                      padding:9px 14px;
+                      padding:12px 14px;
                       font-family:${FONT_BODY};
                       font-size:12px;
                       color:#333333;
@@ -241,9 +241,9 @@ export const exportToPDF = async ({
                   <td style="padding:0;">
                     <div style="
                       background:#f7f7f7;
-                      padding:8px 14px;
+                      padding:12px 14px;
                       font-family:${FONT_BODY};
-                      font-size:9px;
+                      font-size:12px;
                       color:#666666;
                       font-weight:600;
                     ">${companyName} &nbsp;&bull;&nbsp; ${title}</div>
@@ -251,10 +251,10 @@ export const exportToPDF = async ({
                   <td style="padding:0; text-align:right;">
                     <div style="
                       background:#f7f7f7;
-                      padding:8px 14px;
+                      padding:12px 14px;
                       text-align:right;
                       font-family:${FONT_BODY};
-                      font-size:9px;
+                      font-size:12px;
                       color:#666666;
                       font-weight:600;
                     ">${dateLabel}: ${dateDisplay} &nbsp; ${timeDisplay} &nbsp;&bull;&nbsp; ${fyLabel}: ${fyDisplay}</div>
@@ -271,8 +271,8 @@ export const exportToPDF = async ({
     // ── 9. Off-screen container ───────────────────────────────
     const wrap = document.createElement('div');
     wrap.style.position = 'absolute';
-    wrap.style.left = '-9999px';
-    wrap.style.top = '-9999px';
+    wrap.style.left = '-99912px';
+    wrap.style.top = '-99912px';
     wrap.style.width = '1200px';
     wrap.style.minWidth = '1200px';
     wrap.style.maxWidth = '1200px';

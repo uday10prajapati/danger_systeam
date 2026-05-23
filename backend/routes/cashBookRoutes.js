@@ -121,7 +121,28 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Entry not found' });
     }
 
-    res.json({ success: true, data: rows[0] });
+    const referenceNo = rows[0].reference_no;
+    const batchRows = referenceNo ? await query(`
+      SELECT 
+        al.id,
+        al.transaction_date,
+        al.description,
+        al.credit as cash_in,
+        al.debit as cash_out,
+        al.notes,
+        al.account_id,
+        al.member_id,
+        m.member_name,
+        m.member_code,
+        al.reference_no,
+        al.reference_type
+      FROM account_ledger al
+      LEFT JOIN member_master m ON al.member_id = m.id
+      WHERE al.reference_no = ? AND al.company_id = ?
+      ORDER BY al.id ASC
+    `, [referenceNo, companyId]) : rows;
+
+    res.json({ success: true, data: rows[0], items: batchRows });
   } catch (error) {
     console.error('Get single cash entry error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -140,31 +161,47 @@ router.patch('/:id', async (req, res) => {
 
     if (!companyId) return res.status(400).json({ success: false, error: 'Company ID required' });
 
-    // In a multi-row system, we should ideally check if this ID is part of a batch.
-    // For now, we update the specific row.
-    
-    // If it's a batch edit from the modal, 'entries' might contain the updated row data.
-    // We try to find the specific entry in the batch that matches this ID, or use the top-level fields.
-    let targetMemberId = member_id || null;
-    let targetDescription = description;
-    let targetDebit = cash_out || 0;
-    let targetCredit = cash_in || 0;
-    let targetNotes = notes || '';
+    // Fetch existing row to get reference_no for batch operations
+    const existing = await query(`SELECT reference_no FROM account_ledger WHERE id = ? AND company_id = ?`, [id, companyId]);
+    if (!existing || existing.length === 0) return res.status(404).json({ success: false, error: 'Entry not found' });
+    const referenceNo = existing[0].reference_no;
 
+    // If entries array provided, update each provided entry by id, or insert new rows for entries without id
     if (entries && entries.length > 0) {
-      // If we are editing via the multi-row modal, the payload might have the sum in cash_in/out
-      // but we only want to update THIS specific row's amount if possible.
-      // However, the modal currently sends the SUM as cash_in/out.
-      // If there's only one entry in the batch, we use it.
-      if (entries.length === 1) {
-        const e = entries[0];
-        targetMemberId = e.member_id || targetMemberId;
-        targetDescription = e.description || targetDescription;
-        targetDebit = e.cash_out || 0;
-        targetCredit = e.cash_in || 0;
-        targetNotes = e.notes || targetNotes;
+      for (const e of entries) {
+        const rowDebit = e.cash_out || 0;
+        const rowCredit = e.cash_in || 0;
+        const rowNotes = e.notes || '';
+        const rowAccountId = e.account_id || account_id || null;
+        const rowMemberId = e.member_id || null;
+
+        if (e.id) {
+          // update existing sub-row
+          await query(`
+            UPDATE account_ledger
+            SET transaction_date = ?, description = ?, debit = ?, credit = ?, notes = ?, account_id = ?, member_id = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND company_id = ?
+          `, [transaction_date, e.description || description, rowDebit, rowCredit, rowNotes, rowAccountId, rowMemberId, e.id, companyId]);
+        } else {
+          // insert new sub-row in the same batch (same reference_no)
+          await query(`
+            INSERT INTO account_ledger (
+              company_id, account_id, member_id, transaction_date, transaction_type, reference_type,
+              reference_no, description, debit, credit, notes, created_by, financial_year
+            ) VALUES (?, ?, ?, ?, 'cash_book', 'cash_book', ?, ?, ?, ?, ?, ?, ?)
+          `, [companyId, rowAccountId, rowMemberId, transaction_date, referenceNo, e.description || description, rowDebit, rowCredit, rowNotes, req.header('x-user-id') || null, '2026-27']);
+        }
       }
     }
+
+    // Update the main requested row (id). If entries included an item matching this id, it has already been updated above.
+    // Use the specific entry data if present, otherwise fall back to top-level fields.
+    const matching = Array.isArray(entries) ? entries.find(x => String(x.id) === String(id)) : null;
+    const targetMemberId = matching ? (matching.member_id || null) : (member_id || null);
+    const targetDescription = matching ? (matching.description || description) : description;
+    const targetDebit = matching ? (matching.cash_out || cash_out || 0) : (cash_out || 0);
+    const targetCredit = matching ? (matching.cash_in || cash_in || 0) : (cash_in || 0);
+    const targetNotes = matching ? (matching.notes || notes || '') : (notes || '');
 
     await query(`
       UPDATE account_ledger 

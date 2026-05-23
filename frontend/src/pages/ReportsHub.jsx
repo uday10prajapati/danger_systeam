@@ -62,7 +62,7 @@ export default function ReportsHub() {
               >
                 {report.title}
               </button>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-sm text-slate-500 font-medium">
                 {report.description}
               </p>
             </div>

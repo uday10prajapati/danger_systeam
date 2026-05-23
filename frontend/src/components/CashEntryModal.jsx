@@ -5,7 +5,8 @@ import {
   RefreshCcw, Layout, Database, Info, Trash2, Save
 } from 'lucide-react';
 import api from '../api';
-import { formatBilingualText } from '../utils/textUtils';
+import { formatBilingualText, translateSystemText } from '../utils/textUtils';
+import { toISTDateInput, formatToIST } from '../utils/dateUtils';
 
 export default function CashEntryModal({ company, type = 'debit', editId = null, onSubmit, onClose }) {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
   const [subEntries, setSubEntries] = useState([{ id: Date.now(), description: '', amount: '', code: '', member_id: null }]);
 
   const [formData, setFormData] = useState({
-    transaction_date: new Date().toISOString().split('T')[0],
+    transaction_date: toISTDateInput(),
     account_id: '',
     amount: '0.00',
     reference_no: '',
@@ -55,6 +56,24 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
         onClose();
       }
     };
+
+      const handleDelete = async () => {
+        if (!editId) return;
+    
+        if (!window.confirm(t('common.confirmDelete') || 'Are you sure you want to delete this entry?')) {
+          return;
+        }
+
+        setLoading(true);
+        try {
+          await api.delete(`/cash-book/${editId}`);
+          onSubmit();
+        } catch (err) {
+          setError(err.response?.data?.error || 'Failed to delete entry');
+        } finally {
+          setLoading(false);
+        }
+      };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -117,21 +136,44 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
       const res = await api.get(`/cash-book/${editId}`);
       if (res.data.success) {
         const entry = res.data.data;
+        const batchItems = Array.isArray(res.data.items) ? res.data.items : [];
+        const targetAccountId = entry.account_id || batchItems[0]?.account_id || '';
 
-        const acc = loadedAccs.find(a => a.id === entry.account_id);
+        const acc = loadedAccs.find(a => String(a.id) === String(targetAccountId));
         if (acc) {
           setSelectedAccount(acc);
-          setSearchCode(String(acc.account_code || acc.id));
-          setSearchText(acc.account_name);
+          setSearchCode(String(acc.account_code || acc.id || ''));
+          setSearchText(translateSystemText(acc.account_name_gu || acc.account_name || ''));
+        } else if (targetAccountId) {
+          setSearchCode(String(targetAccountId));
+          setSearchText(entry.account_name_gu || entry.account_name || entry.description || '');
         }
 
         setFormData({
-          transaction_date: entry.transaction_date ? entry.transaction_date.split('T')[0] : new Date().toISOString().split('T')[0],
-          account_id: entry.account_id || '',
-          amount: (parseFloat(entry.cash_in || 0) + parseFloat(entry.cash_out || 0)).toFixed(2),
+          transaction_date: entry.transaction_date ? toISTDateInput(entry.transaction_date) : toISTDateInput(),
+          account_id: targetAccountId,
+          amount: (batchItems.length > 0
+            ? batchItems.reduce((sum, item) => sum + (parseFloat(item.cash_in || 0) + parseFloat(item.cash_out || 0)), 0)
+            : (parseFloat(entry.cash_in || 0) + parseFloat(entry.cash_out || 0))
+          ).toFixed(2),
           reference_no: entry.reference_no || '',
           description: entry.description || ''
         });
+
+        if (batchItems.length > 1) {
+          const rows = batchItems.map(item => {
+            const amount = (parseFloat(item.cash_in || 0) + parseFloat(item.cash_out || 0)).toFixed(2);
+            return {
+              id: item.id,
+              description: item.member_name_gu || item.member_name || item.description || item.notes || '',
+              amount,
+              code: item.member_code || '',
+              member_id: item.member_id || null
+            };
+          });
+          setSubEntries(rows);
+          return;
+        }
 
         if (entry.notes && entry.notes.includes(': ')) {
           const rows = entry.notes.split('; ').filter(p => p.includes(': ')).map(pair => {
@@ -193,9 +235,9 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     const searchCodeEn = toEnglishDigits(searchCode);
     const accCodeEn = toEnglishDigits(String(a.account_code || a.id));
     const codeMatch = searchCode ? (accCodeEn.includes(searchCodeEn)) : true;
-    
+
     const nameMatch = searchText ? (
-      (a.account_name && a.account_name.toLowerCase().includes(searchText.toLowerCase())) || 
+      (a.account_name && a.account_name.toLowerCase().includes(searchText.toLowerCase())) ||
       (a.account_name_gu && a.account_name_gu.toLowerCase().includes(searchText.toLowerCase()))
     ) : true;
     return codeMatch && nameMatch;
@@ -210,8 +252,9 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     setLoading(true);
     try {
       const batchEntries = subEntries
-        .filter(r => r.amount && parseFloat(r.amount) > 0)
+        .filter(r => r && (r.amount !== '' && r.amount !== null && !Number.isNaN(parseFloat(r.amount))))
         .map(r => ({
+          id: r.id,
           account_id: formData.account_id,
           member_id: r.member_id || null,
           description: r.description || formData.description,
@@ -244,14 +287,33 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
     }
   };
 
+  const handleDelete = async () => {
+    if (!editId) return;
+
+    const confirmed = window.confirm(
+      t('common.confirmDelete') || 'Are you sure you want to delete this entry?'
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      await api.delete(`/cash-book/${editId}`);
+      onSubmit?.();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete entry');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const totalAmount = subEntries.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !loading && onClose()}></div>
-      
+
       <div className="bg-white border border-slate-200 rounded-lg w-full max-w-4xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
-        
+
         {/* Modal Header */}
         <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between select-none">
           <div className="flex items-center gap-2">
@@ -268,7 +330,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
         {/* Modal Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-5 bg-white">
           {error && (
-            <div className="p-3 border border-red-200 bg-red-50 text-red-700 text-xs font-bold font-mono uppercase tracking-widest rounded-md">
+            <div className="p-3 border border-red-200 bg-red-50 text-red-700 text-sm font-bold font-mono uppercase tracking-widest rounded-md">
               • {error}
             </div>
           )}
@@ -285,7 +347,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                   type="date"
                   value={formData.transaction_date}
                   onChange={e => setFormData({ ...formData, transaction_date: e.target.value })}
-                  className="bg-transparent text-xs font-mono font-bold text-slate-800 outline-none w-full"
+                  className="bg-transparent text-sm font-mono font-bold text-slate-800 outline-none w-full"
                 />
               </div>
             </div>
@@ -301,7 +363,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                   placeholder={t('cashEntry.autoPlaceholder')}
                   value={formData.reference_no}
                   onChange={e => setFormData({ ...formData, reference_no: e.target.value })}
-                  className="bg-transparent text-xs font-mono font-bold text-slate-800 outline-none w-full placeholder:text-slate-300"
+                  className="bg-transparent text-sm font-mono font-bold text-slate-800 outline-none w-full placeholder:text-slate-300"
                 />
               </div>
             </div>
@@ -316,7 +378,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                   placeholder="CODE"
                   value={searchCode}
                   onChange={e => { setSearchCode(e.target.value); setShowDropdown(true); }}
-                  className="w-24 text-center border border-slate-300 bg-white rounded-md px-2 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] text-xs font-mono font-bold text-slate-800 outline-none h-10 uppercase transition-all"
+                  className="w-24 text-center border border-slate-300 bg-white rounded-md px-2 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] text-sm font-mono font-bold text-slate-800 outline-none h-10 uppercase transition-all"
                 />
                 <div className="flex-1 relative">
                   <input
@@ -344,7 +406,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             <span className="text-[13px] font-bold text-slate-800 leading-tight block">
                               {formatBilingualText(acc.account_name_gu || acc.account_name)}
                             </span>
-                            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest mt-0.5">
+                            <span className="text-[12px] font-bold font-mono text-slate-400 uppercase tracking-widest mt-0.5">
                               {acc.account_type || 'Ledger Node'}
                             </span>
                           </div>
@@ -418,7 +480,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                             setSubEntries(updated);
                           }}
                           placeholder={t('cashEntry.codePlaceholder')}
-                          className="w-full bg-slate-50/50 border border-slate-200 rounded px-2 py-1.5 text-center text-[11px] font-mono font-bold text-slate-700 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none uppercase transition-all"
+                          className="w-full bg-slate-50/50 border border-slate-200 rounded px-2 py-1.5 text-center text-[12px] font-mono font-bold text-slate-700 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none uppercase transition-all"
                         />
                       </td>
                       <td className="px-3 py-1.5 border-r border-slate-200 relative">
@@ -454,11 +516,11 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                                   const target = selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : m.narration_text;
                                   const targetEng = selectedAccount?.is_subledger ? m.member_name : '';
                                   const code = selectedAccount?.is_subledger ? m.member_code : m.narration_code;
-                                  return target.toLowerCase().includes(row.description.toLowerCase()) || 
-                                         (targetEng && targetEng.toLowerCase().includes(row.description.toLowerCase())) ||
-                                         (code && String(code).includes(row.description));
+                                  return target.toLowerCase().includes(row.description.toLowerCase()) ||
+                                    (targetEng && targetEng.toLowerCase().includes(row.description.toLowerCase())) ||
+                                    (code && String(code).includes(row.description));
                                 });
-                              
+
                               if (list.length === 0) {
                                 return (
                                   <div className="p-3 text-center text-[10px] font-bold font-mono text-slate-400 uppercase">
@@ -486,7 +548,7 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
                                   <span className="text-[13px] font-bold text-slate-700 leading-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>
                                     {selectedAccount?.is_subledger ? (m.member_name_gu || m.member_name) : (m.narration_text_gu || m.narration_text)}
                                   </span>
-                                  <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest border border-slate-200 rounded px-1.5 py-0.5 bg-slate-50">
+                                  <span className="text-[12px] font-bold font-mono text-slate-400 uppercase tracking-widest border border-slate-200 rounded px-1.5 py-0.5 bg-slate-50">
                                     #{selectedAccount?.is_subledger ? m.member_code : (m.narration_code || 'UNC')}
                                   </span>
                                 </div>
@@ -546,6 +608,16 @@ export default function CashEntryModal({ company, type = 'debit', editId = null,
 
         {/* Modal Footer */}
         <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 rounded-b-lg">
+                    {editId && (
+                      <button
+                        onClick={handleDelete}
+                        disabled={loading}
+                        className="px-4 py-2.5 bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 font-bold rounded-md transition-colors uppercase flex items-center justify-center gap-2 text-[10px] tracking-wider disabled:opacity-50"
+                      >
+                        <Trash2 size={14} />
+                        {t('common.delete') || 'DELETE'}
+                      </button>
+                    )}
           <button
             type="button"
             onClick={onClose}

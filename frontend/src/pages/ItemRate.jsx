@@ -372,14 +372,14 @@ export default function ItemRate() {
               border-bottom: 1.5px solid #000000;
               padding: 12px;
               text-align: center;
-              font-size: 18px;
+              font-size: 112px;
               font-weight: bold;
               font-family: 'Prompt', 'Noto Sans Gujarati', 'Outfit', sans-serif;
               color: #000000;
             }
             .pdf-header-title {
               border-bottom: 1.5px solid #000000;
-              padding: 8px;
+              padding: 12px;
               text-align: center;
               font-size: 14px;
               font-weight: bold;
@@ -388,7 +388,7 @@ export default function ItemRate() {
             }
             .pdf-info-bar {
               border-bottom: 1.5px solid #000000;
-              padding: 8px 12px;
+              padding: 12px 12px;
               display: flex;
               justify-content: flex-end;
               align-items: center;
@@ -400,7 +400,7 @@ export default function ItemRate() {
             }
             .pdf-table th, .pdf-table td {
               border: 1.5px solid #000000 !important;
-              padding: 8px 10px;
+              padding: 12px 10px;
               font-size: 12px;
               color: #000000;
             }
@@ -486,7 +486,7 @@ export default function ItemRate() {
             { label: t('itemRate.stats.auditProtocol'), val: t('itemRate.stats.symmetricalValue') || '?????' }
           ].map((stat, i) => (
             <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</span>
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</span>
               <span className={`text-[13px] font-bold font-sans text-slate-800 mt-1 ${i < 3 ? 'force-en' : 'font-prompt'}`}>{stat.val}</span>
             </div>
           ))}
@@ -497,10 +497,10 @@ export default function ItemRate() {
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
                 {t('itemRate.title')}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {filteredRates.length} {t('itemRate.table.nomenclature')}
               </span>
             </div>
@@ -514,7 +514,7 @@ export default function ItemRate() {
                   placeholder={t('itemRate.searchPlaceholder')}
                   value={searchTerm}
                   onChange={handleSearch}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold font-mono"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold font-mono"
                 />
                 {searchTerm && (
                   <button onClick={() => { setSearchTerm(''); applyFilters(rates, '', selectedStatus); }} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -530,8 +530,8 @@ export default function ItemRate() {
                     key={status}
                     onClick={() => handleStatusFilter(status)}
                     className={`px-2.5 py-1 text-[10px] font-bold uppercase select-none transition-all rounded-sm ${selectedStatus === status
-                        ? 'bg-[#1d5f84] text-white'
-                        : 'bg-transparent text-slate-600 hover:bg-slate-100'
+                      ? 'bg-[#1d5f84] text-white'
+                      : 'bg-transparent text-slate-600 hover:bg-slate-100'
                       }`}
                   >
                     {t(`itemRate.table.${status}`)}
@@ -550,7 +550,7 @@ export default function ItemRate() {
                 <button onClick={handlePrint} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('dangarMaster.print')}>
                   <Printer size={13} />
                 </button>
-                <button onClick={() => { setEditingRate(null); setShowForm(true); }} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
+                <button onClick={() => { setEditingRate(null); setShowForm(true); }} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
                   <Plus size={13} />
                   <span>{t('itemRate.initializeTariff')}</span>
                 </button>
@@ -570,7 +570,7 @@ export default function ItemRate() {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.noNodesIsolated')}</p>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('itemRate.table.nomenclature')}</th>
@@ -587,25 +587,25 @@ export default function ItemRate() {
                       <td className="px-3.5 py-2 border-r border-slate-100">
                         <div className="flex flex-col">
                           <span className={`font-bold text-slate-800 uppercase tracking-wide ${i18n.language === 'gu' ? 'font-prompt text-base' : 'font-sans text-sm font-extrabold'}`}>{displayItemName(rate)}</span>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                          <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                             {rate.is_pending_rate ? t('itemRate.table.pendingConfig') : `${t('itemRate.table.inward')}: ₹${parseFloat(rate.purchase_rate || 0).toFixed(2)}`}
                           </span>
                         </div>
                       </td>
                       <td className="px-3.5 py-2 border-r border-slate-100">
-                        <span className="font-bold text-[#1d5f84] text-[11px] font-mono">#{rate.item_code}</span>
+                        <span className="font-bold text-[#1d5f84] text-[12px] font-mono">#{rate.item_code}</span>
                       </td>
                       <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 force-en">
                         <div className="flex flex-col items-end">
-                          <span className="text-[11px]">₹{(parseFloat(rate.sale_rate) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          <span className="text-[9px] font-bold text-emerald-600 mt-0.5">{t('itemRate.table.yield')}: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
+                          <span className="text-[12px]">₹{(parseFloat(rate.sale_rate) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <span className="text-[12px] font-bold text-emerald-600 mt-0.5">{t('itemRate.table.yield')}: {parseFloat(rate.purchase_rate || 0) > 0 ? ((parseFloat(rate.sale_rate || 0) - parseFloat(rate.purchase_rate || 0)) / parseFloat(rate.purchase_rate || 0) * 100).toFixed(1) : '0'}%</span>
                         </div>
                       </td>
                       <td className="px-3.5 py-2 border-r border-slate-100 text-center font-mono font-bold text-slate-500 force-en">
                         {new Date(rate.effective_from).toLocaleDateString('en-GB')}
                       </td>
                       <td className="px-3.5 py-2 border-r border-slate-100 text-center">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${rate.is_pending_rate ? 'bg-amber-50 border-amber-200 text-amber-700' : (rate.is_active ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-600')}`}>
+                        <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${rate.is_pending_rate ? 'bg-amber-50 border-amber-200 text-amber-700' : (rate.is_active ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-600')}`}>
                           {rate.is_pending_rate ? t('itemRate.table.pending') : (rate.is_active ? t('itemRate.table.verified') : t('itemRate.table.redacted'))}
                         </span>
                       </td>
@@ -633,11 +633,11 @@ export default function ItemRate() {
       {showHistory && priceHistory && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-150" onClick={() => setShowHistory(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-sans text-xs select-none z-10">
+          <div className="relative w-full max-w-lg bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-sans text-sm select-none z-10">
             <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <History size={14} className="text-slate-600" />
-                <h3 className={`text-xs font-bold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{t('itemRate.history.title')}</h3>
+                <h3 className={`text-sm font-bold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>{t('itemRate.history.title')}</h3>
               </div>
               <button onClick={() => setShowHistory(false)} className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer"><X size={15} /></button>
             </div>
@@ -646,16 +646,16 @@ export default function ItemRate() {
               {priceHistory.map((h, i) => (
                 <div key={i} className="bg-slate-50 p-4 border border-slate-200 rounded-md space-y-3">
                   <div className="flex justify-between items-center mb-1 border-b border-slate-200 pb-2">
-                    <span className="text-[11px] font-bold text-slate-700 font-mono">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-sm border ${h.status === 'Active' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>{h.status}</span>
+                    <span className="text-[12px] font-bold text-slate-700 font-mono">{new Date(h.effective_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className={`text-[12px] font-bold uppercase px-1.5 py-0.5 rounded-sm border ${h.status === 'Active' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>{h.status}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.history.releaseYield')}</p>
+                      <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.history.releaseYield')}</p>
                       <p className="text-sm font-bold text-slate-800 font-mono">₹{parseFloat(h.sale_rate).toFixed(2)}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.history.inwardValue')}</p>
+                      <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('itemRate.history.inwardValue')}</p>
                       <p className="text-sm font-bold text-slate-600 font-mono">₹{parseFloat(h.purchase_rate).toFixed(2)}</p>
                     </div>
                   </div>
@@ -664,7 +664,7 @@ export default function ItemRate() {
             </div>
 
             <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
-              <button onClick={() => setShowHistory(false)} className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer">{t('common.close') || 'Close'}</button>
+              <button onClick={() => setShowHistory(false)} className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-sm font-bold transition rounded-md uppercase tracking-wide cursor-pointer">{t('common.close') || 'Close'}</button>
             </div>
           </div>
         </div>

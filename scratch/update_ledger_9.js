@@ -16,13 +16,13 @@ content = content.replace(tabSwitchesRegex2, '');
 const exactTabSwitches = `<div className="flex items-center gap-0.5 bg-zinc-200 p-0.5 border border-zinc-300 ml-2">
                                     <button
                                        onClick={() => setView('ledger')}
-                                       className={\`px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 \${view === 'ledger' ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}\`}
+                                       className={\`px-2 py-1.5 text-[12px] font-black uppercase tracking-wider transition-all flex items-center gap-1 \${view === 'ledger' ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}\`}
                                     >
                                        <Activity size={10} /> {t('accountLedger.transactions').split(' ')[0]}
                                     </button>
                                     <button
                                        onClick={() => { setView('breakdown'); fetchAccountBreakdown(selectedAccount.id); }}
-                                       className={\`px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 \${view === 'breakdown' ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}\`}
+                                       className={\`px-2 py-1.5 text-[12px] font-black uppercase tracking-wider transition-all flex items-center gap-1 \${view === 'breakdown' ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}\`}
                                     >
                                        <Users size={10} /> {t('accountLedger.breakdown').split(' ')[0]}
                                     </button>

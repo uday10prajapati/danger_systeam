@@ -213,19 +213,19 @@ export default function NarrationMaster() {
         {/* Stats Summary Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('narrationMaster.registryNodes') || 'Total Narrations'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('narrationMaster.registryNodes') || 'Total Narrations'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(narrations.length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'જમા' : 'Credit'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'જમા' : 'Credit'}</span>
             <span className="text-[13px] font-bold font-sans text-emerald-700 mt-1">{fmtVal(narrations.filter(n => n.narration_type === 'Credit').length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'ઉધાર' : 'Debit'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? 'ઉધાર' : 'Debit'}</span>
             <span className="text-[13px] font-bold font-sans text-rose-600 mt-1">{fmtVal(narrations.filter(n => n.narration_type === 'Debit').length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('narrationMaster.codedEntities') || 'With Code'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('narrationMaster.codedEntities') || 'With Code'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(narrations.filter(n => n.narration_code).length)}</span>
           </div>
         </div>
@@ -236,10 +236,10 @@ export default function NarrationMaster() {
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                 {t('narrationMaster.title') || 'Narration Master'}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {filtered.length} {t('narrationMaster.records') || 'Records'}
               </span>
             </div>
@@ -253,7 +253,7 @@ export default function NarrationMaster() {
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   placeholder={t('narrationMaster.searchPlaceholder') || 'Search narrations...'}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
                 {searchTerm && (
                   <button onClick={() => setSearchTerm('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -265,7 +265,7 @@ export default function NarrationMaster() {
               {/* Add Button */}
               <button
                 onClick={() => handleOpenModal()}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('narrationMaster.addNarration') || 'Add Narration'}</span>
@@ -290,16 +290,14 @@ export default function NarrationMaster() {
                 <button
                   key={tab.id}
                   onClick={() => { setTypeFilter(tab.id); setCurrentPage(1); }}
-                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold rounded-md transition-all shrink-0 cursor-pointer border ${
-                    typeFilter === tab.id
-                      ? 'bg-[#1d5f84] border-[#1d5f84] text-white'
-                      : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
-                  }`}
+                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[12px] font-bold rounded-md transition-all shrink-0 cursor-pointer border ${typeFilter === tab.id
+                    ? 'bg-[#1d5f84] border-[#1d5f84] text-white'
+                    : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                    }`}
                 >
                   <span>{isGu ? tab.labelGu : tab.labelEn}</span>
-                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded-sm leading-none ${
-                    typeFilter === tab.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}>{count}</span>
+                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded-sm leading-none ${typeFilter === tab.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>{count}</span>
                 </button>
               );
             })}
@@ -310,16 +308,16 @@ export default function NarrationMaster() {
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
                 <MessageSquare size={32} className="text-slate-300 opacity-30" />
-                <p className="text-xs font-bold text-slate-400">{t('narrationMaster.noRecords')}</p>
+                <p className="text-sm font-bold text-slate-400">{t('narrationMaster.noRecords')}</p>
                 <button
                   onClick={() => handleOpenModal()}
-                  className="text-xs font-bold text-[#1d5f84] hover:text-[#154662] transition uppercase tracking-wider cursor-pointer"
+                  className="text-sm font-bold text-[#1d5f84] hover:text-[#154662] transition uppercase tracking-wider cursor-pointer"
                 >
                   + {t('narrationMaster.addFirstNarration') || 'Add First Narration'}
                 </button>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-10">#</th>
@@ -334,12 +332,12 @@ export default function NarrationMaster() {
                     <tr key={n.id} className="hover:bg-slate-50/75 transition-colors">
                       <td className="px-3.5 py-2 text-center font-mono text-slate-500 border-r border-slate-100">{fmtVal(startIndex + idx + 1)}</td>
                       <td className="px-3.5 py-2 text-center border-r border-slate-100">
-                        <span className="inline-flex items-center gap-0.5 bg-slate-50 text-[#1d5f84] border border-slate-200 font-bold text-[9px] px-1.5 py-0.5 rounded-md font-mono">
+                        <span className="inline-flex items-center gap-0.5 bg-slate-50 text-[#1d5f84] border border-slate-200 font-bold text-[12px] px-1.5 py-0.5 rounded-md font-mono">
                           <Hash size={8} className="opacity-60" />{n.narration_code || '—'}
                         </span>
                       </td>
                       <td className="px-3.5 py-2 text-center border-r border-slate-100">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${getTypeBadge(n.narration_type)}`}>
+                        <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${getTypeBadge(n.narration_type)}`}>
                           {getTypeLabel(n.narration_type)}
                         </span>
                       </td>
@@ -385,7 +383,7 @@ export default function NarrationMaster() {
                 >
                   Prev
                 </button>
-                <span className="text-xs font-bold text-slate-600 px-1.5">
+                <span className="text-sm font-bold text-slate-600 px-1.5">
                   {fmtVal(currentPage)} / {fmtVal(totalPages)}
                 </span>
                 <button
@@ -405,15 +403,15 @@ export default function NarrationMaster() {
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity duration-150" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden text-xs select-none z-10">
+          <div className="relative w-full max-w-md bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden text-sm select-none z-10">
 
             {/* Modal Header */}
             <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
               <div>
-                <h2 className={`text-xs font-bold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+                <h2 className={`text-sm font-bold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                   {editingId ? t('narrationMaster.editModalTitle') : t('narrationMaster.addModalTitle')}
                 </h2>
-                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('narrationMaster.configureNode')}</p>
+                <p className="text-[12px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('narrationMaster.configureNode')}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer">
                 <X size={15} />
@@ -423,7 +421,7 @@ export default function NarrationMaster() {
             {/* Modal Body */}
             <div className="p-5 flex flex-col gap-4">
               {error && (
-                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-bold uppercase flex items-center gap-2 rounded-md">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-[12px] font-bold uppercase flex items-center gap-2 rounded-md">
                   <AlertCircle size={14} className="shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -432,19 +430,19 @@ export default function NarrationMaster() {
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('narrationMaster.referenceCode') || 'Code'}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('narrationMaster.referenceCode') || 'Code'}</label>
                     <input
                       ref={narrationCodeRef}
                       type="text"
                       value={formData.narration_code}
-                      onChange={e => setFormData({ ...formData, narration_code: e.target.value })}
-                      onKeyDown={(e) => handleKeyDown(e, narrationTypeRef)}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 uppercase force-en font-sans"
+                      readOnly
+                      tabIndex={-1}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none transition font-bold text-slate-500 cursor-not-allowed uppercase force-en font-sans"
                       placeholder="E.G. 1"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('narrationMaster.narrationType') || 'Type'}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('narrationMaster.narrationType') || 'Type'}</label>
                     <div className="grid grid-cols-3 gap-1 bg-slate-50 p-1 rounded-md border border-slate-100">
                       {['Credit', 'Debit', 'JV'].map(type => (
                         <button
@@ -453,11 +451,10 @@ export default function NarrationMaster() {
                           type="button"
                           onClick={() => setFormData({ ...formData, narration_type: type })}
                           onKeyDown={handleTypeKeyDown}
-                          className={`py-1 flex items-center justify-center text-[9px] font-bold transition rounded border cursor-pointer uppercase tracking-wider ${
-                            formData.narration_type === type
-                              ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
-                              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
-                          }`}
+                          className={`py-1 flex items-center justify-center text-[12px] font-bold transition rounded border cursor-pointer uppercase tracking-wider ${formData.narration_type === type
+                            ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
+                            }`}
                         >
                           {type === 'Credit' ? (isGu ? 'જમા' : 'Credit') : type === 'Debit' ? (isGu ? 'ઉધાર' : 'Debit') : (isGu ? 'અન્ય' : 'JV')}
                         </button>
@@ -467,7 +464,7 @@ export default function NarrationMaster() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">
                     {t('narrationMaster.narrationDescription') || 'Description'} (GUJ)
                   </label>
                   <input
@@ -483,7 +480,7 @@ export default function NarrationMaster() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">
                     {t('narrationMaster.narrationDescription') || 'Description'} (ENG)
                   </label>
                   <input
@@ -505,7 +502,7 @@ export default function NarrationMaster() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+                className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-sm font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
               >
                 {t('narrationMaster.cancel') || 'Cancel'}
               </button>
@@ -513,7 +510,7 @@ export default function NarrationMaster() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+                className="px-4 py-1.5 flex items-center gap-1.5 text-sm font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
               >
                 {submitting ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
                 <span>{editingId ? t('narrationMaster.update') : t('narrationMaster.save')}</span>

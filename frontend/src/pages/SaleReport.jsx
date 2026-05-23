@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportToPDF, toGujaratiDigits } from '../utils/pdfExporter';
+import { toISTDateInput, formatToIST } from '../utils/dateUtils';
 import PageHeader from '../components/PageHeader';
 import Toast from '../components/Toast';
 
@@ -45,9 +46,9 @@ export default function SaleReport() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(
-    new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]
+    toISTDateInput(new Date(new Date().setDate(new Date().getDate() - 30)))
   );
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(toISTDateInput());
   const [company, setCompany] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
   const [message, setMessage] = useState(null);
@@ -164,14 +165,14 @@ export default function SaleReport() {
 
         return `
           <tr>
-            <td style="border:1.5px solid #000000;padding:5px 8px;font-size:10px;font-family:'Prompt', sans-serif">${clientIdentity}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">${formattedInvoiceDate}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">#${formattedInvoiceNo}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${formattedItems}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(s.total_amount)}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(s.discount_amount || 0)}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">₹${fmtNum(s.net_amount)}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${paymentTypeStr}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;font-size:10px;font-family:'Prompt', sans-serif">${clientIdentity}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:monospace">${formattedInvoiceDate}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:monospace">#${formattedInvoiceNo}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${formattedItems}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(s.total_amount)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(s.discount_amount || 0)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">₹${fmtNum(s.net_amount)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${paymentTypeStr}</td>
           </tr>
         `;
       }).join('');
@@ -179,20 +180,20 @@ export default function SaleReport() {
       tableHTML = `
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:left">${isGu ? 'ગ્રાહક વિગત' : 'Client Identity'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:12%">${isGu ? 'તારીખ' : 'Date'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:12%">${isGu ? 'બિલ નં.' : 'Invoice #'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:10%">${isGu ? 'આઈટમ્સ' : 'Items'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:12%">${isGu ? 'કુલ રકમ' : 'Gross Amt'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:10%">${isGu ? 'ડિસ્કાઉન્ટ' : 'Discount'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:16%">${isGu ? 'ચોખ્ખી રકમ' : 'Net Proceeds'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:10%">${isGu ? 'ચુકવણી' : 'Payment'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:left">${isGu ? 'ગ્રાહક વિગત' : 'Client Identity'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:12%">${isGu ? 'તારીખ' : 'Date'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:12%">${isGu ? 'બિલ નં.' : 'Invoice #'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:10%">${isGu ? 'આઈટમ્સ' : 'Items'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:12%">${isGu ? 'કુલ રકમ' : 'Gross Amt'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:10%">${isGu ? 'ડિસ્કાઉન્ટ' : 'Discount'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:16%">${isGu ? 'ચોખ્ખી રકમ' : 'Net Proceeds'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:10%">${isGu ? 'ચુકવણી' : 'Payment'}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
           <tfoot><tr>
-            <td colspan="4" style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right">${isGu ? 'સરવાળો:' : 'Total:'}</td>
+            <td colspan="4" style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right">${isGu ? 'સરવાળો:' : 'Total:'}</td>
             <td colspan="2" style="border:1.5px solid #000000;"></td>
-            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totalAmt)}</td>
+            <td style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totalAmt)}</td>
             <td style="border:1.5px solid #000000;"></td>
           </tr></tfoot>
         </table>
@@ -208,11 +209,11 @@ export default function SaleReport() {
 
         return `
           <tr>
-            <td style="border:1.5px solid #000000;padding:5px 8px;font-size:10px;font-family:'Prompt', sans-serif">${itemDetails}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${formattedUnit}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${isGu ? toGujaratiDigits(parseFloat(item.outward || 0).toFixed(3)) : parseFloat(item.outward || 0).toFixed(3)}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(item.sale_price)}</td>
-            <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">₹${fmtNum(parseFloat(item.outward || 0) * parseFloat(item.sale_price || 0))}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;font-size:10px;font-family:'Prompt', sans-serif">${itemDetails}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:'Prompt', sans-serif">${formattedUnit}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">${isGu ? toGujaratiDigits(parseFloat(item.outward || 0).toFixed(3)) : parseFloat(item.outward || 0).toFixed(3)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">₹${fmtNum(item.sale_price)}</td>
+            <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">₹${fmtNum(parseFloat(item.outward || 0) * parseFloat(item.sale_price || 0))}</td>
           </tr>
         `;
       }).join('');
@@ -220,16 +221,16 @@ export default function SaleReport() {
       tableHTML = `
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:left">${isGu ? 'પ્રોડક્ટ વિગત' : 'Product Taxonomy'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:15%;text-align:center">${isGu ? 'એકમ' : 'Unit'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:15%;text-align:right">${isGu ? 'જથ્થો' : 'Yield Volume'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:15%;text-align:right">${isGu ? 'ભાવ' : 'Rate'}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:20%">${isGu ? 'કુલ રકમ' : 'Gross Proceeds'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:left">${isGu ? 'પ્રોડક્ટ વિગત' : 'Product Taxonomy'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:15%;text-align:center">${isGu ? 'એકમ' : 'Unit'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:15%;text-align:right">${isGu ? 'જથ્થો' : 'Yield Volume'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:15%;text-align:right">${isGu ? 'ભાવ' : 'Rate'}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:20%">${isGu ? 'કુલ રકમ' : 'Gross Proceeds'}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
           <tfoot><tr>
-            <td colspan="4" style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right">${isGu ? 'સરવાળો:' : 'Total:'}</td>
-            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totalAmt)}</td>
+            <td colspan="4" style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right">${isGu ? 'સરવાળો:' : 'Total:'}</td>
+            <td style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totalAmt)}</td>
           </tr></tfoot>
         </table>
       `;
@@ -252,9 +253,9 @@ export default function SaleReport() {
       </style>
     </head><body>
       <div style="border:1.5px solid #000000;overflow:hidden;">
-        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:18px;font-weight:bold">${cName}</div>
-        <div style="border-bottom:1.5px solid #000000;padding:8px;text-align:center;font-size:14px;font-weight:bold">${titleStr}</div>
-        <div style="border-bottom:1.5px solid #000000;padding:8px 12px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold">
+        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:112px;font-weight:bold">${cName}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:14px;font-weight:bold">${titleStr}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:12px 12px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold">
           <span>${isGu ? 'સમયગાળો' : 'Period'}: ${formattedPeriod}</span>
           <span style="display:flex;gap:16px"><span>${isGu ? 'તારીખ' : 'Date'}: ${formattedDate}</span><span>|</span><span>${isGu ? 'નાણાકીય વર્ષ' : 'Financial Year'}: ${formattedFy}</span></span>
         </div>
@@ -416,7 +417,7 @@ export default function SaleReport() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 font-mono">
         <div className="text-center font-bold text-slate-400">
-          <p className="text-xs mb-4 uppercase tracking-widest">Loading Enterprise Core...</p>
+          <p className="text-sm mb-4 uppercase tracking-widest">Loading Enterprise Core...</p>
           <SyncIcon className="animate-spin mx-auto text-[#1d5f84]" size={24} />
         </div>
       </div>
@@ -429,51 +430,51 @@ export default function SaleReport() {
       <div className="max-w-[1600px] mx-auto px-4 py-4">
 
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[600px] relative shadow-none">
-          
+
           {/* Table Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+              <span className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
                 {viewType === 'report' ? t('saleReport.title') : t('saleReport.productTaxonomy')}
               </span>
             </div>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-1.5">
-               <div className="flex items-center gap-2 bg-white px-2 py-1 border border-slate-200 rounded-md shadow-sm shrink-0">
-                  <input
-                     type="date"
-                     value={startDate}
-                     onChange={(e) => setStartDate(e.target.value)}
-                     className="bg-transparent text-xs font-semibold text-slate-600 outline-none cursor-pointer"
-                  />
-                  <ArrowRight size={12} className="text-slate-400" />
-                  <input
-                     type="date"
-                     value={endDate}
-                     onChange={(e) => setEndDate(e.target.value)}
-                     className="bg-transparent text-xs font-semibold text-slate-600 outline-none cursor-pointer"
-                  />
-               </div>
+              <div className="flex items-center gap-2 bg-white px-2 py-1 border border-slate-200 rounded-md shadow-sm shrink-0">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent text-sm font-semibold text-slate-600 outline-none cursor-pointer"
+                />
+                <ArrowRight size={12} className="text-slate-400" />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent text-sm font-semibold text-slate-600 outline-none cursor-pointer"
+                />
+              </div>
 
-               <div className="relative group">
-                  <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                     type="text"
-                     placeholder={t('saleReport.searchPrompt') || "Search..."}
-                     value={searchTerm}
-                     onChange={(e) => setSearchTerm(e.target.value)}
-                     className="w-48 pl-7 pr-2 py-1 h-7 bg-white border border-slate-200 rounded-md text-xs focus:outline-none focus:border-slate-300 shadow-sm"
-                  />
-               </div>
+              <div className="relative group">
+                <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={t('saleReport.searchPrompt') || "Search..."}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-48 pl-7 pr-2 py-1 h-7 bg-white border border-slate-200 rounded-md text-sm focus:outline-none focus:border-slate-300 shadow-sm"
+                />
+              </div>
 
-               <button
-                  onClick={() => setViewType(viewType === 'report' ? 'summary' : 'report')}
-                  className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800`}
-               >
-                  {viewType === 'report' ? <Tags size={13} /> : <UserCheck size={13} />}
-                  <span>{viewType === 'report' ? t('common.summary') : t('common.report')}</span>
-               </button>
+              <button
+                onClick={() => setViewType(viewType === 'report' ? 'summary' : 'report')}
+                className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800`}
+              >
+                {viewType === 'report' ? <Tags size={13} /> : <UserCheck size={13} />}
+                <span>{viewType === 'report' ? t('common.summary') : t('common.report')}</span>
+              </button>
 
               <button
                 onClick={exportToExcel}
@@ -532,12 +533,12 @@ export default function SaleReport() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-sans text-xs">
+              <tbody className="divide-y divide-slate-100 font-sans text-sm">
                 {loading ? (
                   <tr>
                     <td colSpan="5" className="py-24 text-center">
                       <SyncIcon className="animate-spin text-slate-400 mx-auto mb-2" size={28} />
-                      <p className="text-slate-400 font-bold uppercase text-[9px] tracking-widest italic">{t('saleReport.buildingMatrix')}</p>
+                      <p className="text-slate-400 font-bold uppercase text-[12px] tracking-widest italic">{t('saleReport.buildingMatrix')}</p>
                     </td>
                   </tr>
                 ) : (
@@ -545,7 +546,7 @@ export default function SaleReport() {
                     {viewType === 'report' ? (
                       Object.values(groupedReports).length === 0 ? (
                         <tr>
-                          <td colSpan="5" className="py-24 text-center text-slate-400 font-bold text-xs tracking-wider bg-slate-50/20">
+                          <td colSpan="5" className="py-24 text-center text-slate-400 font-bold text-sm tracking-wider bg-slate-50/20">
                             <Database size={32} className="mx-auto mb-2 opacity-40 text-[#1d5f84]" />
                             Zero Sales Isolated
                           </td>
@@ -563,14 +564,14 @@ export default function SaleReport() {
                                     {expandedGroups[group.name] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                   </div>
                                   <div>
-                                    <p className={`font-bold text-[#1d5f84] text-xs tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase font-prompt'}`}>{group.name}</p>
-                                    <p className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">{group.invoices.length} settlements</p>
+                                    <p className={`font-bold text-[#1d5f84] text-sm tracking-tight ${i18n.language === 'gu' ? 'font-prompt' : 'uppercase font-prompt'}`}>{group.name}</p>
+                                    <p className="text-[12px] text-slate-400 font-medium uppercase tracking-wider">{group.invoices.length} settlements</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-3 py-2 border-r border-slate-100 text-[10px] text-slate-400 uppercase font-medium">BATCH_AUDIT</td>
                               <td className="px-3 py-2 border-r border-slate-100 text-center text-slate-400 font-medium">—</td>
-                              <td className="px-3 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-xs">{formatCurrency(group.total)}</td>
+                              <td className="px-3 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-sm">{formatCurrency(group.total)}</td>
                               <td className="px-3 py-2 text-center">
                                 <button
                                   onClick={(e) => exportGroupToExcel(e, group, 'report')}
@@ -591,7 +592,7 @@ export default function SaleReport() {
                                   </div>
                                 </td>
                                 <td className="px-3 py-1.5 border-r border-slate-100 text-center">
-                                  <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                                  <span className={`px-2 py-0.5 rounded border text-[12px] font-bold uppercase tracking-wider ${s.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                                     {s.payment_type === 'cash' ? t('sale.cash') : t('sale.credit')}
                                   </span>
                                 </td>
@@ -609,7 +610,7 @@ export default function SaleReport() {
                     ) : (
                       Object.values(groupedSummary).length === 0 ? (
                         <tr>
-                          <td colSpan="5" className="py-24 text-center text-slate-400 font-bold text-xs tracking-wider bg-slate-50/20">
+                          <td colSpan="5" className="py-24 text-center text-slate-400 font-bold text-sm tracking-wider bg-slate-50/20">
                             <Database size={32} className="mx-auto mb-2 opacity-40 text-[#1d5f84]" />
                             Zero Revenue Vectors Isolated
                           </td>
@@ -627,14 +628,14 @@ export default function SaleReport() {
                                     {expandedGroups[cat.name] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                   </div>
                                   <div>
-                                    <p className="font-bold text-slate-800 text-xs tracking-tight uppercase font-prompt">{cat.name}</p>
-                                    <p className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">{cat.items.length} product lines</p>
+                                    <p className="font-bold text-slate-800 text-sm tracking-tight uppercase font-prompt">{cat.name}</p>
+                                    <p className="text-[12px] text-slate-400 font-medium uppercase tracking-wider">{cat.items.length} product lines</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-3 py-2 border-r border-slate-100 text-center text-slate-400 font-medium">—</td>
                               <td className="px-3 py-2 border-r border-slate-100 text-right text-slate-400 font-medium">—</td>
-                              <td className="px-3 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-xs">{formatCurrency(cat.total)}</td>
+                              <td className="px-3 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-sm">{formatCurrency(cat.total)}</td>
                               <td className="px-3 py-2 text-center">
                                 <button
                                   onClick={(e) => exportGroupToExcel(e, cat, 'summary')}
@@ -651,7 +652,7 @@ export default function SaleReport() {
                                     <Package size={12} className="text-slate-400 shrink-0" />
                                     <div>
                                       <p className="text-[10px] font-bold text-slate-700 uppercase tracking-tight leading-none mb-0.5 font-prompt">{item.item_name}</p>
-                                      <p className="text-[9px] text-slate-400 tracking-wider font-mono">CODE: #{item.item_code}</p>
+                                      <p className="text-[12px] text-slate-400 tracking-wider font-mono">CODE: #{item.item_code}</p>
                                     </div>
                                   </div>
                                 </td>
@@ -676,14 +677,14 @@ export default function SaleReport() {
           </div>
 
           <div className="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex justify-between items-center text-[10px] font-medium text-slate-500">
-             <div className="flex items-center gap-3">
-               <span className="flex items-center gap-1.5"><span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span> Revenue Stream: Optimal</span>
-               <span>Records: {viewType === 'report' ? filteredReports.length : itemData.length}</span>
-             </div>
-             <div className="flex items-center gap-4 font-mono">
-               <span>SYS_MD5: {new Date().getTime().toString(16).toUpperCase()}</span>
-               <span>REF: {company?.id || '—'}</span>
-             </div>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5"><span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span> Revenue Stream: Optimal</span>
+              <span>Records: {viewType === 'report' ? filteredReports.length : itemData.length}</span>
+            </div>
+            <div className="flex items-center gap-4 font-mono">
+              <span>SYS_MD5: {new Date().getTime().toString(16).toUpperCase()}</span>
+              <span>REF: {company?.id || '—'}</span>
+            </div>
           </div>
         </div>
       </div>

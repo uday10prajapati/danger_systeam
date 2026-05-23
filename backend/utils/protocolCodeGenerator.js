@@ -145,16 +145,16 @@ export async function generateItemCode(companyId) {
   try {
     const prefix = 'I';
     const result = await queryOne(
-      `SELECT p_code FROM item_master 
-       WHERE company_id = ? AND p_code LIKE 'I%' 
-       AND p_code REGEXP ?
-       ORDER BY CAST(SUBSTRING(p_code, 2) AS UNSIGNED) DESC LIMIT 1`,
+      `SELECT item_code FROM item_master 
+       WHERE company_id = ? AND item_code LIKE 'I%' 
+       AND item_code REGEXP ?
+       ORDER BY CAST(SUBSTRING(item_code, 2) AS UNSIGNED) DESC LIMIT 1`,
       [companyId, '^I[0-9]+$']
     );
 
     let nextNumber = 1;
-    if (result && result.p_code) {
-      const currentNumber = parseInt(result.p_code.replace('I', ''), 10);
+    if (result && result.item_code) {
+      const currentNumber = parseInt(result.item_code.replace('I', ''), 10);
       if (!isNaN(currentNumber)) {
         nextNumber = currentNumber + 1;
       }

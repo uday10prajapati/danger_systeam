@@ -46,11 +46,11 @@ const ROUTE_MAP = {
 function TopNavbar() {
   const location = useLocation();
   const { t } = useTranslation();
-  
+
   // Clean up path
   const currentPath = location.pathname;
   let pageInfo = ROUTE_MAP[currentPath];
-  
+
   // If it's a dynamic route like /dangar-entry/:id
   if (!pageInfo) {
     const baseRoute = Object.keys(ROUTE_MAP).find(route => currentPath.startsWith(route) && route !== '/');
@@ -66,10 +66,10 @@ function TopNavbar() {
     <div className="h-14 bg-white border-b border-slate-200 flex items-center px-6 shrink-0 sticky top-0 z-30 shadow-sm select-none">
       <div className="flex flex-col justify-center">
         {/* Breadcrumbs */}
-        <nav className="flex items-center space-x-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+        <nav className="flex items-center space-x-1.5 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
           <Link to="/dashboard" className="hover:text-[#1d5f84] transition flex items-center gap-1 cursor-pointer">
-             <Home size={10} />
-             <span>{t('modules.dashboard')}</span>
+            <Home size={10} />
+            <span>{t('modules.dashboard')}</span>
           </Link>
           {pageInfo.parent && (
             <>
@@ -78,10 +78,10 @@ function TopNavbar() {
             </>
           )}
           {pageInfo.label !== 'modules.dashboard' && (
-             <>
-               <ChevronRight size={10} className="text-slate-300" />
-               <span className="text-[#1d5f84]">{t(pageInfo.label)}</span>
-             </>
+            <>
+              <ChevronRight size={10} className="text-slate-300" />
+              <span className="text-[#1d5f84]">{t(pageInfo.label)}</span>
+            </>
           )}
         </nav>
         {/* Page Title */}
@@ -98,7 +98,7 @@ export default function Layout({ backendStatus }) {
     <div className="flex h-screen w-full overflow-hidden bg-slate-50">
       {/* Sidebar (currently Navbar.jsx) */}
       <Navbar backendStatus={backendStatus} />
-      
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <TopNavbar />

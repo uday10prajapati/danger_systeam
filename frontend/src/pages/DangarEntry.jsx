@@ -88,6 +88,27 @@ const DangarEntry = () => {/*  */
     return '';
   };
 
+  const normalizeEnglishName = (value) => {
+    const text = String(value || '').trim();
+    if (!text) return '';
+
+    const hasGujaratiUnicode = /[\u0A80-\u0AFF]/.test(text);
+    if (hasGujaratiUnicode) return text;
+
+    const normalized = text
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .map((word) => {
+        const plain = word.replace(/[^A-Za-z]/g, '');
+        if (!plain) return word;
+        if (plain.length <= 3 && plain === plain.toUpperCase()) return word.toUpperCase();
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+
+    return normalized;
+  };
+
   const displayItemName = (item = {}) => {
     if (!item) return '';
     const engCandidates = [item.item_name, item.name_en, item.name, item.eng_name, item.item_name_en];
@@ -97,7 +118,7 @@ const DangarEntry = () => {/*  */
       for (const c of engCandidates) if (c) return c;
       return '';
     }
-    for (const c of engCandidates) if (c) return c;
+    for (const c of engCandidates) if (c) return normalizeEnglishName(c);
     for (const c of guCandidates) if (c) return c;
     return '';
   };
@@ -467,7 +488,7 @@ const DangarEntry = () => {/*  */
             ${chunk.map((w, idx) => `
               <td style="border-right:1px solid #e2e8f0; padding:10px; text-align:center; width:20%;">
                 <div style="font-size:10px; color:#64748b; font-family:Arial; font-weight:bold;">BARDAN ${i + idx + 1}</div>
-                <div style="font-weight:900; font-size:18px; font-family:Arial; color:#1e293b; margin-top:2px;">${toGujaratiDigits(w.weight || w.wgt)}</div>
+                <div style="font-weight:900; font-size:112px; font-family:Arial; color:#1e293b; margin-top:2px;">${toGujaratiDigits(w.weight || w.wgt)}</div>
               </td>
             `).join('')}
             ${Array(5 - chunk.length).fill('<td style="border-right:1px solid #e2e8f0; width:20%;"></td>').join('')}
@@ -505,23 +526,23 @@ const DangarEntry = () => {/*  */
             <table style="width:100%; border-collapse:collapse;">
               <tr>
                 <td style="width:50%;">
-                  <div style="color:#64748b; font-size:11px; font-weight:bold;">ITEM / આઇટમ</div>
-                  <div style="font-size:18px; font-weight:bold; font-family:'Prompt', sans-serif !important;">${itemObj?.item_name_gu || itemObj?.item_name || '-'}</div>
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">ITEM / આઇટમ</div>
+                  <div style="font-size:112px; font-weight:bold; font-family:'Prompt', sans-serif !important;">${itemObj?.item_name_gu || itemObj?.item_name || '-'}</div>
                 </td>
                 <td style="width:25%; text-align:center;">
-                  <div style="color:#64748b; font-size:11px; font-weight:bold;">QUALITY / ક્વોલિટી</div>
-                  <div style="font-size:18px; font-weight:bold; color:#1d5f84;">${data.quality_class}</div>
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">QUALITY / ક્વોલિટી</div>
+                  <div style="font-size:112px; font-weight:bold; color:#1d5f84;">${data.quality_class}</div>
                 </td>
                 <td style="width:25%; text-align:right;">
-                  <div style="color:#64748b; font-size:11px; font-weight:bold;">VEHICLE / વાહન</div>
-                  <div style="font-size:18px; font-weight:bold; font-family:Arial;">${data.vehicleNo || '-'}</div>
+                  <div style="color:#64748b; font-size:12px; font-weight:bold;">VEHICLE / વાહન</div>
+                  <div style="font-size:112px; font-weight:bold; font-family:Arial;">${data.vehicleNo || '-'}</div>
                 </td>
               </tr>
             </table>
           </div>
 
           <div style="margin-bottom:25px; border:2px solid #e2e8f0; border-bottom:none;">
-            <div style="background:#f1f5f9; padding:8px 15px; border-bottom:1px solid #e2e8f0; font-size:11px; font-weight:bold; color:#475569;">ITEMIZED WEIGHT REGISTRY / વજન વિગત</div>
+            <div style="background:#f1f5f9; padding:12px 15px; border-bottom:1px solid #e2e8f0; font-size:12px; font-weight:bold; color:#475569;">ITEMIZED WEIGHT REGISTRY / વજન વિગત</div>
             <table style="width:100%; border-collapse:collapse; background:#fff;">
               ${weightRowsHtml}
             </table>
@@ -530,7 +551,7 @@ const DangarEntry = () => {/*  */
           <table style="width:100%; border-collapse:collapse; margin-bottom:30px;">
             <tr>
               <td style="width:48%; vertical-align:top;">
-                <table style="width:100%; border-collapse:collapse; background:#f1f5f9; border-radius:8px; overflow:hidden;">
+                <table style="width:100%; border-collapse:collapse; background:#f1f5f9; border-radius:12px; overflow:hidden;">
                   <tr>
                     <td style="padding:12px; border-bottom:1px solid #cbd5e1; font-weight:bold;">કુલ વજન (TOTAL KG)</td>
                     <td style="padding:12px; border-bottom:1px solid #cbd5e1; text-align:right; font-family:Arial; font-weight:900;">${toGujaratiDigits(data.total_kg)} KG</td>
@@ -572,13 +593,13 @@ const DangarEntry = () => {/*  */
           <table style="width:100%; border-collapse:collapse; margin-top:50px;">
             <tr>
               <td style="width:33.3%; text-align:center;">
-                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:11px; font-weight:bold; color:#475569;">તૈયાર કરનાર</div>
+                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:12px; font-weight:bold; color:#475569;">તૈયાર કરનાર</div>
               </td>
               <td style="width:33.3%; text-align:center;">
-                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:11px; font-weight:bold; color:#475569;">રિસીવર સહી</div>
+                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:12px; font-weight:bold; color:#475569;">રિસીવર સહી</div>
               </td>
               <td style="width:33.3%; text-align:center;">
-                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:11px; font-weight:bold; color:#475569;">સભાસદ સહી</div>
+                <div style="width:160px; border-top:2px solid #94a3b8; margin:0 auto; padding-top:10px; font-size:12px; font-weight:bold; color:#475569;">સભાસદ સહી</div>
               </td>
             </tr>
           </table>
@@ -677,7 +698,7 @@ const DangarEntry = () => {/*  */
           <tr style="border-bottom:1px solid #e2e8f0;">
             ${chunk.map((w, idx) => `
               <td style="border-right:1px solid #e2e8f0; padding:15px; text-align:center; width:20%;">
-                <div style="font-size:11px; color:#64748b; font-family:Arial; font-weight:bold;">BARDAN ${i + idx + 1}</div>
+                <div style="font-size:12px; color:#64748b; font-family:Arial; font-weight:bold;">BARDAN ${i + idx + 1}</div>
                 <div style="font-weight:900; font-size:22px; font-family:Arial; color:#1d5f84; margin-top:4px;">${toGujaratiDigits(w.weight || w.wgt)}</div>
               </td>
             `).join('')}
@@ -816,7 +837,7 @@ const DangarEntry = () => {/*  */
               ${chunk.map((w, cIdx) => `
                 <div style="flex:1; border-right:1px solid #e2e8f0; padding:4px; text-align:center;">
                   <div style="font-size:7px; color:#64748b; font-family:Arial;">${i + cIdx + 1}</div>
-                  <div style="font-weight:bold; font-size:11px; font-family:Arial;">${toGujaratiDigits(w.weight)}</div>
+                  <div style="font-weight:bold; font-size:12px; font-family:Arial;">${toGujaratiDigits(w.weight)}</div>
                 </div>
               `).join('')}
               ${Array(10 - chunk.length).fill('<div style="flex:1; border-right:1px solid #e2e8f0;"></div>').join('')}
@@ -844,8 +865,8 @@ const DangarEntry = () => {/*  */
             </div>
 
             <div style="background:#f8fafc; padding:10px; border-top:1px solid #1d5f84; display:flex; justify-content:flex-end; gap:30px;">
-              <div><span style="font-size:11px; color:#64748b;">TOTAL BARDAN:</span> <span style="font-weight:900; font-family:Arial;">${toGujaratiDigits(row.returned_bags)}</span></div>
-              <div><span style="font-size:11px; color:#64748b;">TOTAL WEIGHT:</span> <span style="font-weight:900; font-family:Arial; color:#1d5f84;">${toGujaratiDigits(row.total_kg)} KG</span></div>
+              <div><span style="font-size:12px; color:#64748b;">TOTAL BARDAN:</span> <span style="font-weight:900; font-family:Arial;">${toGujaratiDigits(row.returned_bags)}</span></div>
+              <div><span style="font-size:12px; color:#64748b;">TOTAL WEIGHT:</span> <span style="font-weight:900; font-family:Arial; color:#1d5f84;">${toGujaratiDigits(row.total_kg)} KG</span></div>
             </div>
           </div>
         `;
@@ -951,8 +972,8 @@ const DangarEntry = () => {/*  */
         render: (row) => {
           if (row.isTotal) return '';
           return row.quality_class === '1st' ? t('dangarMaster.filters.first') :
-                 row.quality_class === '2nd' ? t('dangarMaster.filters.second') :
-                 row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st');
+            row.quality_class === '2nd' ? t('dangarMaster.filters.second') :
+              row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st');
         }
       },
       {
@@ -1051,7 +1072,7 @@ const DangarEntry = () => {/*  */
               ${chunk.map((w, cIdx) => `
                 <td style="border:1px solid #e2e8f0; padding:12px; text-align:center; width:20%;">
                   <div style="font-size:10px; color:#64748b; font-family:Arial;">GUN ${i + cIdx + 1}</div>
-                  <div style="font-weight:bold; font-size:18px; font-family:Arial;">${toGujaratiDigits(w.weight)}</div>
+                  <div style="font-weight:bold; font-size:112px; font-family:Arial;">${toGujaratiDigits(w.weight)}</div>
                 </td>
               `).join('')}
               ${Array(5 - chunk.length).fill('<td style="border:1px solid #e2e8f0; width:20%;"></td>').join('')}
@@ -1153,10 +1174,10 @@ const DangarEntry = () => {/*  */
     const formattedFY = company?.financial_year
       ? (isGu ? `વર્ષ : ${toGujaratiDigits(company.financial_year)}` : `FY: ${company.financial_year}`)
       : (() => {
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const currentFY = user.financial_year || '2026-27';
-          return isGu ? `વર્ષ : ${toGujaratiDigits(currentFY)}` : `FY: ${currentFY}`;
-        })();
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const currentFY = user.financial_year || '2026-27';
+        return isGu ? `વર્ષ : ${toGujaratiDigits(currentFY)}` : `FY: ${currentFY}`;
+      })();
 
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
@@ -1191,17 +1212,17 @@ const DangarEntry = () => {/*  */
       const rowDate = formatDisplayDate(row.entry_date);
       const bookTypeText = t('dangarEntry.form.' + row.book_type?.toLowerCase()) || row.book_type;
       const billNo = `#${row.sr_no || ''}<br/><span style="font-size:10px; color:#64748b;">${bookTypeText}</span>`;
-      
+
       const mCode = isGu ? toGujaratiDigits(row.member_code) : row.member_code;
       const memberCell = `<strong>${row.member_name}</strong><br/><span style="font-size:10px; color:#64748b;">${t('memberMaster.code') || 'CODE'}: ${mCode}</span>`;
-      
+
       const qClass = row.quality_class === '1st' ? t('dangarMaster.filters.first') :
-                    row.quality_class === '2nd' ? t('dangarMaster.filters.second') :
-                    row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st');
-      
+        row.quality_class === '2nd' ? t('dangarMaster.filters.second') :
+          row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st');
+
       const volManVal = (parseFloat(row.net_quintal || 0) * 5).toFixed(2);
       const volMan = isGu ? toGujaratiDigits(volManVal) : volManVal;
-      
+
       const netVolVal = parseFloat(row.net_quintal || 0).toFixed(2);
       const netVol = isGu ? toGujaratiDigits(netVolVal) : netVolVal;
 
@@ -1256,14 +1277,14 @@ const DangarEntry = () => {/*  */
               border-bottom: 1.5px solid #000000;
               padding: 12px;
               text-align: center;
-              font-size: 18px;
+              font-size: 112px;
               font-weight: bold;
               font-family: 'Prompt', 'Noto Sans Gujarati', 'Outfit', sans-serif;
               color: #000000;
             }
             .pdf-header-title {
               border-bottom: 1.5px solid #000000;
-              padding: 8px;
+              padding: 12px;
               text-align: center;
               font-size: 14px;
               font-weight: bold;
@@ -1272,7 +1293,7 @@ const DangarEntry = () => {/*  */
             }
             .pdf-info-bar {
               border-bottom: 1.5px solid #000000;
-              padding: 8px 12px;
+              padding: 12px 12px;
               display: flex;
               justify-content: space-between;
               align-items: center;
@@ -1290,7 +1311,7 @@ const DangarEntry = () => {/*  */
             }
             .pdf-table th, .pdf-table td {
               border: 1.5px solid #000000 !important;
-              padding: 8px 10px;
+              padding: 12px 10px;
               font-size: 12px;
               color: #000000;
             }
@@ -1621,14 +1642,14 @@ const DangarEntry = () => {/*  */
             {/* Table Header Bar */}
             <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                   {t('dangarEntry.pdf.historyTitle') || 'Transaction History'}
                 </span>
-                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                   {toGujaratiDigits(filteredHistory.length)} {t('villageMaster.records') || "Records"}
                 </span>
                 {hasActiveFilters && (
-                  <span className="px-1.5 py-0.5 text-[9px] bg-amber-50 text-amber-600 border border-amber-100 rounded-md font-bold uppercase">
+                  <span className="px-1.5 py-0.5 text-[12px] bg-amber-50 text-amber-600 border border-amber-100 rounded-md font-bold uppercase">
                     {t('dangarEntry.historyFiltersActive') || "Filters Active"}
                   </span>
                 )}
@@ -1638,7 +1659,7 @@ const DangarEntry = () => {/*  */
                 {/* Slide-In Filters Drawer Trigger Button */}
                 <button
                   onClick={() => setShowHistoryFiltersDrawer(true)}
-                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold transition-all rounded-md cursor-pointer relative select-none shadow-none border ${hasActiveFilters
+                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[12px] font-bold transition-all rounded-md cursor-pointer relative select-none shadow-none border ${hasActiveFilters
                     ? 'bg-blue-50 border-blue-200 text-[#1d5f84] hover:bg-blue-100/70'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                     }`}
@@ -1692,10 +1713,10 @@ const DangarEntry = () => {/*  */
                     <th className="px-3 py-2.5 text-center">{t('common.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white font-sans text-xs">
+                <tbody className="divide-y divide-slate-100 bg-white font-sans text-sm">
                   {filteredHistory.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="py-24 text-center text-slate-400 font-bold text-xs tracking-wider bg-slate-50/20">
+                      <td colSpan="8" className="py-24 text-center text-slate-400 font-bold text-sm tracking-wider bg-slate-50/20">
                         <Database size={32} className="mx-auto mb-2 opacity-40 text-[#1d5f84]" />
                         {t('sabhasadLedgerSummary.noSabhasadRecordsFound') || "No transaction records found."}
                       </td>
@@ -1729,7 +1750,7 @@ const DangarEntry = () => {/*  */
                                   <div className="flex flex-col gap-0.5">
                                     <span translate="no">{primaryNode}</span>
                                     {secondaryNode && (
-                                      <span className="text-[9px] text-slate-400 uppercase font-mono tracking-wider font-semibold" translate="no">{secondaryNode}</span>
+                                      <span className="text-[12px] text-slate-400 uppercase font-mono tracking-wider font-semibold" translate="no">{secondaryNode}</span>
                                     )}
                                     <p className={`text-[10px] text-slate-400 mt-0.5 font-bold ${i18n.language === 'gu' ? '' : 'font-sans uppercase'}`}>
                                       {t('memberMaster.code') || 'CODE'}: <span className={numberTextClass} translate="no">{toGujaratiDigits(row.member_code)}</span>
@@ -1745,10 +1766,10 @@ const DangarEntry = () => {/*  */
                                     row.quality_class === '3rd' ? t('dangarMaster.filters.third') : toGujaratiDigits(row.quality_class || '1st')}
                               </span>
                             </td>
-                            <td className={`px-3 py-1.5 border-r border-slate-100 text-right font-bold text-amber-600 text-[11px] ${numberTextClass}`} translate="no">
+                            <td className={`px-3 py-1.5 border-r border-slate-100 text-right font-bold text-amber-600 text-[12px] ${numberTextClass}`} translate="no">
                               {toGujaratiDigits((parseFloat(row.net_quintal) * 5).toFixed(2))}
                             </td>
-                            <td className={`px-3 py-1.5 border-r border-slate-100 text-right font-bold text-slate-800 text-[11px] ${numberTextClass}`} translate="no">
+                            <td className={`px-3 py-1.5 border-r border-slate-100 text-right font-bold text-slate-800 text-[12px] ${numberTextClass}`} translate="no">
                               {toGujaratiDigits(parseFloat(row.net_quintal).toFixed(2))}
                             </td>
                             <td className="px-3 py-1.5 text-center space-x-1 flex items-center justify-center">
@@ -1765,10 +1786,10 @@ const DangarEntry = () => {/*  */
                         <td colSpan="5" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">
                           {t('sabhasadLedgerSummary.totals') || "Totals"}:
                         </td>
-                        <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${numberTextClass}`} translate="no">
+                        <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${numberTextClass}`} translate="no">
                           {toGujaratiDigits(totalVolume.toFixed(2))}
                         </td>
-                        <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${numberTextClass}`} translate="no">
+                        <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${numberTextClass}`} translate="no">
                           {toGujaratiDigits(totalNetVol.toFixed(2))}
                         </td>
                         <td className="px-3 py-2"></td>
@@ -1797,7 +1818,7 @@ const DangarEntry = () => {/*  */
               <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2 select-none">
                   <Filter size={14} className="text-[#1d5f84]" />
-                  <span className={`text-xs font-bold text-slate-800 uppercase tracking-wide ${isGu ? 'font-prompt-sm' : ''}`}>
+                  <span className={`text-sm font-bold text-slate-800 uppercase tracking-wide ${isGu ? 'font-prompt-sm' : ''}`}>
                     {t('sabhasadLedgerSummary.filters') || "Filters"}
                   </span>
                 </div>
@@ -1819,22 +1840,22 @@ const DangarEntry = () => {/*  */
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
-                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.from') || 'From'}</span>
+                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.from') || 'From'}</span>
                       <input
                         type="date"
                         value={historyFilters.startDate}
                         onChange={e => setHistoryFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
+                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
                         translate="no"
                       />
                     </div>
                     <div className="relative">
-                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.to') || 'To'}</span>
+                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.to') || 'To'}</span>
                       <input
                         type="date"
                         value={historyFilters.endDate}
                         onChange={e => setHistoryFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
+                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-sm text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
                         translate="no"
                       />
                     </div>
@@ -1848,24 +1869,24 @@ const DangarEntry = () => {/*  */
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
-                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.from') || 'From'}</span>
+                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.from') || 'From'}</span>
                       <input
                         type="text"
                         placeholder={t('common.code') || 'Code'}
                         value={historyFilters.fromMember}
                         onChange={e => setHistoryFilters(prev => ({ ...prev, fromMember: e.target.value }))}
-                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
+                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
                         translate="no"
                       />
                     </div>
                     <div className="relative">
-                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.to') || 'To'}</span>
+                      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase ${isGu ? 'font-prompt-sm' : ''}`}>{t('common.to') || 'To'}</span>
                       <input
                         type="text"
                         placeholder={t('common.code') || 'Code'}
                         value={historyFilters.toMember}
                         onChange={e => setHistoryFilters(prev => ({ ...prev, toMember: e.target.value }))}
-                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
+                        className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-sm text-slate-700 font-bold outline-none w-full ${numberTextClass}`}
                         translate="no"
                       />
                     </div>
@@ -1878,13 +1899,13 @@ const DangarEntry = () => {/*  */
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex gap-2">
                 <button
                   onClick={() => setHistoryFilters({ startDate: '', endDate: '', fromMember: '', toMember: '' })}
-                  className="flex-1 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition cursor-pointer text-center"
+                  className="flex-1 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition cursor-pointer text-center"
                 >
                   {t('common.clear') || "Clear All"}
                 </button>
                 <button
                   onClick={() => setShowHistoryFiltersDrawer(false)}
-                  className="flex-1 py-2 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] rounded-md transition cursor-pointer text-center"
+                  className="flex-1 py-2 text-sm font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] rounded-md transition cursor-pointer text-center"
                 >
                   {t('common.apply') || "Apply"}
                 </button>
@@ -1910,7 +1931,7 @@ const DangarEntry = () => {/*  */
 
             {/* Form Section Header with Actions */}
             <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                 {id ? t('dangarEntry.form.updateNode') : t('dangarEntry.title')}
               </span>
 
@@ -1918,21 +1939,21 @@ const DangarEntry = () => {/*  */
                 <button
                   type="button"
                   onClick={loadHistory}
-                  className={`flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[11px] font-bold px-3 py-1.5 rounded-md cursor-pointer select-none transition ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
+                  className={`flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[12px] font-bold px-3 py-1.5 rounded-md cursor-pointer select-none transition ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
                 >
                   <History size={13} /> {t('common.history')}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className={`flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[11px] font-bold px-3 py-1.5 rounded-md cursor-pointer select-none transition ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
+                  className={`flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[12px] font-bold px-3 py-1.5 rounded-md cursor-pointer select-none transition ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
                 >
                   <X size={13} /> {t('common.reset')}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleExportBardanPDF()}
-                  className={`flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[11px] font-bold px-3 py-1.5 rounded-md cursor-pointer select-none transition ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
+                  className={`flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[12px] font-bold px-3 py-1.5 rounded-md cursor-pointer select-none transition ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
                 >
                   <Package size={13} /> {t('dangarEntry.pdf.bardanDepositSlip') || 'Bardan Slip'}
                 </button>
@@ -1940,7 +1961,7 @@ const DangarEntry = () => {/*  */
                   type="button"
                   onClick={handleSave}
                   disabled={loading}
-                  className={`flex items-center gap-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white text-[11px] font-bold px-4 py-2 rounded-md transition shadow-none select-none cursor-pointer ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
+                  className={`flex items-center gap-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white text-[12px] font-bold px-4 py-2 rounded-md transition shadow-none select-none cursor-pointer ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
                 >
                   {id ? <Edit3 size={14} /> : <Save size={14} />}
                   {id ? t('dangarEntry.form.updateNode') : t('dangarEntry.form.commitEntry')}
@@ -1961,7 +1982,7 @@ const DangarEntry = () => {/*  */
                     value={formData.bookType}
                     onChange={(e) => setFormData({ ...formData, bookType: e.target.value })}
                     onKeyDown={(e) => handleKeyDown(e, bookTypeRef)}
-                    className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-bold cursor-pointer ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
+                    className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm text-slate-700 font-bold cursor-pointer ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
                   >
                     <option value="Tuver">{t('dangarEntry.form.tuver')}</option>
                     <option value="Dangar">{t('dangarEntry.form.dangar')}</option>
@@ -1974,7 +1995,7 @@ const DangarEntry = () => {/*  */
                   <label className={`text-[10px] font-bold text-slate-400 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                     {t('dangarEntry.form.srNumber') || 'SR Number'}
                   </label>
-                  <div className="flex items-center h-[31px] px-3 bg-slate-50 border border-slate-200 rounded-md font-mono text-xs select-none">
+                  <div className="flex items-center h-[31px] px-3 bg-slate-50 border border-slate-200 rounded-md font-mono text-sm select-none">
                     <span className={`font-bold tracking-widest notranslate ${formData.srNo === 'AUTO' ? 'text-slate-400 font-prompt-sm' : 'text-[#1d5f84]'}`} translate="no">
                       {formData.srNo === 'AUTO' ? t('dangarEntry.form.auto') : `#${formData.srNo}`}
                     </span>
@@ -1997,7 +2018,7 @@ const DangarEntry = () => {/*  */
                       setFormData({ ...formData, date: e.target.value, season: newSeason });
                     }}
                     onKeyDown={(e) => handleKeyDown(e, dateRef)}
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-mono font-bold cursor-pointer"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm text-slate-700 font-mono font-bold cursor-pointer"
                   />
                 </div>
               </div>
@@ -2037,7 +2058,7 @@ const DangarEntry = () => {/*  */
                         ref={memberCodeRef}
                         type="text"
                         placeholder={t('common.code')}
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs font-mono font-bold text-slate-700 uppercase force-en notranslate" translate="no" lang="en"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm font-mono font-bold text-slate-700 uppercase force-en notranslate" translate="no" lang="en"
                         value={selectedMember?.member_code || ''}
                         onChange={(e) => handleMemberCodeChange(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, memberCodeRef)}
@@ -2046,7 +2067,7 @@ const DangarEntry = () => {/*  */
                     <div className="w-3/4">
                       <select
                         ref={memberIdRef}
-                        className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-bold cursor-pointer ${isGu ? 'font-prompt-sm' : 'font-sans'}`}
+                        className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm text-slate-700 font-bold cursor-pointer ${isGu ? 'font-prompt-sm' : 'font-sans'}`}
                         style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : undefined}
                         value={formData.member_id}
                         onChange={(e) => handleMemberChange(e.target.value)}
@@ -2109,7 +2130,7 @@ const DangarEntry = () => {/*  */
                         ref={itemCodeRef}
                         type="text"
                         placeholder={t('common.code')}
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs font-mono font-bold text-slate-700 uppercase force-en notranslate" translate="no" lang="en"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm font-mono font-bold text-slate-700 uppercase force-en notranslate" translate="no" lang="en"
                         value={items.find(i => i.id === parseInt(formData.item_id))?.item_code || ''}
                         onChange={(e) => handleItemCodeChange(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, itemCodeRef)}
@@ -2118,24 +2139,19 @@ const DangarEntry = () => {/*  */
                     <div className="w-3/4">
                       <select
                         ref={itemIdRef}
-                        className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-bold cursor-pointer ${isGu ? 'font-sans' : 'font-sans'}`}
-                        style={isGu && selectedItem?.item_name_gu
-                          ? { fontFamily: '"Noto Sans Gujarati", sans-serif' }
-                          : undefined
-                        }
+                        className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm text-slate-700 font-bold cursor-pointer ${isGu ? 'font-prompt' : 'font-sans'}`}
                         value={formData.item_id}
                         onChange={(e) => setFormData({ ...formData, item_id: e.target.value })}
                         onKeyDown={(e) => handleKeyDown(e, itemIdRef)}
                       >
-                        <option value="" className="font-sans">{t('dangarEntry.form.selectResource')}</option>
+                        <option value="" className={isGu ? 'font-prompt' : 'font-sans'}>{t('dangarEntry.form.selectResource')}</option>
                         {items.map(i => (
                           <option
                             key={i.id}
                             value={i.id}
-                            className={isGu && i.item_name_gu ? 'font-sans' : 'font-sans'}
-                            style={isGu && i.item_name_gu ? { fontFamily: '"Noto Sans Gujarati", sans-serif' } : undefined}
+                            className={isGu ? 'font-prompt' : 'font-sans'}
                           >
-                            {i.item_code} - {isGu ? formatBilingualText(displayItemName(i)) : displayItemName(i)}
+                            {i.item_code} - {displayItemName(i)}
                           </option>
                         ))}
                       </select>
@@ -2153,7 +2169,7 @@ const DangarEntry = () => {/*  */
                   <input
                     ref={vehicleNoRef}
                     type="text"
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 font-mono font-bold"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm text-slate-700 font-mono font-bold"
                     placeholder="GJ-01-XX-1234"
                     value={formData.vehicleNo}
                     onChange={(e) => setFormData({ ...formData, vehicleNo: e.target.value.toUpperCase() })}
@@ -2169,7 +2185,7 @@ const DangarEntry = () => {/*  */
                 </label>
                 <textarea
                   ref={remarkRef}
-                  className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs text-slate-700 min-h-[70px] ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
+                  className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm text-slate-700 min-h-[70px] ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}
                   placeholder={t('dangarEntry.form.remarkPlaceholder')}
                   value={formData.remark}
                   onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
@@ -2189,13 +2205,13 @@ const DangarEntry = () => {/*  */
                     <option value="man">{t('dangarEntry.units.man')}</option>
                     <option value="quintal">{t('dangarEntry.units.quintal')}</option>
                   </select>
-                  <span className={`text-[9px] font-bold uppercase tracking-widest text-slate-400 notranslate ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`} translate="no">{t('dangarEntry.form.metric') || 'Display Metric'}</span>
+                  <span className={`text-[12px] font-bold uppercase tracking-widest text-slate-400 notranslate ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`} translate="no">{t('dangarEntry.form.metric') || 'Display Metric'}</span>
                 </div>
-                <div className={`flex items-center gap-2 text-xs font-bold font-mono ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                <div className={`flex items-center gap-2 text-sm font-bold font-mono ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                   <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">{t('dangarEntry.form.volume')}:</span>
                   <span className="text-slate-800 font-extrabold notranslate" translate="no">
                     {display_unit === 'man' ? formData.total_man : (display_unit === 'quintal' ? formData.gross_quintal : formData.total_kg)}
-                    <span className="text-[9px] text-slate-400 uppercase ml-0.5">{display_unit}</span>
+                    <span className="text-[12px] text-slate-400 uppercase ml-0.5">{display_unit}</span>
                   </span>
                   <span className="text-slate-300 font-normal">×</span>
                   <span className="text-slate-800 font-extrabold notranslate" translate="no">₹{display_unit === 'man' ? (parseFloat(formData.rate) / 5).toFixed(2) : (display_unit === 'quintal' ? parseFloat(formData.rate).toFixed(2) : (parseFloat(formData.rate) / 100).toFixed(2))}</span>
@@ -2212,7 +2228,7 @@ const DangarEntry = () => {/*  */
             {/* Weight Matrix grid */}
             <div className="bg-white border border-slate-200 rounded-lg flex flex-col h-[400px] select-none shadow-none">
               <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-                <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                <span className={`text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                   <Calculator size={14} className="text-[#1d5f84]" />
                   {t('dangarEntry.form.weightMatrix') || 'Weight Matrix'}
                 </span>
@@ -2225,21 +2241,21 @@ const DangarEntry = () => {/*  */
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 space-y-2 select-none">
-                <div className={`grid grid-cols-12 gap-3 text-[9px] font-bold text-slate-400 font-mono uppercase notranslate ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`} translate="no">
+                <div className={`grid grid-cols-12 gap-3 text-[12px] font-bold text-slate-400 font-mono uppercase notranslate ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`} translate="no">
                   <div className="col-span-2 text-center">#</div>
                   <div className="col-span-10">{t('dangarEntry.form.entryVolume') || 'Bag Weight (KG)'}</div>
                 </div>
 
                 {weightRows.map((row, idx) => (
                   <div key={row.id} className="grid grid-cols-12 gap-2 items-center select-none">
-                    <div className="col-span-2 text-center font-bold text-slate-400 font-mono text-[11px]">
+                    <div className="col-span-2 text-center font-bold text-slate-400 font-mono text-[12px]">
                       {idx + 1}
                     </div>
                     <div className="col-span-8 relative">
                       <input
                         id={`wgt-input-${idx}`}
                         type="number"
-                        className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md px-3 py-1.5 text-xs font-mono font-bold text-slate-700 outline-none transition select-none force-en notranslate" translate="no" lang="en"
+                        className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md px-3 py-1.5 text-sm font-mono font-bold text-slate-700 outline-none transition select-none force-en notranslate" translate="no" lang="en"
                         value={row.wgt}
                         autoFocus={idx === weightRows.length - 1 && idx > 0}
                         onChange={(e) => handleWeightChange(row.id, e.target.value)}
@@ -2260,34 +2276,34 @@ const DangarEntry = () => {/*  */
               </div>
 
               <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center select-none rounded-b-lg">
-                <p className={`text-[9px] font-bold uppercase tracking-widest text-slate-400 font-mono ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.grossVol') || 'Gross Weight'}</p>
+                <p className={`text-[12px] font-bold uppercase tracking-widest text-slate-400 font-mono ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.grossVol') || 'Gross Weight'}</p>
                 <p className="text-base font-extrabold font-mono text-slate-800 leading-none notranslate" translate="no">
-                  {formData.total_kg} <span className="text-[9px] font-bold text-slate-400 uppercase">KG</span>
+                  {formData.total_kg} <span className="text-[12px] font-bold text-slate-400 uppercase">KG</span>
                 </p>
               </div>
             </div>
 
             {/* Calculations Breakdown card */}
             <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4 flex-1 shadow-none">
-              <h3 className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider border-b border-slate-200 pb-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+              <h3 className={`text-sm font-extrabold text-slate-700 uppercase tracking-wider border-b border-slate-200 pb-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                 {t('dangarEntry.form.manifest') || 'Calculated Manifest'}
               </h3>
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <p className={`text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.bardanBal') || 'Bardan'}</p>
-                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 p-1 font-mono font-bold text-slate-700 outline-none text-xs rounded cursor-not-allowed select-none notranslate" translate="no" value={formData.bardan} />
+                  <p className={`text-[12px] font-bold text-slate-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.bardanBal') || 'Bardan'}</p>
+                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 p-1 font-mono font-bold text-slate-700 outline-none text-sm rounded cursor-not-allowed select-none notranslate" translate="no" value={formData.bardan} />
                   {selectedMember && (
-                    <div className={`text-[8px] font-bold text-[#1d5f84] uppercase ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.balan') || 'Bal'}: <span className="notranslate" translate="no">{bardanBalance}</span></div>
+                    <div className={`text-[12px] font-bold text-[#1d5f84] uppercase ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.balan') || 'Bal'}: <span className="notranslate" translate="no">{bardanBalance}</span></div>
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className={`text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.netVol') || 'Net Weight'}</p>
-                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 p-1 font-mono font-bold text-slate-700 outline-none text-xs rounded cursor-not-allowed select-none notranslate" translate="no" value={formData.total_kg} />
+                  <p className={`text-[12px] font-bold text-slate-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.netVol') || 'Net Weight'}</p>
+                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 p-1 font-mono font-bold text-slate-700 outline-none text-sm rounded cursor-not-allowed select-none notranslate" translate="no" value={formData.total_kg} />
                 </div>
                 <div className="space-y-1">
-                  <p className={`text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.rateQt') || 'Rate'}</p>
-                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 p-1 font-mono font-bold text-slate-700 outline-none text-xs rounded cursor-not-allowed select-none notranslate" translate="no" value={formData.rate} />
+                  <p className={`text-[12px] font-bold text-slate-400 uppercase tracking-widest font-mono leading-none ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>{t('dangarEntry.stats.rateQt') || 'Rate'}</p>
+                  <input type="number" readOnly className="w-full bg-slate-50 border border-slate-200 p-1 font-mono font-bold text-slate-700 outline-none text-sm rounded cursor-not-allowed select-none notranslate" translate="no" value={formData.rate} />
                 </div>
               </div>
 
@@ -2301,8 +2317,8 @@ const DangarEntry = () => {/*  */
                   { label: t('dangarEntry.stats.netPayable') || 'Net Payable', val: `₹${formData.amount}`, color: 'text-emerald-600 font-black', size: 'text-lg bg-slate-50/50 p-3 flex justify-between' }
                 ].map((calc, i) => (
                   <div key={i} className={`flex justify-between items-center p-2.5 ${calc.size ? 'border-t border-slate-200 bg-slate-50' : ''}`}>
-                    <p className={`text-[9px] font-bold uppercase tracking-widest text-slate-400 notranslate ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`} translate="no">{calc.label}</p>
-                    <p className={`${calc.size || 'text-xs'} font-bold ${calc.color} notranslate`} translate="no">{calc.val}</p>
+                    <p className={`text-[12px] font-bold uppercase tracking-widest text-slate-400 notranslate ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`} translate="no">{calc.label}</p>
+                    <p className={`${calc.size || 'text-sm'} font-bold ${calc.color} notranslate`} translate="no">{calc.val}</p>
                   </div>
                 ))}
               </div>
@@ -2310,7 +2326,7 @@ const DangarEntry = () => {/*  */
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="w-full bg-[#1d5f84] hover:bg-[#154662] text-white font-bold transition rounded-md uppercase flex items-center justify-center gap-2 py-3 text-xs select-none mt-2 shadow-none cursor-pointer"
+                className="w-full bg-[#1d5f84] hover:bg-[#154662] text-white font-bold transition rounded-md uppercase flex items-center justify-center gap-2 py-3 text-sm select-none mt-2 shadow-none cursor-pointer"
               >
                 <Save size={14} /> {t('dangarEntry.form.saveNode') || 'Save Entry'}
               </button>

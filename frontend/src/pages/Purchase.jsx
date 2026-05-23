@@ -11,6 +11,7 @@ import PurchaseForm from '../components/PurchaseForm';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import api from '../api';
+import { toISTDateInput } from '../utils/dateUtils';
 
 export default function Purchase() {
   const { t } = useTranslation();
@@ -23,8 +24,8 @@ export default function Purchase() {
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: toISTDateInput(new Date(new Date().setDate(new Date().getDate() - 30))),
+    endDate: toISTDateInput()
   });
 
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function Purchase() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
         <div className="text-center font-black uppercase tracking-widest text-slate-300">
-          <p className="text-xs mb-6 italic tracking-[0.4em]">Initialising Procurement Bridge...</p>
+          <p className="text-sm mb-6 italic tracking-[0.4em]">Initialising Procurement Bridge...</p>
           <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
           </div>
@@ -141,7 +142,7 @@ export default function Purchase() {
         >
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-xs font-black text-white uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+            className="flex items-center gap-2 bg-blue-600 px-6 py-3.5 rounded-lg text-sm font-black text-white uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
           >
             <Plus size={18} />
             Initialize Inward
@@ -177,18 +178,18 @@ export default function Purchase() {
                 placeholder="ISOLATE MANIFEST BY INVOICE, SUPPLIER OR ACCOUNT CODE..."
                 value={searchTerm}
                 onChange={handleSearch}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[11px] tracking-widest"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-bold uppercase text-[12px] tracking-widest"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-            <input type="date" value={dateRange.startDate} onChange={(e) => handleDateChange('startDate', e.target.value)} className="bg-transparent border-none outline-none px-4 py-2 text-xs font-bold text-slate-600 focus:text-blue-600 transition-all font-mono" />
+            <input type="date" value={dateRange.startDate} onChange={(e) => handleDateChange('startDate', e.target.value)} className="bg-transparent border-none outline-none px-4 py-2 text-sm font-bold text-slate-600 focus:text-blue-600 transition-all font-mono" />
             <ArrowRight size={14} className="text-slate-200" />
-            <input type="date" value={dateRange.endDate} onChange={(e) => handleDateChange('endDate', e.target.value)} className="bg-transparent border-none outline-none px-4 py-2 text-xs font-bold text-slate-600 focus:text-blue-600 transition-all font-mono" />
+            <input type="date" value={dateRange.endDate} onChange={(e) => handleDateChange('endDate', e.target.value)} className="bg-transparent border-none outline-none px-4 py-2 text-sm font-bold text-slate-600 focus:text-blue-600 transition-all font-mono" />
           </div>
 
-          <button onClick={() => fetchPurchases(company.id)} className="bg-blue-600 text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2">
+          <button onClick={() => fetchPurchases(company.id)} className="bg-blue-600 text-white px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest text-[12px] hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2">
             <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
             Sync Registry
           </button>
@@ -202,7 +203,7 @@ export default function Purchase() {
             subtitle="Audit-ready procurement document manifest"
             count={filteredPurchases.length}
           >
-            <button className="p-2 text-slate-400 hover:text-blue-600 transition-all"><Download size={18}/></button>
+            <button className="p-2 text-slate-400 hover:text-blue-600 transition-all"><Download size={18} /></button>
           </TableHeading>
 
           <div className="overflow-x-auto">
@@ -253,7 +254,7 @@ export default function Purchase() {
                         </div>
                       </td>
                       <td className="px-8 py-6 text-center">
-                        <button onClick={() => viewPurchaseDetails(purchase.id)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-blue-700 transition-all active:scale-95 shadow-md flex items-center gap-2 mx-auto">
+                        <button onClick={() => viewPurchaseDetails(purchase.id)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest text-[12px] hover:bg-blue-700 transition-all active:scale-95 shadow-md flex items-center gap-2 mx-auto">
                           Details <ChevronRight size={14} />
                         </button>
                       </td>
@@ -270,83 +271,83 @@ export default function Purchase() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden border border-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="bg-blue-600 p-8 flex justify-between items-center relative overflow-hidden shrink-0">
-               <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/10 rounded-full -mr-24 -mt-24"></div>
-               <div className="relative z-10 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-white"><Database size={24} /></div>
-                  <div>
-                    <h2 className="text-xl font-black text-white italic uppercase tracking-tight">Nomenclature Inward</h2>
-                    <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1 italic">MANIFEST NODE: #{selectedPurchase.invoice_no}</p>
-                  </div>
-               </div>
-               <div className="flex gap-2 relative z-10">
-                  <button className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"><Printer size={20}/></button>
-                  <button onClick={() => setShowDetails(false)} className="p-2.5 bg-white/10 hover:bg-rose-500/20 text-white rounded-lg transition-all"><X size={20}/></button>
-               </div>
+              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/10 rounded-full -mr-24 -mt-24"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-white"><Database size={24} /></div>
+                <div>
+                  <h2 className="text-xl font-black text-white italic uppercase tracking-tight">Nomenclature Inward</h2>
+                  <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-1 italic">MANIFEST NODE: #{selectedPurchase.invoice_no}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 relative z-10">
+                <button className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"><Printer size={20} /></button>
+                <button onClick={() => setShowDetails(false)} className="p-2.5 bg-white/10 hover:bg-rose-500/20 text-white rounded-lg transition-all"><X size={20} /></button>
+              </div>
             </div>
 
             <div className="p-8 overflow-y-auto scroller-airy flex-1">
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-lg border border-slate-100">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Source Entity</p>
-                    <p className="text-sm font-black text-slate-800 uppercase italic">{selectedPurchase.supplier_name}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Timeline Node</p>
-                    <p className="text-sm font-black text-slate-800 uppercase italic">{new Date(selectedPurchase.invoice_date).toLocaleDateString('en-GB')}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Authorized Agent</p>
-                    <p className="text-sm font-black text-slate-800 uppercase italic">{selectedPurchase.created_by_name || 'SYSTEM_CORE'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Account Mapping</p>
-                    <p className="text-sm font-black text-slate-800 uppercase italic">{selectedPurchase.supplier_account_id}</p>
-                  </div>
-               </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-lg border border-slate-100">
+                <div className="space-y-1">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest italic">Source Entity</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic">{selectedPurchase.supplier_name}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest italic">Timeline Node</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic">{new Date(selectedPurchase.invoice_date).toLocaleDateString('en-GB')}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest italic">Authorized Agent</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic">{selectedPurchase.created_by_name || 'SYSTEM_CORE'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest italic">Account Mapping</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic">{selectedPurchase.supplier_account_id}</p>
+                </div>
+              </div>
 
-               <div className="mb-8">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-4">
-                    <div className="w-8 h-0.5 bg-slate-200"></div> Nomenclature Payload
-                  </h4>
-                  <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest italic border-b border-slate-200">
-                        <tr>
-                          <th className="px-6 py-4">Inbound Node</th>
-                          <th className="px-6 py-4 text-center">Density</th>
-                          <th className="px-6 py-4 text-right">Inward Rate</th>
-                          <th className="px-6 py-4 text-right">Net Value</th>
+              <div className="mb-8">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-4">
+                  <div className="w-8 h-0.5 bg-slate-200"></div> Nomenclature Payload
+                </h4>
+                <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 text-[12px] font-black text-slate-400 uppercase tracking-widest italic border-b border-slate-200">
+                      <tr>
+                        <th className="px-6 py-4">Inbound Node</th>
+                        <th className="px-6 py-4 text-center">Density</th>
+                        <th className="px-6 py-4 text-right">Inward Rate</th>
+                        <th className="px-6 py-4 text-right">Net Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm font-bold text-slate-700 uppercase italic">
+                      {(selectedPurchase.items || []).map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <p className="leading-none mb-1">{item.item_name}</p>
+                            <p className="text-[12px] font-bold text-slate-300 font-mono">#{item.item_code}</p>
+                          </td>
+                          <td className="px-6 py-4 text-center">{item.quantity} {item.unit_name}</td>
+                          <td className="px-6 py-4 text-right font-mono">₹{parseFloat(item.purchase_rate).toFixed(2)}</td>
+                          <td className="px-6 py-4 text-right font-mono">₹{parseFloat(item.amount).toFixed(2)}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700 uppercase italic">
-                        {(selectedPurchase.items || []).map((item, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4">
-                              <p className="leading-none mb-1">{item.item_name}</p>
-                              <p className="text-[8px] font-bold text-slate-300 font-mono">#{item.item_code}</p>
-                            </td>
-                            <td className="px-6 py-4 text-center">{item.quantity} {item.unit_name}</td>
-                            <td className="px-6 py-4 text-right font-mono">₹{parseFloat(item.purchase_rate).toFixed(2)}</td>
-                            <td className="px-6 py-4 text-right font-mono">₹{parseFloat(item.amount).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-               </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-               <div className="flex flex-col items-end mt-12 space-y-4">
-                  <div className="bg-blue-600 p-8 rounded-lg text-white shadow-xl relative overflow-hidden w-full md:w-96 border-4 border-white">
-                     <div className="absolute inset-0 bg-linear-to-br from-blue-600/10 to-transparent"></div>
-                     <div className="flex justify-between items-end relative z-10">
-                        <div>
-                           <p className="text-[10px] font-bold text-blue-100 uppercase tracking-[0.4em] mb-3 italic">Fiscal Net Inward</p>
-                           <h5 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Gross Posted</h5>
-                        </div>
-                        <p className="text-4xl font-black italic font-mono tracking-tighter">₹{parseFloat(selectedPurchase.total_amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                     </div>
+              <div className="flex flex-col items-end mt-12 space-y-4">
+                <div className="bg-blue-600 p-8 rounded-lg text-white shadow-xl relative overflow-hidden w-full md:w-96 border-4 border-white">
+                  <div className="absolute inset-0 bg-linear-to-br from-blue-600/10 to-transparent"></div>
+                  <div className="flex justify-between items-end relative z-10">
+                    <div>
+                      <p className="text-[10px] font-bold text-blue-100 uppercase tracking-[0.4em] mb-3 italic">Fiscal Net Inward</p>
+                      <h5 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Gross Posted</h5>
+                    </div>
+                    <p className="text-4xl font-black italic font-mono tracking-tighter">₹{parseFloat(selectedPurchase.total_amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                   </div>
-               </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

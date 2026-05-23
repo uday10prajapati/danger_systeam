@@ -13,6 +13,7 @@ import TableHeading from '../components/TableHeading';
 import Toast from '../components/Toast';
 import api from '../api';
 import { exportToPDF } from '../utils/pdfExporter';
+import { toISTDateInput, formatToIST } from '../utils/dateUtils';
 export default function Sale() {
   const { t, i18n } = useTranslation();
   const isGu = i18n.language === 'gu';
@@ -26,8 +27,8 @@ export default function Sale() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: toISTDateInput(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+    endDate: toISTDateInput()
   });
 
   useEffect(() => {
@@ -158,7 +159,7 @@ export default function Sale() {
             padding-bottom: 20px;
           }
           .company-name {
-            font-size: 28px;
+            font-size: 212px;
             font-weight: bold;
             color: #1e40af;
             margin-bottom: 5px;
@@ -169,7 +170,7 @@ export default function Sale() {
             margin-top: 10px;
           }
           .invoice-title {
-            font-size: 18px;
+            font-size: 112px;
             font-weight: bold;
             margin-top: 15px;
             color: #333;
@@ -234,7 +235,7 @@ export default function Sale() {
           .total-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 12px 0;
             font-size: 13px;
             border-bottom: 1px solid #ddd;
           }
@@ -372,7 +373,7 @@ export default function Sale() {
           <!-- Footer -->
           <div class="footer">
             <p>${t('saleMaster.bill.thanks')}</p>
-            <p style="margin-top: 10px; font-size: 11px;">${t('saleMaster.bill.computerGenerated')}</p>
+            <p style="margin-top: 10px; font-size: 12px;">${t('saleMaster.bill.computerGenerated')}</p>
           </div>
         </div>
 
@@ -528,7 +529,7 @@ export default function Sale() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 font-sans">
         <div className="text-center font-bold text-slate-400">
-          <p className="text-xs mb-4 uppercase tracking-widest font-mono">{t('common.loading')}</p>
+          <p className="text-sm mb-4 uppercase tracking-widest font-mono">{t('common.loading')}</p>
           <RefreshCcw className="animate-spin mx-auto text-[#1d5f84]" size={24} />
         </div>
       </div>
@@ -538,24 +539,24 @@ export default function Sale() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 select-none pb-12">
       <Toast message={message} onClose={() => setMessage(null)} />
-      
+
       <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
         {/* Stats Summary Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.totalSales')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.totalSales')}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{stats.totalSales}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.totalProceeds')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.totalProceeds')}</span>
             <span className="text-[13px] font-bold font-sans text-emerald-600 mt-1">₹{stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.densityUnits')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.densityUnits')}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{stats.totalItems}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.activeIdentities')}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.stats.activeIdentities')}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{stats.uniqueCustomers}</span>
           </div>
         </div>
@@ -564,64 +565,64 @@ export default function Sale() {
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
-             <div className="flex items-center gap-2">
-                <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
-                   {t('saleMaster.title')}
-                </span>
-                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
-                   {filteredSales.length} {t('saleMaster.records')}
-                </span>
-             </div>
-             
-             <div className="flex items-center gap-2 flex-wrap">
-               {/* Search Bar */}
-               <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
-                 <Search size={12} className="text-slate-400 mr-1.5" />
-                 <input
-                   type="text"
-                   placeholder={t('saleMaster.searchPlaceholder')}
-                   value={searchTerm}
-                   onChange={(e) => { setSearchTerm(e.target.value); applyFilters(sales); }}
-                   className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
-                 />
-                 {searchTerm && (
-                   <button onClick={() => {setSearchTerm(''); applyFilters(sales);}} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
-                     <X size={10} />
-                   </button>
-                 )}
-               </div>
-               
-               {/* Date Range */}
-               <div className="flex items-center gap-1.5 border border-slate-200 rounded-md bg-white px-2 py-0.5">
-                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-600 uppercase" />
-                 <ArrowRight size={10} className="text-slate-400" />
-                 <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-600 uppercase" />
-               </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+                {t('saleMaster.title')}
+              </span>
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
+                {filteredSales.length} {t('saleMaster.records')}
+              </span>
+            </div>
 
-               {/* Sync/Filter Button */}
-               <button onClick={fetchSales} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
-                 <Filter size={13} />
-                 <span>{t('saleMaster.sync')}</span>
-               </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Search Bar */}
+              <div className="relative flex items-center border border-slate-200 focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] rounded-md bg-white px-2.5 py-1 transition-colors w-48 sm:w-64">
+                <Search size={12} className="text-slate-400 mr-1.5" />
+                <input
+                  type="text"
+                  placeholder={t('saleMaster.searchPlaceholder')}
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); applyFilters(sales); }}
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                />
+                {searchTerm && (
+                  <button onClick={() => { setSearchTerm(''); applyFilters(sales); }} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
 
-               {/* Export CSV/PDF */}
-               <button onClick={handleDownloadCSV} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('saleMaster.csv')}>
-                 <Download size={13} className="text-slate-500" />
-               </button>
-               <button onClick={handleExportPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('saleMaster.pdf')}>
-                 <FileText size={13} className="text-slate-500" />
-               </button>
-               
-               {/* Add New */}
-               <button onClick={() => setShowForm(true)} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider ml-1">
-                 <Plus size={13} />
-                 <span>{t('saleMaster.initializeSale')}</span>
-               </button>
-             </div>
+              {/* Date Range */}
+              <div className="flex items-center gap-1.5 border border-slate-200 rounded-md bg-white px-2 py-0.5">
+                <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-600 uppercase" />
+                <ArrowRight size={10} className="text-slate-400" />
+                <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-600 uppercase" />
+              </div>
+
+              {/* Sync/Filter Button */}
+              <button onClick={fetchSales} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider">
+                <Filter size={13} />
+                <span>{t('saleMaster.sync')}</span>
+              </button>
+
+              {/* Export CSV/PDF */}
+              <button onClick={handleDownloadCSV} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('saleMaster.csv')}>
+                <Download size={13} className="text-slate-500" />
+              </button>
+              <button onClick={handleExportPDF} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer" title={t('saleMaster.pdf')}>
+                <FileText size={13} className="text-slate-500" />
+              </button>
+
+              {/* Add New */}
+              <button onClick={() => setShowForm(true)} className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider ml-1">
+                <Plus size={13} />
+                <span>{t('saleMaster.initializeSale')}</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto w-full">
-            <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+            <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
               <thead className="bg-slate-50 font-sans">
                 <tr>
                   <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-24">{t('saleMaster.table.invoice')}</th>
@@ -650,19 +651,19 @@ export default function Sale() {
                   filteredSales.map((sale, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/75 transition-colors">
                       <td className="px-3.5 py-2 text-center font-mono text-slate-600 border-r border-slate-100">
-                        <span className="font-bold text-[#1d5f84] text-[9px]">#{sale.invoice_no}</span>
+                        <span className="font-bold text-[#1d5f84] text-[12px]">#{sale.invoice_no}</span>
                       </td>
                       <td className="px-3.5 py-2 border-r border-slate-100">
                         <div className="flex flex-col">
                           <span className={`font-bold text-slate-800 ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displaySaleCustomer(sale)}</span>
-                          <span className="text-[9px] font-mono text-slate-400">ID: {sale.member_code || 'WALK-IN'}</span>
+                          <span className="text-[12px] font-mono text-slate-400">ID: {sale.member_code || 'WALK-IN'}</span>
                         </div>
                       </td>
                       <td className="px-3.5 py-2 text-right font-mono font-bold text-emerald-600 border-r border-slate-100">
                         ₹{parseFloat(sale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-3.5 py-2 text-center border-r border-slate-100">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${sale.payment_type === 'cash' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                        <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-md border uppercase ${sale.payment_type === 'cash' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                           {sale.payment_type === 'cash' ? t('sale.cash') : t('sale.credit')}
                         </span>
                       </td>
@@ -686,8 +687,8 @@ export default function Sale() {
           <div className="relative w-full max-w-2xl bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh] font-sans select-none z-10">
             <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
               <div>
-                <h2 className={`text-xs font-bold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>{t('saleMaster.details.isolation')}</h2>
-                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('saleMaster.details.manifestNode')}: #{selectedSale.invoice_no}</p>
+                <h2 className={`text-sm font-bold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>{t('saleMaster.details.isolation')}</h2>
+                <p className="text-[12px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('saleMaster.details.manifestNode')}: #{selectedSale.invoice_no}</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={handlePrintBill} className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer" title={t('common.print')}><Printer size={15} /></button>
@@ -698,23 +699,23 @@ export default function Sale() {
             <div className="p-5 overflow-y-auto flex-1 bg-white">
               <div className="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-4 border border-slate-200 rounded-md">
                 <div className="space-y-1">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.details.identityVector')}</p>
-                  <p className={`text-xs font-bold text-slate-800 ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displaySaleCustomer(selectedSale)}</p>
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.details.identityVector')}</p>
+                  <p className={`text-sm font-bold text-slate-800 ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displaySaleCustomer(selectedSale)}</p>
                   <p className="text-[10px] font-mono text-[#1d5f84] font-bold">ID: {selectedSale.member_code || 'GENERIC'}</p>
                 </div>
                 <div className="text-right space-y-1">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.details.settlementLog')}</p>
-                  <p className="text-xs font-bold text-slate-800 uppercase font-sans">{selectedSale.payment_type === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}</p>
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('saleMaster.details.settlementLog')}</p>
+                  <p className="text-sm font-bold text-slate-800 uppercase font-sans">{selectedSale.payment_type === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}</p>
                   <p className="text-[10px] font-mono text-slate-500">{selectedSale.invoice_date}</p>
                 </div>
               </div>
 
               <div className="mb-4">
                 <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                   {t('saleMaster.details.payloadBreakdown')}
+                  {t('saleMaster.details.payloadBreakdown')}
                 </h4>
                 <div className="border border-slate-200 rounded-md overflow-hidden bg-white">
-                  <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+                  <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-3.5 py-2 text-left font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200">{t('saleMaster.details.inventoryNode')}</th>
@@ -737,8 +738,8 @@ export default function Sale() {
 
               <div className="bg-slate-50 p-4 border border-slate-200 rounded-md flex justify-between items-center">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{t('saleMaster.details.totalFiscalProceeds')}</p>
-                  <h5 className={`text-xs font-bold text-slate-800 uppercase tracking-wide ${isGu ? 'font-prompt' : ''}`}>{t('saleMaster.details.netYield')}</h5>
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{t('saleMaster.details.totalFiscalProceeds')}</p>
+                  <h5 className={`text-sm font-bold text-slate-800 uppercase tracking-wide ${isGu ? 'font-prompt' : ''}`}>{t('saleMaster.details.netYield')}</h5>
                 </div>
                 <p className="text-lg font-mono font-bold text-emerald-600">₹{parseFloat(selectedSale.net_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
               </div>

@@ -70,7 +70,7 @@ content = content.replace(
 
 // member name font size to text-[10px]
 content = content.replace(
-  /className="text-\[11px\] font-bold text-zinc-800 italic group-hover:text-blue-600 transition-colors"/g,
+  /className="text-\[12px\] font-bold text-zinc-800 italic group-hover:text-blue-600 transition-colors"/g,
   'className="text-[10px] font-bold text-zinc-800 italic group-hover:text-blue-600 transition-colors"'
 );
 

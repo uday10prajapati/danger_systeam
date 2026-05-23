@@ -247,7 +247,7 @@ const JamaBardanEntry = () => {
           >
             <button
               onClick={() => setShowHistory(false)}
-              className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm"
+              className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3 rounded-lg text-sm font-bold uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm"
             >
               <X size={16} /> Exit History
             </button>
@@ -256,7 +256,7 @@ const JamaBardanEntry = () => {
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mt-8">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-slate-50 border-b border-slate-200 text-[12px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-10 py-6">Identity</th>
                   <th className="px-10 py-6">Date & Pavti</th>
                   <th className="px-10 py-6 text-right">Quantity</th>
@@ -276,7 +276,7 @@ const JamaBardanEntry = () => {
                     </td>
                     <td className="px-10 py-6 text-right">
                       <p className="text-2xl font-black text-slate-800 font-mono">{row.qty}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Bags Recorded</p>
+                      <p className="text-[12px] font-bold text-slate-400 uppercase leading-none">Bags Recorded</p>
                     </td>
                     <td className="px-10 py-6">
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
@@ -308,19 +308,19 @@ const JamaBardanEntry = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowHistory(true)}
-              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
             >
               <History size={15} /> History
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm text-slate-600"
             >
               <RefreshCcw size={15} /> Reset
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
             >
               <Save size={15} /> Save Entry
             </button>
@@ -447,7 +447,7 @@ const JamaBardanEntry = () => {
                       checked={formData.memNominal === 'Member'}
                       onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
                     />
-                    <label htmlFor="memNominalCheck" className="text-xs font-bold uppercase tracking-wider text-slate-700 cursor-pointer select-none">
+                    <label htmlFor="memNominalCheck" className="text-sm font-bold uppercase tracking-wider text-slate-700 cursor-pointer select-none">
                       {formData.memNominal === 'Member' ? 'Sabhasad (Active Member)' : 'Nominal Member'}
                     </label>
                   </div>
@@ -497,7 +497,7 @@ const JamaBardanEntry = () => {
                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest relative z-10">Net Position</p>
                 <div className="flex items-baseline gap-2 mt-1 relative z-10">
                   <p className="text-3xl font-black text-slate-900 tracking-tight font-mono">#{balanceData.balance}</p>
-                  <span className="text-[8px] text-blue-600 font-bold uppercase tracking-widest">Outstanding</span>
+                  <span className="text-[12px] text-blue-600 font-bold uppercase tracking-widest">Outstanding</span>
                 </div>
                 {bardanPrice > 0 && (
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-3 relative z-10 pt-3 border-t border-slate-100 font-mono">
@@ -516,7 +516,7 @@ const JamaBardanEntry = () => {
               />
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scroller p-5">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                       <th className="py-3 text-center w-8">#</th>

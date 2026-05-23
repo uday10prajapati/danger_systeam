@@ -61,7 +61,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8 font-sans text-slate-900">
       <div className="max-w-[1400px] mx-auto space-y-6">
-        
+
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div>
@@ -74,8 +74,8 @@ function Dashboard() {
             <p className="text-sm text-slate-500 mt-1 ml-12">Real-time system analytics and operational overview</p>
           </div>
           <div className="flex items-center gap-3">
-            <button 
-              onClick={fetchStats} 
+            <button
+              onClick={fetchStats}
               className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 transition-colors text-sm font-medium"
             >
               <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
@@ -93,32 +93,32 @@ function Dashboard() {
 
         {/* Primary KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KpiCard 
-            title="Today's Sales" 
+          <KpiCard
+            title="Today's Sales"
             value={`₹${(s.todaysSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
             subtitle="Gross Liquidity"
             icon={<TrendingUp size={24} />}
             colorClass="bg-emerald-50 text-emerald-600 border-emerald-100"
             iconBg="bg-emerald-100"
           />
-          <KpiCard 
-            title="Today's Purchases" 
+          <KpiCard
+            title="Today's Purchases"
             value={`₹${(s.todaysPurchases || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
             subtitle="Procurement Outflow"
             icon={<TrendingDown size={24} />}
             colorClass="bg-rose-50 text-rose-600 border-rose-100"
             iconBg="bg-rose-100"
           />
-          <KpiCard 
-            title="Total Inventory" 
+          <KpiCard
+            title="Total Inventory"
             value={(s.totalItems || 0).toLocaleString()}
             subtitle="Active Items"
             icon={<Package size={24} />}
             colorClass="bg-[#1d5f84]/10 text-[#1d5f84] border-[#1d5f84]/20"
             iconBg="bg-[#1d5f84]/20"
           />
-          <KpiCard 
-            title="Active Users" 
+          <KpiCard
+            title="Active Users"
             value={(s.activeUsers || 0).toLocaleString()}
             subtitle="System Access"
             icon={<Users size={24} />}
@@ -141,7 +141,7 @@ function Dashboard() {
             <div className="p-0 overflow-x-auto flex-1">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider">
+                  <tr className="bg-slate-50/50 text-slate-500 text-sm uppercase tracking-wider">
                     <th className="px-5 py-3 font-semibold">Supplier Name</th>
                     <th className="px-5 py-3 font-semibold">Contact</th>
                     <th className="px-5 py-3 font-semibold">Last Shipment</th>
@@ -169,7 +169,7 @@ function Dashboard() {
                   ) : (
                     <tr>
                       <td colSpan="4" className="px-5 py-12 text-center text-slate-500">
-                         <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="flex flex-col items-center justify-center gap-3">
                           <ShoppingCart size={32} className="text-slate-300" />
                           <p className="font-medium">No supplier activity recorded yet.</p>
                         </div>
@@ -200,7 +200,7 @@ function KpiCard({ title, value, subtitle, icon, colorClass, iconBg }) {
       <div className="relative z-10">
         <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">{value}</h3>
         <p className="text-sm font-semibold text-slate-600 mt-1">{title}</p>
-        <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+        <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>
       </div>
     </div>
   );

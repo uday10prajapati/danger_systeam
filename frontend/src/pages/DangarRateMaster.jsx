@@ -25,11 +25,12 @@ export default function DangarRateMaster() {
       ? (item.item_name_gu || item.item_name || '')
       : (item.item_name || item.item_name_gu || '')
   );
-  const displayRateItemName = (item = {}, rateObj = {}) => (
-    isGu
-      ? (rateObj.item_name_gu || item.item_name_gu || rateObj.item_name || item.item_name || '')
-      : (rateObj.item_name || item.item_name || rateObj.item_name_gu || item.item_name_gu || '')
-  );
+  const displayRateItemName = (item = {}, rateObj = {}) => {
+    const activeItem = (item && item.item_name) ? item : (rateObj || {});
+    return isGu
+      ? (activeItem.item_name_gu || activeItem.item_name || '')
+      : (activeItem.item_name || activeItem.item_name_gu || '');
+  };
   const displayCategory = (item = {}) => (
     isGu
       ? (item.category_gu || item.category || '')
@@ -227,7 +228,7 @@ export default function DangarRateMaster() {
     const rowsHTML = filteredItems.map((item, idx) => {
       const serial = isGu ? toGu(idx + 1) : String(idx + 1);
       const rateObj = rates.find(r => r.item_id === item.id);
-      
+
       const itemName = displayRateItemName(item, rateObj);
       const sku = item.item_code || '—';
       const category = displayCategory(item) || '—';
@@ -291,14 +292,14 @@ export default function DangarRateMaster() {
               border-bottom: 1.5px solid #000000;
               padding: 12px;
               text-align: center;
-              font-size: 18px;
+              font-size: 112px;
               font-weight: bold;
               font-family: 'Prompt', 'Noto Sans Gujarati', 'Outfit', sans-serif;
               color: #000000;
             }
             .pdf-header-title {
               border-bottom: 1.5px solid #000000;
-              padding: 8px;
+              padding: 12px;
               text-align: center;
               font-size: 14px;
               font-weight: bold;
@@ -307,7 +308,7 @@ export default function DangarRateMaster() {
             }
             .pdf-info-bar {
               border-bottom: 1.5px solid #000000;
-              padding: 8px 12px;
+              padding: 12px 12px;
               display: flex;
               justify-content: flex-end;
               align-items: center;
@@ -319,7 +320,7 @@ export default function DangarRateMaster() {
             }
             .pdf-table th, .pdf-table td {
               border: 1.5px solid #000000 !important;
-              padding: 8px 10px;
+              padding: 12px 10px;
               font-size: 12px;
               color: #000000;
             }
@@ -488,10 +489,10 @@ export default function DangarRateMaster() {
           {/* Table Control Header Bar (First Line) */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${i18n.language === 'gu' ? 'font-prompt' : ''}`}>
                 {t('dangarRateMaster.title') || 'Yearly Rate Master'}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {toGu(filteredItems.length)} {t('common.records') || 'RECORDS'}
               </span>
             </div>
@@ -503,7 +504,7 @@ export default function DangarRateMaster() {
                 <select
                   value={financialYear}
                   onChange={(e) => setFinancialYear(e.target.value)}
-                  className="bg-transparent border-none outline-none text-[11px] text-slate-600 font-bold cursor-pointer select-none py-0"
+                  className="bg-transparent border-none outline-none text-[12px] text-slate-600 font-bold cursor-pointer select-none py-0"
                 >
                   <option value="2026-27">2026-27</option>
                   <option value="2025-26">2025-26</option>
@@ -521,7 +522,7 @@ export default function DangarRateMaster() {
                     setCurrentPage(1);
                   }}
                   placeholder={t('dangarRateMaster.searchPlaceholder') || "Search crop..."}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-350 w-full font-semibold"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-350 w-full font-semibold"
                 />
                 {searchTerm && (
                   <button onClick={() => setSearchTerm('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -533,7 +534,7 @@ export default function DangarRateMaster() {
               {/* New Season Button */}
               <button
                 onClick={() => setShowSeasonModal(true)}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('dangarRateMaster.newSeason')}</span>
@@ -573,10 +574,10 @@ export default function DangarRateMaster() {
             {paginatedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
                 <Database size={32} className="text-slate-300 opacity-30" />
-                <p className="text-xs font-bold text-slate-400">{t('dangarRateMaster.noRecords') || 'No records found'}</p>
+                <p className="text-sm font-bold text-slate-400">{t('dangarRateMaster.noRecords') || 'No records found'}</p>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px] select-none">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px] select-none">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th scope="col" className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-12">#</th>
@@ -607,22 +608,21 @@ export default function DangarRateMaster() {
                           {toGu(item.item_code || item.id)}
                         </td>
                         <td
-                          className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-800 ${isGu ? '' : 'font-sans uppercase'}`}
-                          style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
+                          className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-800 break-words whitespace-normal ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}
                           translate="no"
                         >
-                          {isGu ? formatBilingualText(displayRateItemName(item, rateObj)) : displayRateItemName(item, rateObj)}
+                          {displayRateItemName(item, rateObj)}
                         </td>
                         <td className="px-3.5 py-2 border-r border-slate-100 text-slate-655 font-medium">
                           {displayCategory(item) ? (
-                            <span className={`px-2 py-0.5 bg-slate-100 text-slate-700 rounded-sm text-[9px] font-bold uppercase tracking-widest border border-slate-200/50 ${tableTextClass}`} translate="no">
+                            <span className={`px-2 py-0.5 bg-slate-100 text-slate-700 rounded-sm text-[12px] font-bold uppercase tracking-widest border border-slate-200/50 ${tableTextClass}`} translate="no">
                               {displayCategory(item)}
                             </span>
                           ) : '—'}
                         </td>
 
                         {/* Rates columns */}
-                        <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-[11px] force-en notranslate" translate="no">
+                        <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-[12px] force-en notranslate" translate="no">
                           {isEditing ? (
                             <input
                               type="number"
@@ -637,7 +637,7 @@ export default function DangarRateMaster() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-[11px] force-en notranslate" translate="no">
+                        <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-[12px] force-en notranslate" translate="no">
                           {isEditing ? (
                             <input
                               type="number"
@@ -652,7 +652,7 @@ export default function DangarRateMaster() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-[11px] force-en notranslate" translate="no">
+                        <td className="px-3.5 py-2 border-r border-slate-100 text-right font-bold text-slate-800 text-[12px] force-en notranslate" translate="no">
                           {isEditing ? (
                             <input
                               type="number"
@@ -747,7 +747,7 @@ export default function DangarRateMaster() {
                 >
                   Prev
                 </button>
-                <span className={`text-xs font-bold text-slate-600 px-1.5 ${tableTextClass}`} translate="no">
+                <span className={`text-sm font-bold text-slate-600 px-1.5 ${tableTextClass}`} translate="no">
                   {toGu(currentPage)} / {toGu(totalPages)}
                 </span>
                 <button
@@ -773,7 +773,7 @@ export default function DangarRateMaster() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between select-none">
               <div className="flex items-center gap-2">
                 <Calendar size={14} className="text-[#1d5f84]" />
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide font-sans">
+                <span className="text-sm font-bold text-slate-800 uppercase tracking-wide font-sans">
                   {t('dangarRateMaster.initializeNewSeason') || "Initialize New Season"}
                 </span>
               </div>
@@ -798,7 +798,7 @@ export default function DangarRateMaster() {
                   onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
                   onKeyDown={(e) => handleSeasonKeyDown(e, seasonTypeRef)}
                   placeholder="e.g. Winter Epoch 2026"
-                  className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs font-mono font-bold text-slate-700 uppercase"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm font-mono font-bold text-slate-700 uppercase"
                 />
               </div>
 
@@ -813,7 +813,7 @@ export default function DangarRateMaster() {
                     value={newSeason.season}
                     onChange={(e) => setNewSeason({ ...newSeason, season: e.target.value })}
                     onKeyDown={(e) => handleSeasonKeyDown(e, seasonYearRef)}
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs font-bold text-slate-700 uppercase cursor-pointer"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm font-bold text-slate-700 uppercase cursor-pointer"
                   >
                     <option value="Winter">{t('dangarRateMaster.winter') || "Winter"}</option>
                     <option value="Summer">{t('dangarRateMaster.summer') || "Summer"}</option>
@@ -832,7 +832,7 @@ export default function DangarRateMaster() {
                     onChange={(e) => setNewSeason({ ...newSeason, year: e.target.value })}
                     onKeyDown={(e) => handleSeasonKeyDown(e, null)}
                     placeholder="2026-27"
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-xs font-mono font-bold text-slate-700 text-center"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md outline-none text-sm font-mono font-bold text-slate-700 text-center"
                   />
                 </div>
               </div>
@@ -841,14 +841,14 @@ export default function DangarRateMaster() {
                 <button
                   type="button"
                   onClick={() => setShowSeasonModal(false)}
-                  className="px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 text-xs font-bold rounded-md transition cursor-pointer select-none"
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 text-sm font-bold rounded-md transition cursor-pointer select-none"
                 >
                   {t('common.cancel') || "Cancel"}
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] text-xs font-bold rounded-md transition cursor-pointer select-none flex items-center gap-1.5 shadow-none"
+                  className="px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] text-sm font-bold rounded-md transition cursor-pointer select-none flex items-center gap-1.5 shadow-none"
                 >
                   {isSaving ? <RefreshCcw size={13} className="animate-spin" /> : <Save size={13} />}
                   <span>{t('dangarRateMaster.register') || "Register"}</span>

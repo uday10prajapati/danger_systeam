@@ -164,13 +164,13 @@ function UserMaster() {
           <div className="space-y-3">
             <button
               onClick={() => navigate('/company')}
-              className="w-full py-2.5 bg-[#1d5f84] hover:bg-[#154662] text-white font-bold text-xs uppercase tracking-widest transition rounded-md shadow-sm"
+              className="w-full py-2.5 bg-[#1d5f84] hover:bg-[#154662] text-white font-bold text-sm uppercase tracking-widest transition rounded-md shadow-sm"
             >
               {t('userMaster.setupOrg')}
             </button>
             <button
               onClick={loadCompany}
-              className="w-full py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-widest transition rounded-md"
+              className="w-full py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-sm uppercase tracking-widest transition rounded-md"
             >
               {t('userMaster.refreshSystem')}
             </button>
@@ -186,14 +186,14 @@ function UserMaster() {
       {loading && users.length > 0 && <Loading />}
 
       <div className="max-w-[1600px] mx-auto px-4 py-4">
-        
+
         {/* Main Application Area */}
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col relative shadow-none">
-          
+
           {/* Unified Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
+              <span className="text-sm font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
                 <ShieldCheck size={14} className="text-[#1d5f84]" />
                 {t('userMaster.title')}
               </span>
@@ -201,11 +201,11 @@ function UserMaster() {
                 {t('userMaster.subtitle')}
               </p>
             </div>
-            
+
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleCreateUser}
-                className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 {t('userMaster.newUser')}
@@ -217,23 +217,23 @@ function UserMaster() {
             {/* Dense Minimalist Accounting Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.orgProfile')}</span>
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.orgProfile')}</span>
                 <span className={`text-[13px] font-bold text-slate-800 mt-1 truncate ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans uppercase'}`}>
                   {displayCompanyName(company)}
                 </span>
               </div>
               <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.totalUsers')}</span>
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.totalUsers')}</span>
                 <span className="text-base font-bold font-sans text-slate-800 mt-1">{users.length}</span>
               </div>
               <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.activeNodes')}</span>
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.activeNodes')}</span>
                 <span className="text-base font-bold font-sans text-emerald-600 mt-1">
                   {users.filter(u => u.is_active).length}
                 </span>
               </div>
               <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col justify-between">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.inactiveNodes')}</span>
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('userMaster.inactiveNodes')}</span>
                 <span className="text-base font-bold font-sans text-rose-600 mt-1">
                   {users.filter(u => !u.is_active).length}
                 </span>
@@ -242,7 +242,7 @@ function UserMaster() {
 
             {/* Registry Table Section */}
             <div className="border border-slate-200 bg-white rounded-lg flex flex-col min-h-[450px] overflow-hidden shadow-sm">
-              
+
               {/* Action Bar */}
               <div className="px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
@@ -255,17 +255,16 @@ function UserMaster() {
                       <button
                         key={tab.id}
                         onClick={() => setFilter(tab.id)}
-                        className={`px-3 py-1 text-[10px] font-bold uppercase transition-all rounded-sm cursor-pointer ${
-                          filter === tab.id 
-                            ? 'bg-white text-[#1d5f84] shadow-sm' 
-                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
-                        }`}
+                        className={`px-3 py-1 text-[10px] font-bold uppercase transition-all rounded-sm cursor-pointer ${filter === tab.id
+                          ? 'bg-white text-[#1d5f84] shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
+                          }`}
                       >
                         {tab.label}
                       </button>
                     ))}
                   </div>
-                  <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+                  <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                     {filteredUsers.length} {t('userMaster.records')}
                   </span>
                 </div>
@@ -278,7 +277,7 @@ function UserMaster() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t('userMaster.searchPlaceholder')}
-                      className="bg-transparent border-none outline-none text-xs text-slate-800 placeholder:text-slate-400 w-full font-sans"
+                      className="bg-transparent border-none outline-none text-sm text-slate-800 placeholder:text-slate-400 w-full font-sans"
                     />
                   </div>
                 </div>
@@ -304,7 +303,7 @@ function UserMaster() {
                         <th className="px-4 py-2 text-center w-24 whitespace-nowrap">{t('userMaster.actions')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-[11px]">
+                    <tbody className="divide-y divide-slate-100 text-[12px]">
                       {filteredUsers.map((user, i) => (
                         <tr key={user.id} className="hover:bg-slate-50 transition-colors text-slate-700">
                           <td className="px-4 py-2.5 border-r border-slate-100 text-center font-bold text-slate-400 font-mono">
@@ -315,7 +314,7 @@ function UserMaster() {
                               <span className={`font-bold text-slate-800 ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans uppercase'}`}>
                                 {displayUserName(user)}
                               </span>
-                              <span className="text-[9px] text-slate-400 force-en font-mono">@{user.username}</span>
+                              <span className="text-[12px] text-slate-400 force-en font-mono">@{user.username}</span>
                             </div>
                           </td>
                           <td className="px-4 py-2.5 border-r border-slate-100 text-slate-500 font-bold">
@@ -324,24 +323,23 @@ function UserMaster() {
                             </span>
                           </td>
                           <td className="px-4 py-2.5 border-r border-slate-100 text-center">
-                            <span className={`px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-widest ${
-                              user.role === 'admin' || user.role === 'hod'
-                                ? 'bg-indigo-50 text-indigo-700'
-                                : user.role === 'manager'
+                            <span className={`px-2 py-0.5 rounded-sm text-[12px] font-bold uppercase tracking-widest ${user.role === 'admin' || user.role === 'hod'
+                              ? 'bg-indigo-50 text-indigo-700'
+                              : user.role === 'manager'
                                 ? 'bg-emerald-50 text-emerald-700'
                                 : 'bg-slate-100 text-slate-600'
-                            }`}>
+                              }`}>
                               {displayRole(user.role)}
                             </span>
                           </td>
                           <td className="px-4 py-2.5 border-r border-slate-100 text-center">
                             <div className="flex items-center justify-center gap-1.5">
                               {user.is_active ? (
-                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 text-[9px] font-bold tracking-widest uppercase`}>
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 text-[12px] font-bold tracking-widest uppercase`}>
                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t('userMaster.statusActive')}
                                 </span>
                               ) : (
-                                <span className={`px-2 py-0.5 rounded-sm bg-slate-100 text-slate-500 text-[9px] font-bold tracking-widest uppercase`}>
+                                <span className={`px-2 py-0.5 rounded-sm bg-slate-100 text-slate-500 text-[12px] font-bold tracking-widest uppercase`}>
                                   {t('userMaster.statusOffline')}
                                 </span>
                               )}
@@ -361,11 +359,10 @@ function UserMaster() {
                               </button>
                               <button
                                 onClick={() => handleDeactivateUser(user.id, user.is_active)}
-                                className={`p-1 transition rounded-md cursor-pointer ${
-                                  user.is_active 
-                                    ? 'text-slate-400 hover:text-rose-600 hover:bg-rose-50' 
-                                    : 'text-emerald-500 hover:bg-emerald-50'
-                                }`}
+                                className={`p-1 transition rounded-md cursor-pointer ${user.is_active
+                                  ? 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                  : 'text-emerald-500 hover:bg-emerald-50'
+                                  }`}
                                 title={user.is_active ? t('userMaster.deactivate') : t('userMaster.activate')}
                               >
                                 <Power size={13} />
@@ -388,7 +385,7 @@ function UserMaster() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px] transition-opacity" onClick={() => setShowModal(false)} />
           <div className="relative w-full max-w-4xl bg-white border border-slate-200 shadow-2xl rounded-lg overflow-hidden flex flex-col max-h-[95vh]">
-            
+
             {/* Modal Header */}
             <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -399,7 +396,7 @@ function UserMaster() {
                   <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                     {editingUserId ? t('userMaster.editConfig') : t('userMaster.createIdentity')}
                   </h2>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">
                     {t('userMaster.privilegesSubtitle')}
                   </p>
                 </div>

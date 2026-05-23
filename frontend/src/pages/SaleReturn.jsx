@@ -11,6 +11,7 @@ import SaleReturnForm from '../components/SaleReturnForm';
 import PageHeader from '../components/PageHeader';
 import TableHeading from '../components/TableHeading';
 import api from '../api';
+import { toISTDateInput } from '../utils/dateUtils';
 
 export default function SaleReturn() {
   const { t, i18n } = useTranslation();
@@ -22,8 +23,8 @@ export default function SaleReturn() {
   const [searchTerm, setSearchTerm] = useState('');
   const [company, setCompany] = useState(null);
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: toISTDateInput(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+    endDate: toISTDateInput()
   });
   const [loading, setLoading] = useState(true);
 
@@ -113,7 +114,7 @@ export default function SaleReturn() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 font-mono">
         <div className="text-center font-bold text-slate-400">
-          <p className="text-xs mb-4 uppercase tracking-widest">Initializing Core Ledger...</p>
+          <p className="text-sm mb-4 uppercase tracking-widest">Initializing Core Ledger...</p>
           <RefreshCcw className="animate-spin mx-auto text-[#1d5f84]" size={24} />
         </div>
       </div>
@@ -126,7 +127,7 @@ export default function SaleReturn() {
         <div className="max-w-5xl mx-auto bg-white border border-slate-200 p-6 space-y-6 shadow-sm rounded-lg">
           <button
             onClick={() => setShowForm(false)}
-            className="group mb-4 flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold text-xs uppercase tracking-wider transition-colors"
+            className="group mb-4 flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold text-sm uppercase tracking-wider transition-colors"
           >
             <div className="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 transition shadow-sm rounded-md">
               <X size={14} />
@@ -156,10 +157,10 @@ export default function SaleReturn() {
             </h1>
             <p className="text-[10px] font-mono text-slate-500 mt-0.5 uppercase tracking-wider select-none">{t('saleReturnMaster.eyebrow')}</p>
           </div>
-          
+
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold px-4 py-2 rounded-md transition shadow-sm select-none"
+            className="flex items-center gap-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white text-sm font-bold px-4 py-2 rounded-md transition shadow-sm select-none"
           >
             <Plus size={15} />
             {t('saleReturnMaster.issueCreditNote')}
@@ -197,18 +198,18 @@ export default function SaleReturn() {
                 placeholder={t('saleReturnMaster.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-xs font-prompt"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-sm font-prompt"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2 bg-white px-3 py-2 border border-slate-300 rounded-md focus-within:border-[#1d5f84] focus-within:ring-1 focus-within:ring-[#1d5f84] transition-all">
-            <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none text-xs font-bold text-slate-600 focus:text-slate-900 transition-all font-mono" />
+            <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-transparent border-none outline-none text-sm font-bold text-slate-600 focus:text-slate-900 transition-all font-mono" />
             <ArrowRight size={14} className="text-slate-300" />
-            <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none text-xs font-bold text-slate-600 focus:text-slate-900 transition-all font-mono" />
+            <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-transparent border-none outline-none text-sm font-bold text-slate-600 focus:text-slate-900 transition-all font-mono" />
           </div>
 
-          <button onClick={fetchReturns} className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-md transition shadow-sm flex items-center gap-1.5">
+          <button onClick={fetchReturns} className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-sm font-bold px-4 py-2.5 rounded-md transition shadow-sm flex items-center gap-1.5">
             <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
             {t('saleReturnMaster.syncManifest')}
           </button>
@@ -221,7 +222,7 @@ export default function SaleReturn() {
               <span className="text-sm font-bold text-slate-700 select-none">
                 {t('saleReturnMaster.registryTitle')}
               </span>
-              <span className="bg-slate-200 border border-slate-300 text-slate-700 font-sans text-xs px-2 py-0.5 rounded-md select-none">
+              <span className="bg-slate-200 border border-slate-300 text-slate-700 font-sans text-sm px-2 py-0.5 rounded-md select-none">
                 {filteredReturns.length} {t('saleReturnMaster.registrySubtitle')}
               </span>
             </div>
@@ -264,8 +265,8 @@ export default function SaleReturn() {
                       </td>
                       <td className="px-4 py-3 border-r border-slate-200">
                         <div className="flex flex-col">
-                          <span className={`text-slate-800 font-bold ${i18n.language === 'gu' ? 'font-prompt text-[13px]' : 'text-xs'}`}>{ret.customer_name || 'WALK-IN_ENTITY'}</span>
-                          <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">ID: {ret.member_code || 'GENERIC'}</span>
+                          <span className={`text-slate-800 font-bold ${i18n.language === 'gu' ? 'font-prompt text-[13px]' : 'text-sm'}`}>{ret.customer_name || 'WALK-IN_ENTITY'}</span>
+                          <span className="text-[12px] text-slate-400 font-mono tracking-widest uppercase">ID: {ret.member_code || 'GENERIC'}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 border-r border-slate-200 text-center font-bold">
@@ -279,7 +280,7 @@ export default function SaleReturn() {
                           {ret.refund_type === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 border-r border-slate-200 text-center text-slate-500 font-bold text-xs">
+                      <td className="px-4 py-3 border-r border-slate-200 text-center text-slate-500 font-bold text-sm">
                         {new Date(ret.return_date).toLocaleDateString('en-GB')}
                       </td>
                       <td className="px-4 py-2 text-center">
@@ -316,21 +317,21 @@ export default function SaleReturn() {
             </div>
 
             <div className="p-5 overflow-y-auto space-y-5 flex-1 bg-white">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 border border-slate-200 rounded-lg font-mono text-xs shadow-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 border border-slate-200 rounded-lg font-mono text-sm shadow-sm">
                 <div>
-                  <span className="block text-[9px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.identityVector')}</span>
+                  <span className="block text-[12px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.identityVector')}</span>
                   <span className={`font-bold text-slate-800 uppercase ${i18n.language === 'gu' ? 'font-prompt text-[13px]' : ''}`}>{selectedReturn.customer_name}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.auditDate')}</span>
+                  <span className="block text-[12px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.auditDate')}</span>
                   <span className="font-bold text-slate-800">{new Date(selectedReturn.return_date).toLocaleDateString('en-GB')}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.sourceSale')}</span>
+                  <span className="block text-[12px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.sourceSale')}</span>
                   <span className="font-bold text-slate-800">#{selectedReturn.sale_id}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.settlement')}</span>
+                  <span className="block text-[12px] text-slate-400 uppercase tracking-widest mb-1">{t('saleReturnMaster.details.settlement')}</span>
                   <span className="font-bold text-slate-800">{selectedReturn.refund_type === 'cash' ? t('saleForm.cash') : t('saleForm.credit')}</span>
                 </div>
               </div>
@@ -338,8 +339,8 @@ export default function SaleReturn() {
               <div>
                 <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2.5 ml-1">{t('saleReturnMaster.details.reversalPayload')}</h4>
                 <div className="border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-                  <table className="w-full text-left font-mono text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200">
+                  <table className="w-full text-left font-mono text-sm border-collapse">
+                    <thead className="bg-slate-50 text-[12px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-2.5 border-r border-slate-200">{t('saleReturnMaster.details.inventoryNode')}</th>
                         <th className="px-4 py-2.5 border-r border-slate-200 text-center">{t('saleReturnMaster.details.qty')}</th>
@@ -361,7 +362,7 @@ export default function SaleReturn() {
 
               <div className="bg-slate-800 p-5 rounded-lg text-white shadow-md flex justify-between items-center font-mono">
                 <div>
-                  <span className="text-[9px] text-slate-400 uppercase tracking-widest">{t('saleReturnMaster.details.fiscalRefundAggregate')}</span>
+                  <span className="text-[12px] text-slate-400 uppercase tracking-widest">{t('saleReturnMaster.details.fiscalRefundAggregate')}</span>
                   <span className="text-sm font-bold block uppercase mt-0.5">{t('saleReturnMaster.details.netReversal')}</span>
                 </div>
                 <span className="text-2xl font-bold tracking-tight text-emerald-400">₹{parseFloat(selectedReturn.refund_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

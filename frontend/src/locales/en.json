@@ -38,7 +38,8 @@
     "clear": "CLEAR",
     "actions": "ACTIONS",
     "save": "SAVE",
-    "update": "UPDATE"
+    "update": "UPDATE",
+    "confirmDelete": "Are you sure you want to delete this entry?"
   },
   "navbar": {
     "danger_systeam": "Danger Systeam",
@@ -264,7 +265,7 @@
     "enterPhone": "Phone number",
     "fyPlaceholder": "e.g. FY 2026-27"
   },
-    "userMaster": {
+  "userMaster": {
     "userMaster": "User Master",
     "manageSystemUsers": "Manage system users",
     "createUser": "Create New User",
@@ -992,7 +993,9 @@
       "failedLoadBalance": "Failed to load balance.",
       "nameRequired": "Account name is required.",
       "nameExists": "Account name already exists. Please use a unique name.",
-      "failedSave": "Failed to save account."
+      "failedSave": "Failed to save account.",
+      "nameRequiredGuj": "Gujarati Account Name is required.",
+      "nameRequiredEng": "English Account Name is required."
     },
     "table": {
       "audit": "Ledger Audit",
@@ -1069,6 +1072,10 @@
     "memberNameGU": "Member Name (Gujarati)",
     "memberNameRequired": "Member name is required",
     "memberNameMin": "Member name must be at least 2 characters",
+    "nameRequiredGuj": "Gujarati Member Name is required.",
+    "nameRequiredEng": "English Member Name is required.",
+    "villageRequired": "Village is required.",
+    "nameExists": "Member with this name already exists.",
     "ifscCode": "IFSC Code",
     "bankInstitution": "Bank Institution",
     "selectBankMaster": "Select Bank Master",
@@ -1149,7 +1156,10 @@
     "deleteFailed": "Delete failed.",
     "memberAlreadyDeleted": "Member already deleted.",
     "nameRequired": "Member Name is required.",
-    "nameExists": "Member name already exists. Please use a unique name."
+    "nameExists": "Member name already exists. Please use a unique name.",
+    "nameRequiredGuj": "Gujarati Member Name is required.",
+    "nameRequiredEng": "English Member Name is required.",
+    "villageRequired": "Village is required."
   },
   "itemMaster": {
     "title": "Item Registry Master",
@@ -1886,7 +1896,9 @@
     "save": "SAVE",
     "deleteConfirmTitle": "DELETE VILLAGE RECORD",
     "deleteConfirmMessage": "ARE YOU SURE YOU WANT TO DELETE THE VILLAGE RECORD FOR",
-    "deleteConfirmSuffix": "? THIS ACTION CANNOT BE UNDONE."
+    "deleteConfirmSuffix": "? THIS ACTION CANNOT BE UNDONE.",
+    "nameRequiredGuj": "Gujarati Village Name is required.",
+    "nameRequiredEng": "English Village Name is required."
   },
   "memberForm": {
     "editTitle": "EDIT MEMBER",
@@ -2175,7 +2187,12 @@
     "refNode": "Ref Node / Chq #",
     "narrative": "Fiscal Narrative / Particulars",
     "applyModification": "Apply Modification",
-    "initializeNode": "Initialize Node"
+    "initializeNode": "Initialize Node",
+    "commitNote": "Fiscal balances must be balanced (Credit = Debit) to save.",
+    "codePlaceholder": "CODE",
+    "searchAccountPlaceholder": "SEARCH ACCOUNT NAME...",
+    "searchMemberPlaceholder": "SEARCH MEMBER...",
+    "optionalPlaceholder": "OPTIONAL"
   },
   "sabhasadLedgerSummary": {
     "title": "Sabhasad Ledger Summary",

@@ -18,21 +18,21 @@ const files = [
 files.forEach(file => {
   if (!fs.existsSync(file)) return;
   let content = fs.readFileSync(file, 'utf8');
-  
+
   // Remove restrictive styles from table tags
   // 1. Remove 'uppercase' from th and td and spans within them
   content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\buppercase\b/gi, '$1');
-  
+
   // 2. Remove 'italic' from th and td and spans within them
   content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\bitalic\b/gi, '$1');
-  
-  // 3. Upgrade font size: replace text-[9px], text-[10px], text-xs with text-sm
+
+  // 3. Upgrade font size: replace text-[12px], text-[10px], text-sm with text-sm
   content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\btext-\[([89]|10)px\]/gi, '$1text-sm');
-  content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\btext-xs\b/gi, '$1text-sm');
-  
+  content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\btext-sm\b/gi, '$1text-sm');
+
   // 4. Prefer font-sans over font-mono for Gujarati
   content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\bfont-mono\b/gi, '$1font-sans');
-  
+
   // 5. Remove 'tracking-widest' or 'tracking-wider' as it breaks Gujarati clusters
   content = content.replace(/(<(th|td|span)[^>]*class(?:name)?="[^"]*)\btracking-wide(st|r)\b/gi, '$1');
 

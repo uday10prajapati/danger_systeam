@@ -94,179 +94,179 @@ export default function ProfitLoss() {
       });
    };
 
-    const handlePrint = () => {
-       window.print();
-    };
+   const handlePrint = () => {
+      window.print();
+   };
 
-    const handleExportPDF = async () => {
-       if (viewMode === 'summary') {
-          if (!plData) return;
-          const isGu = i18n.language === 'gu';
-          
-          const fmtNum = (value, digits = 2) => {
-             const n = parseFloat(value || 0);
-             const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-             return isGu ? toGujaratiDigits(formatted) : formatted;
-          };
+   const handleExportPDF = async () => {
+      if (viewMode === 'summary') {
+         if (!plData) return;
+         const isGu = i18n.language === 'gu';
 
-          const expItems = [];
-          expItems.push({ name: isGu ? 'ખરીદી (વેચેલ માલની પડતર)' : 'Purchases (COGS)', amount: plData?.costOfGoodsSold?.netCostOfGoodsSold || 0 });
-          if (plData.expenseAccounts) {
-             plData.expenseAccounts.forEach(acc => {
-                expItems.push({ name: isGu ? (acc.account_name_gu || acc.account_name) : acc.account_name, amount: acc.amount });
-             });
-          }
-          if (plData.netProfit > 0) {
-             expItems.push({ name: isGu ? 'ચોખ્ખો નફો' : 'Net Profit', amount: plData.netProfit, expIsTotal: true });
-          }
+         const fmtNum = (value, digits = 2) => {
+            const n = parseFloat(value || 0);
+            const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+            return isGu ? toGujaratiDigits(formatted) : formatted;
+         };
 
-          const incItems = [];
-          incItems.push({ name: isGu ? 'વેચાણ' : 'Sales', amount: plData?.revenue?.netSales || 0 });
-          if (plData.incomeAccounts) {
-             plData.incomeAccounts.forEach(acc => {
-                incItems.push({ name: isGu ? (acc.account_name_gu || acc.account_name) : acc.account_name, amount: acc.amount });
-             });
-          }
-          if (plData.netProfit < 0) {
-             incItems.push({ name: isGu ? 'ચોખ્ખી ખોટ' : 'Net Loss', amount: Math.abs(plData.netProfit), incIsTotal: true });
-          }
+         const expItems = [];
+         expItems.push({ name: isGu ? 'ખરીદી (વેચેલ માલની પડતર)' : 'Purchases (COGS)', amount: plData?.costOfGoodsSold?.netCostOfGoodsSold || 0 });
+         if (plData.expenseAccounts) {
+            plData.expenseAccounts.forEach(acc => {
+               expItems.push({ name: isGu ? (acc.account_name_gu || acc.account_name) : acc.account_name, amount: acc.amount });
+            });
+         }
+         if (plData.netProfit > 0) {
+            expItems.push({ name: isGu ? 'ચોખ્ખો નફો' : 'Net Profit', amount: plData.netProfit, expIsTotal: true });
+         }
 
-          const pdfRows = [];
-          const maxLen = Math.max(expItems.length, incItems.length);
-          for (let i = 0; i < maxLen; i++) {
-             const exp = expItems[i] || { name: '', amount: null };
-             const inc = incItems[i] || { name: '', amount: null };
-             pdfRows.push({
-                expName: exp.name,
-                expAmount: exp.amount,
-                expIsTotal: exp.expIsTotal,
-                incName: inc.name,
-                incAmount: inc.amount,
-                incIsTotal: inc.incIsTotal
-             });
-          }
+         const incItems = [];
+         incItems.push({ name: isGu ? 'વેચાણ' : 'Sales', amount: plData?.revenue?.netSales || 0 });
+         if (plData.incomeAccounts) {
+            plData.incomeAccounts.forEach(acc => {
+               incItems.push({ name: isGu ? (acc.account_name_gu || acc.account_name) : acc.account_name, amount: acc.amount });
+            });
+         }
+         if (plData.netProfit < 0) {
+            incItems.push({ name: isGu ? 'ચોખ્ખી ખોટ' : 'Net Loss', amount: Math.abs(plData.netProfit), incIsTotal: true });
+         }
 
-          const totalVal = Math.max(
-             (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
-             (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
-          );
+         const pdfRows = [];
+         const maxLen = Math.max(expItems.length, incItems.length);
+         for (let i = 0; i < maxLen; i++) {
+            const exp = expItems[i] || { name: '', amount: null };
+            const inc = incItems[i] || { name: '', amount: null };
+            pdfRows.push({
+               expName: exp.name,
+               expAmount: exp.amount,
+               expIsTotal: exp.expIsTotal,
+               incName: inc.name,
+               incAmount: inc.amount,
+               incIsTotal: inc.incIsTotal
+            });
+         }
 
-          pdfRows.push({
-             _isTotals: true,
-             expName: isGu ? 'સરવાળો' : 'Total',
-             expAmount: totalVal,
-             incName: isGu ? 'સરવાળો' : 'Total',
-             incAmount: totalVal
-          });
+         const totalVal = Math.max(
+            (plData?.revenue?.netSales || 0) + (plData.incomeAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0),
+            (plData?.costOfGoodsSold?.netCostOfGoodsSold || 0) + (plData.expenseAccounts?.reduce((sum, a) => sum + parseFloat(a.amount), 0) || 0)
+         );
 
-          const columns = [
-             {
-                header: isGu ? 'ખર્ચ વિગત (ઉધાર)' : 'Expenditure (Debit)',
-                align: 'left',
-                width: '35%',
-                render: (row) => row.expIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">${row.expName}</strong>` : row.expName
-             },
-             {
-                header: isGu ? 'રકમ' : 'Amount',
-                align: 'right',
-                width: '15%',
-                render: (row) => {
-                   if (row.expAmount === null || row.expAmount === undefined) return '';
-                   const val = parseFloat(row.expAmount);
-                   return row.expIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
-                }
-             },
-             {
-                header: isGu ? 'આવક વિગત (જમા)' : 'Income (Credit)',
-                align: 'left',
-                width: '35%',
-                render: (row) => row.incIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">${row.incName}</strong>` : row.incName
-             },
-             {
-                header: isGu ? 'રકમ' : 'Amount',
-                align: 'right',
-                width: '15%',
-                render: (row) => {
-                   if (row.incAmount === null || row.incAmount === undefined) return '';
-                   const val = parseFloat(row.incAmount);
-                   return row.incIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
-                }
-             }
-          ];
+         pdfRows.push({
+            _isTotals: true,
+            expName: isGu ? 'સરવાળો' : 'Total',
+            expAmount: totalVal,
+            incName: isGu ? 'સરવાળો' : 'Total',
+            incAmount: totalVal
+         });
 
-          const periodStr = `${startDate} — ${endDate}`;
+         const columns = [
+            {
+               header: isGu ? 'ખર્ચ વિગત (ઉધાર)' : 'Expenditure (Debit)',
+               align: 'left',
+               width: '35%',
+               render: (row) => row.expIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">${row.expName}</strong>` : row.expName
+            },
+            {
+               header: isGu ? 'રકમ' : 'Amount',
+               align: 'right',
+               width: '15%',
+               render: (row) => {
+                  if (row.expAmount === null || row.expAmount === undefined) return '';
+                  const val = parseFloat(row.expAmount);
+                  return row.expIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
+               }
+            },
+            {
+               header: isGu ? 'આવક વિગત (જમા)' : 'Income (Credit)',
+               align: 'left',
+               width: '35%',
+               render: (row) => row.incIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">${row.incName}</strong>` : row.incName
+            },
+            {
+               header: isGu ? 'રકમ' : 'Amount',
+               align: 'right',
+               width: '15%',
+               render: (row) => {
+                  if (row.incAmount === null || row.incAmount === undefined) return '';
+                  const val = parseFloat(row.incAmount);
+                  return row.incIsTotal || row._isTotals ? `<strong style="font-family: 'Prompt', sans-serif;">₹${fmtNum(val)}</strong>` : `₹${fmtNum(val)}`;
+               }
+            }
+         ];
 
-          await exportToPDF({
-             title: isGu ? 'નફા-નુકસાન અહેવાલ' : 'Profit & Loss Statement',
-             columns,
-             rows: pdfRows,
-             isGu,
-             metaInfo: [
-                { label: isGu ? 'સમયગાળો' : 'Period', value: isGu ? toGujaratiDigits(periodStr) : periodStr }
-             ],
-             filename: `${isGu ? 'નફા_નુકસાન_અહેવાલ' : 'Profit_Loss_Report'}_${startDate}_${endDate}.pdf`
-          });
-       } else {
-          if (monthlyData.length === 0) return;
-          const isGu = i18n.language === 'gu';
-          
-          const fmtNum = (value, digits = 2) => {
-             const n = parseFloat(value || 0);
-             const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-             return isGu ? toGujaratiDigits(formatted) : formatted;
-          };
+         const periodStr = `${startDate} — ${endDate}`;
 
-          const monthNamesGu = ['જાન્યુઆરી', 'ફેબ્રુઆરી', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટેમ્બર', 'ઓક્ટોબર', 'નવેમ્બર', 'ડિસેમ્બર'];
-          const monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+         await exportToPDF({
+            title: isGu ? 'નફા-નુકસાન અહેવાલ' : 'Profit & Loss Statement',
+            columns,
+            rows: pdfRows,
+            isGu,
+            metaInfo: [
+               { label: isGu ? 'સમયગાળો' : 'Period', value: isGu ? toGujaratiDigits(periodStr) : periodStr }
+            ],
+            filename: `${isGu ? 'નફા_નુકસાન_અહેવાલ' : 'Profit_Loss_Report'}_${startDate}_${endDate}.pdf`
+         });
+      } else {
+         if (monthlyData.length === 0) return;
+         const isGu = i18n.language === 'gu';
 
-          const columns = [
-             {
-                header: isGu ? 'માસ' : 'Month',
-                align: 'left',
-                width: '25%',
-                render: (row) => isGu ? monthNamesGu[row.month - 1] : monthNamesEn[row.month - 1]
-             },
-             {
-                header: isGu ? 'આવક' : 'Revenue',
-                align: 'right',
-                width: '20%',
-                render: (row) => `₹${fmtNum(row.netSales)}`
-             },
-             {
-                header: isGu ? 'પડતર' : 'Cost of Goods Sold (COGS)',
-                align: 'right',
-                width: '20%',
-                render: (row) => `₹${fmtNum(row.netCOGS)}`
-             },
-             {
-                header: isGu ? 'ચોખ્ખો નફો' : 'Gross Profit',
-                align: 'right',
-                width: '20%',
-                render: (row) => `₹${fmtNum(row.grossProfit)}`
-             },
-             {
-                header: isGu ? 'નફાની ટકાવારી' : 'Yield',
-                align: 'right',
-                width: '15%',
-                render: (row) => {
-                   const yieldRate = row.netSales > 0 ? ((row.grossProfit / row.netSales) * 100).toFixed(1) : '0.0';
-                   return isGu ? `${toGujaratiDigits(yieldRate)}%` : `${yieldRate}%`;
-                }
-             }
-          ];
+         const fmtNum = (value, digits = 2) => {
+            const n = parseFloat(value || 0);
+            const formatted = n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+            return isGu ? toGujaratiDigits(formatted) : formatted;
+         };
 
-          await exportToPDF({
-             title: isGu ? 'માસિક નફા-નુકસાન અહેવાલ' : 'Monthly Profit & Loss Heatmap',
-             columns,
-             rows: monthlyData,
-             isGu,
-             metaInfo: [
-                { label: isGu ? 'વર્ષ' : 'Year', value: isGu ? toGujaratiDigits(new Date(startDate).getFullYear()) : new Date(startDate).getFullYear() }
-             ],
-             filename: `${isGu ? 'માસિક_નફા_નુકસાન' : 'Monthly_Profit_Loss'}_${new Date(startDate).getFullYear()}.pdf`
-          });
-       }
-    };
+         const monthNamesGu = ['જાન્યુઆરી', 'ફેબ્રુઆરી', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટેમ્બર', 'ઓક્ટોબર', 'નવેમ્બર', 'ડિસેમ્બર'];
+         const monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+         const columns = [
+            {
+               header: isGu ? 'માસ' : 'Month',
+               align: 'left',
+               width: '25%',
+               render: (row) => isGu ? monthNamesGu[row.month - 1] : monthNamesEn[row.month - 1]
+            },
+            {
+               header: isGu ? 'આવક' : 'Revenue',
+               align: 'right',
+               width: '20%',
+               render: (row) => `₹${fmtNum(row.netSales)}`
+            },
+            {
+               header: isGu ? 'પડતર' : 'Cost of Goods Sold (COGS)',
+               align: 'right',
+               width: '20%',
+               render: (row) => `₹${fmtNum(row.netCOGS)}`
+            },
+            {
+               header: isGu ? 'ચોખ્ખો નફો' : 'Gross Profit',
+               align: 'right',
+               width: '20%',
+               render: (row) => `₹${fmtNum(row.grossProfit)}`
+            },
+            {
+               header: isGu ? 'નફાની ટકાવારી' : 'Yield',
+               align: 'right',
+               width: '15%',
+               render: (row) => {
+                  const yieldRate = row.netSales > 0 ? ((row.grossProfit / row.netSales) * 100).toFixed(1) : '0.0';
+                  return isGu ? `${toGujaratiDigits(yieldRate)}%` : `${yieldRate}%`;
+               }
+            }
+         ];
+
+         await exportToPDF({
+            title: isGu ? 'માસિક નફા-નુકસાન અહેવાલ' : 'Monthly Profit & Loss Heatmap',
+            columns,
+            rows: monthlyData,
+            isGu,
+            metaInfo: [
+               { label: isGu ? 'વર્ષ' : 'Year', value: isGu ? toGujaratiDigits(new Date(startDate).getFullYear()) : new Date(startDate).getFullYear() }
+            ],
+            filename: `${isGu ? 'માસિક_નફા_નુકસાન' : 'Monthly_Profit_Loss'}_${new Date(startDate).getFullYear()}.pdf`
+         });
+      }
+   };
 
    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -274,7 +274,7 @@ export default function ProfitLoss() {
       return (
          <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-8 font-mono">
             <div className="text-center font-bold text-zinc-400">
-               <p className="text-xs mb-4 uppercase tracking-widest">{t('saleReport.establishingBridge')}</p>
+               <p className="text-sm mb-4 uppercase tracking-widest">{t('saleReport.establishingBridge')}</p>
                <RefreshCcw className="animate-spin mx-auto text-blue-600" size={24} />
             </div>
          </div>
@@ -286,14 +286,14 @@ export default function ProfitLoss() {
    return (
       <div className="min-h-screen bg-slate-50 font-sans select-none text-slate-800 pb-8">
          <div className="max-w-[1600px] mx-auto px-4 py-4">
-            
+
             {/* Main Application Area */}
             <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col relative shadow-none">
-               
+
                {/* Unified Header Bar */}
                <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none print:hidden">
                   <div className="flex items-center gap-4">
-                     <span className="text-xs font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
+                     <span className="text-sm font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
                         <PieChart size={14} className="text-[#1d5f84]" />
                         {t('profitLoss.dossier')}
                      </span>
@@ -318,9 +318,9 @@ export default function ProfitLoss() {
                   <div className="flex items-center gap-1.5">
                      <button
                         onClick={() => setShowFiltersDrawer(true)}
-                        className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
-                              ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
-                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                        className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold ${hasActiveFilters
+                           ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
+                           : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                            }`}
                      >
                         <Filter size={13} className={hasActiveFilters ? "text-white" : "text-slate-500"} />
@@ -385,7 +385,7 @@ export default function ProfitLoss() {
                                  <div className="w-12 h-12 border border-slate-200 bg-slate-50 text-slate-500 flex items-center justify-center rounded-lg shadow-sm font-mono font-black text-sm uppercase">
                                     P&L
                                  </div>
-                                 <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider mt-1.5">Consolidated Impact</p>
+                                 <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider mt-1.5">Consolidated Impact</p>
                               </div>
                            </div>
                         )}
@@ -395,10 +395,10 @@ export default function ProfitLoss() {
                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                               {/* Expenditures Deck */}
                               <div className="border border-slate-200 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
-                                 <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex justify-between items-center text-slate-700 font-bold uppercase text-xs">
+                                 <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex justify-between items-center text-slate-700 font-bold uppercase text-sm">
                                     <div>
                                        <span className="block">{t('profitLoss.expenditure')}</span>
-                                       <span className="text-[9px] text-slate-400 font-mono tracking-wider">{t('saleReport.debitAlloc')}</span>
+                                       <span className="text-[12px] text-slate-400 font-mono tracking-wider">{t('saleReport.debitAlloc')}</span>
                                     </div>
                                     <TrendingDown size={16} className="text-rose-500" />
                                  </div>
@@ -406,8 +406,8 @@ export default function ProfitLoss() {
                                  <div className="flex-1 divide-y divide-slate-100">
                                     <div className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                        <div>
-                                          <p className="font-bold text-slate-700 text-[11px] uppercase">{t('profitLoss.purchases')}</p>
-                                          <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('saleReport.inventoryValues')}</p>
+                                          <p className="font-bold text-slate-700 text-[12px] uppercase">{t('profitLoss.purchases')}</p>
+                                          <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider">{t('saleReport.inventoryValues')}</p>
                                        </div>
                                        <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(plData?.costOfGoodsSold?.netCostOfGoodsSold)}</p>
                                     </div>
@@ -415,8 +415,8 @@ export default function ProfitLoss() {
                                     {plData.expenseAccounts?.map((acc, i) => (
                                        <div key={i} className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                           <div>
-                                             <p className="font-bold text-slate-700 text-[11px] uppercase">{acc.account_name}</p>
-                                             <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('profitLoss.indirectOverheads')}</p>
+                                             <p className="font-bold text-slate-700 text-[12px] uppercase">{acc.account_name}</p>
+                                             <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider">{t('profitLoss.indirectOverheads')}</p>
                                           </div>
                                           <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(acc.amount)}</p>
                                        </div>
@@ -425,8 +425,8 @@ export default function ProfitLoss() {
                                     {plData.netProfit > 0 && (
                                        <div className="p-3.5 bg-emerald-50 text-emerald-800 flex justify-between items-center font-mono mt-auto border-t border-emerald-100">
                                           <div>
-                                             <span className="text-[9px] text-emerald-500 uppercase tracking-wider">{t('saleReport.surplusProvision')}</span>
-                                             <span className="text-xs font-bold block uppercase">{t('profitLoss.netProfit')}</span>
+                                             <span className="text-[12px] text-emerald-500 uppercase tracking-wider">{t('saleReport.surplusProvision')}</span>
+                                             <span className="text-sm font-bold block uppercase">{t('profitLoss.netProfit')}</span>
                                           </div>
                                           <span className="text-sm font-black text-emerald-600">₹{formatCurrency(plData.netProfit)}</span>
                                        </div>
@@ -436,10 +436,10 @@ export default function ProfitLoss() {
 
                               {/* Income Deck */}
                               <div className="border border-slate-200 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
-                                 <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex justify-between items-center text-slate-700 font-bold uppercase text-xs">
+                                 <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex justify-between items-center text-slate-700 font-bold uppercase text-sm">
                                     <div>
                                        <span className="block">{t('profitLoss.revenue')}</span>
-                                       <span className="text-[9px] text-slate-400 font-mono tracking-wider">{t('saleReport.creditAlloc')}</span>
+                                       <span className="text-[12px] text-slate-400 font-mono tracking-wider">{t('saleReport.creditAlloc')}</span>
                                     </div>
                                     <TrendingUp size={16} className="text-emerald-500" />
                                  </div>
@@ -447,8 +447,8 @@ export default function ProfitLoss() {
                                  <div className="flex-1 divide-y divide-slate-100">
                                     <div className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                        <div>
-                                          <p className="font-bold text-slate-700 text-[11px] uppercase">{t('profitLoss.sales')}</p>
-                                          <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('saleReport.inwardsRevenue')}</p>
+                                          <p className="font-bold text-slate-700 text-[12px] uppercase">{t('profitLoss.sales')}</p>
+                                          <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider">{t('saleReport.inwardsRevenue')}</p>
                                        </div>
                                        <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(plData?.revenue?.netSales)}</p>
                                     </div>
@@ -456,8 +456,8 @@ export default function ProfitLoss() {
                                     {plData.incomeAccounts?.map((acc, i) => (
                                        <div key={i} className="p-3.5 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                           <div>
-                                             <p className="font-bold text-slate-700 text-[11px] uppercase">{acc.account_name}</p>
-                                             <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{t('profitLoss.secondaryInflow')}</p>
+                                             <p className="font-bold text-slate-700 text-[12px] uppercase">{acc.account_name}</p>
+                                             <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider">{t('profitLoss.secondaryInflow')}</p>
                                           </div>
                                           <p className="text-[13px] font-bold font-mono text-slate-800">₹{formatCurrency(acc.amount)}</p>
                                        </div>
@@ -466,8 +466,8 @@ export default function ProfitLoss() {
                                     {plData.netProfit < 0 && (
                                        <div className="p-3.5 bg-rose-50 text-rose-800 flex justify-between items-center font-mono mt-auto border-t border-rose-100">
                                           <div>
-                                             <span className="text-[9px] text-rose-500 uppercase tracking-wider">{t('saleReport.equityDeficit')}</span>
-                                             <span className="text-xs font-bold block uppercase">{t('profitLoss.netLoss')}</span>
+                                             <span className="text-[12px] text-rose-500 uppercase tracking-wider">{t('saleReport.equityDeficit')}</span>
+                                             <span className="text-sm font-bold block uppercase">{t('profitLoss.netLoss')}</span>
                                           </div>
                                           <span className="text-sm font-black text-rose-600">₹{formatCurrency(Math.abs(plData.netProfit))}</span>
                                        </div>
@@ -479,7 +479,7 @@ export default function ProfitLoss() {
 
                         {/* Verification Deck */}
                         {viewMode === 'summary' && plData && (
-                           <div className="bg-[#1d5f84] p-[1px] border border-[#154662] rounded-lg flex flex-col md:flex-row shadow-sm text-white font-mono text-[11px]">
+                           <div className="bg-[#1d5f84] p-[1px] border border-[#154662] rounded-lg flex flex-col md:flex-row shadow-sm text-white font-mono text-[12px]">
                               <div className="flex-1 px-4 py-2 border-b md:border-b-0 md:border-r border-[#154662] flex justify-between items-center">
                                  <span className="text-blue-200 uppercase tracking-wider font-bold">{t('profitLoss.aggregateExpenditure')}</span>
                                  <span className="text-sm font-black text-white">
@@ -521,14 +521,14 @@ export default function ProfitLoss() {
                                              const yieldRate = m.netSales > 0 ? ((m.grossProfit / m.netSales) * 100).toFixed(1) : '0.0';
                                              return (
                                                 <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-[11px] font-mono">
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-[12px] font-mono">
                                                       <div className="flex items-center gap-3">
                                                          <span className="w-6 h-6 bg-slate-100 border border-slate-200 text-slate-600 rounded flex items-center justify-center font-bold text-[10px]">{(i + 1).toString().padStart(2, '0')}</span>
                                                          <span className="font-bold text-slate-800 uppercase">{monthNames[m.month - 1]}</span>
                                                       </div>
                                                    </td>
-                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right text-[11px] font-mono font-bold text-slate-700">₹{formatCurrency(m.netSales)}</td>
-                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right text-[11px] font-mono font-bold text-slate-500">₹{formatCurrency(m.netCOGS)}</td>
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right text-[12px] font-mono font-bold text-slate-700">₹{formatCurrency(m.netSales)}</td>
+                                                   <td className="px-4 py-2.5 border-r border-slate-100 text-right text-[12px] font-mono font-bold text-slate-500">₹{formatCurrency(m.netCOGS)}</td>
                                                    <td className="px-4 py-2.5 border-r border-slate-100 text-right">
                                                       <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-bold font-mono ${m.grossProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                                                          ₹{formatCurrency(m.grossProfit)}
@@ -568,7 +568,7 @@ export default function ProfitLoss() {
                            ].map((stat, i) => (
                               <div key={i} className="bg-white border border-slate-200 p-3 shadow-sm flex items-center justify-between rounded-lg">
                                  <div>
-                                    <span className="text-[9px] font-sans text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                                    <span className="text-[12px] font-sans text-slate-400 uppercase tracking-wider">{stat.label}</span>
                                     <span className={`text-[13px] font-bold block ${i === 2 && plData?.netProfit < 0 ? 'text-rose-600 animate-pulse' : 'text-slate-700'}`}>{stat.val}</span>
                                  </div>
                                  <div className="w-8 h-8 border border-slate-100 bg-slate-50 text-slate-400 flex items-center justify-center rounded-md shrink-0">
@@ -582,7 +582,7 @@ export default function ProfitLoss() {
                </div>
 
                {/* Footer */}
-               <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex justify-between items-center text-[9px] font-mono text-slate-400 uppercase tracking-wider select-none print:hidden">
+               <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex justify-between items-center text-[12px] font-mono text-slate-400 uppercase tracking-wider select-none print:hidden">
                   <div className="flex items-center gap-3">
                      <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-[#1d5f84] rounded-full"></div> System Status: Verified</span>
                   </div>
@@ -599,11 +599,11 @@ export default function ProfitLoss() {
 
             <div className={`fixed inset-y-0 right-0 max-w-full flex pl-10 transform transition-transform duration-300 ease-in-out ${showFiltersDrawer ? 'translate-x-0' : 'translate-x-full'}`}>
                <div className="w-screen max-w-sm bg-white border-l border-slate-200 flex flex-col shadow-none">
-                  
+
                   <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                      <div className="flex items-center gap-2 select-none">
                         <Filter size={14} className="text-[#1d5f84]" />
-                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">Filter Parameters</span>
+                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">Filter Parameters</span>
                      </div>
                      <button onClick={() => setShowFiltersDrawer(false)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer">
                         <X size={15} />
@@ -615,12 +615,12 @@ export default function ProfitLoss() {
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('sabhasadLedgerSummary.dateRange') || "Date Range Period"}</span>
                         <div className="grid grid-cols-2 gap-2">
                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
-                              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full" />
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">From</span>
+                              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold font-mono outline-none w-full" />
                            </div>
                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
-                              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full" />
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">To</span>
+                              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold font-mono outline-none w-full" />
                            </div>
                         </div>
                      </div>
@@ -631,7 +631,7 @@ export default function ProfitLoss() {
                         const today = new Date();
                         setStartDate(new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]);
                         setEndDate(new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]);
-                     }} className="w-full flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs py-2 rounded-md transition cursor-pointer shadow-sm uppercase tracking-wider">
+                     }} className="w-full flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-sm py-2 rounded-md transition cursor-pointer shadow-sm uppercase tracking-wider">
                         <X size={14} /> {t('accountLedger.clear') || "Reset Parameters"}
                      </button>
                   </div>

@@ -385,7 +385,7 @@ const BardanPortfolio = () => {
       : (company.company_name || company.company_name_gu || '');
     const reportTitle = t('bardanPortfolio.historyTitle') || 'બારદાન ઈતિહાસ અને લેજર';
     const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
     const formattedDate = isGu ? `તારીખ: ${dateStr}` : `Date: ${dateStr}`;
     const fy = localStorage.getItem('financialYear') || '2026-27';
     const formattedFY = isGu ? `વર્ષ : ${fy}` : `FY: ${fy}`;
@@ -427,11 +427,11 @@ const BardanPortfolio = () => {
             * { margin:0; padding:0; box-sizing:border-box; }
             body { font-family:'Outfit','Noto Sans Gujarati',Arial,sans-serif; padding:16px; background:#fff; color:#000; }
             .pdf-report-container { border:1.5px solid #000; overflow:hidden; background:#fff; }
-            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:18px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
-            .pdf-header-title { border-bottom:1.5px solid #000; padding:8px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
-            .pdf-info-bar { border-bottom:1.5px solid #000; padding:8px 12px; display:flex; justify-content:flex-end; align-items:center; background:#fff; }
+            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:112px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-header-title { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-info-bar { border-bottom:1.5px solid #000; padding:12px 12px; display:flex; justify-content:flex-end; align-items:center; background:#fff; }
             .pdf-table { width:100%; border-collapse:collapse; }
-            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:8px 10px; font-size:12px; color:#000; }
+            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:12px 10px; font-size:12px; color:#000; }
             .pdf-table th { font-weight:bold; background:#fff; border-top:none !important; }
             .pdf-table th:first-child, .pdf-table td:first-child { border-left:none !important; }
             .pdf-table th:last-child, .pdf-table td:last-child { border-right:none !important; }
@@ -835,9 +835,9 @@ const BardanPortfolio = () => {
           <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[500px] shadow-none select-none animate-none">
             {/* Header Section */}
             <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                 {t('bardanPortfolio.historyTitle')}
-                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm ml-1.5">
+                <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm ml-1.5">
                   {(formData.code ? ledgerData : history).length} {t('common.records')}
                 </span>
               </span>
@@ -850,7 +850,7 @@ const BardanPortfolio = () => {
                     value={historySearchQuery}
                     onChange={(e) => setHistorySearchQuery(e.target.value)}
                     placeholder={t("bardanPortfolio.searchLogs") || "Search logs..."}
-                    className="bg-transparent border-none outline-none text-[11px] text-slate-700 placeholder:text-slate-400 w-full font-bold"
+                    className="bg-transparent border-none outline-none text-[12px] text-slate-700 placeholder:text-slate-400 w-full font-bold"
                   />
                 </div>
                 <button
@@ -896,7 +896,7 @@ const BardanPortfolio = () => {
                     <th className="px-4 py-2.5 text-right w-24">{t('bardanPortfolio.table.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-100 text-xs select-none">
+                <tbody className="bg-white divide-y divide-slate-100 text-sm select-none">
                   {(formData.code ? ledgerData : history).filter(row => {
                     const term = (historySearchQuery || '').toLowerCase();
                     const dateStr = (row.date || row.entry_date) ? new Date(row.date || row.entry_date).toLocaleDateString() : '—';
@@ -935,7 +935,7 @@ const BardanPortfolio = () => {
                                 }));
                                 fetchBalance(row.code);
                               }}
-                              className="h-6 flex items-center gap-1 px-2 border border-slate-200 hover:bg-slate-50 text-[#1d5f84] hover:text-[#154662] transition rounded-md font-bold text-[9px] uppercase tracking-wide bg-white cursor-pointer select-none"
+                              className="h-6 flex items-center gap-1 px-2 border border-slate-200 hover:bg-slate-50 text-[#1d5f84] hover:text-[#154662] transition rounded-md font-bold text-[12px] uppercase tracking-wide bg-white cursor-pointer select-none"
                               title="View Ledger"
                             >
                               <Eye size={12} />
@@ -971,7 +971,7 @@ const BardanPortfolio = () => {
             <div className="lg:col-span-8 bg-white border border-slate-200 rounded-lg flex flex-col shadow-none overflow-hidden">
               {/* Form Section Header with Actions */}
               <div className="p-3 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <span className={`text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
+                <span className={`text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 ${i18n.language === 'gu' ? 'font-prompt-sm' : ''}`}>
                   {formData.id ? t('bardanPortfolio.form.updateNode') || 'Update Bardan Node' : t('bardanPortfolio.title')}
                 </span>
 
@@ -979,21 +979,21 @@ const BardanPortfolio = () => {
                   <button
                     type="button"
                     onClick={() => setShowPriceModal(true)}
-                    className="h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
+                    className="h-7 flex items-center gap-1.5 px-2.5 text-[12px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
                   >
                     <Tag size={13} /> {t('bardanPortfolio.bardanRate')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowHistory(true)}
-                    className="h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
+                    className="h-7 flex items-center gap-1.5 px-2.5 text-[12px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
                   >
                     <History size={13} /> {t('bardanPortfolio.history')}
                   </button>
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
+                    className="h-7 flex items-center gap-1.5 px-2.5 text-[12px] font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition rounded-md cursor-pointer select-none"
                   >
                     <X size={13} /> {t('common.reset') || 'RESET'}
                   </button>
@@ -1001,7 +1001,7 @@ const BardanPortfolio = () => {
                     type="button"
                     onClick={handleSave}
                     disabled={loading}
-                    className="h-7 flex items-center gap-1.5 px-3.5 text-[11px] font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] rounded-md transition shadow-none select-none cursor-pointer"
+                    className="h-7 flex items-center gap-1.5 px-3.5 text-[12px] font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] rounded-md transition shadow-none select-none cursor-pointer"
                   >
                     <Save size={13} />
                     {formData.id ? t('bardanPortfolio.form.updateNode') || 'Update' : t('bardanPortfolio.saveTransaction')}
@@ -1016,7 +1016,7 @@ const BardanPortfolio = () => {
                     type="button"
                     onClick={() => setFormData({ ...formData, type: 'GIVEN' })}
                     disabled={!!formData.id}
-                    className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'GIVEN'
+                    className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center gap-1.5 font-bold text-sm uppercase tracking-wider select-none ${formData.type === 'GIVEN'
                       ? 'bg-white text-slate-800 shadow-xs'
                       : 'text-slate-400 hover:text-slate-600'
                       } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1028,7 +1028,7 @@ const BardanPortfolio = () => {
                     type="button"
                     onClick={() => setFormData({ ...formData, type: 'RETURNED' })}
                     disabled={!!formData.id}
-                    className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider select-none ${formData.type === 'RETURNED'
+                    className={`flex-1 py-1.5 rounded transition cursor-pointer flex items-center justify-center gap-1.5 font-bold text-sm uppercase tracking-wider select-none ${formData.type === 'RETURNED'
                       ? 'bg-white text-slate-800 shadow-xs'
                       : 'text-slate-400 hover:text-slate-600'
                       } ${formData.id ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1044,7 +1044,7 @@ const BardanPortfolio = () => {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.pavti_no')}</label>
                     <input
                       name="pavtiNo"
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en text-slate-700"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-sm force-en text-slate-700"
                       placeholder={t("bardanEntry.enterPavtiNo")}
                       value={formData.pavtiNo}
                       onChange={handleChange}
@@ -1057,7 +1057,7 @@ const BardanPortfolio = () => {
                     <input
                       type="date"
                       name="date"
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en text-slate-700 font-mono"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-sm force-en text-slate-700 font-mono"
                       value={formData.date}
                       onChange={handleChange}
                     />
@@ -1072,7 +1072,7 @@ const BardanPortfolio = () => {
                       name="code"
                       translate="no"
                       lang="en"
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en notranslate text-slate-700 font-mono"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-sm force-en notranslate text-slate-700 font-mono"
                       placeholder={t("bardanEntry.code")}
                       value={formData.code}
                       autoComplete="off"
@@ -1089,11 +1089,10 @@ const BardanPortfolio = () => {
                             <div
                               key={m.id}
                               onClick={() => selectMember(m)}
-                              className="px-3.5 py-2 hover:bg-slate-50 cursor-pointer text-xs transition flex flex-col"
+                              className="px-3.5 py-2 hover:bg-slate-50 cursor-pointer text-sm transition flex flex-col justify-center"
                             >
                               <div className="flex justify-between items-center select-none">
                                 <span className="font-bold text-slate-800 force-en font-mono">{m.member_code}</span>
-                                <span className="text-[10px] font-extrabold text-slate-400 uppercase">{m.village_name}</span>
                               </div>
                               <p className={`text-[10px] text-slate-500 mt-0.5 tracking-tight ${isGu ? 'font-prompt-sm' : 'font-bold'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(displayMemberName(m))}</p>
                             </div>
@@ -1108,7 +1107,7 @@ const BardanPortfolio = () => {
                       type="text"
                       name="name"
                       lang={isGu ? 'gu' : 'en'}
-                      className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition text-xs text-slate-700 font-bold ${isGu ? 'font-prompt-sm' : 'font-sans uppercase'}`}
+                      className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition text-sm text-slate-700 font-bold ${isGu ? 'font-prompt-sm' : 'font-sans uppercase'}`}
                       style={isGu ? { fontFamily: "'Prompt', sans-serif" } : {}}
                       placeholder={t("bardanEntry.name")}
                       value={formData.name}
@@ -1133,13 +1132,12 @@ const BardanPortfolio = () => {
                             <div
                               key={m.id}
                               onClick={() => selectMember(m)}
-                              className="px-3.5 py-2 hover:bg-slate-50 cursor-pointer text-xs transition flex flex-col"
+                              className="px-3.5 py-2 hover:bg-slate-50 cursor-pointer text-sm transition flex flex-col justify-center"
                             >
                               <div className="flex justify-between items-center select-none">
                                 <span className={`text-slate-800 ${isGu ? 'font-prompt-sm font-extrabold' : 'font-bold'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{formatBilingualText(displayMemberName(m))}</span>
                                 <span className="text-[10px] font-extrabold text-slate-400 font-mono uppercase">{m.member_code}</span>
                               </div>
-                              <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tight">{m.village_name}</p>
                             </div>
                           ))}
                       </div>
@@ -1154,15 +1152,15 @@ const BardanPortfolio = () => {
                       <input
                         type="number"
                         name="qty"
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-xs force-en text-slate-700 font-mono pr-28"
-                        placeholder="0.00"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition font-bold text-sm force-en text-slate-700 font-mono pr-28 placeholder:text-slate-400"
+                        placeholder={isGu ? '૦.૦૦' : '0.00'}
                         value={formData.qty}
                         onChange={handleChange}
                       />
                       {formData.type === 'RETURNED' && (
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 select-none flex items-center gap-1 h-6">
-                          <span className="text-slate-400 text-[8px] font-bold uppercase tracking-widest leading-none">{t('bardanPortfolio.table.balance')}: </span>
-                          <span className="text-[#1d5f84] force-en font-black text-xs leading-none font-mono">{balanceData.balance || 0}</span>
+                          <span className="text-slate-400 text-[12px] font-bold uppercase tracking-widest leading-none">{t('bardanPortfolio.table.balance')}: </span>
+                          <span className="text-[#1d5f84] force-en font-black text-sm leading-none font-mono">{balanceData.balance || 0}</span>
                         </div>
                       )}
                     </div>
@@ -1183,7 +1181,7 @@ const BardanPortfolio = () => {
                         checked={formData.memNominal === 'Member'}
                         onChange={(e) => setFormData({ ...formData, memNominal: e.target.checked ? 'Member' : 'Nominal' })}
                       />
-                      <label htmlFor="memNominalCheck" className="text-xs font-extrabold uppercase tracking-wider text-slate-600 cursor-pointer select-none">
+                      <label htmlFor="memNominalCheck" className="text-sm font-extrabold uppercase tracking-wider text-slate-600 cursor-pointer select-none">
                         {formData.memNominal === 'Member' ? t('bardanPortfolio.labels.sabhasadActive') : t('bardanPortfolio.labels.nominalMember')}
                       </label>
                     </div>
@@ -1194,9 +1192,8 @@ const BardanPortfolio = () => {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.remark')}</label>
                   <textarea
                     name="remark"
-                    className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition text-xs text-slate-700 min-h-[80px] ${i18n.language === 'gu' ? 'font-prompt-sm' : 'font-bold uppercase'}`}
-                    style={i18n.language === 'gu' ? { fontFamily: "'Prompt', sans-serif" } : {}}
-                    placeholder="ENTER REMARK..."
+                    className={`w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md outline-none transition text-sm text-slate-700 min-h-[80px] placeholder:text-slate-400 ${isGu ? 'font-prompt' : 'font-bold uppercase'}`}
+                    placeholder={isGu ? 'ટિપ્પણી આધાર કરો...' : 'ENTER REMARK...'}
                     value={formData.remark}
                     onChange={handleChange}
                   />
@@ -1239,7 +1236,7 @@ const BardanPortfolio = () => {
 
               <div className="bg-white border border-slate-200 rounded-lg flex flex-col shadow-none overflow-hidden select-none">
                 <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between select-none">
-                  <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">{t('bardanEntry.multiVectorMatrix')}</span>
+                  <span className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">{t('bardanEntry.multiVectorMatrix')}</span>
                 </div>
 
                 <div className="p-4 space-y-4">
@@ -1248,7 +1245,7 @@ const BardanPortfolio = () => {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('bardanEntry.option')}</label>
                       <select
                         name="option"
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-xs select-none rounded-md text-slate-700 cursor-pointer"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-sm select-none rounded-md text-slate-700 cursor-pointer"
                         value={formData.option}
                         onChange={handleChange}
                       >
@@ -1260,9 +1257,9 @@ const BardanPortfolio = () => {
 
                   <div className="flex flex-col gap-1 select-none">
                     <div className="max-h-[220px] overflow-y-auto border border-slate-100 rounded-md">
-                      <table className="w-full text-xs select-none">
+                      <table className="w-full text-sm select-none">
                         <thead className="bg-slate-50 select-none sticky top-0 z-10">
-                          <tr className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 select-none">
+                          <tr className="text-[12px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 select-none">
                             <th className="py-2 text-center w-8">#</th>
                             <th className="py-2 px-1 text-center">POS 1</th>
                             <th className="py-2 px-1 text-center">POS 2</th>
@@ -1275,7 +1272,7 @@ const BardanPortfolio = () => {
                               <td className="text-center font-bold text-slate-300 text-[10px] select-none force-en font-mono">{i + 1}</td>
                               <td className="px-1 py-1">
                                 <input
-                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-xs focus:ring-1 focus:ring-[#1d5f84]"
+                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-sm focus:ring-1 focus:ring-[#1d5f84]"
                                   value={row.col1}
                                   onChange={(e) => {
                                     const r = [...gridRows]; r[i].col1 = e.target.value; setGridRows(r);
@@ -1284,7 +1281,7 @@ const BardanPortfolio = () => {
                               </td>
                               <td className="px-1 py-1">
                                 <input
-                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-xs focus:ring-1 focus:ring-[#1d5f84]"
+                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-sm focus:ring-1 focus:ring-[#1d5f84]"
                                   value={row.col2}
                                   onChange={(e) => {
                                     const r = [...gridRows]; r[i].col2 = e.target.value; setGridRows(r);
@@ -1293,7 +1290,7 @@ const BardanPortfolio = () => {
                               </td>
                               <td className="px-1 py-1">
                                 <input
-                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-xs focus:ring-1 focus:ring-[#1d5f84]"
+                                  className="w-full bg-white border border-slate-200 focus:border-[#1d5f84] hover:border-slate-300 rounded px-2 py-1 font-bold text-slate-700 outline-none transition text-center force-en font-mono text-sm focus:ring-1 focus:ring-[#1d5f84]"
                                   value={row.col3}
                                   onChange={(e) => {
                                     const r = [...gridRows]; r[i].col3 = e.target.value; setGridRows(r);
@@ -1328,8 +1325,8 @@ const BardanPortfolio = () => {
               <div className="flex items-center gap-2">
                 <Tag size={16} className="text-[#1d5f84]" />
                 <div>
-                  <h2 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">{t('bardanPortfolio.rateModal.title')}</h2>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{t('bardanPortfolio.rateModal.subtitle')}</p>
+                  <h2 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">{t('bardanPortfolio.rateModal.title')}</h2>
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{t('bardanPortfolio.rateModal.subtitle')}</p>
                 </div>
               </div>
               <button
@@ -1354,15 +1351,15 @@ const BardanPortfolio = () => {
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md font-bold text-slate-700 text-sm outline-none transition force-en font-mono"
-                  placeholder="0.00"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] rounded-md font-bold text-slate-700 text-sm outline-none transition force-en font-mono placeholder:text-slate-400"
+                  placeholder={isGu ? '૦.૦૦' : '0.00'}
                   value={priceForm.price_per_bardan}
                   onChange={(e) => setPriceForm({ ...priceForm, price_per_bardan: e.target.value })}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') saveBardanPrice();
                   }}
                 />
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-relaxed select-none">
+                <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider leading-relaxed select-none">
                   {t('bardanPortfolio.rateModal.valuationNote')}
                 </p>
               </div>
@@ -1370,13 +1367,13 @@ const BardanPortfolio = () => {
               <div className="flex gap-2 pt-3 border-t border-slate-100">
                 <button
                   onClick={() => setShowPriceModal(false)}
-                  className="flex-1 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[11px] font-bold select-none transition rounded-md cursor-pointer flex items-center justify-center"
+                  className="flex-1 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-[12px] font-bold select-none transition rounded-md cursor-pointer flex items-center justify-center"
                 >
                   {t('common.cancel') || 'Cancel'}
                 </button>
                 <button
                   onClick={saveBardanPrice}
-                  className="flex-[2] py-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] text-[11px] font-bold select-none transition rounded-md cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-[2] py-1.5 bg-[#1d5f84] hover:bg-[#154662] text-white border border-[#1d5f84] text-[12px] font-bold select-none transition rounded-md cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Save size={13} />
                   <span>{t('bardanPortfolio.rateModal.updateRate')}</span>

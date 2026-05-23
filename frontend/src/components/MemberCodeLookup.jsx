@@ -174,7 +174,7 @@ export default function MemberCodeLookup({ companyId, onMemberSelect, initialCod
             {memberData.member_address && (
               <div className="col-span-2">
                 <div className="font-medium text-slate-700">Address</div>
-                <div className="text-slate-600 whitespace-pre-wrap text-xs">
+                <div className="text-slate-600 whitespace-pre-wrap text-sm">
                   {memberData.member_address}
                 </div>
               </div>

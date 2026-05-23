@@ -1,5 +1,13 @@
 import React from 'react';
 
+const getPreferredLanguage = () => {
+  try {
+    return localStorage.getItem('language') || 'gu';
+  } catch {
+    return 'gu';
+  }
+};
+
 /**
  * Utility to render mixed text where legacy-mapped Gujarati (via Prompt font)
  * and modern English codes/numbers coexist.
@@ -59,8 +67,9 @@ const ENGLISH_ABBREV_PATTERN = /\b(Qt|QT|qt|SR|Sr|KG|Kg|kg|AM|PM|NA|No|ID)\b/gi;
 /**
  * String-only version of the translator for use in non-React contexts (like PDF generation)
  */
-export const translateSystemText = (text) => {
+export const translateSystemText = (text, language = getPreferredLanguage()) => {
   if (!text || typeof text !== 'string') return text;
+  if (language !== 'gu') return text;
   let processedText = text;
   Object.entries(DICTIONARY).forEach(([eng, guj]) => {
     const regex = new RegExp(eng, 'gi');
@@ -69,10 +78,36 @@ export const translateSystemText = (text) => {
   return processedText;
 };
 
-export const formatBilingualText = (text) => {
+export const formatBilingualText = (text, language = getPreferredLanguage()) => {
   if (!text || typeof text !== 'string') return text;
 
-  // 1. Try to translate the whole string if it matches a dictionary key
+  // English mode: keep text in English, but still render codes/numbers cleanly.
+  if (language !== 'gu') {
+    const parts = text.split(/([A-Z0-9\-\/#]{2,}|[0-9]+(?:\.[0-9]+)?|[@#]|\b(?:Qt|QT|qt|SR|Sr|KG|Kg|kg|AM|PM|NA|No|ID)\b)/g);
+    return (
+      <>
+        {parts.map((part, i) => {
+          if (!part) return null;
+          const isEnglishCode = /^[A-Z0-9\-\/#@]+$/.test(part) || /^\d+(\.\d+)?$/.test(part);
+          const isMixedCaseAbbrev = /^(Qt|QT|qt|SR|Sr|KG|Kg|kg|AM|PM|NA|No|ID|@|#)$/i.test(part);
+          if (isEnglishCode || isMixedCaseAbbrev) {
+            return (
+              <span key={i} className="font-sans font-bold tracking-normal text-zinc-500" style={{ fontFamily: 'sans-serif', margin: '0 2px' }}>
+                {part}
+              </span>
+            );
+          }
+          return (
+            <span key={i} style={{ fontFamily: 'sans-serif' }}>
+              {part}
+            </span>
+          );
+        })}
+      </>
+    );
+  }
+
+  // Gujarati mode: translate legacy/system text to Gujarati and preserve code fragments.
   let processedText = text;
   Object.entries(DICTIONARY).forEach(([eng, guj]) => {
     // Case-insensitive replacement for specific words/phrases

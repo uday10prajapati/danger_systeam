@@ -41,7 +41,7 @@ export default function AccountLedger() {
       let cleanStr = dateString;
       if (cleanStr.includes(' ')) cleanStr = cleanStr.split(' ')[0];
       if (cleanStr.includes('T')) cleanStr = cleanStr.split('T')[0];
-      
+
       const parts = cleanStr.split('-');
       if (parts.length === 3) {
          const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -407,11 +407,11 @@ export default function AccountLedger() {
    const buildPrintHTML = () => {
       const cName = company?.company_name || 'Company';
       const accTitle = selectedAccount
-        ? (isGu ? (selectedAccount.account_name_gu || selectedAccount.account_name) : selectedAccount.account_name)
-        : 'Account Ledger';
+         ? (isGu ? (selectedAccount.account_name_gu || selectedAccount.account_name) : selectedAccount.account_name)
+         : 'Account Ledger';
       const reportTitle = t('accountLedger.institutionalRegistry') || 'Account Ledger';
       const today = new Date();
-      const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+      const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
       const fy = localStorage.getItem('financialYear') || '2026-27';
       const periodStr = `${formatDisplayDate(dateRange.startDate)} — ${formatDisplayDate(dateRange.endDate)}`;
       const isBardanAcc = selectedAccount?.account_code === 'BS0001';
@@ -421,19 +421,19 @@ export default function AccountLedger() {
 
       // Inline style constants
       const S = {
-        wrap: 'font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:16px;',
-        container: 'border:1.5px solid #000;background:#fff;overflow:hidden;',
-        hComp: 'border-bottom:1.5px solid #000;padding:12px;text-align:center;font-size:18px;font-weight:bold;',
-        hTitle: 'border-bottom:1.5px solid #000;padding:8px;text-align:center;font-size:14px;font-weight:bold;',
-        hAcc: 'border-bottom:1.5px solid #000;padding:8px;text-align:center;font-size:13px;font-weight:bold;',
-        infoBar: 'border-bottom:1.5px solid #000;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;',
-        infoL: 'font-size:12px;font-weight:bold;',
-        infoR: 'font-size:12px;font-weight:bold;display:flex;gap:16px;',
-        table: 'width:100%;border-collapse:collapse;',
-        th: 'border:1.5px solid #000;padding:6px 8px;font-size:10px;font-weight:bold;background:#fff;',
-        td: 'border:1.5px solid #000;padding:5px 8px;font-size:10px;',
-        tdBold: 'border:1.5px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;',
-        tdFoot: 'border:1.5px solid #000;padding:6px 8px;font-size:11px;font-weight:bold;',
+         wrap: 'font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:16px;',
+         container: 'border:1.5px solid #000;background:#fff;overflow:hidden;',
+         hComp: 'border-bottom:1.5px solid #000;padding:12px;text-align:center;font-size:112px;font-weight:bold;',
+         hTitle: 'border-bottom:1.5px solid #000;padding:12px;text-align:center;font-size:14px;font-weight:bold;',
+         hAcc: 'border-bottom:1.5px solid #000;padding:12px;text-align:center;font-size:13px;font-weight:bold;',
+         infoBar: 'border-bottom:1.5px solid #000;padding:12px 12px;display:flex;justify-content:space-between;align-items:center;',
+         infoL: 'font-size:12px;font-weight:bold;',
+         infoR: 'font-size:12px;font-weight:bold;display:flex;gap:16px;',
+         table: 'width:100%;border-collapse:collapse;',
+         th: 'border:1.5px solid #000;padding:6px 12px;font-size:10px;font-weight:bold;background:#fff;',
+         td: 'border:1.5px solid #000;padding:5px 12px;font-size:10px;',
+         tdBold: 'border:1.5px solid #000;padding:5px 12px;font-size:10px;font-weight:bold;',
+         tdFoot: 'border:1.5px solid #000;padding:6px 12px;font-size:12px;font-weight:bold;',
       };
 
       const openingRow = parseFloat(accountBalance.opening_balance || 0) !== 0 ? `
@@ -448,9 +448,9 @@ export default function AccountLedger() {
         </tr>` : '';
 
       const dataRows = ledgerEntries.map(e => {
-        const memberStr = displayBilingualName(e.eng_name || e.member_name, e.member_name_gu || e.member_name);
-        const descStr = isGu ? translateSystemText(e.description || '-') : (e.description || '-');
-        return `<tr>
+         const memberStr = displayBilingualName(e.eng_name || e.member_name, e.member_name_gu || e.member_name);
+         const descStr = isGu ? translateSystemText(e.description || '-') : (e.description || '-');
+         return `<tr>
           <td style="${S.td}">${formatDisplayDate(e.transaction_date)}</td>
           <td style="${S.td}">${descStr}${memberStr ? `<br/><small style="color:#1d5f84;font-weight:bold">${t('accountLedger.node')}: ${memberStr}${e.member_code ? ' [' + (isGu ? toGujaratiDigits(e.member_code) : e.member_code) + ']' : ''}</small>` : ''}</td>
           <td style="${S.td}text-align:right">${parseFloat(e.debit || 0) > 0 ? (isBardanAcc ? fmtAmount(e.debit, '') : fmtAmount(e.debit, '₹')) : '—'}</td>
@@ -462,11 +462,11 @@ export default function AccountLedger() {
       }).join('');
 
       const thExtra = isBardanAcc
-        ? `<th style="${S.th}text-align:right">${t('accountLedger.selfJama')}</th><th style="${S.th}text-align:right">${t('accountLedger.balance')}</th><th style="${S.th}text-align:right">${t('accountLedger.bardanAmt')}</th>`
-        : `<th style="${S.th}text-align:right">${t('accountLedger.balance')}</th>`;
+         ? `<th style="${S.th}text-align:right">${t('accountLedger.selfJama')}</th><th style="${S.th}text-align:right">${t('accountLedger.balance')}</th><th style="${S.th}text-align:right">${t('accountLedger.bardanAmt')}</th>`
+         : `<th style="${S.th}text-align:right">${t('accountLedger.balance')}</th>`;
       const tfootExtra = isBardanAcc
-        ? `<td style="${S.tdFoot}">—</td><td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal), '')} ${bal >= 0 ? 'DR' : 'CR'}</td><td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal * bardanPrice), '₹')}</td>`
-        : `<td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal), '₹')} ${bal >= 0 ? 'DR' : 'CR'}</td>`;
+         ? `<td style="${S.tdFoot}">—</td><td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal), '')} ${bal >= 0 ? 'DR' : 'CR'}</td><td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal * bardanPrice), '₹')}</td>`
+         : `<td style="${S.tdFoot}text-align:right">${fmtAmount(Math.abs(bal), '₹')} ${bal >= 0 ? 'DR' : 'CR'}</td>`;
 
       const body = `
         <div style="${S.wrap}">
@@ -629,7 +629,7 @@ export default function AccountLedger() {
                {/* Unified Header Bar */}
                <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none print:hidden">
                   <div className="flex items-center gap-4">
-                     <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                     <span className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
                         {selectedAccount ? (
                            <span className="font-extrabold text-[#1d5f84]" translate="no" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>
                               {displayAccountName(selectedAccount)}
@@ -644,7 +644,7 @@ export default function AccountLedger() {
                   <div className="flex items-center gap-1.5">
                      <button
                         onClick={() => setShowFiltersDrawer(true)}
-                        className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
+                        className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold ${hasActiveFilters
                            ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                            }`}
@@ -661,7 +661,7 @@ export default function AccountLedger() {
                      {hasActiveFilters && (
                         <button
                            onClick={clearFilters}
-                           className="px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                           className="px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
                         >
                            <X size={13} className="text-rose-600" />
                            <span>{isGu ? 'ક્લિયર' : 'Clear'}</span>
@@ -697,7 +697,7 @@ export default function AccountLedger() {
 
                <div className="flex-1 overflow-x-auto bg-white custom-scrollbar border-t border-slate-200">
                   {selectedAccount ? (
-                     <table className="w-full text-left font-sans text-xs border-collapse select-none">
+                     <table className="w-full text-left font-sans text-sm border-collapse select-none">
                         <thead className="sticky top-0 z-20 shadow-sm">
                            <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
                               {[
@@ -735,25 +735,25 @@ export default function AccountLedger() {
                                  {parseFloat(accountBalance.opening_balance || 0) !== 0 && (
                                     <tr className="bg-slate-50 font-bold italic">
                                        <td className="px-3 py-1.5 text-slate-400 border-r border-slate-100 text-[10px] font-mono">—</td>
-                                       <td className="px-3 py-1.5 text-[11px] text-slate-550 border-r border-slate-100">{t('accountLedger.openingBalanceForward')}</td>
-                                       <td className={`px-3 py-1.5 text-[11px] font-mono text-right text-slate-400 border-r border-slate-100 ${isGu ? 'font-bold' : 'font-semibold'}`}>
+                                       <td className="px-3 py-1.5 text-[12px] text-slate-550 border-r border-slate-100">{t('accountLedger.openingBalanceForward')}</td>
+                                       <td className={`px-3 py-1.5 text-[12px] font-mono text-right text-slate-400 border-r border-slate-100 ${isGu ? 'font-bold' : 'font-semibold'}`}>
                                           {accountBalance.opening_balance_type === "debit"
                                              ? fmtAmount(accountBalance.opening_balance, selectedAccount?.account_code === 'BS0001' ? '' : '₹')
                                              : "—"}
                                        </td>
-                                       <td className={`px-3 py-1.5 text-[11px] font-mono text-right text-slate-400 border-r border-slate-100 ${isGu ? 'font-bold' : 'font-semibold'}`}>
+                                       <td className={`px-3 py-1.5 text-[12px] font-mono text-right text-slate-400 border-r border-slate-100 ${isGu ? 'font-bold' : 'font-semibold'}`}>
                                           {accountBalance.opening_balance_type === "credit"
                                              ? fmtAmount(accountBalance.opening_balance, selectedAccount?.account_code === 'BS0001' ? '' : '₹')
                                              : "—"}
                                        </td>
                                        {selectedAccount?.account_code === 'BS0001' && (
-                                          <td className="px-3 py-1.5 text-slate-400 border-r border-slate-100 text-[11px] text-right font-mono">—</td>
+                                          <td className="px-3 py-1.5 text-slate-400 border-r border-slate-100 text-[12px] text-right font-mono">—</td>
                                        )}
-                                       <td className={`px-3 py-1.5 text-[11px] font-mono font-black text-right border-r border-slate-100 text-slate-800`}>
+                                       <td className={`px-3 py-1.5 text-[12px] font-mono font-black text-right border-r border-slate-100 text-slate-800`}>
                                           {fmtAmount(accountBalance.opening_balance, selectedAccount?.account_code === 'BS0001' ? '' : '₹')} {accountBalance.opening_balance_type === "debit" ? "DR" : "CR"}
                                        </td>
                                        {selectedAccount?.account_code === 'BS0001' && (
-                                          <td className={`px-3 py-1.5 text-[11px] font-mono text-right text-slate-800 ${isGu ? 'font-bold' : 'font-semibold'}`}>
+                                          <td className={`px-3 py-1.5 text-[12px] font-mono text-right text-slate-800 ${isGu ? 'font-bold' : 'font-semibold'}`}>
                                              {fmtAmount(Math.abs(parseFloat(accountBalance.opening_balance) * bardanPrice), '₹')}
                                           </td>
                                        )}
@@ -765,7 +765,7 @@ export default function AccountLedger() {
                                     return (
                                        <tr key={idx} className="group hover:bg-slate-50 transition-colors">
                                           <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 font-mono" style={isGu ? { fontFamily: "'Noto Sans Gujarati', monospace" } : {}}>{displayDate}</td>
-                                          <td className="px-3 py-1.5 text-[11px] border-r border-slate-100 text-slate-700 font-medium leading-tight">
+                                          <td className="px-3 py-1.5 text-[12px] border-r border-slate-100 text-slate-700 font-medium leading-tight">
                                              <div className="flex flex-col">
                                                 <span>{renderBilingualText(selectedAccount?.account_code === 'IK0001' ? `[INTEREST] ${row.description}` : row.description)}</span>
                                                 {row.member_name && (
@@ -775,10 +775,10 @@ export default function AccountLedger() {
                                                 )}
                                              </div>
                                           </td>
-                                          <td className={`px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono text-blue-600 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                          <td className={`px-3 py-1.5 border-r border-slate-100 text-[12px] text-right font-mono text-blue-600 ${isGu ? 'font-black' : 'font-bold'}`}>
                                              {parseFloat(row.debit || 0) > 0 ? (isBardanObj ? fmtAmount(row.debit, '') : fmtAmount(row.debit, '₹')) : '—'}
                                           </td>
-                                          <td className={`px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono text-emerald-600 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                          <td className={`px-3 py-1.5 border-r border-slate-100 text-[12px] text-right font-mono text-emerald-600 ${isGu ? 'font-black' : 'font-bold'}`}>
                                              {selectedAccount?.account_code === 'IK0001'
                                                 ? (parseFloat(row.credit || 0) > 0 ? fmtAmount(row.credit, '₹') : fmtAmount(0, '₹'))
                                                 : parseFloat(row.credit || 0) > 0
@@ -788,17 +788,17 @@ export default function AccountLedger() {
                                                    : '—'}
                                           </td>
                                           {selectedAccount?.account_code === 'BS0001' && (
-                                             <td className={`px-3 py-1.5 text-[11px] text-right font-mono text-emerald-600 border-r border-slate-100 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                             <td className={`px-3 py-1.5 text-[12px] text-right font-mono text-emerald-600 border-r border-slate-100 ${isGu ? 'font-black' : 'font-bold'}`}>
                                                 {parseFloat(row.self_credit || 0) > 0 ? fmtAmount(row.self_credit, '') : '—'}
                                              </td>
                                           )}
-                                          <td className={`px-3 py-1.5 text-[11px] text-right font-mono border-r border-slate-100 text-slate-800 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                          <td className={`px-3 py-1.5 text-[12px] text-right font-mono border-r border-slate-100 text-slate-800 ${isGu ? 'font-black' : 'font-bold'}`}>
                                              {isBardanObj
                                                 ? `${fmtAmount(Math.abs(parseFloat(row.running_balance)), '')} ${parseFloat(row.running_balance) >= 0 ? 'DR' : 'CR'}`
                                                 : `${fmtAmount(Math.abs(parseFloat(row.running_balance)), '₹')} ${parseFloat(row.running_balance) >= 0 ? 'DR' : 'CR'}`}
                                           </td>
                                           {selectedAccount?.account_code === 'BS0001' && (
-                                             <td className={`px-3 py-1.5 text-[11px] text-right font-mono text-slate-800 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                             <td className={`px-3 py-1.5 text-[12px] text-right font-mono text-slate-800 ${isGu ? 'font-black' : 'font-bold'}`}>
                                                 {fmtAmount(Math.abs(parseFloat(row.penalty_balance || row.running_balance) * bardanPrice), '₹')}
                                              </td>
                                           )}
@@ -807,21 +807,21 @@ export default function AccountLedger() {
                                  })}
                                  {/* Consolidated Total Row */}
                                  <tr className="bg-slate-100 border-t border-slate-200">
-                                    <td colSpan="2" className="px-3 py-2 text-[11px] font-black uppercase text-slate-705 text-right border-r border-slate-200">{t('accountLedger.registryTotals')}:</td>
-                                    <td className={`px-3 py-2 text-right text-[11px] font-mono text-[#1d5f84] border-r border-slate-200 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                    <td colSpan="2" className="px-3 py-2 text-[12px] font-black uppercase text-slate-705 text-right border-r border-slate-200">{t('accountLedger.registryTotals')}:</td>
+                                    <td className={`px-3 py-2 text-right text-[12px] font-mono text-[#1d5f84] border-r border-slate-200 ${isGu ? 'font-black' : 'font-bold'}`}>
                                        {fmtAmount(accountBalance.total_debit, selectedAccount?.account_code === 'BS0001' ? '' : '₹')}
                                     </td>
-                                    <td className={`px-3 py-2 text-right text-[11px] font-mono text-[#1d5f84] border-r border-slate-200 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                    <td className={`px-3 py-2 text-right text-[12px] font-mono text-[#1d5f84] border-r border-slate-200 ${isGu ? 'font-black' : 'font-bold'}`}>
                                        {fmtAmount(accountBalance.total_credit, selectedAccount?.account_code === 'BS0001' ? '' : '₹')}
                                     </td>
                                     {selectedAccount?.account_code === 'BS0001' && (
                                        <td className="px-3 py-2 text-right text-[#1d5f84] border-r border-slate-200">—</td>
                                     )}
-                                    <td className={`px-3 py-2 text-right text-[11px] font-mono text-[#1d5f84] border-r border-slate-200 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                    <td className={`px-3 py-2 text-right text-[12px] font-mono text-[#1d5f84] border-r border-slate-200 ${isGu ? 'font-black' : 'font-bold'}`}>
                                        {fmtAmount(Math.abs(parseFloat(accountBalance.running_balance || 0)), selectedAccount?.account_code === 'BS0001' ? '' : '₹')} {parseFloat(accountBalance.running_balance) >= 0 ? 'DR' : 'CR'}
                                     </td>
                                     {selectedAccount?.account_code === 'BS0001' && (
-                                       <td className={`px-3 py-2 text-right text-[11px] font-mono text-[#1d5f84] ${isGu ? 'font-black' : 'font-bold'}`}>
+                                       <td className={`px-3 py-2 text-right text-[12px] font-mono text-[#1d5f84] ${isGu ? 'font-black' : 'font-bold'}`}>
                                           {fmtAmount(Math.abs(parseFloat(accountBalance.running_balance || 0) * bardanPrice), '₹')}
                                        </td>
                                     )}
@@ -831,7 +831,7 @@ export default function AccountLedger() {
                         </tbody>
                      </table>
                   ) : (
-                     <table className="w-full text-left font-sans text-xs border-collapse select-none">
+                     <table className="w-full text-left font-sans text-sm border-collapse select-none">
                         <thead className="sticky top-0 z-20 shadow-sm">
                            <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
                               <th className="px-3 py-2 border-r border-slate-200 whitespace-nowrap">{t('accountLedger.nomenclature')}</th>
@@ -848,8 +848,8 @@ export default function AccountLedger() {
                                  <tr key={acc.id} onClick={() => handleSelectAccount(acc)} className="group hover:bg-slate-50 cursor-pointer transition-colors">
                                     <td className="px-3 py-2 border-r border-slate-100">
                                        <div className="flex flex-col">
-                                          <span className="text-[11px] font-bold text-slate-800 group-hover:text-[#1d5f84] transition-colors" translate="no" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{displayAccountName(acc)}</span>
-                                          <span className="text-[9px] font-mono text-slate-400 mt-0.5">{t('accountLedger.shaId')}: #{isGu ? toGujaratiDigits(acc.id) : acc.id}</span>
+                                          <span className="text-[12px] font-bold text-slate-800 group-hover:text-[#1d5f84] transition-colors" translate="no" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{displayAccountName(acc)}</span>
+                                          <span className="text-[12px] font-mono text-slate-400 mt-0.5">{t('accountLedger.shaId')}: #{isGu ? toGujaratiDigits(acc.id) : acc.id}</span>
                                        </div>
                                     </td>
                                     <td className="px-3 py-2 border-r border-slate-100">
@@ -857,10 +857,10 @@ export default function AccountLedger() {
                                     </td>
                                     <td className="px-3 py-2 border-r border-slate-100 text-right">
                                        <div className="flex flex-col items-end">
-                                          <span className={`text-[11px] font-mono text-slate-800 ${isGu ? 'font-black' : 'font-bold'}`}>
+                                          <span className={`text-[12px] font-mono text-slate-800 ${isGu ? 'font-black' : 'font-bold'}`}>
                                              {fmtAmount(Math.abs(parseFloat(acc.opening_balance)), '₹')}
                                           </span>
-                                          <span className={`text-[9px] font-black ${parseFloat(acc.opening_balance) < 0 ? 'text-blue-600' : parseFloat(acc.opening_balance) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                                          <span className={`text-[12px] font-black ${parseFloat(acc.opening_balance) < 0 ? 'text-blue-600' : parseFloat(acc.opening_balance) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
                                              {parseFloat(acc.opening_balance) < 0 ? `${t('accountLedger.jama')} (CR)` : parseFloat(acc.opening_balance) > 0 ? `${t('accountLedger.udhar')} (DR)` : t('accountLedger.zero')}
                                           </span>
                                        </div>
@@ -877,7 +877,7 @@ export default function AccountLedger() {
                </div>
 
                {/* Footer */}
-               <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center text-[9px] font-mono text-slate-400 uppercase tracking-wider gap-2 select-none print:hidden">
+               <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-slate-400 uppercase tracking-wider gap-2 select-none print:hidden">
                   <div className="flex items-center gap-3">
                      <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-[#1d5f84] rounded-full"></div> System Status: Verified</span>
                      <span>Shards: {selectedAccount ? ledgerEntries.length : filteredAccounts.length}</span>
@@ -900,7 +900,7 @@ export default function AccountLedger() {
                   <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                      <div className="flex items-center gap-2 select-none">
                         <Filter size={14} className="text-[#1d5f84]" />
-                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">Filter Parameters</span>
+                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">Filter Parameters</span>
                      </div>
                      <button onClick={() => setShowFiltersDrawer(false)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer">
                         <X size={15} />
@@ -912,12 +912,12 @@ export default function AccountLedger() {
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('sabhasadLedgerSummary.dateRange') || "Date Range Period"}</span>
                         <div className="grid grid-cols-2 gap-2">
                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
-                              <input ref={startDateRef} type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') endDateRef.current?.focus(); }} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full" />
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">From</span>
+                              <input ref={startDateRef} type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') endDateRef.current?.focus(); }} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold font-mono outline-none w-full" />
                            </div>
                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
-                              <input ref={endDateRef} type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') accCodeRef.current?.focus(); }} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full" />
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">To</span>
+                              <input ref={endDateRef} type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') accCodeRef.current?.focus(); }} className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold font-mono outline-none w-full" />
                            </div>
                         </div>
                      </div>
@@ -925,8 +925,8 @@ export default function AccountLedger() {
                      <div className="space-y-1.5 relative" ref={dropdownRef}>
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('accountLedger.searchNomenclature') || "Account"}</span>
                         <div className="flex gap-2">
-                           <input ref={accCodeRef} type="text" value={memberCodeSearch} onChange={(e) => { setMemberCodeSearch(e.target.value); setShowMemberDropdown(true); }} onFocus={() => { setShowMemberDropdown(true); }} onKeyDown={handleAccCodeKeyDown} placeholder="ID" className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none" />
-                           <input ref={accNameRef} type="text" value={memberNameSearch} onChange={(e) => handleInputChangeWithAutocomplete(e, accNameRef, filteredAccounts, 'account_name', setMemberNameSearch, setShowMemberDropdown)} onFocus={() => { setShowMemberDropdown(true); }} onKeyDown={handleAccNameKeyDown} placeholder={t('accountLedger.searchPrompt')} className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs text-slate-700 font-bold flex-1 uppercase outline-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`} />
+                           <input ref={accCodeRef} type="text" value={memberCodeSearch} onChange={(e) => { setMemberCodeSearch(e.target.value); setShowMemberDropdown(true); }} onFocus={() => { setShowMemberDropdown(true); }} onKeyDown={handleAccCodeKeyDown} placeholder="ID" className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-sm text-[#1d5f84] font-mono font-bold w-12 text-center outline-none" />
+                           <input ref={accNameRef} type="text" value={memberNameSearch} onChange={(e) => handleInputChangeWithAutocomplete(e, accNameRef, filteredAccounts, 'account_name', setMemberNameSearch, setShowMemberDropdown)} onFocus={() => { setShowMemberDropdown(true); }} onKeyDown={handleAccNameKeyDown} placeholder={t('accountLedger.searchPrompt')} className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm text-slate-700 font-bold flex-1 uppercase outline-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`} />
                         </div>
 
                         {showMemberDropdown && filteredAccounts.length > 0 && (
@@ -935,7 +935,7 @@ export default function AccountLedger() {
                                  <div key={a.id} onClick={() => handleSelectAccount(a)} onMouseEnter={() => setAccActiveIdx(idx)} className={`px-2.5 py-1 flex justify-between items-center cursor-pointer border-b border-slate-100 last:border-none ${accActiveIdx === idx ? 'bg-slate-50 text-[#1d5f84]' : 'hover:bg-slate-50'}`}>
                                     <div className="flex flex-col">
                                        <span className="text-[10px] font-bold truncate" translate="no" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{displayAccountName(a)}</span>
-                                       <span className="text-[9px] text-slate-400 font-mono">{t('accountLedger.shaId')}: #{isGu ? toGujaratiDigits(a.id) : a.id}</span>
+                                       <span className="text-[12px] text-slate-400 font-mono">{t('accountLedger.shaId')}: #{isGu ? toGujaratiDigits(a.id) : a.id}</span>
                                     </div>
                                  </div>
                               ))}
@@ -945,7 +945,7 @@ export default function AccountLedger() {
                   </div>
 
                   <div className="p-4 bg-slate-50 border-t border-slate-200">
-                     <button onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs py-2 rounded-md transition cursor-pointer shadow-sm uppercase tracking-wider">
+                     <button onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-sm py-2 rounded-md transition cursor-pointer shadow-sm uppercase tracking-wider">
                         <X size={14} /> {t('accountLedger.clear') || "Reset Parameters"}
                      </button>
                   </div>

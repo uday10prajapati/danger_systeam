@@ -127,17 +127,17 @@ export default function GSTSelector({
       {/* Amount Display */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-          <p className="text-xs text-gray-600">Taxable Amount</p>
+          <p className="text-sm text-gray-600">Taxable Amount</p>
           <p className="text-lg font-bold text-gray-800">₹ {Number(gstData.taxable_amount).toFixed(2)}</p>
         </div>
 
         <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-          <p className="text-xs text-gray-600">Total Tax</p>
+          <p className="text-sm text-gray-600">Total Tax</p>
           <p className="text-lg font-bold text-yellow-600">₹ {Number(gstData.total_tax).toFixed(2)}</p>
         </div>
 
         <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-          <p className="text-xs text-gray-600">Final Amount</p>
+          <p className="text-sm text-gray-600">Final Amount</p>
           <p className="text-lg font-bold text-green-600">₹ {Number(gstData.final_amount).toFixed(2)}</p>
         </div>
       </div>

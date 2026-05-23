@@ -285,7 +285,7 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
     const printContent = document.getElementById('bardan-print-area');
     const WinPrint = window.open('', '', 'width=900,height=650');
     WinPrint.document.write('<html><head><title>Print Bardan Entry</title>');
-    WinPrint.document.write('<style>table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid black; padding: 8px; text-align: left; }</style>');
+    WinPrint.document.write('<style>table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid black; padding: 12px; text-align: left; }</style>');
     WinPrint.document.write('</head><body>');
     WinPrint.document.write('<h1>' + t.title + '</h1>');
     WinPrint.document.write('<p>Pavti No: ' + form.pavtiNo + ' | Date: ' + form.date + '</p>');
@@ -348,23 +348,23 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
             <div className="col-span-8 flex flex-col gap-4 overflow-y-auto pr-2">
               <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.book_type}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.book_type}</label>
                   <select name="bookType" value={form.bookType} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500 transition-all">
                     <option>Combo1</option>
                     <option>Combo2</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.pavti_no}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.pavti_no}</label>
                   <input name="pavtiNo" value={form.pavtiNo} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" placeholder="Enter Pavti No" />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.date}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.date}</label>
                   <input type="date" name="date" value={form.date} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.mem_nominal}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.mem_nominal}</label>
                   <select name="memNominal" value={form.memNominal} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
                     <option value="">Select...</option>
                     <option value="Member">Member</option>
@@ -373,14 +373,14 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.code}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.code}</label>
                   <select name="code" value={form.code} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
                     <option value="">Select Code</option>
                     {members.map(m => <option key={m.id} value={m.member_code}>{m.member_code}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.name}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.name}</label>
                   <select name="name" value={form.name} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
                     <option value="">Select Name</option>
                     {members.map(m => <option key={m.id} value={m.member_name}>{m.member_name}</option>)}
@@ -388,18 +388,18 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.qty}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.qty}</label>
                   <input type="number" name="qty" value={form.qty} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" placeholder="0.00" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.option}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.option}</label>
                   <select name="option" value={form.option} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500">
                     <option>Combo1</option>
                   </select>
                 </div>
 
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.form.remark}</label>
+                  <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t.form.remark}</label>
                   <input name="remark" value={form.remark} onChange={handleChange} className="w-full border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500" placeholder="Add any notes..." />
                 </div>
               </div>
@@ -408,16 +408,16 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
               <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col">
                 <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                   <h3 className="text-sm font-bold text-gray-700 uppercase">{t.title} List</h3>
-                  <span className="text-xs text-gray-400">{entries.length} records</span>
+                  <span className="text-sm text-gray-400">{entries.length} records</span>
                 </div>
                 <div className="overflow-y-auto flex-1">
                   <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 bg-white">
                       <tr>
-                        <th className="px-4 py-2 text-xs font-bold text-gray-500 uppercase border-b border-gray-100">Pavti No</th>
-                        <th className="px-4 py-2 text-xs font-bold text-gray-500 uppercase border-b border-gray-100">Date</th>
-                        <th className="px-4 py-2 text-xs font-bold text-gray-500 uppercase border-b border-gray-100">Name</th>
-                        <th className="px-4 py-2 text-xs font-bold text-gray-500 uppercase border-b border-gray-100 text-right">Qty</th>
+                        <th className="px-4 py-2 text-sm font-bold text-gray-500 uppercase border-b border-gray-100">Pavti No</th>
+                        <th className="px-4 py-2 text-sm font-bold text-gray-500 uppercase border-b border-gray-100">Date</th>
+                        <th className="px-4 py-2 text-sm font-bold text-gray-500 uppercase border-b border-gray-100">Name</th>
+                        <th className="px-4 py-2 text-sm font-bold text-gray-500 uppercase border-b border-gray-100 text-right">Qty</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -453,16 +453,16 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-white sticky top-0 shadow-sm">
-                        <th className="px-2 py-2 text-left text-xs font-bold text-gray-400 w-10">#</th>
-                        <th className="px-2 py-2 text-left text-xs font-bold text-gray-400">Col 1</th>
-                        <th className="px-2 py-2 text-left text-xs font-bold text-gray-400">Col 2</th>
-                        <th className="px-2 py-2 text-left text-xs font-bold text-gray-400">Col 3</th>
+                        <th className="px-2 py-2 text-left text-sm font-bold text-gray-400 w-10">#</th>
+                        <th className="px-2 py-2 text-left text-sm font-bold text-gray-400">Col 1</th>
+                        <th className="px-2 py-2 text-left text-sm font-bold text-gray-400">Col 2</th>
+                        <th className="px-2 py-2 text-left text-sm font-bold text-gray-400">Col 3</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {gridRows.map((row, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5 text-center text-xs text-gray-300 font-bold">{i + 1}</td>
+                          <td className="px-2 py-1.5 text-center text-sm text-gray-300 font-bold">{i + 1}</td>
                           <td className="px-1 py-1">
                             <input
                               type="text"
@@ -507,11 +507,11 @@ export default function BardanEntry({ isOpen, onClose, lang = 'gu' }) {
 
                 <div className="p-4 bg-gray-50 border-t border-gray-100 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t.form.day_qty}</span>
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">{t.form.day_qty}</span>
                     <input type="number" name="dayQty" value={form.dayQty} onChange={handleChange} className="w-24 text-right border-gray-200 rounded-lg focus:ring-rose-500 focus:border-rose-500 py-1" placeholder="0.00" />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t.form.total_qty}</span>
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">{t.form.total_qty}</span>
                     <input type="number" name="totalQty" value={form.totalQty} onChange={handleChange} className="w-24 text-right border-gray-200 rounded-lg font-bold text-rose-600 focus:ring-rose-500 focus:border-rose-500 py-1" placeholder="0.00" />
                   </div>
                 </div>

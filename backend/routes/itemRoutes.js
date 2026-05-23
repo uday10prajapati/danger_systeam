@@ -72,14 +72,14 @@ router.post('/', validateCreateItem, handleValidationErrors, async (req, res) =>
     // Create item
     await execute(
       `INSERT INTO item_master (
-        company_id, item_code, p_code, consider_in_autostock, item_name, item_name_gu, desc_en, desc_gu,
+        company_id, item_code, consider_in_autostock, item_name, item_name_gu, desc_en, desc_gu,
         unit, unit_gu, purchase_account_id, sales_account_id,
         do_auto_stock_in_sales, opening_stock, opening_stock_value, minimum_stock, loss_per_kg,
         effective_date, sgst_percent, cgst_percent, igst_percent, cess_percent, hsn_code,
         barcode, category, tax_percentage, reorder_level, purchase_price, sale_price
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        company_id, item_code, req.body.p_code || null, consider_in_autostock ? 1 : 0, item_name, item_name_gu || null, desc_en || null, desc_gu || null,
+        company_id, item_code, consider_in_autostock ? 1 : 0, item_name, item_name_gu || null, desc_en || null, desc_gu || null,
         unit || 'PCS', unit_gu || null, purchase_account_id || null, sales_account_id || null,
         do_auto_stock_in_sales ? 1 : 0, opening_stock || 0, opening_stock_value || 0, minimum_stock || 0, loss_per_kg || 0,
         effective_date || null, sgst_percent || 0, cgst_percent || 0, igst_percent || 0, cess_percent || 0, hsn_code || null,

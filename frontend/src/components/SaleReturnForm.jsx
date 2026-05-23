@@ -28,7 +28,7 @@ const FormInput = ({ className = "", error, icon: Icon, ...props }) => (
         {...props}
       />
     </div>
-    {error && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-1">{error}</p>}
+    {error && <p className="text-[12px] font-black text-rose-500 uppercase tracking-widest ml-1">{error}</p>}
   </div>
 );
 
@@ -178,7 +178,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
         {/* Step 1: Initialize Manifest */}
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
               <div className="w-8 h-0.5 bg-blue-600"></div> {t('saleReturnForm.initManifest')}
             </h3>
             {selectedSale && (
@@ -255,7 +255,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                     placeholder={t('saleReturnForm.selectTransaction')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-14 pl-14 pr-6 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black uppercase text-xs tracking-widest placeholder:text-slate-200"
+                    className="w-full h-14 pl-14 pr-6 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all font-black uppercase text-sm tracking-widest placeholder:text-slate-200"
                   />
                 </div>
               </div>
@@ -272,8 +272,8 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic truncate max-w-[150px]">{sale.customer_name || 'WALK-IN_ENTITY'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-black italic text-slate-900">₹{parseFloat(sale.net_amount).toLocaleString()}</p>
-                      <p className="text-[9px] font-black text-slate-300 uppercase italic">{new Date(sale.sale_date).toLocaleDateString('en-GB')}</p>
+                      <p className="text-sm font-black italic text-slate-900">₹{parseFloat(sale.net_amount).toLocaleString()}</p>
+                      <p className="text-[12px] font-black text-slate-300 uppercase italic">{new Date(sale.sale_date).toLocaleDateString('en-GB')}</p>
                     </div>
                   </button>
                 ))}
@@ -302,7 +302,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
         {/* Step 2: Component Configuration */}
         {selectedSale && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom duration-500">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
               <div className="w-8 h-0.5 bg-emerald-500"></div> {t('saleReturnForm.componentConfig')}
             </h3>
 
@@ -312,7 +312,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <p className={`text-base font-black text-slate-800 tracking-tight italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{item.item_name}</p>
-                      <p className={`text-[9px] font-black text-slate-400 tracking-widest italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('saleReturnForm.sourceUnits', { qty: item.quantity, rate: parseFloat(item.sale_rate).toFixed(2) })}</p>
+                      <p className={`text-[12px] font-black text-slate-400 tracking-widest italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('saleReturnForm.sourceUnits', { qty: item.quantity, rate: parseFloat(item.sale_rate).toFixed(2) })}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">{t('saleReturnForm.impactValue')}</p>
@@ -403,7 +403,7 @@ export default function SaleReturnForm({ onClose, onSuccess, company }) {
                 <button
                   onClick={handleSubmit}
                   disabled={loading || totalReturnAmount <= 0}
-                  className="flex-1 md:flex-none bg-blue-600 hover:bg-white hover:text-blue-600 text-white font-black py-6 px-12 rounded-lg transition-all shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-3 uppercase text-xs tracking-widest italic"
+                  className="flex-1 md:flex-none bg-blue-600 hover:bg-white hover:text-blue-600 text-white font-black py-6 px-12 rounded-lg transition-all shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-3 uppercase text-sm tracking-widest italic"
                 >
                   {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> {t('saleReturnForm.commitManifest')}</>}
                 </button>

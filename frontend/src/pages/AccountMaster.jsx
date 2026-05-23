@@ -65,7 +65,7 @@ export default function AccountMaster() {
   };
   const toEnglishDigits = (value) => String(value ?? '').replace(/[૦-૯]/g, (d) => '0123456789'['૦૧૨૩૪૫૬૭૪૯'.indexOf(d)] || d);
   const toEnglishText = (value) => String(value ?? '').split('').map(char => guLetters[char] || char).join('');
-  
+
   const fmtVal = (val) => toGujaratiDigits(val);
   const fmtAmount = (val) => {
     const num = parseFloat(val) || 0;
@@ -203,7 +203,7 @@ export default function AccountMaster() {
     setActiveDetailTab('general');
     setAuditData(null);
     if (!account) return;
-    
+
     try {
       setAuditLoading(true);
       const response = await api.get(`/accounts/${account.id}/balance`);
@@ -358,7 +358,7 @@ export default function AccountMaster() {
         <p className="text-slate-500 mb-6 text-center max-w-md text-sm">
           {t('accountMaster.errors.companyDescription') || 'Please select a company to manage accounts.'}
         </p>
-        <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white rounded-md shadow-sm transition-colors text-xs font-bold uppercase tracking-widest">
+        <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white rounded-md shadow-sm transition-colors text-sm font-bold uppercase tracking-widest">
           <RefreshCcw className="w-4 h-4 mr-2" /> {t('accountMaster.errors.retry')}
         </button>
       </div>
@@ -379,33 +379,33 @@ export default function AccountMaster() {
         {/* Global Summary Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ ખાતાઓ" : "Total Accounts"}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ ખાતાઓ" : "Total Accounts"}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(accounts.length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "સક્રિય ખાતાઓ" : "Active Accounts"}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "સક્રિય ખાતાઓ" : "Active Accounts"}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(accounts.filter(a => a.is_active).length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest">{isGu ? "કુલ ઉધાર બાકી" : "Total Debit Balance"}</span>
+            <span className="text-[12px] font-bold text-red-500 uppercase tracking-widest">{isGu ? "કુલ ઉધાર બાકી" : "Total Debit Balance"}</span>
             <span className="text-[13px] font-bold font-mono text-red-700 mt-1">₹{fmtAmount(debitTotal)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">{isGu ? "કુલ જમા બાકી" : "Total Credit Balance"}</span>
+            <span className="text-[12px] font-bold text-blue-500 uppercase tracking-widest">{isGu ? "કુલ જમા બાકી" : "Total Credit Balance"}</span>
             <span className="text-[13px] font-bold font-mono text-blue-700 mt-1">₹{fmtAmount(creditTotal)}</span>
           </div>
         </div>
 
         {/* Minimal Classic Registry Directory Wrapper (Full Width) */}
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col shadow-none">
-          
+
           {/* Table Control Header Bar (First Line) */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                 {t('accountMaster.title') || 'Account Master'}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {fmtVal(filteredAccounts.length)} {t('accountMaster.records') || 'Records'}
               </span>
             </div>
@@ -422,7 +422,7 @@ export default function AccountMaster() {
                     setCurrentPage(1);
                   }}
                   placeholder={t('accountMaster.searchPlaceholder') || "Search name or code..."}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -432,16 +432,16 @@ export default function AccountMaster() {
               </div>
 
               {/* CSV Download Button */}
-              <button 
+              <button
                 onClick={handleDownloadCSV}
-                title="Download CSV" 
+                title="Download CSV"
                 className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
               >
                 <Download size={13} className="text-slate-500" />
               </button>
 
               {/* PDF Report Button */}
-              <button 
+              <button
                 onClick={handleExportPDF}
                 title={t('common.pdf') || "PDF Report"}
                 className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
@@ -452,7 +452,7 @@ export default function AccountMaster() {
               {/* Add Account Button */}
               <button
                 onClick={handleCreateNew}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('accountMaster.addAccount') || "New Account"}</span>
@@ -480,16 +480,15 @@ export default function AccountMaster() {
                     setSelectedType(type);
                     setCurrentPage(1);
                   }}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all shrink-0 cursor-pointer border ${
-                    selectedType === type
-                      ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1 text-sm font-bold rounded-md transition-all shrink-0 cursor-pointer border ${selectedType === type
+                    ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
+                    }`}
                 >
                   <span>{t(`accountMaster.types.${type}`)}</span>
                 </button>
               ))}
-              
+
               {/* More Types Dropdown inside tab list */}
               <div className="flex flex-col bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 min-w-[120px] justify-center h-[26px]">
                 <select
@@ -533,16 +532,16 @@ export default function AccountMaster() {
             {paginatedAccounts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
                 <Database size={32} className="text-slate-300 opacity-30" />
-                <p className="text-xs font-bold text-slate-400">{t('accountMaster.noRecords')}</p>
+                <p className="text-sm font-bold text-slate-400">{t('accountMaster.noRecords')}</p>
                 <button
                   onClick={handleCreateNew}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
+                  className="text-sm font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
                 >
                   + {t('accountMaster.addAccount')}
                 </button>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-12">#</th>
@@ -561,7 +560,7 @@ export default function AccountMaster() {
                     const globalIdx = startIndex + idx + 1;
                     const bal = parseFloat(acc.closing_balance) || 0;
                     return (
-                      <tr 
+                      <tr
                         key={acc.id}
                         className="hover:bg-slate-50/75 transition-colors cursor-pointer select-none"
                         onClick={() => handleSelectAccount(acc)}
@@ -575,11 +574,11 @@ export default function AccountMaster() {
                         </td>
                         <td className="px-3.5 py-2 border-r border-slate-100 text-slate-655 font-medium">
                           <div className="flex flex-col items-start gap-1">
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-sm text-[9px] font-bold uppercase tracking-widest border border-slate-200/50">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-sm text-[12px] font-bold uppercase tracking-widest border border-slate-200/50">
                               {t(`accountMaster.types.${acc.account_type}`)}
                             </span>
                             {acc.is_subledger && (
-                              <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-sm text-[8px] font-bold uppercase tracking-wider">
+                              <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-sm text-[12px] font-bold uppercase tracking-wider">
                                 {isGu ? "પેટા ખાતું" : "Sub Ledger"}
                               </span>
                             )}
@@ -587,8 +586,8 @@ export default function AccountMaster() {
                         </td>
                         <td className="px-3.5 py-2 text-right border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                           <div className="flex flex-col items-end">
-                            <span className={`font-mono text-[11px] ${isGu ? 'font-black' : 'font-bold'} text-slate-800`}>₹{fmtAmount(bal)}</span>
-                            <span className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : acc.balance_type === 'debit' ? 'text-rose-600' : 'text-slate-400'}`}>
+                            <span className={`font-mono text-[12px] ${isGu ? 'font-black' : 'font-bold'} text-slate-800`}>₹{fmtAmount(bal)}</span>
+                            <span className={`text-[12px] font-bold uppercase tracking-widest mt-0.5 ${acc.balance_type === 'credit' ? 'text-blue-600' : acc.balance_type === 'debit' ? 'text-rose-600' : 'text-slate-400'}`}>
                               {acc.balance_type === 'credit' ? t('accountMaster.jamaCr') : acc.balance_type === 'debit' ? t('accountMaster.udharDr') : t('accountMaster.zero')}
                             </span>
                           </div>
@@ -596,11 +595,10 @@ export default function AccountMaster() {
                         <td className="px-3.5 py-2 text-center border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleStatusToggle(acc)}
-                            className={`px-2.5 py-0.5 text-[9px] font-bold rounded-md border transition cursor-pointer ${
-                              acc.is_active
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
-                            }`}
+                            className={`px-2.5 py-0.5 text-[12px] font-bold rounded-md border transition cursor-pointer ${acc.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                              }`}
                           >
                             {acc.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
                           </button>
@@ -666,7 +664,7 @@ export default function AccountMaster() {
                 >
                   Prev
                 </button>
-                <span className="text-xs font-bold text-slate-600 px-1.5">
+                <span className="text-sm font-bold text-slate-600 px-1.5">
                   {fmtVal(currentPage)} / {fmtVal(totalPages)}
                 </span>
                 <button
@@ -687,12 +685,12 @@ export default function AccountMaster() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-150" onClick={() => setShowModal(false)} />
           <div className="relative w-full max-w-4xl max-h-[95vh] overflow-y-auto z-10 scale-100 bg-white rounded-lg shadow-2xl border border-slate-200">
-            <AccountForm 
-              companyId={company?.id} 
+            <AccountForm
+              companyId={company?.id}
               initialData={editingAccount}
               onSuccess={handleFormSuccess}
               onCancel={() => { setShowModal(false); setEditingAccount(null); }}
-              existingAccounts={accounts} 
+              existingAccounts={accounts}
             />
           </div>
         </div>
@@ -703,9 +701,9 @@ export default function AccountMaster() {
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-150" onClick={() => handleSelectAccount(null)} />
           <div className="relative w-full max-w-2xl bg-white border border-slate-200 rounded-lg p-5 shadow-xl z-10 flex flex-col animate-in fade-in zoom-in-95 duration-150">
-            
+
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => handleSelectAccount(null)}
               className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer bg-slate-50 rounded-md hover:bg-slate-100 border border-slate-200/50"
               title="Close details"
@@ -729,7 +727,7 @@ export default function AccountMaster() {
                     >
                       {displayAccountName(selectedAccount)}
                     </h2>
-                    <span className="px-2 py-0.5 rounded-md text-[8px] font-bold tracking-wider uppercase border bg-slate-50 border-slate-200 text-slate-655">
+                    <span className="px-2 py-0.5 rounded-md text-[12px] font-bold tracking-wider uppercase border bg-slate-50 border-slate-200 text-slate-655">
                       {t(`accountMaster.types.${selectedAccount.account_type}`)}
                     </span>
                   </div>
@@ -744,18 +742,18 @@ export default function AccountMaster() {
               {/* Identification Badges */}
               <div className="flex flex-wrap gap-1.5 mt-3">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                  <span className="text-[8px] text-slate-400 uppercase">{isGu ? "ખાતા કોડ" : "Account Code"}:</span>
+                  <span className="text-[12px] text-slate-400 uppercase">{isGu ? "ખાતા કોડ" : "Account Code"}:</span>
                   <span className="font-mono text-[#1d5f84]">{fmtVal(selectedAccount.account_code || selectedAccount.id)}</span>
                 </span>
                 {selectedAccount.p_code && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                    <span className="text-[8px] text-slate-400 uppercase">P-Code:</span>
+                    <span className="text-[12px] text-slate-400 uppercase">P-Code:</span>
                     <span className="font-mono text-[#1d5f84]">{selectedAccount.p_code}</span>
                   </span>
                 )}
                 {selectedAccount.is_subledger && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-md">
-                    <span className="text-[8px] uppercase">{isGu ? "પેટા ખાતું" : "Sub Ledger"}</span>
+                    <span className="text-[12px] uppercase">{isGu ? "પેટા ખાતું" : "Sub Ledger"}</span>
                   </span>
                 )}
               </div>
@@ -771,11 +769,10 @@ export default function AccountMaster() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveDetailTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold transition relative border-b-2 cursor-pointer ${
-                    activeDetailTab === tab.id
-                      ? 'text-[#1d5f84] border-[#1d5f84]'
-                      : 'text-slate-400 hover:text-slate-800 border-transparent'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-1 py-2 text-[12px] font-bold transition relative border-b-2 cursor-pointer ${activeDetailTab === tab.id
+                    ? 'text-[#1d5f84] border-[#1d5f84]'
+                    : 'text-slate-400 hover:text-slate-800 border-transparent'
+                    }`}
                 >
                   <tab.icon size={12} />
                   <span>{tab.label}</span>
@@ -785,13 +782,13 @@ export default function AccountMaster() {
 
             {/* Details Content Container */}
             <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-1.5">
-              
+
               {activeDetailTab === 'general' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતાનું ગુજરાતી નામ" : "English Name"}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતાનું ગુજરાતી નામ" : "English Name"}</p>
                     <p
-                      className={`text-xs font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`}
+                      className={`text-sm font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`}
                       style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                     >
                       {displayAccountName(selectedAccount) || '-'}
@@ -799,23 +796,23 @@ export default function AccountMaster() {
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા નંબર / કોડ" : "Account Code"}</p>
-                    <p className="text-xs font-bold text-[#1d5f84] font-mono">{fmtVal(selectedAccount.account_code || selectedAccount.id)}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા નંબર / કોડ" : "Account Code"}</p>
+                    <p className="text-sm font-bold text-[#1d5f84] font-mono">{fmtVal(selectedAccount.account_code || selectedAccount.id)}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">P-Code</p>
-                    <p className="text-xs font-bold text-slate-800 font-mono">{selectedAccount.p_code || '-'}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">P-Code</p>
+                    <p className="text-sm font-bold text-slate-800 font-mono">{selectedAccount.p_code || '-'}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા પ્રકાર" : "Account Type"}</p>
-                    <p className="text-xs font-bold text-slate-800 uppercase">{t(`accountMaster.types.${selectedAccount.account_type}`)}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા પ્રકાર" : "Account Type"}</p>
+                    <p className="text-sm font-bold text-slate-800 uppercase">{t(`accountMaster.types.${selectedAccount.account_type}`)}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઇન્ટરનલ આઈડી" : "Shard ID"}</p>
-                    <p className="text-xs font-bold text-slate-500 font-mono">#{selectedAccount.id}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઇન્ટરનલ આઈડી" : "Shard ID"}</p>
+                    <p className="text-sm font-bold text-slate-500 font-mono">#{selectedAccount.id}</p>
                   </div>
                 </div>
               )}
@@ -825,38 +822,38 @@ export default function AccountMaster() {
                   {auditLoading ? (
                     <div className="py-8 flex flex-col items-center gap-2 text-center text-slate-400">
                       <Loader className="w-6 h-6 text-[#1d5f84] animate-spin" />
-                      <p className="text-[9px] font-bold tracking-widest uppercase">{t('accountMaster.aggregatingFiscal') || 'Aggregating...'}</p>
+                      <p className="text-[12px] font-bold tracking-widest uppercase">{t('accountMaster.aggregatingFiscal') || 'Aggregating...'}</p>
                     </div>
                   ) : auditData ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{t('accountMaster.openingBalance') || 'Opening Balance'}</p>
-                        <p className="text-xs font-bold text-slate-700 font-mono">₹{fmtAmount(auditData.openingBalance || 0)}</p>
+                        <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{t('accountMaster.openingBalance') || 'Opening Balance'}</p>
+                        <p className="text-sm font-bold text-slate-700 font-mono">₹{fmtAmount(auditData.openingBalance || 0)}</p>
                       </div>
 
                       <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Closing Registry Balance</p>
-                        <p className="text-xs font-black text-slate-800 font-mono">₹{fmtAmount(selectedAccount.closing_balance || 0)}</p>
+                        <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Closing Registry Balance</p>
+                        <p className="text-sm font-black text-slate-800 font-mono">₹{fmtAmount(selectedAccount.closing_balance || 0)}</p>
                       </div>
 
                       <div className="bg-rose-50/50 border border-rose-100 p-3 rounded-md">
-                        <p className="text-[8px] uppercase font-bold text-rose-500 tracking-wider mb-0.5">{t('accountMaster.totalUdhar') || 'Total Debit (Udhar)'}</p>
-                        <p className="text-xs font-bold text-rose-700 font-mono">₹{fmtAmount(auditData.totalDebit || 0)}</p>
+                        <p className="text-[12px] uppercase font-bold text-rose-500 tracking-wider mb-0.5">{t('accountMaster.totalUdhar') || 'Total Debit (Udhar)'}</p>
+                        <p className="text-sm font-bold text-rose-700 font-mono">₹{fmtAmount(auditData.totalDebit || 0)}</p>
                       </div>
 
                       <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-md">
-                        <p className="text-[8px] uppercase font-bold text-blue-500 tracking-wider mb-0.5">{t('accountMaster.totalJama') || 'Total Credit (Jama)'}</p>
-                        <p className="text-xs font-bold text-blue-700 font-mono">₹{fmtAmount(auditData.totalCredit || 0)}</p>
+                        <p className="text-[12px] uppercase font-bold text-blue-500 tracking-wider mb-0.5">{t('accountMaster.totalJama') || 'Total Credit (Jama)'}</p>
+                        <p className="text-sm font-bold text-blue-700 font-mono">₹{fmtAmount(auditData.totalCredit || 0)}</p>
                       </div>
 
                       <div className="bg-slate-100 border border-slate-200 p-3 rounded-md sm:col-span-2">
-                        <p className="text-[8px] uppercase font-bold text-slate-500 tracking-wider mb-0.5">{t('accountMaster.synchronizedBalance') || 'Synchronized Current Balance'}</p>
+                        <p className="text-[12px] uppercase font-bold text-slate-500 tracking-wider mb-0.5">{t('accountMaster.synchronizedBalance') || 'Synchronized Current Balance'}</p>
                         <p className="text-sm font-bold text-[#1d5f84] font-mono">₹{fmtAmount(auditData.currentBalance || 0)}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="py-6 text-center text-slate-400">
-                      <p className="text-xs font-semibold">{isGu ? "સિલક વિગત લાવવામાં નિષ્ફળ" : "No balance summary data available"}</p>
+                      <p className="text-sm font-semibold">{isGu ? "સિલક વિગત લાવવામાં નિષ્ફળ" : "No balance summary data available"}</p>
                     </div>
                   )}
                 </div>
@@ -866,8 +863,8 @@ export default function AccountMaster() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2 flex items-center justify-between gap-4">
                     <div className="text-left">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "મોબાઈલ નંબર" : "Phone"}</p>
-                      <p className="text-xs font-bold text-slate-800 font-mono">{selectedAccount.phone ? fmtVal(selectedAccount.phone) : '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "મોબાઈલ નંબર" : "Phone"}</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">{selectedAccount.phone ? fmtVal(selectedAccount.phone) : '-'}</p>
                     </div>
                     {selectedAccount.phone && (
                       <button
@@ -885,8 +882,8 @@ export default function AccountMaster() {
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2 flex items-center justify-between gap-4">
                     <div className="text-left">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઈમેલ આઈડી" : "Email"}</p>
-                      <p className="text-xs font-bold text-slate-800 font-mono truncate max-w-sm">{selectedAccount.email || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઈમેલ આઈડી" : "Email"}</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono truncate max-w-sm">{selectedAccount.email || '-'}</p>
                     </div>
                     {selectedAccount.email && (
                       <button
@@ -903,33 +900,31 @@ export default function AccountMaster() {
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">GST No</p>
-                    <p className="text-xs font-bold text-slate-800 font-mono uppercase">{selectedAccount.gst_no || '-'}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">GST No</p>
+                    <p className="text-sm font-bold text-slate-800 font-mono uppercase">{selectedAccount.gst_no || '-'}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">TIN No</p>
-                    <p className="text-xs font-bold text-slate-800 font-mono uppercase">{selectedAccount.tin_no || '-'}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">TIN No</p>
+                    <p className="text-sm font-bold text-slate-800 font-mono uppercase">{selectedAccount.tin_no || '-'}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "પેટા ખાતું સ્થિતિ" : "Sub Ledger Status"}</p>
-                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${
-                      selectedAccount.is_subledger
-                        ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                        : 'bg-slate-50 text-slate-500 border-slate-200'
-                    }`}>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "પેટા ખાતું સ્થિતિ" : "Sub Ledger Status"}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${selectedAccount.is_subledger
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                      : 'bg-slate-50 text-slate-500 border-slate-200'
+                      }`}>
                       {selectedAccount.is_subledger ? (isGu ? "સક્રિય" : "Enabled") : (isGu ? "નિષ્ક્રિય" : "Disabled")}
                     </span>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા સ્થિતિ" : "Account Status"}</p>
-                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${
-                      selectedAccount.is_active
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                        : 'bg-rose-50 text-rose-700 border-rose-100'
-                    }`}>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ખાતા સ્થિતિ" : "Account Status"}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${selectedAccount.is_active
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                      : 'bg-rose-50 text-rose-700 border-rose-100'
+                      }`}>
                       {selectedAccount.is_active ? t('accountMaster.active') : t('accountMaster.inactive')}
                     </span>
                   </div>
@@ -946,11 +941,10 @@ export default function AccountMaster() {
                     e.stopPropagation();
                     handleStatusToggle(selectedAccount);
                   }}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md border transition cursor-pointer ${
-                    selectedAccount.is_active
-                      ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                  }`}
+                  className={`px-3 py-1.5 text-sm font-bold rounded-md border transition cursor-pointer ${selectedAccount.is_active
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                    }`}
                 >
                   <span>{selectedAccount.is_active ? t('accountMaster.deactivate') : t('accountMaster.activate')}</span>
                 </button>
@@ -961,7 +955,7 @@ export default function AccountMaster() {
                   handleEdit(selectedAccount);
                   handleSelectAccount(null);
                 }}
-                className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-xs font-bold text-slate-650 hover:bg-slate-50 transition cursor-pointer"
+                className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-sm font-bold text-slate-650 hover:bg-slate-50 transition cursor-pointer"
                 title="Edit Account"
               >
                 <Edit2 size={12} />
@@ -973,7 +967,7 @@ export default function AccountMaster() {
                     e.stopPropagation();
                     confirmDelete(selectedAccount);
                   }}
-                  className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-xs font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
+                  className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-sm font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
                   title="Delete Account"
                 >
                   <Trash2 size={12} />

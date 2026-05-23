@@ -76,10 +76,14 @@ router.get('/', async (req, res) => {
           al.id, 
           al.reference_no, 
           al.reference_type, 
+          al.reference_id, 
+          acc.account_code as account_code,
+          acc.account_type as account_type,
           al.description as description, 
           COALESCE(acc.account_name, al.description) as description_en,
           acc.account_name_gu as description_gu,
           COALESCE(m.member_name, acc.account_name) as sub_details, 
+          m.member_code as member_code,
           m.member_name_gu as sub_details_gu,
           acc.account_name_gu as sub_details_acc_gu,
           al.notes, 
@@ -101,16 +105,21 @@ router.get('/', async (req, res) => {
           MIN(al.id) as id, 
           MAX(al.reference_no) as reference_no, 
           al.reference_type, 
+          MAX(al.reference_id) as reference_id, 
+          MAX(acc.account_code) as account_code,
+          MAX(acc.account_type) as account_type,
           MAX(COALESCE(acc.account_name, al.description)) as description,
           MAX(COALESCE(acc.account_name, al.description)) as description_en,
           MAX(acc.account_name_gu) as description_gu, 
           MAX(CASE WHEN al.member_id IS NOT NULL THEN 'Multiple Members' ELSE '' END) as sub_details,
+          MAX(m.member_code) as member_code,
           MAX(al.notes) as notes, 
           SUM(COALESCE(al.credit, 0)) as cash_in, 
           SUM(COALESCE(al.debit, 0)) as cash_out,
           SUM(COALESCE(al.credit, al.debit, 0)) as sub_amount
         FROM account_ledger al
         LEFT JOIN accounts acc ON al.account_id = acc.id
+        LEFT JOIN member_master m ON al.member_id = m.id
         WHERE al.company_id = ? AND al.transaction_date = ? 
         AND (al.transaction_type = 'cash_book' OR al.reference_type = 'cash_book' OR al.reference_type = 'dangar_entry' OR al.reference_type = 'dangar_entry_kapat')
         GROUP BY 
@@ -122,6 +131,32 @@ router.get('/', async (req, res) => {
       txParams = [companyId, date];
     }
     const transactions = (await query(txSql, txParams)) || [];
+
+    // Fetch sale items details for SALE reference types
+    const saleIds = transactions
+      .filter(tx => tx && tx.reference_type === 'SALE' && tx.reference_id)
+      .map(tx => tx.reference_id);
+
+    let saleItemsMap = {};
+    if (saleIds.length > 0) {
+      try {
+        const itemsSql = `
+          SELECT si.sale_id, si.quantity, si.sale_rate, si.weight, si.amount, im.item_name, im.item_name_gu
+          FROM sale_items si
+          LEFT JOIN item_master im ON si.item_id = im.id
+          WHERE si.sale_id IN (${saleIds.map(() => '?').join(',')})
+        `;
+        const sItems = await query(itemsSql, saleIds);
+        sItems.forEach(item => {
+          if (!saleItemsMap[item.sale_id]) {
+            saleItemsMap[item.sale_id] = [];
+          }
+          saleItemsMap[item.sale_id].push(item);
+        });
+      } catch (err) {
+        console.error('Failed to fetch sale items for Rojmel:', err);
+      }
+    }
 
     // 3. Fetch Non-Cash JV Items (Adjustments that don't hit cash_book)
     const jvSql = `
@@ -165,6 +200,11 @@ router.get('/', async (req, res) => {
       const cIn = parseFloat(tx.cash_in || 0);
       const cOut = parseFloat(tx.cash_out || 0);
 
+      // Force Dangar (purchase) entries into JAMA side by default
+      const isDangar = refType.includes('DANGAR_ENTRY') || refType.includes('DANGAR_ENTRY_KAPAT');
+      const effectiveCIn = isDangar ? (cIn > 0 ? cIn : cOut) : cIn;
+      const effectiveCOut = isDangar ? 0 : cOut;
+
       if (gstType) {
         if (cIn > 0) {
           gstGrouped.jama[gstType] += cIn;
@@ -183,40 +223,46 @@ router.get('/', async (req, res) => {
           tx.reference_type === 'bardan_entry'
         );
 
-        if (cIn > 0) {
+        if (effectiveCIn > 0) {
           jamaList.push({ 
             id: tx.id, 
             details: desc,
             description: desc,
             description_en: desc_en,
             description_gu: desc_gu,
+            account_code: tx.account_code,
+            account_type: tx.account_type,
             sub_details: tx.sub_details || '',
             sub_details_gu: tx.sub_details_gu || '',
             sub_details_acc_gu: tx.sub_details_acc_gu || '',
             notes: tx.notes || '', 
             reference_no: tx.reference_no || '',
-            amount: cIn, 
-            sub_amount: tx.sub_amount || cIn,
+            amount: effectiveCIn, 
+            sub_amount: tx.sub_amount || effectiveCIn,
             isJV: isNonCash, 
-            isContra: refType.includes('CONTRA') 
+            isContra: refType.includes('CONTRA'),
+            sale_items: saleItemsMap[tx.reference_id] || []
           });
         }
-        if (cOut > 0) {
+        if (effectiveCOut > 0) {
           udharList.push({ 
             id: tx.id, 
             details: desc,
             description: desc,
             description_en: desc_en,
             description_gu: desc_gu,
+            account_code: tx.account_code,
+            account_type: tx.account_type,
             sub_details: tx.sub_details || '',
             sub_details_gu: tx.sub_details_gu || '',
             sub_details_acc_gu: tx.sub_details_acc_gu || '',
             notes: tx.notes || '', 
             reference_no: tx.reference_no || '',
-            amount: cOut, 
-            sub_amount: tx.sub_amount || cOut,
+            amount: effectiveCOut, 
+            sub_amount: tx.sub_amount || effectiveCOut,
             isJV: isNonCash, 
-            isContra: refType.includes('CONTRA') 
+            isContra: refType.includes('CONTRA'),
+            sale_items: saleItemsMap[tx.reference_id] || []
           });
         }
       }

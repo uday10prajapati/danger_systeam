@@ -63,10 +63,10 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
     try {
       const res = await api.get('/items/next-code');
       if (res.data.success) {
-        setFormData(prev => ({ 
-          ...prev, 
+        setFormData(prev => ({
+          ...prev,
           item_code: res.data.nextCode,
-          p_code: res.data.nextPCode 
+          p_code: res.data.nextPCode
         }));
       }
     } catch (err) {
@@ -96,17 +96,17 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (name === 'purchase_code' || name === 'sales_code') {
       const accountType = name === 'purchase_code' ? 'purchase' : 'sales';
       const targetIdField = name === 'purchase_code' ? 'purchase_account_id' : 'sales_account_id';
       const cleanValue = value.trim();
-      
-      const foundAccount = accounts.find(a => 
-        a.account_type?.toLowerCase() === accountType && 
+
+      const foundAccount = accounts.find(a =>
+        a.account_type?.toLowerCase() === accountType &&
         (String(a.account_code) === cleanValue || String(a.p_code) === cleanValue)
       );
-      
+
       setFormData(prev => ({
         ...prev,
         [name]: value,
@@ -152,8 +152,8 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
       return;
     }
 
-    const isDuplicate = existingItems.some(i => 
-      i.item_name.toLowerCase().trim() === formData.item_name.toLowerCase().trim() && 
+    const isDuplicate = existingItems.some(i =>
+      i.item_name.toLowerCase().trim() === formData.item_name.toLowerCase().trim() &&
       i.id !== item?.id
     );
 
@@ -182,19 +182,19 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
   const categoryList = [...new Set(existingItems.map(i => i.category).filter(Boolean))];
 
   return (
-    <div className={`bg-white rounded-lg overflow-hidden border border-slate-200 shadow-xl flex flex-col text-xs select-none ${isGu ? 'font-sans' : 'font-mono'}`}>
-      
+    <div className={`bg-white rounded-lg overflow-hidden border border-slate-200 shadow-xl flex flex-col text-sm select-none ${isGu ? 'font-sans' : 'font-mono'}`}>
+
       {/* Title Bar */}
       <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center select-none">
         <div>
-          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             {item?.id ? t('itemForm.editTitle') : t('itemForm.initTitle')}
           </h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('itemForm.subtitle')}</p>
         </div>
         {onClose && (
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md cursor-pointer"
           >
             <X size={15} />
@@ -205,9 +205,8 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
       {/* Form Content */}
       <div className="p-5 flex-1 overflow-y-auto">
         {message && (
-          <div className={`mb-4 p-2.5 border font-bold text-[11px] rounded-md flex items-center gap-2 shadow-sm ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-[#1d5f84]'
-          }`}>
+          <div className={`mb-4 p-2.5 border font-bold text-[12px] rounded-md flex items-center gap-2 shadow-sm ${message.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-[#1d5f84]'
+            }`}>
             {message.type === 'error' ? <AlertCircle size={14} className="shrink-0" /> : <CheckCircle size={14} className="shrink-0" />}
             <span className="uppercase leading-none tracking-wider">{message.text}</span>
           </div>
@@ -215,17 +214,17 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-none">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            
+
             {/* Left Column: Basic Details */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
                 <Package size={13} className="text-[#1d5f84]" />
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t('itemForm.itemIdentity')}</h3>
               </div>
-              
+
               <div className="grid grid-cols-5 gap-3">
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.code')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.code')}</label>
                   <input
                     ref={itemCodeRef}
                     type="text"
@@ -238,21 +237,21 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                   />
                 </div>
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.pCode')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.pCode')}</label>
                   <input
                     ref={pCodeRef}
                     type="text"
                     name="p_code"
                     value={formData.p_code}
-                    onChange={handleChange}
-                    onKeyDown={(e) => handleKeyDown(e, itemNameGuRef)}
+                    readOnly
+                    tabIndex={-1}
                     translate="no"
                     lang="en"
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none transition font-bold text-slate-500 cursor-not-allowed force-en font-sans"
                   />
                 </div>
                 <div className="col-span-3 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 font-sans">{t('itemForm.itemNameGU')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 font-sans">{t('itemForm.itemNameGU')}</label>
                   <input
                     ref={itemNameGuRef}
                     type="text"
@@ -270,7 +269,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.itemName')}</label>
+                <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.itemName')}</label>
                 <input
                   ref={itemNameRef}
                   type="text"
@@ -278,8 +277,8 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                   value={formData.item_name}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setFormData(prev => ({ 
-                      ...prev, 
+                    setFormData(prev => ({
+                      ...prev,
                       item_name: val
                     }));
                   }}
@@ -292,7 +291,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.categorySector')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.categorySector')}</label>
                   <input
                     ref={categoryRef}
                     type="text"
@@ -311,7 +310,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                   </datalist>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.stockUnit')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.stockUnit')}</label>
                   <select
                     ref={unitRef}
                     name="unit"
@@ -331,7 +330,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchaseCode')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchaseCode')}</label>
                   <input
                     ref={purchaseCodeRef}
                     type="text"
@@ -344,7 +343,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salesCode')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salesCode')}</label>
                   <input
                     ref={salesCodeRef}
                     type="text"
@@ -360,7 +359,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchaseBook')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchaseBook')}</label>
                   <select
                     ref={purchaseAccountIdRef}
                     name="purchase_account_id"
@@ -378,7 +377,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salesBook')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salesBook')}</label>
                   <select
                     ref={salesAccountIdRef}
                     name="sales_account_id"
@@ -408,7 +407,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchasePrice')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.purchasePrice')}</label>
                     <input
                       ref={purchasePriceRef}
                       type="number"
@@ -420,7 +419,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salePrice')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.salePrice')}</label>
                     <input
                       ref={salePriceRef}
                       type="number"
@@ -435,7 +434,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.openingStock')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.openingStock')}</label>
                     <input
                       ref={openingStockRef}
                       type="number"
@@ -447,7 +446,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.minStockAlert')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.minStockAlert')}</label>
                     <input
                       ref={minimumStockRef}
                       type="number"
@@ -462,7 +461,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">
                       {t('itemForm.taxPercentage')} <span className="opacity-60 font-sans font-normal">(%)</span>
                     </label>
                     <input
@@ -476,7 +475,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.hsnSacCode')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('itemForm.hsnSacCode')}</label>
                     <input
                       ref={hsnCodeRef}
                       type="text"
@@ -492,7 +491,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                 </div>
 
                 <div className="flex flex-col gap-1 pt-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.registryStatus') || "STATUS"}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.registryStatus') || "STATUS"}</label>
                   <div className="flex items-center gap-4 bg-slate-50 p-2.5 border border-slate-200 rounded-md">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
@@ -514,7 +513,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
                       <Layers size={16} />
                     </div>
                     <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t('itemForm.internalShardId') || "Internal Shard ID"}</p>
+                      <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">{t('itemForm.internalShardId') || "Internal Shard ID"}</p>
                       <p className="text-sm font-bold text-slate-700">#{item.id}</p>
                     </div>
                   </div>
@@ -530,7 +529,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-sm font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
         >
           {t('itemForm.cancel') || "Cancel"}
         </button>
@@ -538,7 +537,7 @@ export default function ItemForm({ item = null, company, onSubmit, onClose, exis
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+          className="px-4 py-1.5 flex items-center gap-1.5 text-sm font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
         >
           {loading ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
           <span>{item?.id ? t('itemForm.update') || "Update" : t('itemForm.save') || "Save"}</span>

@@ -213,7 +213,7 @@ const pdfImports = `import jsPDF from 'jspdf';\nimport autoTable from 'jspdf-aut
                    <Search size={15} className="text-slate-400" />`,
       `<button
                onClick={handleExportPDF}
-               className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-slate-400 transition-all active:scale-95 shadow-sm"
+               className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest hover:border-slate-400 transition-all active:scale-95 shadow-sm"
             >
                <FileText size={15} /> Export PDF
             </button>
@@ -343,7 +343,7 @@ const pdfImports = `import jsPDF from 'jspdf';\nimport autoTable from 'jspdf-aut
     src = src.replace(
       `<button
             onClick={resetForm}
-            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-sm font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
           >
             <X size={16} /> Reset
           </button>
@@ -351,13 +351,13 @@ const pdfImports = `import jsPDF from 'jspdf';\nimport autoTable from 'jspdf-aut
             onClick={handleSave}`,
       `<button
             onClick={resetForm}
-            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-sm font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
           >
             <X size={16} /> Reset
           </button>
           <button
             onClick={handleExportSlipPDF}
-            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-white text-slate-600 px-5 py-3.5 rounded-lg text-sm font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all shadow-sm active:scale-95"
           >
             <FileText size={16} /> Export PDF
           </button>
@@ -390,7 +390,7 @@ const pdfImports = `import jsPDF from 'jspdf';\nimport autoTable from 'jspdf-aut
               <Shield size={10} /> Management / Inventory
             </p>
             <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic">Item Master Registry</h2>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{filteredItems.length} Nomenclature Nodes · Status: {statusFilter.toUpperCase()}</p>
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{filteredItems.length} Nomenclature Nodes · Status: {statusFilter.toUpperCase()}</p>
           </div>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 min-h-[500px] flex flex-col">`

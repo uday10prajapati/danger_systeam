@@ -204,7 +204,7 @@ export default function LedgerReport() {
 
   useEffect(() => {
     if (accountNameSearch && accountId === 'ALL') {
-      const match = accounts.find(acc => 
+      const match = accounts.find(acc =>
         (acc.account_name || '').toLowerCase() === accountNameSearch.toLowerCase() ||
         (acc.account_name_gu || '').toLowerCase() === accountNameSearch.toLowerCase() ||
         (acc.eng_name || '').toLowerCase() === accountNameSearch.toLowerCase()
@@ -227,7 +227,7 @@ export default function LedgerReport() {
 
   useEffect(() => {
     if (memberNameSearch && !memberId) {
-      const match = members.find(mem => 
+      const match = members.find(mem =>
         (mem.member_name || '').toLowerCase() === memberNameSearch.toLowerCase() ||
         (mem.member_name_gu || '').toLowerCase() === memberNameSearch.toLowerCase() ||
         (mem.eng_name || '').toLowerCase() === memberNameSearch.toLowerCase()
@@ -487,7 +487,7 @@ export default function LedgerReport() {
     '5': '૫', '6': '૬', '7': '૭', '8': '૮', '9': '૯'
   };
 
-  const toGujaratiDigits = (value) => 
+  const toGujaratiDigits = (value) =>
     String(value ?? '').replace(/[0-9]/g, (d) => GU_DIGITS[d] || d);
 
   const fmtNum = (value, digits = 2) => {
@@ -534,7 +534,7 @@ export default function LedgerReport() {
   const handleExportPDF = async () => {
     if (data.length === 0) return;
     const periodStr = `${dateRange.startDate} — ${dateRange.endDate}`;
-    
+
     const allRows = [
       ...data,
       { _isTotals: true, debit: totals.debit, credit: totals.credit }
@@ -602,7 +602,7 @@ export default function LedgerReport() {
     const fy = localStorage.getItem('financialYear') || '2026-27';
     const formattedFy = isGu ? toGujaratiDigits(fy) : fy;
     const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
     const formattedDate = isGu ? toGujaratiDigits(dateStr) : dateStr;
     const periodStr = `${dateRange.startDate} — ${dateRange.endDate}`;
     const formattedPeriod = isGu ? toGujaratiDigits(periodStr) : periodStr;
@@ -617,13 +617,13 @@ export default function LedgerReport() {
       const runningVal = formatBalance(row.running_balance);
 
       return `<tr>
-        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">${dateVal}</td>
-        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:center;font-size:10px;font-family:monospace">${refVal}</td>
-        <td style="border:1.5px solid #000000;padding:5px 8px;font-size:10px;font-family:'Prompt', sans-serif">${particularVal}</td>
-        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${openingVal}</td>
-        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${debitVal}</td>
-        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace">${creditVal}</td>
-        <td style="border:1.5px solid #000000;padding:5px 8px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">${runningVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:monospace">${dateVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;text-align:center;font-size:10px;font-family:monospace">${refVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;font-size:10px;font-family:'Prompt', sans-serif">${particularVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">${openingVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">${debitVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace">${creditVal}</td>
+        <td style="border:1.5px solid #000000;padding:5px 12px;text-align:right;font-size:10px;font-family:monospace;font-weight:bold">${runningVal}</td>
       </tr>`;
     }).join('');
 
@@ -642,28 +642,28 @@ export default function LedgerReport() {
       </style>
     </head><body>
       <div style="border:1.5px solid #000000;overflow:hidden;">
-        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:18px;font-weight:bold">${cName}</div>
-        <div style="border-bottom:1.5px solid #000000;padding:8px;text-align:center;font-size:14px;font-weight:bold">${labels.title} - ${accountNameSearch}</div>
-        <div style="border-bottom:1.5px solid #000000;padding:8px 12px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold">
+        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:112px;font-weight:bold">${cName}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:12px;text-align:center;font-size:14px;font-weight:bold">${labels.title} - ${accountNameSearch}</div>
+        <div style="border-bottom:1.5px solid #000000;padding:12px 12px;display:flex;justify-content:space-between;font-size:12px;font-weight:bold">
           <span>${labels.period}: ${formattedPeriod}</span>
           <span style="display:flex;gap:16px"><span>${labels.dateLabel}: ${formattedDate}</span><span>|</span><span>${labels.fyLabel}: ${formattedFy}</span></span>
         </div>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:12%">${labels.postEpoch}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;width:10%">${labels.manifestShard}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:left">${labels.particulars}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.opening}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.debit}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.credit}</th>
-            <th style="border:1.5px solid #000000;padding:6px 8px;font-size:10px;background:#fff;text-align:right;width:15%">${labels.runningPosition}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:12%">${labels.postEpoch}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;width:10%">${labels.manifestShard}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:left">${labels.particulars}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.opening}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.debit}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:13%">${labels.credit}</th>
+            <th style="border:1.5px solid #000000;padding:6px 12px;font-size:10px;background:#fff;text-align:right;width:15%">${labels.runningPosition}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
           <tfoot><tr>
-            <td colspan="4" style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right">${labels.totals}:</td>
-            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totals.debit)}</td>
-            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totals.credit)}</td>
-            <td style="border:1.5px solid #000000;padding:6px 8px;font-size:11px;font-weight:bold;text-align:right;font-family:monospace">-</td>
+            <td colspan="4" style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right">${labels.totals}:</td>
+            <td style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totals.debit)}</td>
+            <td style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right;font-family:monospace">₹${fmtNum(totals.credit)}</td>
+            <td style="border:1.5px solid #000000;padding:6px 12px;font-size:12px;font-weight:bold;text-align:right;font-family:monospace">-</td>
           </tr></tfoot>
         </table>
       </div>
@@ -673,11 +673,11 @@ export default function LedgerReport() {
     setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
-    if (!company) {
+  if (!company) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 font-mono">
         <div className="text-center font-bold text-slate-400">
-          <p className="text-xs mb-4 uppercase tracking-widest">{t('ledgerReport.loading')}</p>
+          <p className="text-sm mb-4 uppercase tracking-widest">{t('ledgerReport.loading')}</p>
           <RefreshCcw className="animate-spin mx-auto text-[#1d5f84]" size={24} />
         </div>
       </div>
@@ -694,11 +694,11 @@ export default function LedgerReport() {
 
         {/* Polished Ledger Statement Registry Table */}
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col min-h-[600px] relative shadow-none">
-          
+
           {/* Table Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none print:hidden">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+              <span className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
                 {accountId !== 'ALL' || memberId ? (
                   <span className="font-extrabold text-[#1d5f84]">
                     {formatBilingualText(
@@ -718,9 +718,9 @@ export default function LedgerReport() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setShowFiltersDrawer(true)}
-                className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
-                    ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold ${hasActiveFilters
+                  ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                   }`}
               >
                 <Filter size={13} className={hasActiveFilters ? "text-white" : "text-slate-500"} />
@@ -735,7 +735,7 @@ export default function LedgerReport() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                  className="px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
                 >
                   <X size={13} className="text-rose-600" />
                   <span>{i18n.language === 'gu' ? 'ક્લિયર' : 'Clear'}</span>
@@ -743,7 +743,7 @@ export default function LedgerReport() {
               )}
               <button
                 onClick={handlePrint}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] font-bold rounded-md transition cursor-pointer uppercase tracking-wider shadow-sm"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[12px] font-bold rounded-md transition cursor-pointer uppercase tracking-wider shadow-sm"
               >
                 <Printer size={13} className="text-slate-500" />
                 <span>{isGu ? 'પ્રિન્ટ' : 'Print'}</span>
@@ -766,7 +766,7 @@ export default function LedgerReport() {
           </div>
 
           <div className="flex-1 overflow-x-auto bg-white custom-scrollbar border-t border-slate-200">
-            <table className="w-full text-left font-sans text-xs border-collapse select-none">
+            <table className="w-full text-left font-sans text-sm border-collapse select-none">
               <thead className="sticky top-0 z-20 shadow-sm">
                 <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
                   <th className="px-3 py-2 border-r border-slate-200 whitespace-nowrap">{t('ledgerReport.postEpoch')}</th>
@@ -799,20 +799,20 @@ export default function LedgerReport() {
                       <tr key={idx} className="hover:bg-slate-50 transition-colors">
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[10px] text-slate-600 font-mono">{formatDate(row.transaction_date)}</td>
                         <td className="px-3 py-1.5 border-r border-slate-100 text-[10px] text-slate-600 font-mono">{row.reference_no}</td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-slate-700 font-medium leading-tight">{isGu ? formatBilingualText(row.description_gu || row.narration_text_gu || row.description || '') : (row.description_en || row.description || row.narration_text || row.eng_name || '—')}</td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-slate-500">
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[12px] text-slate-700 font-medium leading-tight">{isGu ? formatBilingualText(row.description_gu || row.narration_text_gu || row.description || '') : (row.description_en || row.description || row.narration_text || row.eng_name || '—')}</td>
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[12px] text-right font-mono font-semibold text-slate-500">
                           {parseFloat(row.opening_balance || 0) !== 0 ? `₹${fmtNum(row.opening_balance)}` : '—'}
                         </td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-blue-600">{parseFloat(row.debit || 0) > 0 ? `₹${fmtNum(row.debit)}` : '—'}</td>
-                        <td className="px-3 py-1.5 border-r border-slate-100 text-[11px] text-right font-mono font-semibold text-emerald-600">{parseFloat(row.credit || 0) > 0 ? `₹${fmtNum(row.credit)}` : '—'}</td>
-                        <td className="px-3 py-1.5 text-right text-[11px] font-mono font-bold text-slate-800">{formatBalance(row.running_balance)}</td>
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[12px] text-right font-mono font-semibold text-blue-600">{parseFloat(row.debit || 0) > 0 ? `₹${fmtNum(row.debit)}` : '—'}</td>
+                        <td className="px-3 py-1.5 border-r border-slate-100 text-[12px] text-right font-mono font-semibold text-emerald-600">{parseFloat(row.credit || 0) > 0 ? `₹${fmtNum(row.credit)}` : '—'}</td>
+                        <td className="px-3 py-1.5 text-right text-[12px] font-mono font-bold text-slate-800">{formatBalance(row.running_balance)}</td>
                       </tr>
                     ))}
                     {/* Consolidated Total Shard */}
                     <tr className="bg-slate-100 border-t border-slate-200">
-                      <td colSpan="4" className="px-3 py-2 text-[11px] font-black uppercase text-slate-700 text-right border-r border-slate-200">{t('ledgerReport.aggregateIntegrity') || "Total Balance"}:</td>
-                      <td className="px-3 py-2 text-right text-[11px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{fmtNum(totals.debit)}</td>
-                      <td className="px-3 py-2 text-right text-[11px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{fmtNum(totals.credit)}</td>
+                      <td colSpan="4" className="px-3 py-2 text-[12px] font-black uppercase text-slate-700 text-right border-r border-slate-200">{t('ledgerReport.aggregateIntegrity') || "Total Balance"}:</td>
+                      <td className="px-3 py-2 text-right text-[12px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{fmtNum(totals.debit)}</td>
+                      <td className="px-3 py-2 text-right text-[12px] font-mono font-bold text-[#1d5f84] border-r border-slate-200">₹{fmtNum(totals.credit)}</td>
                       <td className="px-3 py-2 text-right opacity-60 text-[10px] tracking-widest uppercase font-sans text-[#1d5f84]">End_of_Window</td>
                     </tr>
                   </>
@@ -822,7 +822,7 @@ export default function LedgerReport() {
           </div>
 
           {/* Footer */}
-          <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center text-[9px] font-mono text-slate-400 uppercase tracking-wider gap-2 select-none print:hidden">
+          <div className="bg-slate-100 border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-slate-400 uppercase tracking-wider gap-2 select-none print:hidden">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-[#1d5f84] rounded-full"></div> System Status: Verified</span>
               <span>Shards: {data.length}</span>
@@ -851,7 +851,7 @@ export default function LedgerReport() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2 select-none">
                 <Filter size={14} className="text-[#1d5f84]" />
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                   {isGu ? 'ફિલ્ટર પરિમાણો' : 'Filter Parameters'}
                 </span>
               </div>
@@ -873,25 +873,25 @@ export default function LedgerReport() {
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">{isGu ? 'થી' : 'From'}</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">{isGu ? 'થી' : 'From'}</span>
                     <input
                       ref={startDateRef}
                       type="date"
                       value={dateRange.startDate}
                       onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                      onKeyDown={(e) => { if(e.key === 'Enter') endDateRef.current?.focus(); }}
-                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full"
+                      onKeyDown={(e) => { if (e.key === 'Enter') endDateRef.current?.focus(); }}
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold font-mono outline-none w-full"
                     />
                   </div>
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">{isGu ? 'સુધી' : 'To'}</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">{isGu ? 'સુધી' : 'To'}</span>
                     <input
                       ref={endDateRef}
                       type="date"
                       value={dateRange.endDate}
                       onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                      onKeyDown={(e) => { if(e.key === 'Enter') accountCodeRef.current?.focus(); }}
-                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold font-mono outline-none w-full"
+                      onKeyDown={(e) => { if (e.key === 'Enter') accountCodeRef.current?.focus(); }}
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-sm text-slate-700 font-bold font-mono outline-none w-full"
                     />
                   </div>
                 </div>
@@ -911,7 +911,7 @@ export default function LedgerReport() {
                     onFocus={() => { setShowAccountDropdown(true); setShowMemberDropdown(false); }}
                     onKeyDown={handleAccountCodeKeyDown}
                     placeholder={isGu ? 'આઈડી' : 'ID'}
-                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
+                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-sm text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
                   />
                   <input
                     ref={accountNameRef}
@@ -921,7 +921,7 @@ export default function LedgerReport() {
                     onFocus={() => { setShowAccountDropdown(true); setShowMemberDropdown(false); }}
                     onKeyDown={handleAccountNameKeyDown}
                     placeholder={t('sabhasadLedgerSummary.accountNomenclature') || "Account Name"}
-                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs text-slate-700 font-bold flex-1 uppercase outline-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}
+                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm text-slate-700 font-bold flex-1 uppercase outline-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}
                   />
                 </div>
 
@@ -929,7 +929,7 @@ export default function LedgerReport() {
                   <div className="absolute top-[102%] left-0 right-0 bg-white border border-slate-200 rounded-md z-[110] mt-0.5 max-h-40 overflow-y-auto shadow-sm">
                     <div
                       onClick={() => handleSelectAccount(null)}
-                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
+                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[12px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
                     >
                       <Search size={10} />
                       <span>{t('sabhasadLedgerSummary.allAccounts')}</span>
@@ -944,7 +944,7 @@ export default function LedgerReport() {
                         <span className="text-[10px] font-bold truncate">
                           {getDisplayName(a, isGu)}
                         </span>
-                        <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{a.id}</span>
+                        <span className="text-[12px] font-mono text-slate-400 font-semibold shrink-0">#{a.id}</span>
                       </div>
                     ))}
                   </div>
@@ -965,7 +965,7 @@ export default function LedgerReport() {
                     onFocus={() => { setShowMemberDropdown(true); setShowAccountDropdown(false); }}
                     onKeyDown={handleMemberCodeKeyDown}
                     placeholder={isGu ? 'આઈડી' : 'ID'}
-                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
+                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-sm text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
                   />
                   <input
                     ref={memberNameRef}
@@ -975,7 +975,7 @@ export default function LedgerReport() {
                     onFocus={() => { setShowMemberDropdown(true); setShowAccountDropdown(false); }}
                     onKeyDown={handleMemberNameKeyDown}
                     placeholder={t('sabhasadLedgerSummary.nameSearch') || "Member Name"}
-                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs text-slate-700 font-bold flex-1 uppercase outline-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}
+                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm text-slate-700 font-bold flex-1 uppercase outline-none ${i18n.language === 'gu' ? 'font-prompt' : 'font-mono'}`}
                   />
                 </div>
 
@@ -983,7 +983,7 @@ export default function LedgerReport() {
                   <div className="absolute top-[102%] left-0 right-0 bg-white border border-slate-200 rounded-md z-[110] mt-0.5 max-h-40 overflow-y-auto shadow-sm">
                     <div
                       onClick={() => handleSelectMember(null)}
-                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
+                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[12px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
                     >
                       <Search size={10} />
                       <span>{t('sabhasadLedgerSummary.allMembers')}</span>
@@ -998,7 +998,7 @@ export default function LedgerReport() {
                         <span className="text-[10px] font-bold truncate">
                           {getMemberDisplayName(m, isGu)}
                         </span>
-                        <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{m.id}</span>
+                        <span className="text-[12px] font-mono text-slate-400 font-semibold shrink-0">#{m.id}</span>
                       </div>
                     ))}
                   </div>
@@ -1040,7 +1040,7 @@ export default function LedgerReport() {
                   clearFilters();
                   setShowFiltersDrawer(false);
                 }}
-                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
               >
                 {isGu ? 'રીસેટ કરો' : 'Reset All'}
               </button>
@@ -1049,7 +1049,7 @@ export default function LedgerReport() {
                   fetchReportData();
                   setShowFiltersDrawer(false);
                 }}
-                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
+                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
               >
                 {isGu ? 'વિવરણ જુઓ' : 'View Statement'}
               </button>
@@ -1068,7 +1068,7 @@ export default function LedgerReport() {
           .bg-slate-100, .bg-slate-50 { background-color: #f8fafc !important; }
           .rounded-lg, .rounded-none { border-radius: 0 !important; border: none !important; box-shadow: none !important; }
           table { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important; }
-          th, td { border-bottom: 1px solid #e2e8f0 !important; padding: 8px 10px !important; }
+          th, td { border-bottom: 1px solid #e2e8f0 !important; padding: 12px 10px !important; }
           tr { page-break-inside: avoid; }
         }
       `}} />

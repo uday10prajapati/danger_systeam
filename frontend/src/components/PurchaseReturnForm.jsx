@@ -29,7 +29,7 @@ const FormInput = ({ className = "", error, icon: Icon, ...props }) => (
         {...props}
       />
     </div>
-    {error && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-1">{error}</p>}
+    {error && <p className="text-[12px] font-black text-rose-500 uppercase tracking-widest ml-1">{error}</p>}
   </div>
 );
 
@@ -183,7 +183,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
         {/* Step 1: Initialize Manifest */}
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
               <div className="w-8 h-0.5 bg-amber-600"></div> Initialize Procurement Reversal
             </h3>
             {selectedPurchase && (
@@ -260,7 +260,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
                     placeholder="SELECT RELEVANT INWARD SHARD (INV #)..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-14 pl-14 pr-6 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-amber-500 outline-none transition-all font-black uppercase text-xs tracking-widest placeholder:text-slate-200"
+                    className="w-full h-14 pl-14 pr-6 bg-slate-50/50 border border-slate-100 rounded-lg focus:bg-white focus:border-amber-500 outline-none transition-all font-black uppercase text-sm tracking-widest placeholder:text-slate-200"
                   />
                 </div>
               </div>
@@ -277,8 +277,8 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic truncate max-w-[150px]">{p.supplier_name || 'GENERIC_VENDOR_ENTITY'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-black italic text-slate-900">₹{parseFloat(p.total_amount).toLocaleString()}</p>
-                      <p className="text-[9px] font-black text-slate-300 uppercase italic">{new Date(p.purchase_date).toLocaleDateString('en-GB')}</p>
+                      <p className="text-sm font-black italic text-slate-900">₹{parseFloat(p.total_amount).toLocaleString()}</p>
+                      <p className="text-[12px] font-black text-slate-300 uppercase italic">{new Date(p.purchase_date).toLocaleDateString('en-GB')}</p>
                     </div>
                   </button>
                 ))}
@@ -307,7 +307,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
         {/* Step 2: Component Configuration */}
         {selectedPurchase && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom duration-500">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
               <div className="w-8 h-0.5 bg-rose-500"></div> Component Reversal Configuration
             </h3>
 
@@ -317,7 +317,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <p className="text-base font-black text-slate-800 tracking-tight uppercase italic">{item.item_name}</p>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Inbound: {item.purchased_quantity} Units @ ₹{parseFloat(item.purchase_rate).toFixed(2)}</p>
+                      <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest italic">Inbound: {item.purchased_quantity} Units @ ₹{parseFloat(item.purchase_rate).toFixed(2)}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Reversal Impact</p>
@@ -408,7 +408,7 @@ export default function PurchaseReturnForm({ onClose, onSuccess, company }) {
                 <button
                   onClick={handleSubmit}
                   disabled={loading || totalReturnAmount <= 0}
-                  className="flex-1 md:flex-none bg-amber-600 hover:bg-white hover:text-amber-600 text-white font-black py-6 px-12 rounded-lg transition-all shadow-xl shadow-amber-500/20 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-3 uppercase text-xs tracking-widest italic"
+                  className="flex-1 md:flex-none bg-amber-600 hover:bg-white hover:text-amber-600 text-white font-black py-6 px-12 rounded-lg transition-all shadow-xl shadow-amber-500/20 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-3 uppercase text-sm tracking-widest italic"
                 >
                   {loading ? <RefreshCcw className="animate-spin" size={20} /> : <><Save size={20} /> Commit Reversal</>}
                 </button>

@@ -333,7 +333,7 @@ export default function ItemMaster() {
         </div>
         <h2 className="text-xl font-bold text-slate-800 mb-2">{t('accountMaster.errors.noCompany')}</h2>
         <p className="text-slate-500 mb-6 text-center max-w-md text-sm">{t('accountMaster.errors.companyDescription')}</p>
-        <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white rounded-md shadow-none transition-colors text-xs font-bold uppercase tracking-widest">
+        <button onClick={() => window.location.reload()} className="flex items-center px-4 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white rounded-md shadow-none transition-colors text-sm font-bold uppercase tracking-widest">
           <RefreshCcw className="w-4 h-4 mr-2" /> {t('accountMaster.errors.retry')}
         </button>
       </div>
@@ -348,19 +348,19 @@ export default function ItemMaster() {
         {/* Global Summary Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.totalItems') || 'Total Items'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.totalItems') || 'Total Items'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(items.length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.activeItems') || 'Active'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.activeItems') || 'Active'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(items.filter(i => i.is_active).length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.inactiveItems') || 'Inactive'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.inactiveItems') || 'Inactive'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(items.filter(i => !i.is_active).length)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.categories') || 'Categories'}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t('itemMaster.categories') || 'Categories'}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{fmtVal(categories.length)}</span>
           </div>
         </div>
@@ -371,10 +371,10 @@ export default function ItemMaster() {
           {/* Table Control Header Bar (First Line) */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                 {t('itemMaster.title') || 'Item Master'}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {fmtVal(filteredItems.length)} {t('itemMaster.records') || 'Records'}
               </span>
             </div>
@@ -391,7 +391,7 @@ export default function ItemMaster() {
                     setCurrentPage(1);
                   }}
                   placeholder={t('itemMaster.searchPlaceholder') || "Search name or code..."}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -403,7 +403,7 @@ export default function ItemMaster() {
               {/* Add Item Button */}
               <button
                 onClick={handleCreateItem}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-none cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('itemMaster.addItem') || "New Item"}</span>
@@ -450,7 +450,7 @@ export default function ItemMaster() {
                 <button
                   key={tab.value}
                   onClick={() => { setStatusFilter(tab.value); setCurrentPage(1); }}
-                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[11px] font-bold rounded-md transition-all shrink-0 cursor-pointer border ${statusFilter === tab.value
+                  className={`h-7 flex items-center gap-1.5 px-2.5 text-[12px] font-bold rounded-md transition-all shrink-0 cursor-pointer border ${statusFilter === tab.value
                     ? 'bg-[#1d5f84] border-[#1d5f84] text-white'
                     : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
                     }`}
@@ -470,16 +470,16 @@ export default function ItemMaster() {
             {paginatedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
                 <Database size={32} className="text-slate-300 opacity-30" />
-                <p className="text-xs font-bold text-slate-400">{t('itemMaster.noRecords')}</p>
+                <p className="text-sm font-bold text-slate-400">{t('itemMaster.noRecords')}</p>
                 <button
                   onClick={handleCreateItem}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
+                  className="text-sm font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
                 >
                   + {t('itemMaster.addItem')}
                 </button>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-12">#</th>
@@ -502,8 +502,8 @@ export default function ItemMaster() {
                       >
                         <td className="px-3.5 py-2 text-center font-mono text-slate-500 border-r border-slate-100">{fmtVal(globalIdx)}</td>
                         <td className="px-3.5 py-2 text-center font-mono font-bold text-[#1d5f84] border-r border-slate-100">{fmtVal(item.item_code || item.id)}</td>
-                        <td className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-800 ${isGu ? '' : 'font-sans uppercase'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
-                          {isGu ? formatBilingualText(displayItemName(item)) : displayItemName(item)}
+                        <td className={`px-3.5 py-2 border-r border-slate-100 font-bold text-slate-800 break-words whitespace-normal ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>
+                          {displayItemName(item)}
                         </td>
                         <td className="px-3.5 py-2 text-center border-r border-slate-100 font-bold text-slate-600">
                           {t(`units.${item.unit}`) || item.unit || '—'}
@@ -514,7 +514,7 @@ export default function ItemMaster() {
                         <td className="px-3.5 py-2 text-center border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleStatusToggle(item)}
-                            className={`px-2.5 py-0.5 text-[9px] font-bold rounded-md border transition cursor-pointer ${item.is_active
+                            className={`px-2.5 py-0.5 text-[12px] font-bold rounded-md border transition cursor-pointer ${item.is_active
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                               : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
                               }`}
@@ -575,7 +575,7 @@ export default function ItemMaster() {
                 >
                   Prev
                 </button>
-                <span className="text-xs font-bold text-slate-600 px-1.5">
+                <span className="text-sm font-bold text-slate-600 px-1.5">
                   {fmtVal(currentPage)} / {fmtVal(totalPages)}
                 </span>
                 <button
@@ -639,7 +639,7 @@ export default function ItemMaster() {
                       {isGu ? formatBilingualText(displayItemName(selectedItem)) : displayItemName(selectedItem)}
                     </h2>
                     {selectedItem.category && (
-                      <span className="px-2 py-0.5 rounded-md text-[8px] font-bold tracking-wider uppercase border bg-slate-50 border-slate-200 text-slate-655">
+                      <span className="px-2 py-0.5 rounded-md text-[12px] font-bold tracking-wider uppercase border bg-slate-50 border-slate-200 text-slate-655">
                         {selectedItem.category}
                       </span>
                     )}
@@ -653,18 +653,18 @@ export default function ItemMaster() {
               {/* Identification Badges */}
               <div className="flex flex-wrap gap-1.5 mt-3">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                  <span className="text-[8px] text-slate-400 uppercase">{isGu ? "વસ્તુ કોડ" : "Item Code"}:</span>
+                  <span className="text-[12px] text-slate-400 uppercase">{isGu ? "વસ્તુ કોડ" : "Item Code"}:</span>
                   <span className="font-mono text-[#1d5f84]">{fmtVal(selectedItem.item_code || selectedItem.id)}</span>
                 </span>
                 {selectedItem.p_code && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                    <span className="text-[8px] text-slate-400 uppercase">P-Code:</span>
+                    <span className="text-[12px] text-slate-400 uppercase">P-Code:</span>
                     <span className="font-mono text-[#1d5f84]">{selectedItem.p_code}</span>
                   </span>
                 )}
                 {selectedItem.unit && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                    <span className="text-[8px] text-slate-400 uppercase">{isGu ? "એકમ" : "Unit"}:</span>
+                    <span className="text-[12px] text-slate-400 uppercase">{isGu ? "એકમ" : "Unit"}:</span>
                     <span className="font-bold text-slate-700">{t(`units.${selectedItem.unit}`) || selectedItem.unit}</span>
                   </span>
                 )}
@@ -680,7 +680,7 @@ export default function ItemMaster() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveDetailTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold transition relative border-b-2 cursor-pointer ${activeDetailTab === tab.id
+                  className={`flex-1 flex items-center justify-center gap-1 py-2 text-[12px] font-bold transition relative border-b-2 cursor-pointer ${activeDetailTab === tab.id
                     ? 'text-[#1d5f84] border-[#1d5f84]'
                     : 'text-slate-400 hover:text-slate-800 border-transparent'
                     }`}
@@ -697,25 +697,25 @@ export default function ItemMaster() {
               {activeDetailTab === 'general' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુનું નામ" : "Item Name"}</p>
-                    <p className={`text-xs font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુનું નામ" : "Item Name"}</p>
+                    <p className={`text-sm font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
                       {isGu ? formatBilingualText(displayItemName(selectedItem)) : displayItemName(selectedItem)}
                     </p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુ કોડ" : "Item Code"}</p>
-                    <p className="text-xs font-bold text-[#1d5f84] font-mono">{fmtVal(selectedItem.item_code || selectedItem.id)}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુ કોડ" : "Item Code"}</p>
+                    <p className="text-sm font-bold text-[#1d5f84] font-mono">{fmtVal(selectedItem.item_code || selectedItem.id)}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">P-Code</p>
-                    <p className="text-xs font-bold text-slate-800 font-mono">{selectedItem.p_code || '-'}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">P-Code</p>
+                    <p className="text-sm font-bold text-slate-800 font-mono">{selectedItem.p_code || '-'}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઇન્ટરનલ આઈડી" : "Shard ID"}</p>
-                    <p className="text-xs font-bold text-slate-500 font-mono">#{selectedItem.id}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "ઇન્ટરનલ આઈડી" : "Shard ID"}</p>
+                    <p className="text-sm font-bold text-slate-500 font-mono">#{selectedItem.id}</p>
                   </div>
                 </div>
               )}
@@ -723,22 +723,22 @@ export default function ItemMaster() {
               {activeDetailTab === 'inventory' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "શ્રેણી" : "Category"}</p>
-                    <p className="text-xs font-bold text-slate-800 uppercase">{selectedItem.category || '—'}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "શ્રેણી" : "Category"}</p>
+                    <p className="text-sm font-bold text-slate-800 uppercase">{selectedItem.category || '—'}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "એકમ માપ" : "Unit scale"}</p>
-                    <p className="text-xs font-bold text-slate-800 uppercase">{t(`units.${selectedItem.unit}`) || selectedItem.unit || '—'}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "એકમ માપ" : "Unit scale"}</p>
+                    <p className="text-sm font-bold text-slate-800 uppercase">{t(`units.${selectedItem.unit}`) || selectedItem.unit || '—'}</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુ કરવેરા (ટેક્સ)" : "Tax percentage"}</p>
-                    <p className="text-xs font-bold text-slate-800 font-mono">{fmtVal((parseFloat(selectedItem.tax_percentage) || 0).toFixed(2))}%</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુ કરવેરા (ટેક્સ)" : "Tax percentage"}</p>
+                    <p className="text-sm font-bold text-slate-800 font-mono">{fmtVal((parseFloat(selectedItem.tax_percentage) || 0).toFixed(2))}%</p>
                   </div>
 
                   <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                    <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુ સ્થિતિ" : "Item Status"}</p>
+                    <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? "વસ્તુ સ્થિતિ" : "Item Status"}</p>
                     <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${selectedItem.is_active
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                       : 'bg-rose-50 text-rose-700 border-rose-100'
@@ -758,7 +758,7 @@ export default function ItemMaster() {
                   e.stopPropagation();
                   handleStatusToggle(selectedItem);
                 }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md border transition cursor-pointer ${selectedItem.is_active
+                className={`px-3 py-1.5 text-sm font-bold rounded-md border transition cursor-pointer ${selectedItem.is_active
                   ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                   : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                   }`}
@@ -771,7 +771,7 @@ export default function ItemMaster() {
                   handleEditItem(selectedItem);
                   handleSelectItem(null);
                 }}
-                className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-xs font-bold text-slate-650 hover:bg-slate-50 transition cursor-pointer"
+                className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-sm font-bold text-slate-650 hover:bg-slate-50 transition cursor-pointer"
                 title="Edit Item"
               >
                 <Edit3 size={12} />
@@ -782,7 +782,7 @@ export default function ItemMaster() {
                   e.stopPropagation();
                   confirmDelete(selectedItem);
                 }}
-                className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-xs font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
+                className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-sm font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
                 title="Delete Item"
               >
                 <Trash2 size={12} />

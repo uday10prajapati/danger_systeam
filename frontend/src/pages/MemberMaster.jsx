@@ -47,7 +47,20 @@ const labels = {
     memberInfo: 'Member Info',
     villageAddress: 'Village & Address',
     bankDetails: 'Bank Details',
-    actions: 'Actions'
+    actions: 'Actions',
+    filterTitle: 'Filter Parameters',
+    statusFilter: 'Status Filter',
+    villageFilter: 'Village Filter',
+    bankFilter: 'Bank Filter',
+    allStatus: 'All Status',
+    allVillages: 'All Villages',
+    allBanks: 'All Banks',
+    active: 'Active',
+    inactive: 'Inactive',
+    clearFilters: 'Clear Filters',
+    resetAll: 'Reset All',
+    applyFilters: 'Apply Filters',
+    filtersActive: 'Filters Active'
   },
   gu: {
     classAll: 'બધા વર્ગ',
@@ -68,7 +81,7 @@ const labels = {
     phone: 'ફોન નંબર',
     village: 'ગામ',
     address: 'સરનામું',
-    bank: 'બેંકનું નામ',
+    bank: 'બેંક નામ',
     branch: 'શાખાનું નામ',
     accountNo: 'ખાતા નંબર',
     ifsc: 'આઈ.એફ.એસ.સી કોડ',
@@ -79,7 +92,20 @@ const labels = {
     memberInfo: 'સભ્ય માહિતી',
     villageAddress: 'ગામ અને સરનામું',
     bankDetails: 'બેંક વિગતો',
-    actions: 'ક્રિયાઓ'
+    actions: 'ક્રિયાઓ',
+    filterTitle: 'ફિલ્ટર વિગતો',
+    statusFilter: 'સ્થિતિ ફિલ્ટર',
+    villageFilter: 'ગામ ફિલ્ટર',
+    bankFilter: 'બેંક ફિલ્ટર',
+    allStatus: 'બધી સ્થિતિ',
+    allVillages: 'બધા ગામો',
+    allBanks: 'બધી બેંક',
+    active: 'સક્રિય',
+    inactive: 'નિષ્ક્રિય',
+    clearFilters: 'ફિલ્ટર સાફ કરો',
+    resetAll: 'બધું રીસેટ કરો',
+    applyFilters: 'ફિલ્ટર લાગુ કરો',
+    filtersActive: 'ફિલ્ટર સક્રિય છે'
   }
 }
 
@@ -102,6 +128,37 @@ const getInitials = (member, isGu) => {
     : (member.eng_name || member.member_name || member.member_name_gu || '');
   if (!name) return 'M';
   return name.trim().charAt(0).toUpperCase();
+};
+
+// Bank names translation mapping
+const bankTranslations = {
+  'BDHI': 'બીધીધી',
+  'BDHI Bank': 'બીધીધી બેંક',
+  'SBI': 'એસ.બી.આઈ.',
+  'State Bank of India': 'ભારતીય સ્ટેટ બેંક',
+  'HDFC': 'એચ.ડી.એફ.સી.',
+  'HDFC Bank': 'એચ.ડી.એફ.સી. બેંક',
+  'ICICI': 'આઈ.સી.આઈ.સી.આઈ.',
+  'ICICI Bank': 'આઈ.સી.આઈ.સી.આઈ. બેંક',
+  'Axis': 'ધરા',
+  'Axis Bank': 'ધરા બેંક',
+  'IDBI': 'આઈ.ડી.બી.આઈ.',
+  'IDBI Bank': 'આઈ.ડી.બી.આઈ. બેંક',
+  'BOI': 'બી.ઓ.આઈ.',
+  'Bank of India': 'ભારતીય બેંક',
+  'Union': 'સંઘ',
+  'Union Bank': 'સંઘ બેંક',
+  'Central': 'કેન્દ્રીય',
+  'Central Bank': 'કેન્દ્રીય બેંક',
+  'Dena': 'દેણા',
+  'Dena Bank': 'દેણા બેંક',
+  'Punjab': 'પંજાબ',
+  'Punjab National Bank': 'પંજાબ નેશનલ બેંક'
+};
+
+const getDisplayBankName = (bankName, isGu) => {
+  if (!bankName) return '';
+  return isGu ? (bankTranslations[bankName] || bankName) : bankName;
 };
 
 export default function MemberMaster() {
@@ -189,13 +246,15 @@ export default function MemberMaster() {
       m.member_code?.toString().includes(searchQuery) ||
       m.p_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.phone?.includes(searchQuery) ||
-      m.village_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      m.village_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.village_name_gu?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.village_name_en?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' ||
       (statusFilter === 'active' && m.is_active === 1) ||
       (statusFilter === 'inactive' && m.is_active === 0)
 
-    const matchesVillage = villageFilter === 'all' || m.village_name === villageFilter
+    const matchesVillage = villageFilter === 'all' || String(m.village_code || '') === String(villageFilter)
     const matchesBank = bankFilter === 'all' || m.bank_name === bankFilter
 
     const isNominal = m.nominal_member === 'true' || m.nominal_member === true || m.nominal_member === 1
@@ -206,7 +265,13 @@ export default function MemberMaster() {
     return matchesSearch && matchesStatus && matchesVillage && matchesBank && matchesClass
   })
 
-  const uniqueVillages = [...new Set((members || []).map(m => m.village_name).filter(Boolean))].sort()
+  const uniqueVillages = Array.from(
+    new Map(
+      (members || [])
+        .filter(m => m.village_code)
+        .map(m => [String(m.village_code), { code: String(m.village_code), name: displayVillageName(m) || m.village_name || '' }])
+    ).values()
+  ).filter(v => v.name).sort((a, b) => a.name.localeCompare(b.name))
   const uniqueBanks = [...new Set((members || []).map(m => m.bank_name).filter(Boolean))].sort()
 
   const selectedMember = members.find(m => m.id === selectedMemberId)
@@ -230,10 +295,16 @@ export default function MemberMaster() {
     return isGu ? toGujaratiDigits(val) : val
   }
 
-  const displayMemberName = (member) => {
+  function displayMemberName(member) {
     return isGu
       ? (member.member_name_gu || member.member_name || member.eng_name || '')
       : (member.eng_name || member.member_name || member.member_name_gu || '')
+  }
+
+  function displayVillageName(member) {
+    return isGu
+      ? (member.village_name_gu || member.village_name || member.village_name_en || '')
+      : (member.village_name_en || member.village_name || member.village_name_gu || '')
   }
 
   const fmtBardan = (val) => {
@@ -364,7 +435,7 @@ export default function MemberMaster() {
         header: isGu ? 'ગામ' : 'Village',
         align: 'left',
         width: '18%',
-        render: (row) => row.village_name || '',
+        render: (row) => displayVillageName(row) || '',
         usePromptFont: isGu
       },
       {
@@ -375,10 +446,10 @@ export default function MemberMaster() {
         usePromptFont: isGu
       },
       {
-        header: isGu ? 'બેંક' : 'Bank',
+        header: 'Bank',
         align: 'left',
         width: '14%',
-        render: (row) => row.bank_name || ''
+        render: (row) => getDisplayBankName(row.bank_name, isGu) || ''
       },
       {
         header: isGu ? 'સ્થિતિ' : 'Status',
@@ -434,19 +505,19 @@ export default function MemberMaster() {
         {/* Minimalist Stats Summary Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ સભાસદો" : "Total Members"}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ સભાસદો" : "Total Members"}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{toGujaratiDigits(statTotalMembers)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "નિયમિત સભાસદો" : "Regular Members"}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "નિયમિત સભાસદો" : "Regular Members"}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{toGujaratiDigits(statRegularMembers)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "નામંજૂર સભાસદો" : "Nominal Members"}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "નામંજૂર સભાસદો" : "Nominal Members"}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1">{toGujaratiDigits(statNominalMembers)}</span>
           </div>
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-none flex flex-col justify-between">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ બારદાન ઓપનિંગ" : "Total Bardan Opening"}</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{isGu ? "કુલ બારદાન ઓપનિંગ" : "Total Bardan Opening"}</span>
             <span className="text-[13px] font-bold font-sans text-slate-800 mt-1 font-mono">{fmtBardan(statBardanOpening)}</span>
           </div>
         </div>
@@ -457,10 +528,10 @@ export default function MemberMaster() {
           {/* Table Control Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
+              <span className={`text-sm font-extrabold text-slate-800 uppercase tracking-wider ${isGu ? 'font-prompt' : ''}`}>
                 {t('memberMaster.title')}
               </span>
-              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[9px] px-1.5 py-0.5 rounded-sm">
+              <span className="bg-slate-200 text-slate-600 font-bold force-en text-[12px] px-1.5 py-0.5 rounded-sm">
                 {filteredMembers.length} {t('villageMaster.records') || "Records"}
               </span>
             </div>
@@ -477,7 +548,7 @@ export default function MemberMaster() {
                     setCurrentPage(1)
                   }}
                   placeholder={t('memberMaster.searchPlaceholder') || "Search name or code..."}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-300 w-full font-semibold"
+                  className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-300 w-full font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="p-0.5 text-slate-300 hover:text-slate-600 transition">
@@ -488,7 +559,7 @@ export default function MemberMaster() {
 
               <button
                 onClick={handleCreateMember}
-                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+                className="h-7 flex items-center gap-1.5 px-2.5 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
               >
                 <Plus size={13} />
                 <span>{t('memberMaster.addMember') || "New Member"}</span>
@@ -500,7 +571,7 @@ export default function MemberMaster() {
                 title={t('sabhasadLedgerSummary.filters') || "Filters"}
               >
                 <Filter size={13} className={hasActiveFilters ? "text-[#1d5f84]" : "text-slate-500"} />
-                <span className="text-[11px] font-bold uppercase tracking-wider">{t('sabhasadLedgerSummary.filters') || "Filters"}</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider">{t('sabhasadLedgerSummary.filters') || "Filters"}</span>
                 {hasActiveFilters && (
                   <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -508,6 +579,16 @@ export default function MemberMaster() {
                   </span>
                 )}
               </button>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="h-7 flex items-center gap-1.5 px-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition rounded-md cursor-pointer shadow-sm"
+                  title={l.clearFilters}
+                >
+                  <X size={13} className="text-slate-500" />
+                  <span className="text-[12px] font-bold uppercase tracking-wider">{l.clearFilters}</span>
+                </button>
+              )}
               <button
                 onClick={handleExportPDF}
                 title={t('common.pdf') || "PDF Report"}
@@ -541,13 +622,13 @@ export default function MemberMaster() {
                     setClassFilter(tab.id)
                     setCurrentPage(1)
                   }}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all shrink-0 cursor-pointer border ${classFilter === tab.id
+                  className={`px-2.5 py-1 text-sm font-bold rounded-md transition-all shrink-0 cursor-pointer border ${classFilter === tab.id
                     ? 'bg-[#1d5f84] border-[#1d5f84] text-white shadow-sm'
                     : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
                     }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`ml-1 text-[9px] px-1.5 py-0.2 rounded-md font-bold font-mono ${classFilter === tab.id ? 'bg-[#154662] text-slate-200' : 'bg-slate-100 text-slate-500'
+                  <span className={`ml-1 text-[12px] px-1.5 py-0.2 rounded-md font-bold font-mono ${classFilter === tab.id ? 'bg-[#154662] text-slate-200' : 'bg-slate-100 text-slate-500'
                     }`}>
                     {fmtVal(tab.count)}
                   </span>
@@ -559,7 +640,7 @@ export default function MemberMaster() {
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
                 <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                  Filters Active
+                  {l.filtersActive}
                 </span>
               </div>
             )}
@@ -570,16 +651,16 @@ export default function MemberMaster() {
             {filteredMembers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-2 text-center p-4">
                 <UserMinus size={32} className="text-slate-300" />
-                <p className="text-xs font-bold text-slate-400">{t('memberMaster.noMembers')}</p>
+                <p className="text-sm font-bold text-slate-400">{t('memberMaster.noMembers')}</p>
                 <button
                   onClick={handleCreateMember}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
+                  className="text-sm font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider cursor-pointer"
                 >
                   + {t('memberMaster.addMember')}
                 </button>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[11px]">
+              <table className="min-w-full divide-y divide-slate-200 border-collapse text-[12px]">
                 <thead className="bg-slate-50 font-sans">
                   <tr>
                     <th className="px-3.5 py-2 text-center font-bold text-slate-400 uppercase tracking-wider border-r border-b border-slate-200 w-12">#</th>
@@ -609,10 +690,10 @@ export default function MemberMaster() {
                             <span>{displayMemberName(member) || '—'}</span>
                           </div>
                         </td>
-                        <td className="px-3.5 py-2 border-r border-slate-100 text-slate-600 font-medium">{member.village_name || '—'}</td>
+                        <td className="px-3.5 py-2 border-r border-slate-100 text-slate-600 font-medium" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>{displayVillageName(member) || '—'}</td>
                         <td className="px-3.5 py-2 border-r border-slate-100 font-mono font-bold text-slate-600">{member.phone ? fmtVal(member.phone) : '—'}</td>
                         <td className="px-3.5 py-2 text-center border-r border-slate-100">
-                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md border ${isNominal
+                          <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-md border ${isNominal
                             ? 'bg-amber-50 border-amber-100 text-amber-600'
                             : 'bg-indigo-50 border-indigo-100 text-indigo-600'
                             }`}>
@@ -622,7 +703,7 @@ export default function MemberMaster() {
                         <td className="px-3.5 py-2 text-center border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleStatusToggle(member)}
-                            className={`px-2 py-0.5 text-[9px] font-bold rounded-md border transition cursor-pointer ${member.is_active
+                            className={`px-2 py-0.5 text-[12px] font-bold rounded-md border transition cursor-pointer ${member.is_active
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                               : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                               }`}
@@ -676,7 +757,7 @@ export default function MemberMaster() {
                 >
                   Prev
                 </button>
-                <span className="text-xs font-bold text-slate-600 px-1.5">
+                <span className="text-sm font-bold text-slate-600 px-1.5">
                   {fmtVal(currentPage)} / {fmtVal(totalPages)}
                 </span>
                 <button
@@ -723,7 +804,7 @@ export default function MemberMaster() {
                       >
                         {displayMemberName(selectedMember)}
                       </h2>
-                      <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold tracking-wider uppercase border ${(selectedMember.nominal_member === 'true' || selectedMember.nominal_member === true || selectedMember.nominal_member === 1)
+                      <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold tracking-wider uppercase border ${(selectedMember.nominal_member === 'true' || selectedMember.nominal_member === true || selectedMember.nominal_member === 1)
                         ? 'bg-amber-50 border-amber-200 text-amber-700'
                         : 'bg-indigo-50 border-indigo-200 text-indigo-700'
                         }`}>
@@ -744,12 +825,12 @@ export default function MemberMaster() {
                 {/* Identification Badges */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                    <span className="text-[8px] text-slate-400 uppercase">{l.memberCode}:</span>
+                    <span className="text-[12px] text-slate-400 uppercase">{l.memberCode}:</span>
                     <span className="font-mono text-[#1d5f84]">{fmtVal(selectedMember.member_code)}</span>
                   </span>
                   {selectedMember.p_code && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md">
-                      <span className="text-[8px] text-slate-400 uppercase">{l.pCode}:</span>
+                      <span className="text-[12px] text-slate-400 uppercase">{l.pCode}:</span>
                       <span className="font-mono text-[#1d5f84]">{selectedMember.p_code}</span>
                     </span>
                   )}
@@ -766,7 +847,7 @@ export default function MemberMaster() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveDetailTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold transition relative border-b-2 cursor-pointer ${activeDetailTab === tab.id
+                    className={`flex-1 flex items-center justify-center gap-1 py-2 text-[12px] font-bold transition relative border-b-2 cursor-pointer ${activeDetailTab === tab.id
                       ? 'text-[#1d5f84] border-[#1d5f84]'
                       : 'text-slate-400 hover:text-slate-800 border-transparent'
                       }`}
@@ -783,9 +864,9 @@ export default function MemberMaster() {
                 {activeDetailTab === 'general' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? l.gujaratiName : l.englishName}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{isGu ? l.gujaratiName : l.englishName}</p>
                       <p
-                        className={`text-xs font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`}
+                        className={`text-sm font-bold text-slate-800 ${isGu ? '' : 'uppercase font-mono'}`}
                         style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                       >
                         {displayMemberName(selectedMember) || '-'}
@@ -793,19 +874,19 @@ export default function MemberMaster() {
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.memberCode}</p>
-                      <p className="text-xs font-bold text-[#1d5f84] font-mono">{fmtVal(selectedMember.member_code)}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.memberCode}</p>
+                      <p className="text-sm font-bold text-[#1d5f84] font-mono">{fmtVal(selectedMember.member_code)}</p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.pCode}</p>
-                      <p className="text-xs font-bold text-slate-800 font-mono text-[#1d5f84]">{selectedMember.p_code || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.pCode}</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono text-[#1d5f84]">{selectedMember.p_code || '-'}</p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2 flex items-center justify-between gap-4">
                       <div className="text-left">
-                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.phone}</p>
-                        <p className="text-xs font-bold text-slate-800 font-mono">{selectedMember.phone ? fmtVal(selectedMember.phone) : '-'}</p>
+                        <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.phone}</p>
+                        <p className="text-sm font-bold text-slate-800 font-mono">{selectedMember.phone ? fmtVal(selectedMember.phone) : '-'}</p>
                       </div>
                       {selectedMember.phone && (
                         <button
@@ -822,15 +903,15 @@ export default function MemberMaster() {
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.village}</p>
-                      <p className="text-xs font-bold text-slate-800">
-                        {selectedMember.village_name || '-'} {selectedMember.village_code ? `(${fmtVal(selectedMember.village_code)})` : ''}
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.village}</p>
+                      <p className="text-sm font-bold text-slate-800">
+                        {displayVillageName(selectedMember) || '-'} {selectedMember.village_code ? `(${fmtVal(selectedMember.village_code)})` : ''}
                       </p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.address}</p>
-                      <p className="text-xs font-medium text-slate-700 leading-relaxed text-left">{selectedMember.address_no || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.address}</p>
+                      <p className="text-sm font-medium text-slate-700 leading-relaxed text-left">{selectedMember.address_no || '-'}</p>
                     </div>
                   </div>
                 )}
@@ -838,24 +919,24 @@ export default function MemberMaster() {
                 {activeDetailTab === 'bank' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.bank}</p>
-                      <p className="text-xs font-bold text-slate-800 uppercase">{selectedMember.bank_name || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.bank}</p>
+                      <p className={`text-sm font-bold text-slate-800 ${isGu ? 'font-prompt' : 'uppercase'}`}>{getDisplayBankName(selectedMember.bank_name, isGu) || '-'}</p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.branch}</p>
-                      <p className="text-xs font-bold text-slate-800">{selectedMember.branch_name || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.branch}</p>
+                      <p className="text-sm font-bold text-slate-800">{selectedMember.branch_name || '-'}</p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{t('memberForm.accountType') || "Account Type"}</p>
-                      <p className="text-xs font-bold text-slate-800">{selectedMember.account_type || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{t('memberForm.accountType') || "Account Type"}</p>
+                      <p className="text-sm font-bold text-slate-800">{selectedMember.account_type || '-'}</p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2 flex items-center justify-between gap-4">
                       <div className="text-left">
-                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.accountNo}</p>
-                        <p className="text-xs font-bold text-slate-800 font-mono">{selectedMember.full_ac_number || '-'}</p>
+                        <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.accountNo}</p>
+                        <p className="text-sm font-bold text-slate-800 font-mono">{selectedMember.full_ac_number || '-'}</p>
                       </div>
                       {selectedMember.full_ac_number && (
                         <button
@@ -872,8 +953,8 @@ export default function MemberMaster() {
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md sm:col-span-2">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.ifsc}</p>
-                      <p className="text-xs font-bold text-slate-800 font-mono uppercase">{selectedMember.ifsc_code || '-'}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.ifsc}</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono uppercase">{selectedMember.ifsc_code || '-'}</p>
                     </div>
                   </div>
                 )}
@@ -881,7 +962,7 @@ export default function MemberMaster() {
                 {activeDetailTab === 'bardan' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.classification}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.classification}</p>
                       <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${(selectedMember.nominal_member === 'true' || selectedMember.nominal_member === true || selectedMember.nominal_member === 1)
                         ? 'bg-amber-50 text-amber-700 border-amber-100'
                         : 'bg-indigo-50 text-indigo-700 border-indigo-100'
@@ -894,12 +975,12 @@ export default function MemberMaster() {
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.bardanOpeningBalance}</p>
-                      <p className="text-xs font-black text-slate-800 font-mono">{fmtBardan(selectedMember.bardan_opening)}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.bardanOpeningBalance}</p>
+                      <p className="text-sm font-black text-slate-800 font-mono">{fmtBardan(selectedMember.bardan_opening)}</p>
                     </div>
 
                     <div className="bg-slate-50/50 border border-slate-200 p-3 rounded-md">
-                      <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.status}</p>
+                      <p className="text-[12px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{l.status}</p>
                       <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md ${selectedMember.is_active
                         ? 'bg-emerald-500 text-white'
                         : 'bg-amber-500 text-white'
@@ -919,7 +1000,7 @@ export default function MemberMaster() {
                     e.stopPropagation()
                     handleStatusToggle(selectedMember)
                   }}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md border transition cursor-pointer ${selectedMember.is_active
+                  className={`px-3 py-1.5 text-sm font-bold rounded-md border transition cursor-pointer ${selectedMember.is_active
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                     : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                     }`}
@@ -932,7 +1013,7 @@ export default function MemberMaster() {
                     handleEditMember(selectedMember)
                     setSelectedMemberId(null)
                   }}
-                  className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 bg-white rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                   title="Edit Member"
                 >
                   <Edit3 size={12} />
@@ -944,7 +1025,7 @@ export default function MemberMaster() {
                     confirmDelete(selectedMember)
                     setSelectedMemberId(null)
                   }}
-                  className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-xs font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
+                  className="px-3 py-1.5 flex items-center gap-1 border border-rose-100 bg-rose-50 rounded-md text-sm font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
                   title="Delete Member"
                 >
                   <Trash2 size={12} />
@@ -1001,8 +1082,8 @@ export default function MemberMaster() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2 select-none">
                 <Filter size={14} className="text-[#1d5f84]" />
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  Filter Parameters
+                <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                  {l.filterTitle}
                 </span>
               </div>
               <button
@@ -1018,7 +1099,7 @@ export default function MemberMaster() {
               {/* Status Selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('statusFilter') || "Status Filter"}
+                  {l.statusFilter}
                 </span>
                 <select
                   value={statusFilter}
@@ -1026,18 +1107,18 @@ export default function MemberMaster() {
                     setStatusFilter(e.target.value)
                     setCurrentPage(1)
                   }}
-                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full"
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full"
                 >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="all">{l.allStatus}</option>
+                  <option value="active">{l.active}</option>
+                  <option value="inactive">{l.inactive}</option>
                 </select>
               </div>
 
               {/* Village selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.villageFilter') || "Village Filter"}
+                  {l.villageFilter}
                 </span>
                 <select
                   value={villageFilter}
@@ -1045,11 +1126,11 @@ export default function MemberMaster() {
                     setVillageFilter(e.target.value)
                     setCurrentPage(1)
                   }}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : ''}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : ''}`}
                 >
-                  <option value="all">All Villages</option>
+                  <option value="all">{l.allVillages}</option>
                   {uniqueVillages.map(v => (
-                    <option key={v} value={v}>{v}</option>
+                    <option key={v.code} value={v.code}>{v.name}</option>
                   ))}
                 </select>
               </div>
@@ -1057,7 +1138,7 @@ export default function MemberMaster() {
               {/* Bank selector */}
               <div className="space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  {t('sabhasadLedgerSummary.bankFilter') || "Bank Filter"}
+                  {l.bankFilter}
                 </span>
                 <select
                   value={bankFilter}
@@ -1065,11 +1146,11 @@ export default function MemberMaster() {
                     setBankFilter(e.target.value)
                     setCurrentPage(1)
                   }}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? 'font-prompt' : ''}`}
+                  className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full force-en font-sans"
                 >
-                  <option value="all">All Banks</option>
+                  <option value="all" className="force-en font-sans" lang="en">All Banks</option>
                   {uniqueBanks.map(b => (
-                    <option key={b} value={b}>{b}</option>
+                    <option key={b} value={b} className="force-en font-sans" lang="en">{b}</option>
                   ))}
                 </select>
               </div>
@@ -1082,15 +1163,15 @@ export default function MemberMaster() {
                   clearFilters();
                   setShowFiltersDrawer(false);
                 }}
-                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
               >
-                Reset All
+                {l.resetAll}
               </button>
               <button
                 onClick={() => setShowFiltersDrawer(false)}
-                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
+                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider text-center"
               >
-                Apply Filters
+                {l.applyFilters}
               </button>
             </div>
 

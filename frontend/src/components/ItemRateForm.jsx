@@ -4,7 +4,7 @@ import { X, Save, RefreshCcw, Layers, Loader } from 'lucide-react';
 
 export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
   const { t, i18n } = useTranslation();
-  
+
   const displayItemName = (item) => {
     if (!item) return '';
     return i18n.language === 'gu'
@@ -119,7 +119,7 @@ export default function ItemRateForm({ rate, items, onSubmit, onClose }) {
   };
 
   return (
-    <div className="bg-white p-0 overflow-hidden border border-zinc-400 font-mono text-xs select-none rounded-none animate-none">
+    <div className="bg-white p-0 overflow-hidden border border-zinc-400 font-mono text-sm select-none rounded-none animate-none">
       {/* Modal Header */}
       <div className="bg-zinc-100 px-5 py-3.5 border-b border-zinc-300 flex justify-between items-center select-none animate-none">
         <div>

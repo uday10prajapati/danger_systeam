@@ -14,6 +14,7 @@ import Toast from '../components/Toast';
 import api from '../api';
 import { formatBilingualText, translateSystemText } from '../utils/textUtils';
 import { exportToPDF } from '../utils/pdfExporter';
+import { toISTDateInput } from '../utils/dateUtils';
 
 // Helper function to format dates gracefully and avoid "Invalid Date"
 const formatDate = (dateStr) => {
@@ -45,7 +46,7 @@ export default function SabhasadLedgerSummary() {
     let cleanStr = dateString;
     if (cleanStr.includes(' ')) cleanStr = cleanStr.split(' ')[0];
     if (cleanStr.includes('T')) cleanStr = cleanStr.split('T')[0];
-    
+
     const parts = cleanStr.split('-');
     if (parts.length === 3) {
       const engDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -120,8 +121,8 @@ export default function SabhasadLedgerSummary() {
 
   // Filters
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: toISTDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+    endDate: toISTDateInput()
   });
   const [accountId, setAccountId] = useState('all');
   const [memberId, setMemberId] = useState('all');
@@ -663,7 +664,7 @@ export default function SabhasadLedgerSummary() {
 
     const reportTitle = t('sabhasadLedgerSummary.ledgerSummaryRegistry') || (isGu ? 'સભ્ય ખાતા સારાંશ' : 'Sabhasad Ledger Summary');
     const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
     const formattedDate = isGu ? `તારીખ: ${dateStr}` : `Date: ${dateStr}`;
     const fy = localStorage.getItem('financialYear') || '2026-27';
     const formattedFY = isGu ? `વર્ષ : ${fy}` : `FY: ${fy}`;
@@ -679,15 +680,15 @@ export default function SabhasadLedgerSummary() {
             * { margin:0; padding:0; box-sizing:border-box; }
             body { font-family:'Outfit','Noto Sans Gujarati',Arial,sans-serif; padding:16px; background:#fff; color:#000; }
             .pdf-report-container { border:1.5px solid #000; overflow:hidden; background:#fff; }
-            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:18px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
-            .pdf-header-title { border-bottom:1.5px solid #000; padding:8px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
-            .pdf-info-bar { border-bottom:1.5px solid #000; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; background:#fff; }
+            .pdf-header-company { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:112px; font-weight:bold; font-family:'Prompt','Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-header-title { border-bottom:1.5px solid #000; padding:12px; text-align:center; font-size:14px; font-weight:bold; font-family:'Noto Sans Gujarati','Outfit',sans-serif; color:#000; }
+            .pdf-info-bar { border-bottom:1.5px solid #000; padding:12px 12px; display:flex; justify-content:space-between; align-items:center; background:#fff; }
             .pdf-table { width:100%; border-collapse:collapse; }
-            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:6px 8px; font-size:10px; color:#000; }
+            .pdf-table th, .pdf-table td { border:1.5px solid #000 !important; padding:6px 12px; font-size:10px; color:#000; }
             .pdf-table th { font-weight:bold; background:#fff; border-top:none !important; }
             .pdf-table th:first-child, .pdf-table td:first-child { border-left:none !important; }
             .pdf-table th:last-child, .pdf-table td:last-child { border-right:none !important; }
-            .pdf-table tfoot td { font-weight:bold; font-size:11px; border-bottom:none !important; }
+            .pdf-table tfoot td { font-weight:bold; font-size:12px; border-bottom:none !important; }
             @media print { @page { size:A4 landscape; margin:10mm; } body { padding:0; } }
           </style>
         </head>
@@ -1227,7 +1228,7 @@ export default function SabhasadLedgerSummary() {
           {/* Table Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-4">
-              <span className={`text-xs font-extrabold text-slate-800 tracking-wider ${isGu ? 'normal-case' : 'uppercase'}`}>
+              <span className={`text-sm font-extrabold text-slate-800 tracking-wider ${isGu ? 'normal-case' : 'uppercase'}`}>
                 {memberId !== 'all' || accountId !== 'all' ? (
                   <span className="font-extrabold text-[#1d5f84]" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
                     {formatBilingualText(
@@ -1247,7 +1248,7 @@ export default function SabhasadLedgerSummary() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setShowFiltersDrawer(true)}
-                className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold ${hasActiveFilters
+                className={`px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold ${hasActiveFilters
                   ? 'bg-[#1d5f84] border border-[#1d5f84] text-white hover:bg-[#154662]'
                   : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                   }`}
@@ -1264,7 +1265,7 @@ export default function SabhasadLedgerSummary() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                  className="px-2.5 h-7 flex items-center gap-1.5 justify-center transition-all rounded-md cursor-pointer relative select-none shadow-sm text-sm font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
                 >
                   <X size={13} className="text-rose-600" />
                   <span>{isGu ? 'ક્લિયર' : 'Clear'}</span>
@@ -1382,19 +1383,19 @@ export default function SabhasadLedgerSummary() {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100 font-sans text-xs">
+              <tbody className="divide-y divide-slate-100 font-sans text-sm">
                 {syncing ? (
                   <tr>
                     <td colSpan="13" className="py-24 text-center">
                       <RefreshCcw size={28} className="animate-spin text-slate-350 mx-auto mb-2 text-slate-400" />
-                      <p className="text-slate-400 font-bold uppercase text-[9px] tracking-widest italic">
+                      <p className="text-slate-400 font-bold uppercase text-[12px] tracking-widest italic">
                         {t('sabhasadLedgerSummary.synchronizingRegistry', 'Fetching Statement Data...')}
                       </p>
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan="13" className="py-24 text-center text-slate-400 font-bold text-xs tracking-wider bg-slate-50/20">
+                    <td colSpan="13" className="py-24 text-center text-slate-400 font-bold text-sm tracking-wider bg-slate-50/20">
                       <Database size={32} className="mx-auto mb-2 opacity-40 text-[#1d5f84]" />
                       {t('sabhasadLedgerSummary.noSabhasadRecordsFound', 'No transaction ledger records found.')}
                     </td>
@@ -1421,7 +1422,7 @@ export default function SabhasadLedgerSummary() {
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span
                                   onClick={() => row.member_id && openAudit(row)}
-                                  className={`font-bold text-[11px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                  className={`font-bold text-[12px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
                                   style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                 >
                                   {displayMemberName(row)}
@@ -1437,10 +1438,10 @@ export default function SabhasadLedgerSummary() {
                                 )}
 
                                 {row.bank_name && (
-                                  <span className="text-[9px] font-sans text-blue-500 font-medium px-1 bg-blue-50 rounded-sm">Bank: {row.bank_name}</span>
+                                  <span className="text-[12px] font-sans text-blue-500 font-medium px-1 bg-blue-50 rounded-sm">Bank: {row.bank_name}</span>
                                 )}
                                 {row.active_season && (
-                                  <span className="text-[9px] font-sans text-amber-600 font-medium px-1 bg-amber-50 rounded-sm">Season: {row.active_season}</span>
+                                  <span className="text-[12px] font-sans text-amber-600 font-medium px-1 bg-amber-50 rounded-sm">Season: {row.active_season}</span>
                                 )}
                               </div>
                             </div>
@@ -1470,7 +1471,7 @@ export default function SabhasadLedgerSummary() {
                                     <div className="flex items-center gap-1.5">
                                       <span
                                         onClick={() => row.member_id && openAudit(row)}
-                                        className={`font-bold text-[11px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                        className={`font-bold text-[12px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
                                         style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                       >
                                         {displayMemberName(row)}
@@ -1488,22 +1489,22 @@ export default function SabhasadLedgerSummary() {
                                     </div>
                                   </td>
                                   <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 truncate">{formatBilingualText(row.village_name || '-')}</td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {isGu ? toGujaratiDigits(parseFloat(row.opening_balance || 0).toLocaleString()) : parseFloat(row.opening_balance || 0).toLocaleString()}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-blue-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-blue-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {parseFloat(row.debit || 0) > 0 ? (isGu ? toGujaratiDigits(parseFloat(row.debit || 0).toLocaleString()) : parseFloat(row.debit || 0).toLocaleString()) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-emerald-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-emerald-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {parseFloat(row.credit || 0) > 0 ? (isGu ? toGujaratiDigits(parseFloat(row.credit || 0).toLocaleString()) : parseFloat(row.credit || 0).toLocaleString()) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {row.self_credit > 0 ? (isGu ? toGujaratiDigits(row.self_credit.toLocaleString()) : row.self_credit.toLocaleString()) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right border-r border-slate-100 font-bold text-slate-800 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right border-r border-slate-100 font-bold text-slate-800 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {isGu ? toGujaratiDigits(Math.abs(parseFloat(row.balance || 0)).toLocaleString()) : Math.abs(parseFloat(row.balance || 0)).toLocaleString()} {parseFloat(row.balance || 0) >= 0 ? 'DR' : 'CR'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-slate-800 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     ₹{isGu ? toGujaratiDigits((parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : (parseFloat(row.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                   </td>
                                 </>
@@ -1520,7 +1521,7 @@ export default function SabhasadLedgerSummary() {
                                     <div className="flex items-center gap-1.5">
                                       <span
                                         onClick={() => row.member_id && openAudit(row)}
-                                        className={`font-bold text-[11px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                        className={`font-bold text-[12px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
                                         style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                       >
                                         {displayMemberName(row) || '—'}
@@ -1540,16 +1541,16 @@ export default function SabhasadLedgerSummary() {
                                   <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">
                                     {getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {idx === 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-blue-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-blue-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {displayDebit > 0 ? (isGu ? `₹${toGujaratiDigits(displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right text-emerald-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right text-emerald-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {displayCredit > 0 ? (isGu ? `₹${toGujaratiDigits(displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right font-bold text-slate-800 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right font-bold text-slate-800 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     ₹{isGu ? toGujaratiDigits(Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {parseFloat(row.balance || 0) >= 0 ? 'C' : 'D'}
                                   </td>
                                 </>
@@ -1566,7 +1567,7 @@ export default function SabhasadLedgerSummary() {
                                   <div className="flex items-center gap-1.5">
                                     <span
                                       onClick={() => row.member_id && openAudit(row)}
-                                      className={`font-bold text-[11px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
+                                      className={`font-bold text-[12px] text-slate-800 ${isGu ? 'normal-case' : 'uppercase'} ${row.member_id ? 'hover:text-[#1d5f84] hover:underline cursor-pointer' : ''}`}
                                       style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                                     >
                                       {displayMemberName(row) || '—'}
@@ -1584,16 +1585,16 @@ export default function SabhasadLedgerSummary() {
                                   </div>
                                 </td>
                                 <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 leading-tight uppercase font-semibold">{getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}</td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {idx === 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                                 </td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-blue-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-blue-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })) : displayDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-emerald-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-emerald-600 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })) : displayCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right font-bold text-slate-800 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right font-bold text-slate-800 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : Math.abs(parseFloat(row.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {balLabel}
                                 </td>
                               </>
@@ -1603,24 +1604,24 @@ export default function SabhasadLedgerSummary() {
                           if (isDangar) {
                             return (
                               <>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-500 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {idx === 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                                 </td>
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {formatDisplayDate(row.entry_date)}
                                 </td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(parseFloat(row.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(row.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className="px-3 py-1.5 text-[11px] text-slate-800 border-r border-slate-100 leading-tight font-medium">{formatBilingualText(row.item_name || t('sabhasadLedgerSummary.itemName'))}</td>
+                                <td className="px-3 py-1.5 text-[12px] text-slate-800 border-r border-slate-100 leading-tight font-medium">{formatBilingualText(row.item_name || t('sabhasadLedgerSummary.itemName'))}</td>
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 text-center ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(row.quality_class || '1st') : (row.quality_class || '1st')}
                                 </td>
                                 <td className="px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 font-semibold">{row.book_type || 'Kharif'}</td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
-                                  {isGu ? toGujaratiDigits(parseFloat(row.net_quintal || 0).toFixed(2)) : parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[9px] opacity-60 font-sans ml-0.5">Qt</span>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  {isGu ? toGujaratiDigits(parseFloat(row.net_quintal || 0).toFixed(2)) : parseFloat(row.net_quintal || 0).toFixed(2)} <span className="text-[12px] opacity-60 font-sans ml-0.5">Qt</span>
                                 </td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-800 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
                               </>
@@ -1630,20 +1631,20 @@ export default function SabhasadLedgerSummary() {
                           if (isInterest) {
                             return (
                               <>
-                                <td className={`px-3 py-1.5 text-[11px] text-right font-bold text-slate-700 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right font-bold text-slate-700 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {parseFloat(row.opening_balance) >= 0 ? '+' : '-'}{isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                                 </td>
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {formatDisplayDate(row.transaction_date)}
                                 </td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-700 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(parseFloat(row.interest_percent || 0).toFixed(2)) : parseFloat(row.interest_percent || 0).toFixed(2)} %
                                 </td>
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(row.days || 0) : (row.days || 0)} {isGu ? 'દિવસ' : 'Days'}
                                 </td>
-                                <td className="px-3 py-1.5 text-[11px] text-slate-600 border-r border-slate-100 leading-tight font-medium">{formatBilingualText(getSafeDescription(row.description, 'Interest'))}</td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className="px-3 py-1.5 text-[12px] text-slate-600 border-r border-slate-100 leading-tight font-medium">{formatBilingualText(getSafeDescription(row.description, 'Interest'))}</td>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(parseFloat(row.interest_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(row.interest_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
                               </>
@@ -1653,7 +1654,7 @@ export default function SabhasadLedgerSummary() {
                           if (isBrokerage || isLabour) {
                             return (
                               <>
-                                <td className={`px-3 py-1.5 text-[11px] text-right font-bold text-slate-700 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-1.5 text-[12px] text-right font-bold text-slate-700 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {parseFloat(row.opening_balance) >= 0 ? '+' : '-'}{isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                                 </td>
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
@@ -1662,8 +1663,8 @@ export default function SabhasadLedgerSummary() {
                                 <td className={`px-3 py-1.5 text-[10px] text-slate-600 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(row.invoice_no || '—') : (row.invoice_no || '—')}
                                 </td>
-                                <td className="px-3 py-1.5 text-[11px] text-slate-650 border-r border-slate-100 leading-tight">{getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}</td>
-                                <td className={`px-3 py-1.5 text-[11px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className="px-3 py-1.5 text-[12px] text-slate-650 border-r border-slate-100 leading-tight">{getSafeDescription(row.description) !== '—' ? formatBilingualText(row.description) : '—'}</td>
+                                <td className={`px-3 py-1.5 text-[12px] text-right text-slate-800 border-r border-slate-100 font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   ₹{isGu ? toGujaratiDigits(parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })) : parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </td>
                               </>
@@ -1673,39 +1674,39 @@ export default function SabhasadLedgerSummary() {
                           // Default Consolidated Ledger Statement columns
                           return (
                             <>
-                              <td className="px-3 py-1.5 text-[11px] text-slate-700 border-r border-slate-100 leading-tight font-medium">
+                              <td className="px-3 py-1.5 text-[12px] text-slate-700 border-r border-slate-100 leading-tight font-medium">
                                 {formatBilingualText(isGu ? (row.account_name_gu || row.account_name) : row.account_name)}
                               </td>
-                              <td className={`px-3 py-1.5 text-[11px] text-right border-r border-slate-100 font-bold ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'} ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-1.5 text-[12px] text-right border-r border-slate-100 font-bold ${parseFloat(row.opening_balance) >= 0 ? 'text-emerald-600' : 'text-rose-600'} ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {parseFloat(row.opening_balance) >= 0 ? '+' : '-'}{isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(row.opening_balance)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
                               <td className={`px-3 py-1.5 text-[10px] text-slate-400 border-r border-slate-100 text-center ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {row.last_activity_date ? formatDisplayDate(row.last_activity_date) : '—'}
                               </td>
-                              <td className={`px-3 py-1.5 text-[11px] text-right text-blue-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-1.5 text-[12px] text-right text-blue-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {parseFloat(row.debit || 0) > 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(row.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                               </td>
-                              <td className={`px-3 py-1.5 text-[11px] text-right text-emerald-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-1.5 text-[12px] text-right text-emerald-600 border-r border-slate-100 font-semibold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {parseFloat(row.credit || 0) > 0 ? (isGu ? `₹${toGujaratiDigits(parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(row.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`) : '—'}
                               </td>
-                              <td className={`px-3 py-1.5 text-[11px] text-right font-bold text-slate-800 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-1.5 text-[12px] text-right font-bold text-slate-800 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(row.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-                                <span className="text-[9px] text-slate-400 ml-0.5 font-bold font-sans">
+                                <span className="text-[12px] text-slate-400 ml-0.5 font-bold font-sans">
                                   {parseFloat(row.closing_balance || 0) >= 0 ? 'DR' : 'CR'}
                                 </span>
                               </td>
 
                               {!hideBardan && (
                                 <>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right border-r border-slate-100 font-medium text-slate-650 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right border-r border-slate-100 font-medium text-slate-650 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {isGu ? toGujaratiDigits(Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()) : Math.abs(parseFloat(row.bardan_balance || 0)).toLocaleString()} {parseFloat(row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right border-r border-slate-100 text-slate-600 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right border-r border-slate-100 text-slate-600 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {isGu ? toGujaratiDigits(parseFloat(row.bardan_self_jama || 0).toLocaleString()) : parseFloat(row.bardan_self_jama || 0).toLocaleString()}
                                   </td>
-                                  <td className={`px-3 py-1.5 text-[11px] text-right font-bold text-slate-700 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                  <td className={`px-3 py-1.5 text-[12px] text-right font-bold text-slate-700 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                     {isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-                                    <span className="text-[9px] text-slate-400 ml-0.5 font-bold font-sans">
+                                    <span className="text-[12px] text-slate-400 ml-0.5 font-bold font-sans">
                                       {parseFloat(row.bardan_penalty_balance || row.bardan_balance || 0) >= 0 ? 'DR' : 'CR'}
                                     </span>
                                   </td>
@@ -1724,14 +1725,14 @@ export default function SabhasadLedgerSummary() {
                           return (
                             <>
                               <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.registryTotals', 'Registry Totals')}:</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString()) : parseFloat(totals.opening_balance || 0).toLocaleString()}</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.debit || 0).toLocaleString()) : parseFloat(totals.debit || 0).toLocaleString()}</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.credit || 0).toLocaleString()) : parseFloat(totals.credit || 0).toLocaleString()}</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.self_credit || 0).toLocaleString()) : parseFloat(totals.self_credit || 0).toLocaleString()}</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString()) : parseFloat(totals.opening_balance || 0).toLocaleString()}</td>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.debit || 0).toLocaleString()) : parseFloat(totals.debit || 0).toLocaleString()}</td>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.credit || 0).toLocaleString()) : parseFloat(totals.credit || 0).toLocaleString()}</td>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? toGujaratiDigits(parseFloat(totals.self_credit || 0).toLocaleString()) : parseFloat(totals.self_credit || 0).toLocaleString()}</td>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? toGujaratiDigits(Math.abs(parseFloat(totals.balance || 0)).toLocaleString()) : Math.abs(parseFloat(totals.balance || 0)).toLocaleString()} {parseFloat(totals.balance || 0) >= 0 ? 'DR' : 'CR'}
                               </td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits((parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${(parseFloat(totals.balance || 0) * bardanPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
                             </>
@@ -1756,16 +1757,16 @@ export default function SabhasadLedgerSummary() {
                           return (
                             <>
                               <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.registryTotals', 'Registry Totals')}:</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(displayTotalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${displayTotalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(displayTotalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${displayTotalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(totals.balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} {
                                   parseFloat(totals.balance || 0) >= 0
                                     ? (isTransactional ? 'C' : (isSale ? 'CR' : 'DR'))
@@ -1780,10 +1781,10 @@ export default function SabhasadLedgerSummary() {
                           return (
                             <>
                               <td colSpan="7" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals', 'Totals')}:</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
-                                {isGu ? toGujaratiDigits(data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)) : data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[9px] font-sans">Qt</span>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                {isGu ? toGujaratiDigits(data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)) : data.reduce((acc, r) => acc + parseFloat(r.net_quintal || 0), 0).toFixed(2)} <span className="text-[12px] font-sans">Qt</span>
                               </td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
                             </>
@@ -1794,7 +1795,7 @@ export default function SabhasadLedgerSummary() {
                           return (
                             <>
                               <td colSpan="6" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals', 'Totals')}:</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${data.reduce((acc, r) => acc + parseFloat(r.interest_amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
                             </>
@@ -1805,7 +1806,7 @@ export default function SabhasadLedgerSummary() {
                           return (
                             <>
                               <td colSpan="5" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.totals', 'Totals')}:</td>
-                              <td className={`px-3 py-2 text-right text-[11px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                              <td className={`px-3 py-2 text-right text-[12px] tracking-tighter text-[#1d5f84] font-bold ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                 {isGu ? `₹${toGujaratiDigits(data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${data.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                               </td>
                             </>
@@ -1816,22 +1817,22 @@ export default function SabhasadLedgerSummary() {
                         return (
                           <>
                             <td colSpan="4" className="px-3 py-2 text-right font-black border-r border-slate-200 text-slate-700">{t('sabhasadLedgerSummary.consolidatedTotals', 'Consolidated Totals')}:</td>
-                            <td className={`px-3 py-2 border-r border-slate-200 text-right text-[#1d5f84] font-bold text-[11px] ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</td>
+                            <td className={`px-3 py-2 border-r border-slate-200 text-right text-[#1d5f84] font-bold text-[12px] ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? `₹${toGujaratiDigits(parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.opening_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</td>
                             <td className="px-3 py-2 border-r border-slate-200 font-sans"></td>
-                            <td className={`px-3 py-2 text-right text-[#1d5f84] text-[11px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? `₹${toGujaratiDigits(parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</td>
-                            <td className={`px-3 py-2 text-right text-[#1d5f84] text-[11px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? `₹${toGujaratiDigits(parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</td>
-                            <td className={`px-3 py-2 text-right text-[#1d5f84] text-[11px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                            <td className={`px-3 py-2 text-right text-[#1d5f84] text-[12px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? `₹${toGujaratiDigits(parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</td>
+                            <td className={`px-3 py-2 text-right text-[#1d5f84] text-[12px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>{isGu ? `₹${toGujaratiDigits(parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${parseFloat(totals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</td>
+                            <td className={`px-3 py-2 text-right text-[#1d5f84] text-[12px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                               {isGu ? `₹${toGujaratiDigits(Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(parseFloat(totals.closing_balance || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} {parseFloat(totals.closing_balance || 0) >= 0 ? 'DR' : 'CR'}
                             </td>
                             {!hideBardan && (
                               <>
-                                <td className={`px-3 py-2 text-right text-[#1d5f84] text-[11px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-2 text-right text-[#1d5f84] text-[12px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(Math.abs(totalBardanBal).toLocaleString()) : Math.abs(totalBardanBal).toLocaleString()} {totalBardanBal >= 0 ? 'DR' : 'CR'}
                                 </td>
-                                <td className={`px-3 py-2 text-right text-[#1d5f84] text-[11px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-2 text-right text-[#1d5f84] text-[12px] border-r border-slate-200 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? toGujaratiDigits(totalBardanSelf.toLocaleString()) : totalBardanSelf.toLocaleString()}
                                 </td>
-                                <td className={`px-3 py-2 text-right text-[#1d5f84] text-[11px] ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                                <td className={`px-3 py-2 text-right text-[#1d5f84] text-[12px] ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                                   {isGu ? `₹${toGujaratiDigits(Math.abs(totalBardanAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 }))}` : `₹${Math.abs(totalBardanAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} {totalBardanPenalty >= 0 ? 'DR' : 'CR'}
                                 </td>
                               </>
@@ -1864,7 +1865,7 @@ export default function SabhasadLedgerSummary() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2 select-none">
                 <Filter size={14} className="text-[#1d5f84]" />
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                   Filter Parameters
                 </span>
               </div>
@@ -1886,26 +1887,26 @@ export default function SabhasadLedgerSummary() {
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">From</span>
                     <input
                       ref={startDateRef}
                       type="date"
                       value={dateRange.startDate}
                       onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
                       onKeyDown={(e) => handleKeyDown(e, endDateRef)}
-                      className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                      className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold outline-none w-full ${isGu ? '' : 'font-mono'}`}
                       style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                     />
                   </div>
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">To</span>
                     <input
                       ref={endDateRef}
                       type="date"
                       value={dateRange.endDate}
                       onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
                       onKeyDown={(e) => handleKeyDown(e, accCodeRef)}
-                      className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                      className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-sm text-slate-700 font-bold outline-none w-full ${isGu ? '' : 'font-mono'}`}
                       style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                     />
                   </div>
@@ -1926,7 +1927,7 @@ export default function SabhasadLedgerSummary() {
                     onFocus={() => { setShowAccDrop(false); setShowMemDrop(false); }}
                     onKeyDown={handleAccCodeKeyDown}
                     placeholder="ID"
-                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
+                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-sm text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
                   />
                   <input
                     ref={accNameRef}
@@ -1936,7 +1937,7 @@ export default function SabhasadLedgerSummary() {
                     onFocus={() => { setShowAccDrop(true); setShowMemDrop(false); }}
                     onKeyDown={handleAccNameKeyDown}
                     placeholder="Search account..."
-                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs text-slate-700 font-bold flex-1 outline-none ${isGu ? 'normal-case' : 'uppercase font-mono'}`}
+                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm text-slate-700 font-bold flex-1 outline-none ${isGu ? 'normal-case' : 'uppercase font-mono'}`}
                     style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                   />
                 </div>
@@ -1945,7 +1946,7 @@ export default function SabhasadLedgerSummary() {
                   <div className="absolute top-[102%] left-0 right-0 bg-white border border-slate-200 rounded-md z-[110] mt-0.5 max-h-40 overflow-y-auto shadow-sm">
                     <div
                       onClick={() => handleSelectAcc(null)}
-                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
+                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[12px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
                     >
                       <Search size={10} />
                       <span>All Accounts</span>
@@ -1961,7 +1962,7 @@ export default function SabhasadLedgerSummary() {
                         <span className="text-[10px] font-bold truncate" translate="no" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
                           {displayAccountName(a)}
                         </span>
-                        <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{a.id}</span>
+                        <span className="text-[12px] font-mono text-slate-400 font-semibold shrink-0">#{a.id}</span>
                       </div>
                     ))}
                   </div>
@@ -1982,7 +1983,7 @@ export default function SabhasadLedgerSummary() {
                     onFocus={() => { setShowMemDrop(false); setShowAccDrop(false); }}
                     onKeyDown={handleMemCodeKeyDown}
                     placeholder="ID"
-                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-xs text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
+                    className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-1 py-1.5 text-sm text-[#1d5f84] font-mono font-bold w-12 text-center outline-none"
                   />
                   <input
                     ref={memNameRef}
@@ -1992,7 +1993,7 @@ export default function SabhasadLedgerSummary() {
                     onFocus={() => { setShowMemDrop(true); setShowAccDrop(false); }}
                     onKeyDown={handleMemNameKeyDown}
                     placeholder="Search member..."
-                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs text-slate-700 font-bold flex-1 outline-none ${isGu ? 'normal-case' : 'uppercase font-mono'}`}
+                    className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm text-slate-700 font-bold flex-1 outline-none ${isGu ? 'normal-case' : 'uppercase font-mono'}`}
                     style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}
                   />
                 </div>
@@ -2001,7 +2002,7 @@ export default function SabhasadLedgerSummary() {
                   <div className="absolute top-[102%] left-0 right-0 bg-white border border-slate-200 rounded-md z-[110] mt-0.5 max-h-40 overflow-y-auto shadow-sm">
                     <div
                       onClick={() => handleSelectMem(null)}
-                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[9px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
+                      className="px-2.5 py-1 hover:bg-slate-50 cursor-pointer font-bold text-[12px] text-blue-600 border-b border-slate-100 uppercase flex items-center gap-1"
                     >
                       <Search size={10} />
                       <span>All Members</span>
@@ -2017,7 +2018,7 @@ export default function SabhasadLedgerSummary() {
                         <span className="text-[10px] font-bold truncate" translate="no" style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
                           {displayMemberName(m)}
                         </span>
-                        <span className="text-[8px] font-mono text-slate-400 font-semibold shrink-0">#{m.id}</span>
+                        <span className="text-[12px] font-mono text-slate-400 font-semibold shrink-0">#{m.id}</span>
                       </div>
                     ))}
                   </div>
@@ -2031,23 +2032,23 @@ export default function SabhasadLedgerSummary() {
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">From</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">From</span>
                     <input
                       type="number"
                       value={fromMemberCode}
                       onChange={(e) => setFromMemberCode(e.target.value)}
                       placeholder="Start Code"
-                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-xs text-slate-700 font-bold  outline-none w-full"
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-10 pr-2 py-1.5 text-sm text-slate-700 font-bold  outline-none w-full"
                     />
                   </div>
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">To</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-bold uppercase">To</span>
                     <input
                       type="number"
                       value={toMemberCode}
                       onChange={(e) => setToMemberCode(e.target.value)}
                       placeholder="End Code"
-                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-700 font-bold  outline-none w-full"
+                      className="bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md pl-6 pr-2 py-1.5 text-sm text-slate-700 font-bold  outline-none w-full"
                     />
                   </div>
                 </div>
@@ -2061,7 +2062,7 @@ export default function SabhasadLedgerSummary() {
                 <select
                   value={dangarClass}
                   onChange={(e) => setDangarClass(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
                   style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                 >
                   <option value="">{t('sabhasadLedgerSummary.allClasses', 'All Classes')}</option>
@@ -2079,7 +2080,7 @@ export default function SabhasadLedgerSummary() {
                 <select
                   value={village}
                   onChange={(e) => setVillage(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
                   style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                 >
                   <option value="">{t('sabhasadLedgerSummary.allVillages')}</option>
@@ -2097,7 +2098,7 @@ export default function SabhasadLedgerSummary() {
                 <select
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
                   style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                 >
                   <option value="">All Banks</option>
@@ -2115,7 +2116,7 @@ export default function SabhasadLedgerSummary() {
                 <select
                   value={season}
                   onChange={(e) => setSeason(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
                   style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                 >
                   <option value="">All Seasons</option>
@@ -2133,7 +2134,7 @@ export default function SabhasadLedgerSummary() {
                 <select
                   value={itemId}
                   onChange={(e) => setItemId(e.target.value)}
-                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
+                  className={`bg-white border border-slate-200 hover:border-slate-300 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] transition rounded-md px-3 py-1.5 text-sm font-bold text-slate-700 cursor-pointer outline-none w-full ${isGu ? '' : 'font-mono'}`}
                   style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                 >
                   <option value="">{t('sabhasadLedgerSummary.allItems')}</option>
@@ -2165,13 +2166,13 @@ export default function SabhasadLedgerSummary() {
                   clearFilters();
                   setShowFiltersDrawer(false);
                 }}
-                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
               >
                 Reset All
               </button>
               <button
                 onClick={() => setShowFiltersDrawer(false)}
-                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
+                className="flex-1 px-3 py-2 bg-[#1d5f84] hover:bg-[#154662] text-white text-sm font-bold rounded-md transition cursor-pointer uppercase tracking-wider"
               >
                 View Statement
               </button>
@@ -2191,13 +2192,13 @@ export default function SabhasadLedgerSummary() {
                   <Activity size={16} />
                 </div>
                 <div>
-                  <h2 className={`text-xs font-bold text-slate-800 tracking-tight ${isGu ? 'normal-case' : 'uppercase'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
+                  <h2 className={`text-sm font-bold text-slate-800 tracking-tight ${isGu ? 'normal-case' : 'uppercase'}`} style={isGu ? { fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" } : {}}>
                     {displayMemberName(auditMember)}
                     <span className={`text-[#1d5f84] ml-2 font-bold bg-blue-50 px-1 rounded-sm ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                       #{isGu ? toGujaratiDigits(auditMember.member_code) : auditMember.member_code}
                     </span>
                   </h2>
-                  <p className={`text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                  <p className={`text-[12px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                     {t('sabhasadLedgerSummary.auditStream', 'Transaction Ledger Audit Stream')}
                   </p>
                 </div>
@@ -2219,8 +2220,8 @@ export default function SabhasadLedgerSummary() {
                 </div>
               ) : (
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-left font-sans text-xs border-collapse">
-                    <thead className={`bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px] tracking-wider`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
+                  <table className="w-full text-left font-sans text-sm border-collapse">
+                    <thead className={`bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[12px] tracking-wider`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
                       <tr>
                         <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.date', 'Date')}</th>
                         <th className="px-3 py-2 border-r border-slate-100">{t('sabhasadLedgerSummary.description', 'Description')}</th>
@@ -2231,7 +2232,7 @@ export default function SabhasadLedgerSummary() {
                         <th className="px-3 py-2 text-right">{t('sabhasadLedgerSummary.runningPosition', 'Running Position')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-sans text-[11px]">
+                    <tbody className="divide-y divide-slate-100 font-sans text-[12px]">
                       {auditTransactions.map((tx, i) => (
                         <tr key={i} className="hover:bg-slate-50 transition-colors">
                           <td className={`px-3 py-2 text-slate-400 border-r border-slate-100 ${isGu ? '' : 'font-mono'}`} style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}>
@@ -2257,7 +2258,7 @@ export default function SabhasadLedgerSummary() {
                             style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
                           >
                             {fmtAmount(Math.abs(parseFloat(tx.running_balance || 0)), '₹')}
-                            <span className="text-[9px] font-sans font-bold text-slate-400 ml-0.5">
+                            <span className="text-[12px] font-sans font-bold text-slate-400 ml-0.5">
                               {parseFloat(tx.running_balance || 0) >= 0 ? 'DR' : 'CR'}
                             </span>
                           </td>
@@ -2273,7 +2274,7 @@ export default function SabhasadLedgerSummary() {
             <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowAuditModal(false)}
-                className={`px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer`}
+                className={`px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-sm font-bold transition rounded-md uppercase tracking-wide cursor-pointer`}
                 style={isGu ? { fontFamily: "'Noto Sans Gujarati','NotoGujarati',sans-serif" } : {}}
               >
                 {t('sabhasadLedgerSummary.closeAudit', 'Close Audit')}

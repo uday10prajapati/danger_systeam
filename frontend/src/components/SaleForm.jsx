@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, Search, Calendar, Hash, User, Truck, 
+import {
+  X, Search, Calendar, Hash, User, Truck,
   CreditCard, Info, Trash2, Save, ShoppingBag,
   Loader, Package, TrendingUp, AlertCircle, CheckCircle
 } from 'lucide-react';
@@ -14,7 +14,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   const translateServerMessage = (message) => {
     if (!message || !isGu) return message;
 
@@ -105,21 +105,21 @@ export default function SaleForm({ onSubmit, onCancel }) {
   const getFilteredMembers = () => {
     const codeQ = memberSearchText.trim().toLowerCase();
     const nameQ = memberNameSearch.trim().toLowerCase();
-    
+
     if (codeQ) {
-      return availableMembers.filter(m => 
+      return availableMembers.filter(m =>
         String(m.account_code || m.id).toLowerCase().includes(codeQ)
       );
     }
-    
+
     if (nameQ) {
-      return availableMembers.filter(m => 
-        displayMemberName(m).toLowerCase().includes(nameQ) || 
-        (m.account_name || '').toLowerCase().includes(nameQ) || 
+      return availableMembers.filter(m =>
+        displayMemberName(m).toLowerCase().includes(nameQ) ||
+        (m.account_name || '').toLowerCase().includes(nameQ) ||
         (m.account_name_gu || '').toLowerCase().includes(nameQ)
       );
     }
-    
+
     return availableMembers;
   };
 
@@ -250,10 +250,10 @@ export default function SaleForm({ onSubmit, onCancel }) {
   };
 
   const handleMemberSelect = (member) => {
-    setSelectedMember(member); 
-    setMemberId(member.id); 
-    setMemberSearchText(String(member.account_code || member.id)); 
-    setMemberNameSearch(displayMemberName(member)); 
+    setSelectedMember(member);
+    setMemberId(member.id);
+    setMemberSearchText(String(member.account_code || member.id));
+    setMemberNameSearch(displayMemberName(member));
     setShowMemberDropdown(false);
     setMemberSelectedIndex(0);
     setTimeout(() => focusNext(billNoRef), 0);
@@ -324,14 +324,14 @@ export default function SaleForm({ onSubmit, onCancel }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1.5px]" onClick={() => !loading && onCancel()}></div>
-      
-      <div className="bg-white border border-slate-200 rounded-lg w-full max-w-6xl shadow-xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[95vh] font-sans text-xs select-none">
-        
+
+      <div className="bg-white border border-slate-200 rounded-lg w-full max-w-6xl shadow-xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[95vh] font-sans text-sm select-none">
+
         {/* Modal Header */}
         <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingBag size={15} className="text-[#1d5f84]" />
-            <h2 className={`text-xs font-bold tracking-wider text-slate-800 uppercase ${isGu ? 'font-prompt' : ''}`}>
+            <h2 className={`text-sm font-bold tracking-wider text-slate-800 uppercase ${isGu ? 'font-prompt' : ''}`}>
               {t('saleForm.title')}
             </h2>
           </div>
@@ -373,12 +373,12 @@ export default function SaleForm({ onSubmit, onCancel }) {
                   {showMemberDropdown && memberSearchText && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100 min-w-max">
                       {getFilteredMembers().map((m, idx) => (
-                        <div 
-                          key={m.id} 
-                          onClick={() => handleMemberSelect(m)} 
+                        <div
+                          key={m.id}
+                          onClick={() => handleMemberSelect(m)}
                           className={`p-2 cursor-pointer flex justify-between items-center gap-2 ${idx === memberSelectedIndex ? 'bg-[#1d5f84]/10 border-l-2 border-[#1d5f84]' : 'hover:bg-slate-50'}`}
                         >
-                          <span className={`text-xs font-bold text-slate-800 tracking-wider ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displayMemberName(m)}</span>
+                          <span className={`text-sm font-bold text-slate-800 tracking-wider ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displayMemberName(m)}</span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">#{m.account_code || m.id}</span>
                         </div>
                       ))}
@@ -398,12 +398,12 @@ export default function SaleForm({ onSubmit, onCancel }) {
                   {showMemberDropdown && memberNameSearch && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100">
                       {getFilteredMembers().map((m, idx) => (
-                        <div 
-                          key={m.id} 
-                          onClick={() => handleMemberSelect(m)} 
+                        <div
+                          key={m.id}
+                          onClick={() => handleMemberSelect(m)}
                           className={`p-2 cursor-pointer flex justify-between items-center ${idx === memberSelectedIndex ? 'bg-[#1d5f84]/10 border-l-2 border-[#1d5f84]' : 'hover:bg-slate-50'}`}
                         >
-                          <span className={`text-xs font-bold text-slate-800 tracking-wider ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displayMemberName(m)}</span>
+                          <span className={`text-sm font-bold text-slate-800 tracking-wider ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displayMemberName(m)}</span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">#{m.account_code || m.id}</span>
                         </div>
                       ))}
@@ -462,25 +462,25 @@ export default function SaleForm({ onSubmit, onCancel }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-             <div className="bg-white border border-slate-200 rounded-md p-3 flex flex-col gap-1">
-                <label className={`text-[10px] font-bold text-slate-500 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.registryLogic')}</label>
-                <div className="flex border border-slate-200 p-1 bg-slate-50 rounded-md">
-                    <button onClick={() => setSalesType('credit')} className={`flex-1 py-1.5 text-[10px] font-bold transition rounded ${isGu ? 'font-sans' : 'uppercase'} ${salesType === 'credit' ? 'bg-white border border-slate-200 text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{t('saleForm.credit')}</button>
-                    <button onClick={() => setSalesType('cash')} className={`flex-1 py-1.5 text-[10px] font-bold transition rounded ${isGu ? 'font-sans' : 'uppercase'} ${salesType === 'cash' ? 'bg-white border border-slate-200 text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{t('saleForm.cash')}</button>
-                 </div>
-             </div>
-             <div className="bg-white border border-slate-200 rounded-md p-3 flex flex-col gap-1 md:col-span-3">
-                <label className={`text-[10px] font-bold text-slate-500 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.mobileTracking')}</label>
-                <input
-                   type="text"
-                   ref={mobileRef}
-                   placeholder={t('saleForm.enterMobile')}
-                   onKeyDown={e => e.key === 'Enter' && focusNext(itemInputRef)}
-                   value={mobileNumber}
-                   onChange={e => setMobileNumber(e.target.value)}
-                   className="w-full border border-slate-200 bg-white px-2.5 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 h-9 uppercase rounded-md force-en"
-                />
-             </div>
+            <div className="bg-white border border-slate-200 rounded-md p-3 flex flex-col gap-1">
+              <label className={`text-[10px] font-bold text-slate-500 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.registryLogic')}</label>
+              <div className="flex border border-slate-200 p-1 bg-slate-50 rounded-md">
+                <button onClick={() => setSalesType('credit')} className={`flex-1 py-1.5 text-[10px] font-bold transition rounded ${isGu ? 'font-sans' : 'uppercase'} ${salesType === 'credit' ? 'bg-white border border-slate-200 text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{t('saleForm.credit')}</button>
+                <button onClick={() => setSalesType('cash')} className={`flex-1 py-1.5 text-[10px] font-bold transition rounded ${isGu ? 'font-sans' : 'uppercase'} ${salesType === 'cash' ? 'bg-white border border-slate-200 text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{t('saleForm.cash')}</button>
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-md p-3 flex flex-col gap-1 md:col-span-3">
+              <label className={`text-[10px] font-bold text-slate-500 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.mobileTracking')}</label>
+              <input
+                type="text"
+                ref={mobileRef}
+                placeholder={t('saleForm.enterMobile')}
+                onKeyDown={e => e.key === 'Enter' && focusNext(itemInputRef)}
+                value={mobileNumber}
+                onChange={e => setMobileNumber(e.target.value)}
+                className="w-full border border-slate-200 bg-white px-2.5 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 h-9 uppercase rounded-md force-en"
+              />
+            </div>
           </div>
 
           {/* Item Matrix Grid */}
@@ -531,14 +531,14 @@ export default function SaleForm({ onSubmit, onCancel }) {
                       />
                       {showItemDropdown && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
-                          {availableItems.filter(i => 
+                          {availableItems.filter(i =>
                             displayItemName(i).toLowerCase().includes(itemSearchText.toLowerCase()) ||
                             (i.item_name || '').toLowerCase().includes(itemSearchText.toLowerCase()) ||
                             (i.item_name_gu || '').toLowerCase().includes(itemSearchText.toLowerCase()) ||
                             (i.item_code && i.item_code.toLowerCase().includes(itemSearchText.toLowerCase()))
                           ).map(item => (
                             <div key={item.id} onClick={() => handleItemSelect(item)} className="p-2 hover:bg-slate-50 cursor-pointer flex justify-between items-center group border-b border-slate-100 last:border-0">
-                              <span className={`text-xs font-bold text-slate-700 tracking-wider ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displayItemName(item)}</span>
+                              <span className={`text-sm font-bold text-slate-700 tracking-wider ${isGu ? 'font-prompt' : 'font-sans uppercase'}`}>{displayItemName(item)}</span>
                               <span className="text-[10px] font-bold text-slate-400 uppercase font-mono group-hover:text-[#1d5f84]">{item.item_code}</span>
                             </div>
                           ))}
@@ -555,7 +555,7 @@ export default function SaleForm({ onSubmit, onCancel }) {
                       <input type="number" ref={rateRef} placeholder="0.00" onKeyDown={e => e.key === 'Enter' && handleAddItem(e)} value={currentRate} onChange={e => setCurrentRate(e.target.value)} className="w-full px-2 py-2 bg-white border border-slate-200 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] text-right outline-none font-bold font-mono text-slate-800 h-9 rounded-md" />
                     </td>
                     <td className="p-1 border-r border-slate-200 bg-slate-100 text-center text-[10px] font-bold text-slate-400 uppercase italic font-prompt">
-                       {currentItem ? `₹${calculateRowAmount(parseFloat(currentWeight)||0, parseFloat(currentRate)||currentItem.sale_rate||0).toFixed(2)} ${t('saleForm.preview')}` : t('saleForm.configureRow')}
+                      {currentItem ? `₹${calculateRowAmount(parseFloat(currentWeight) || 0, parseFloat(currentRate) || currentItem.sale_rate || 0).toFixed(2)} ${t('saleForm.preview')}` : t('saleForm.configureRow')}
                     </td>
                     <td className="p-1 text-center">
                       <button onClick={handleAddItem} className="w-full bg-slate-800 text-white h-9 font-bold uppercase text-[10px] hover:bg-slate-900 transition tracking-widest shadow-sm rounded-md">{t('saleForm.add')}</button>
@@ -567,37 +567,37 @@ export default function SaleForm({ onSubmit, onCancel }) {
 
             {/* Matrix Footer */}
             <div className="bg-slate-50 border-t border-slate-200 px-5 py-3 flex justify-between items-center">
-               <div className="flex gap-6">
-                  <div className="flex flex-col gap-1">
-                     <label className={`text-[8px] font-bold text-slate-400 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.brokeragePercent')}</label>
-                     <input type="number" value={brokeragePercent} onChange={e => setBrokeragePercent(e.target.value)} className="w-16 bg-white border border-slate-200 px-2 py-1 text-right font-bold font-mono text-xs outline-none rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84]" placeholder="0" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                     <label className={`text-[8px] font-bold text-slate-400 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.labourCharge')}</label>
-                     <input type="number" value={labourCharge} onChange={e => setLabourCharge(e.target.value)} className="w-20 bg-white border border-slate-200 px-2 py-1 text-right font-bold font-mono text-xs outline-none rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84]" placeholder="0" />
-                  </div>
-               </div>
-               <div className="flex flex-col items-end">
-                  <span className={`text-[10px] font-bold text-[#1d5f84] tracking-[0.2em] ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.netReceiptLedger')}</span>
-                  <span className="text-2xl font-bold text-slate-800 force-en italic tracking-tighter">₹{netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-               </div>
+              <div className="flex gap-6">
+                <div className="flex flex-col gap-1">
+                  <label className={`text-[12px] font-bold text-slate-400 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.brokeragePercent')}</label>
+                  <input type="number" value={brokeragePercent} onChange={e => setBrokeragePercent(e.target.value)} className="w-16 bg-white border border-slate-200 px-2 py-1 text-right font-bold font-mono text-sm outline-none rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84]" placeholder="0" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className={`text-[12px] font-bold text-slate-400 tracking-widest ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.labourCharge')}</label>
+                  <input type="number" value={labourCharge} onChange={e => setLabourCharge(e.target.value)} className="w-20 bg-white border border-slate-200 px-2 py-1 text-right font-bold font-mono text-sm outline-none rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84]" placeholder="0" />
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className={`text-[10px] font-bold text-[#1d5f84] tracking-[0.2em] ${isGu ? 'font-sans' : 'uppercase'}`}>{t('saleForm.netReceiptLedger')}</span>
+                <span className="text-2xl font-bold text-slate-800 force-en italic tracking-tighter">₹{netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Action Bar */}
         <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-           <p className={`text-[10px] font-bold text-slate-400 italic ${isGu ? 'font-sans' : 'uppercase tracking-widest'}`}>
-              * {t('saleForm.logicApplied')}
-           </p>
-           <div className="flex gap-3">
-              <button onClick={onCancel} className="px-5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition rounded-md uppercase text-[10px] tracking-widest shadow-sm">
-                {t('saleForm.cancel')}
-              </button>
-              <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-[#1d5f84] border border-[#1d5f84] hover:bg-[#154662] text-white font-bold transition rounded-md uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm disabled:opacity-50">
-                {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {t('saleForm.confirmPost')}</>}
-              </button>
-           </div>
+          <p className={`text-[10px] font-bold text-slate-400 italic ${isGu ? 'font-sans' : 'uppercase tracking-widest'}`}>
+            * {t('saleForm.logicApplied')}
+          </p>
+          <div className="flex gap-3">
+            <button onClick={onCancel} className="px-5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition rounded-md uppercase text-[10px] tracking-widest shadow-sm">
+              {t('saleForm.cancel')}
+            </button>
+            <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-[#1d5f84] border border-[#1d5f84] hover:bg-[#154662] text-white font-bold transition rounded-md uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm disabled:opacity-50">
+              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> {t('saleForm.confirmPost')}</>}
+            </button>
+          </div>
         </div>
       </div>
     </div>

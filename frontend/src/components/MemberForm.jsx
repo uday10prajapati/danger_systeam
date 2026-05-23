@@ -94,6 +94,12 @@ export default function MemberForm({
     }
   };
 
+  const getVillageDisplayName = (village = {}) => {
+    return i18n.language === 'gu'
+      ? (village.village_name || village.village_name_gu || village.name_gu || village.eng_name || village.village_name_en || '')
+      : (village.eng_name || village.village_name_en || village.village_name || village.village_name_gu || '')
+  }
+
   useEffect(() => {
     loadMasterData()
     if (editingMember) {
@@ -105,7 +111,7 @@ export default function MemberForm({
         member_name_gu: editingMember.member_name_gu || '',
         phoneNo: editingMember.phone || '',
         villageCode: editingMember.village_code || '',
-        villageName: editingMember.village_name || '',
+        villageName: editingMember.village_name_gu || editingMember.village_name_en || editingMember.village_name || '',
         fullAcNumber: editingMember.full_ac_number || '',
         bankName: editingMember.bank_name || '',
         branchName: editingMember.branch_name || '',
@@ -142,7 +148,7 @@ export default function MemberForm({
           member_name_gu: member.member_name_gu || '',
           phoneNo: member.phone || '',
           villageCode: member.village_code || '',
-          villageName: member.village_name || '',
+          villageName: member.village_name_gu || member.village_name_en || member.village_name || '',
           fullAcNumber: member.full_ac_number || '',
           bankName: member.bank_name || '',
           branchName: member.branch_name || '',
@@ -175,7 +181,7 @@ export default function MemberForm({
       const newData = { ...prev, [name]: finalValue };
       if (name === 'villageCode') {
         const village = villageList.find(v => v.village_code === value);
-        if (village) newData.villageName = village.village_name;
+        if (village) newData.villageName = getVillageDisplayName(village);
       }
       if (name === 'engName') {
         // Automatically sync to Gujarati field if it's currently empty or was previously synced
@@ -219,8 +225,8 @@ export default function MemberForm({
       return;
     }
 
-    const isDuplicate = existingMembers.some(m => 
-      m.member_name.toLowerCase().trim() === formData.sabhasadName.toLowerCase().trim() && 
+    const isDuplicate = existingMembers.some(m =>
+      m.member_name.toLowerCase().trim() === formData.sabhasadName.toLowerCase().trim() &&
       m.id !== (localEditId || (editingMember ? editingMember.id : null))
     );
 
@@ -248,19 +254,19 @@ export default function MemberForm({
   }
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-slate-200 shadow-xl flex flex-col font-mono text-xs select-none">
-      
+    <div className="bg-white rounded-lg overflow-hidden border border-slate-200 shadow-xl flex flex-col font-mono text-sm select-none">
+
       {/* Title Bar */}
       <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center select-none">
         <div>
-          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             {localEditId || editingMember ? t('memberForm.editTitle') : t('memberForm.addTitle')}
           </h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{t('memberForm.subtitle')}</p>
         </div>
         {onClose && (
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition rounded-md"
           >
             <X size={15} />
@@ -271,9 +277,8 @@ export default function MemberForm({
       {/* Form Content */}
       <div className="p-5 flex-1 overflow-y-auto">
         {message && (
-          <div className={`mb-4 p-2.5 border font-bold text-[11px] rounded-md flex items-center gap-2 shadow-sm ${
-            message.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-          }`}>
+          <div className={`mb-4 p-2.5 border font-bold text-[12px] rounded-md flex items-center gap-2 shadow-sm ${message.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            }`}>
             {message.type === 'error' ? <AlertCircle size={14} className="shrink-0" /> : <CheckCircle size={14} className="shrink-0" />}
             <span className="uppercase leading-none tracking-wider">{message.text}</span>
           </div>
@@ -281,17 +286,17 @@ export default function MemberForm({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            
+
             {/* Left Column */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
                 <User size={13} className="text-[#1d5f84]" />
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t('memberForm.basicInfo')}</h3>
               </div>
-              
+
               <div className="grid grid-cols-5 gap-3">
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.code')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.code')}</label>
                   <div className="relative">
                     <input
                       ref={sabhasadCodeRef}
@@ -308,21 +313,22 @@ export default function MemberForm({
                   </div>
                 </div>
                 <div className="col-span-1 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.pCode')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.pCode')}</label>
                   <input
                     ref={pCodeRef}
                     type="text"
                     name="p_code"
                     value={formData.p_code}
-                    onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, sabhasadNameRef)}
                     translate="no"
                     lang="en"
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 force-en font-sans"
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none transition font-bold text-slate-500 cursor-not-allowed force-en font-sans"
                   />
                 </div>
                 <div className="col-span-3 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 font-sans">{t('memberMaster.memberNameGU')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 font-sans">{t('memberMaster.memberNameGU')}</label>
                   <input
                     ref={sabhasadNameRef}
                     type="text"
@@ -330,10 +336,10 @@ export default function MemberForm({
                     value={formData.member_name_gu}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setFormData(prev => ({ 
-                        ...prev, 
+                      setFormData(prev => ({
+                        ...prev,
                         member_name_gu: val,
-                        sabhasadName: val 
+                        sabhasadName: val
                       }));
                     }}
                     onKeyDown={(e) => handleKeyDown(e, engNameRef)}
@@ -347,7 +353,7 @@ export default function MemberForm({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.engName')}</label>
+                <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.engName')}</label>
                 <input
                   ref={engNameRef}
                   type="text"
@@ -365,7 +371,7 @@ export default function MemberForm({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.village')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.village')}</label>
                   <select
                     ref={villageCodeRef}
                     name="villageCode"
@@ -376,12 +382,12 @@ export default function MemberForm({
                   >
                     <option value="">{t('memberForm.selectVillage')}</option>
                     {villageList.map(v => (
-                      <option key={v.id} value={v.village_code}>{v.village_code} - {v.village_name}</option>
+                      <option key={v.id} value={v.village_code}>{v.village_code} - {getVillageDisplayName(v)}</option>
                     ))}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.mobile')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.mobile')}</label>
                   <input
                     ref={phoneNoRef}
                     type="tel"
@@ -396,7 +402,7 @@ export default function MemberForm({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className={`text-[9px] font-bold text-slate-400 font-sans ${i18n.language !== 'gu' ? 'uppercase' : ''}`}>{t('memberForm.classification')}</label>
+                <label className={`text-[12px] font-bold text-slate-400 font-sans ${i18n.language !== 'gu' ? 'uppercase' : ''}`}>{t('memberForm.classification')}</label>
                 <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1 rounded-md border border-slate-100">
                   <button
                     type="button"
@@ -431,7 +437,7 @@ export default function MemberForm({
 
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.bankInstitution')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.bankInstitution')}</label>
                   <select
                     ref={bankNameRef}
                     name="bankName"
@@ -451,7 +457,7 @@ export default function MemberForm({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase label-ifsc-gu" translate="no"></label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase label-ifsc-gu" translate="no"></label>
                     <input
                       ref={ifscCodeRef}
                       type="text"
@@ -466,7 +472,7 @@ export default function MemberForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.accountNo')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.accountNo')}</label>
                     <input
                       ref={fullAcNumberRef}
                       type="text"
@@ -484,7 +490,7 @@ export default function MemberForm({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.accountType')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.accountType')}</label>
                     <select
                       ref={accountTypeRef}
                       name="accountType"
@@ -499,7 +505,7 @@ export default function MemberForm({
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.openingBardan')}</label>
+                    <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.openingBardan')}</label>
                     <input
                       ref={bardanOpeningRef}
                       type="number"
@@ -515,7 +521,7 @@ export default function MemberForm({
                 </div>
 
                 <div className="flex flex-col gap-1 pt-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.registryStatus')}</label>
+                  <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.registryStatus')}</label>
                   <div className="flex items-center gap-4 bg-slate-50 p-2.5 border border-slate-200 rounded-md">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
@@ -533,7 +539,7 @@ export default function MemberForm({
           </div>
 
           <div className="flex flex-col gap-1 mt-1">
-            <label className="text-[9px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.addressLocality')}</label>
+            <label className="text-[12px] font-bold text-slate-400 uppercase font-sans">{t('memberForm.addressLocality')}</label>
             <textarea
               ref={addressNoRef}
               name="addressNo"
@@ -553,7 +559,7 @@ export default function MemberForm({
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
+          className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-sm font-bold transition rounded-md uppercase tracking-wide cursor-pointer"
         >
           {t('memberForm.cancel')}
         </button>
@@ -561,7 +567,7 @@ export default function MemberForm({
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className="px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
+          className="px-4 py-1.5 flex items-center gap-1.5 text-sm font-bold text-white bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] transition rounded-md uppercase tracking-wide cursor-pointer disabled:opacity-50"
         >
           {loading ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
           <span>{localEditId || editingMember ? t('memberForm.update') : t('memberForm.save')}</span>

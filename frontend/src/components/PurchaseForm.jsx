@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, Search, Calendar, Hash, User, Truck, 
+import {
+  X, Search, Calendar, Hash, User, Truck,
   CreditCard, Info, Trash2, Save, ShoppingCart,
   Loader, Package, TrendingUp, AlertCircle, CheckCircle
 } from 'lucide-react';
@@ -103,8 +103,8 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           setAvailableItems(itemRes.data.data || []);
         }
       }
-    } catch (err) { 
-      console.error(err); 
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -206,9 +206,9 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-none" onClick={() => !loading && onCancel()}></div>
-      
-      <div className="bg-white border border-zinc-400 rounded-none w-full max-w-6xl shadow-lg relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[95vh] font-mono text-xs select-none">
-        
+
+      <div className="bg-white border border-zinc-400 rounded-none w-full max-w-6xl shadow-lg relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[95vh] font-mono text-sm select-none">
+
         {/* Modal Header */}
         <div className="px-5 py-3.5 bg-zinc-100 border-b border-zinc-300 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-zinc-200">
                       {availableSuppliers.filter(s => s.account_name.toLowerCase().includes(supplierNameSearch.toLowerCase())).map(s => (
                         <div key={s.id} onClick={() => handleSupplierSelect(s)} className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center">
-                          <span className="text-xs font-bold text-zinc-800">{s.account_name}</span>
+                          <span className="text-sm font-bold text-zinc-800">{s.account_name}</span>
                           <span className="text-[10px] font-bold text-zinc-400">#{s.account_code || s.id}</span>
                         </div>
                       ))}
@@ -322,31 +322,31 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-             <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('purchaseForm.paymentStrategy')}</label>
-                <div className="flex border border-zinc-200 p-1 bg-zinc-50">
-                   <button onClick={() => setPaymentType('credit')} className={`flex-1 py-1.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${paymentType === 'credit' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>{t('saleForm.credit')}</button>
-                   <button onClick={() => setPaymentType('cash')} className={`flex-1 py-1.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${paymentType === 'cash' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>{t('saleForm.cash')}</button>
-                </div>
-             </div>
-             <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('purchaseForm.taxLogic')}</label>
-                <select value={taxType} onChange={e => setTaxType(e.target.value)} className="w-full border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 focus:bg-white outline-none transition font-bold text-zinc-700 h-9 uppercase">
-                   <option value="CGST/SGST">{t('common.localTax')}</option>
-                   <option value="IGST">{t('common.interstateTax')}</option>
-                </select>
-             </div>
-             <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1 md:col-span-2">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">State Node</label>
-                <input readOnly value={company?.state_name ? `${company.state_name} (${company.state_code})` : 'GUJARAT (24)'} className="w-full border border-zinc-300 bg-zinc-100 px-2.5 py-1.5 text-zinc-400 font-bold h-9 uppercase" />
-                <input
-                   type="text"
-                   ref={mobileRef}
-                   placeholder="MOBILE"
-                   onKeyDown={e => e.key === 'Enter' && focusNext(itemInputRef)}
-                   className="hidden"
-                />
-             </div>
+            <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('purchaseForm.paymentStrategy')}</label>
+              <div className="flex border border-zinc-200 p-1 bg-zinc-50">
+                <button onClick={() => setPaymentType('credit')} className={`flex-1 py-1.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${paymentType === 'credit' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>{t('saleForm.credit')}</button>
+                <button onClick={() => setPaymentType('cash')} className={`flex-1 py-1.5 text-[10px] font-bold transition ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'} ${paymentType === 'cash' ? 'bg-white border border-zinc-300 text-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>{t('saleForm.cash')}</button>
+              </div>
+            </div>
+            <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('purchaseForm.taxLogic')}</label>
+              <select value={taxType} onChange={e => setTaxType(e.target.value)} className="w-full border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 focus:bg-white outline-none transition font-bold text-zinc-700 h-9 uppercase">
+                <option value="CGST/SGST">{t('common.localTax')}</option>
+                <option value="IGST">{t('common.interstateTax')}</option>
+              </select>
+            </div>
+            <div className="bg-white border border-zinc-300 p-3 flex flex-col gap-1 md:col-span-2">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">State Node</label>
+              <input readOnly value={company?.state_name ? `${company.state_name} (${company.state_code})` : 'GUJARAT (24)'} className="w-full border border-zinc-300 bg-zinc-100 px-2.5 py-1.5 text-zinc-400 font-bold h-9 uppercase" />
+              <input
+                type="text"
+                ref={mobileRef}
+                placeholder="MOBILE"
+                onKeyDown={e => e.key === 'Enter' && focusNext(itemInputRef)}
+                className="hidden"
+              />
+            </div>
           </div>
 
           {/* Item Allocation Grid */}
@@ -396,7 +396,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-300 shadow-2xl z-50 max-h-48 overflow-y-auto">
                           {availableItems.filter(i => i.item_name.toLowerCase().includes(itemSearchText.toLowerCase())).map(item => (
                             <div key={item.id} onClick={() => handleItemSelect(item)} className="p-2 hover:bg-zinc-50 cursor-pointer flex justify-between items-center">
-                              <span className="text-xs font-bold text-zinc-700 uppercase">{item.item_name}</span>
+                              <span className="text-sm font-bold text-zinc-700 uppercase">{item.item_name}</span>
                               <span className="text-[10px] font-bold text-zinc-400 uppercase">PR: ₹{item.purchase_price}</span>
                             </div>
                           ))}
@@ -410,7 +410,7 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
                       <input type="number" placeholder="0.00" value={currentRate} onChange={e => setCurrentRate(e.target.value)} className="w-full px-2 py-2 bg-white border border-zinc-300 focus:border-zinc-500 text-right outline-none font-bold font-mono text-zinc-800 h-9" />
                     </td>
                     <td colSpan={2} className="p-1 border-r border-zinc-200 bg-zinc-100 text-center text-[10px] font-bold text-zinc-400 uppercase italic">
-                       {currentItem ? `₹${calculateRowDetails(currentItem, parseFloat(currentQty)||0, parseFloat(currentRate)||currentItem.purchase_price||0).totalAmount.toFixed(2)} PREVIEW` : '[ CONFIGURE ROW ]'}
+                      {currentItem ? `₹${calculateRowDetails(currentItem, parseFloat(currentQty) || 0, parseFloat(currentRate) || currentItem.purchase_price || 0).totalAmount.toFixed(2)} PREVIEW` : '[ CONFIGURE ROW ]'}
                     </td>
                     <td className="p-1 text-center">
                       <button onClick={handleAddItem} className="w-full bg-zinc-800 text-white h-9 font-bold uppercase text-[10px] hover:bg-zinc-900 transition tracking-widest shadow-sm">Add</button>
@@ -422,37 +422,37 @@ export default function PurchaseForm({ onSubmit, onCancel }) {
 
             {/* Matrix Footer */}
             <div className="bg-zinc-100 border-t border-zinc-300 px-5 py-3 flex justify-between items-center">
-               <div className="flex gap-8">
-                  <div className="flex flex-col">
-                     <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Base Amount</span>
-                     <span className="text-xs font-bold text-zinc-600 font-mono">₹{totalBaseAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                     <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">GST Burden</span>
-                     <span className="text-xs font-bold text-zinc-600 font-mono">₹{(grossTotal - totalBaseAmount).toFixed(2)}</span>
-                  </div>
-               </div>
-               <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Net Payable Ledger</span>
-                  <span className="text-2xl font-bold text-zinc-800 font-mono italic tracking-tighter">₹{netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-               </div>
+              <div className="flex gap-8">
+                <div className="flex flex-col">
+                  <span className="text-[12px] font-bold text-zinc-400 uppercase tracking-widest">Base Amount</span>
+                  <span className="text-sm font-bold text-zinc-600 font-mono">₹{totalBaseAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[12px] font-bold text-zinc-400 uppercase tracking-widest">GST Burden</span>
+                  <span className="text-sm font-bold text-zinc-600 font-mono">₹{(grossTotal - totalBaseAmount).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Net Payable Ledger</span>
+                <span className="text-2xl font-bold text-zinc-800 font-mono italic tracking-tighter">₹{netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Action Bar */}
         <div className="px-5 py-4 border-t border-zinc-200 bg-zinc-100 flex items-center justify-between shadow-inner">
-           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
-              * Registry entries are synchronized upon confirmation.
-           </p>
-           <div className="flex gap-3">
-              <button onClick={onCancel} className="px-5 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px] tracking-widest shadow-sm">
-                Cancel
-              </button>
-              <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm">
-                {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> Confirm & Save</>}
-              </button>
-           </div>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+            * Registry entries are synchronized upon confirmation.
+          </p>
+          <div className="flex gap-3">
+            <button onClick={onCancel} className="px-5 py-2 bg-white border border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-bold transition rounded-none uppercase text-[10px] tracking-widest shadow-sm">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={loading} className="px-8 py-2 bg-blue-600 border border-blue-500 hover:bg-blue-700 text-white font-bold transition rounded-none uppercase flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm">
+              {loading ? <Loader className="animate-spin" size={14} /> : <><Save size={14} /> Confirm & Save</>}
+            </button>
+          </div>
         </div>
       </div>
     </div>

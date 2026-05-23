@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PurchaseReturnForm from '../components/PurchaseReturnForm';
 import api from '../api';
+import { toISTDateInput } from '../utils/dateUtils';
 
 export default function PurchaseReturn() {
   const { t } = useTranslation();
@@ -19,8 +20,8 @@ export default function PurchaseReturn() {
   const [searchTerm, setSearchTerm] = useState('');
   const [company, setCompany] = useState(null);
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: toISTDateInput(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+    endDate: toISTDateInput()
   });
   const [loading, setLoading] = useState(true);
 
@@ -110,7 +111,7 @@ export default function PurchaseReturn() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
         <div className="text-center font-black uppercase tracking-widest text-slate-300">
-          <p className="text-xs mb-6 italic tracking-[0.4em]">Establishing Procurement Shard Access...</p>
+          <p className="text-sm mb-6 italic tracking-[0.4em]">Establishing Procurement Shard Access...</p>
           <div className="w-24 h-1 bg-slate-100 mx-auto overflow-hidden rounded-full relative">
             <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-600 animate-[slide_1.5s_infinite]"></div>
           </div>
@@ -149,7 +150,7 @@ export default function PurchaseReturn() {
         {/* Header Section - Same as UserMaster */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-8 gap-4">
           <div>
-            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 italic">
+            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-widest mb-1 italic">
               <Package size={12} />
               <span>{t('modules.procurement', 'Procurement')} / Purchase Return Registry</span>
             </div>
@@ -213,12 +214,12 @@ export default function PurchaseReturn() {
           <div className="p-8 pb-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="flex flex-col">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Temporal Start</label>
-                <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all" />
+                <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Temporal Start</label>
+                <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-sm font-bold text-slate-600 outline-none focus:border-blue-500 transition-all" />
               </div>
               <div className="flex flex-col">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Temporal End</label>
-                <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500 transition-all" />
+                <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">Temporal End</label>
+                <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 text-sm font-bold text-slate-600 outline-none focus:border-blue-500 transition-all" />
               </div>
               <button onClick={fetchReturns} className="p-2.5 mt-4 bg-slate-900 text-white rounded-lg hover:bg-black transition-all active:scale-90 shadow-lg"><RefreshCcw size={16} /></button>
             </div>
@@ -235,7 +236,7 @@ export default function PurchaseReturn() {
                   {[
                     'Debit Memo #', 'Vendor Shard', 'Item Count', 'Return Value', 'Post Date', 'Action'
                   ].map((head) => (
-                    <th key={head} className="px-10 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
+                    <th key={head} className="px-10 py-5 text-[12px] font-bold text-slate-400 uppercase tracking-wider">{head}</th>
                   ))}
                 </tr>
               </thead>
@@ -278,7 +279,7 @@ export default function PurchaseReturn() {
                           ₹{parseFloat(ret.total_return_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </td>
-                      <td className="px-10 py-6 text-[11px] font-bold text-slate-400 italic">
+                      <td className="px-10 py-6 text-[12px] font-bold text-slate-400 italic">
                         {new Date(ret.return_date).toLocaleDateString('en-GB')}
                       </td>
                       <td className="px-10 py-6">
@@ -323,18 +324,18 @@ export default function PurchaseReturn() {
                 ].map((item, i) => (
                   <div key={i} className="bg-slate-50 p-5 rounded-lg border border-slate-100 group hover:bg-white transition-all">
                     <div className={`p-2 bg-white text-${item.color}-600 rounded-lg mb-3 border border-slate-50 shadow-sm w-fit group-hover:scale-110 transition-transform`}>{item.icon}</div>
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">{item.label}</p>
+                    <p className="text-[12px] font-bold text-slate-300 uppercase tracking-widest mb-1">{item.label}</p>
                     <p className="text-sm font-bold text-slate-700 uppercase italic truncate">{item.val}</p>
                   </div>
                 ))}
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <div className="w-6 h-0.5 bg-blue-600"></div> Reverted Component Registry
                 </h3>
                 <div className="rounded-lg border border-slate-50 overflow-hidden shadow-inner">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-sm">
                     <thead className="bg-[#F8FAFC]">
                       <tr>
                         <th className="px-8 py-4 text-left font-bold text-slate-400 uppercase">Component Naming</th>
@@ -357,7 +358,7 @@ export default function PurchaseReturn() {
 
               {selectedReturn.notes && (
                 <div className="bg-slate-50 p-8 rounded-lg border border-slate-100 relative group">
-                  <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2 italic">Auditor Manifesto Notes</p>
+                  <p className="text-[12px] font-bold text-slate-300 uppercase tracking-widest mb-2 italic">Auditor Manifesto Notes</p>
                   <p className="text-sm font-bold text-slate-600 leading-relaxed italic">{selectedReturn.notes}</p>
                 </div>
               )}

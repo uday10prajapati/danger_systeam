@@ -39,6 +39,7 @@
     "actions": "ક્રિયાઓ",
     "save": "સાચવો",
     "update": "અપડેટ કરો",
+    "confirmDelete": "શું તમે આ એન્ટ્રી કાઢી નાખવા માંગો છો?",
     "delete": "કાઢી નાખો"
   },
   "navbar": {
@@ -1015,7 +1016,9 @@
       "failedLoadBalance": "બેલેન્સ લોડ કરવામાં નિષ્ફળ.",
       "nameRequired": "ખાતાનું નામ આવશ્યક છે.",
       "nameExists": "ખાતાનું નામ પહેલાથી અસ્તિત્વમાં છે. કૃપા કરીને અનન્ય નામનો ઉપયોગ કરો.",
-      "failedSave": "ખાતું સાચવવામાં નિષ્ફળ."
+      "failedSave": "ખાતું સાચવવામાં નિષ્ફળ.",
+      "nameRequiredGuj": "ગુજરાતી ખાતાનું નામ જરૂરી છે.",
+      "nameRequiredEng": "અંગ્રેજી ખાતાનું નામ જરૂરી છે."
     },
     "table": {
       "audit": "ખાતા તપાસ",
@@ -1092,6 +1095,10 @@
     "memberNameGU": "સભ્યનું નામ (ગુજરાતી)",
     "memberNameRequired": "સભ્યનું નામ આવશ્યક છે",
     "memberNameMin": "સભ્યનું નામ ઓછામાં ઓછું 2 અક્ષર હોવું જોઈએ",
+    "nameRequiredGuj": "ગુજરાતી નામ દાખલ કરવું આવશ્યક છે.",
+    "nameRequiredEng": "અંગ્રેજી નામ દાખલ કરવું આવશ્યક છે.",
+    "villageRequired": "ગામ પસંદ કરવું આવશ્યક છે.",
+    "nameExists": "આ નામનો સભ્ય પહેલેથી જ અસ્તિત્વમાં છે.",
     "ifscCode": "IFSC કોડ",
     "bankInstitution": "બેંક સંસ્થા",
     "selectBankMaster": "બેંક માસ્ટર પસંદ કરો",
@@ -1172,7 +1179,10 @@
     "deleteFailed": "કાઢી નાખવામાં નિષ્ફળ.",
     "memberAlreadyDeleted": "સભાસદ પહેલાથી જ કાઢી નાખવામાં આવ્યો છે.",
     "nameRequired": "સભાસદનું નામ આવશ્યક છે.",
-    "nameExists": "સભાસદનું નામ પહેલાથી અસ્તિત્વમાં છે. કૃપા કરીને અનન્ય નામનો ઉપયોગ કરો."
+    "nameExists": "સભાસદનું નામ પહેલાથી અસ્તિત્વમાં છે. કૃપા કરીને અનન્ય નામનો ઉપયોગ કરો.",
+    "nameRequiredGuj": "ગુજરાતી સભાસદનું નામ જરૂરી છે.",
+    "nameRequiredEng": "અંગ્રેજી સભાસદનું નામ જરૂરી છે.",
+    "villageRequired": "ગામ પસંદ કરવું જરૂરી છે."
   },
   "itemMaster": {
     "title": "વસ્તુ રજિસ્ટ્રી માસ્ટર",
@@ -1838,6 +1848,7 @@
     "viewRegistryLogs": "રજિસ્ટ્રી લોગ્સ જુઓ",
     "registrySubtitle": "બારદાન રજિસ્ટ્રી લોગ્સ",
     "enterPavtiNo": "પાવતી નંબર દાખલ કરો",
+    "enterRemark": "રિમાર્ક દાખલ કરો...",
     "identityNode": "ઓળખ પસંદ કરો...",
     "nameReference": "નામ સંદર્ભ...",
     "select": "પસંદ કરો...",
@@ -1909,11 +1920,12 @@
     "district": "જિલ્લો",
     "cancel": "રદ કરો",
     "update": "અપડેટ કરો",
-    "delete": "કાઢી નાખો",
     "save": "સાચવો",
     "deleteConfirmTitle": "ગામનો રેકોર્ડ કાઢી નાખો",
     "deleteConfirmMessage": "શું તમે ખરેખર ગામનો રેકોર્ડ કાઢી નાખવા માંગો છો",
-    "deleteConfirmSuffix": "? આ ક્રિયા પૂર્વવત્ કરી શકાતી નથી."
+    "deleteConfirmSuffix": "? આ ક્રિયા પૂર્વવત્ કરી શકાતી નથી.",
+    "nameRequiredGuj": "ગુજરાતી ગામનું નામ જરૂરી છે.",
+    "nameRequiredEng": "અંગ્રેજી ગામનું નામ જરૂરી છે."
   },
   "memberForm": {
     "editTitle": "સભાસદમાં ફેરફાર કરો",
@@ -2202,7 +2214,12 @@
     "refNode": "સંદર્ભ નોડ / ચેક #",
     "narrative": "નાણાકીય વર્ણન / વિગતો",
     "applyModification": "ફેરફાર લાગુ કરો",
-    "initializeNode": "નોડ શરૂ કરો"
+    "initializeNode": "નોડ શરૂ કરો",
+    "commitNote": "વાઉચર સાચવવા માટે જમા અને ઉધાર સમાન હોવા જોઈએ.",
+    "codePlaceholder": "કોડ",
+    "searchAccountPlaceholder": "ખાતું શોધો...",
+    "searchMemberPlaceholder": "સભાસદ શોધો...",
+    "optionalPlaceholder": "વૈકલ્પિક"
   },
   "sabhasadLedgerSummary": {
     "title": "સભાષદ ખાતાવહી સારાંશ",

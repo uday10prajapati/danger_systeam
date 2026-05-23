@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api';
-import { formatBilingualText } from '../utils/textUtils';
 import {
    X, Search, AlertCircle, Trash2, Edit3,
    Calendar, FileText, ArrowRightLeft, Plus,
@@ -11,6 +10,7 @@ import {
 
 export default function JVEntryModal({ company, initialDate, editId = null, onClose, onSubmit }) {
    const { t, i18n } = useTranslation();
+   const isGu = i18n.language === 'gu';
    const [voucherDate, setVoucherDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
    const [credits, setCredits] = useState([]);
    const [debits, setDebits] = useState([]);
@@ -42,6 +42,24 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
          }
       } catch (err) {
          console.error('Fetch JV error', err);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   const handleDelete = async () => {
+      if (!editId) return;
+      
+      if (!window.confirm(t('common.confirmDelete') || 'Are you sure you want to delete this journal entry?')) {
+         return;
+      }
+
+      setLoading(true);
+      try {
+         await api.delete(`/jv/${editId}`);
+         if (onSubmit) onSubmit();
+      } catch (err) {
+         alert('Failed to delete JV: ' + (err.response?.data?.error || err.message));
       } finally {
          setLoading(false);
       }
@@ -97,9 +115,9 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
    return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !loading && onClose()}></div>
-         
-         <div className="bg-white border border-slate-200 rounded-lg w-full max-w-5xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh] font-mono text-xs select-none">
-            
+
+         <div className="bg-white border border-slate-200 rounded-lg w-full max-w-5xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh] font-mono text-sm select-none">
+
             {/* Modal Header */}
             <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                <div className="flex items-center gap-2">
@@ -117,23 +135,23 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
             <div className="p-4 px-6 bg-white flex items-center justify-between border-b border-slate-200">
                <div className="flex items-center gap-4">
                   <div className="flex items-center gap-3">
-                     <span className={`font-bold text-slate-500 tracking-widest text-[9px] ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.voucherDate')} :</span>
+                     <span className={`font-bold text-slate-500 tracking-widest text-[12px] ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>{t('jvEntry.voucherDate')} :</span>
                      <input
                         type="date"
                         value={voucherDate}
                         onChange={e => setVoucherDate(e.target.value)}
-                        className="bg-white border border-slate-300 rounded-md px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 text-xs h-9 force-en"
+                        className="bg-white border border-slate-300 rounded-md px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 text-sm h-9 force-en"
                      />
                   </div>
                </div>
 
                {totalCredit !== totalDebit && totalCredit > 0 && (
-                  <div className="flex items-center gap-2 text-red-600 font-bold text-[9px] uppercase tracking-widest animate-pulse">
+                  <div className="flex items-center gap-2 text-red-600 font-bold text-[12px] uppercase tracking-widest animate-pulse">
                      <AlertCircle size={14} /> {t('jvEntry.imbalance')}: ₹{(totalCredit - totalDebit).toFixed(2)}
                   </div>
                )}
                {totalCredit === totalDebit && totalCredit > 0 && (
-                  <div className="flex items-center gap-2 text-emerald-600 font-bold text-[9px] uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-emerald-600 font-bold text-[12px] uppercase tracking-widest">
                      <CheckCircle2 size={14} /> {t('jvEntry.standardized')}
                   </div>
                )}
@@ -150,7 +168,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      </span>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('credit'); }}
-                        className={`bg-white border border-emerald-200 text-emerald-700 rounded-md hover:bg-emerald-600 hover:border-emerald-600 hover:text-white px-3 py-1 text-[9px] font-bold transition-colors ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                        className={`bg-white border border-emerald-200 text-emerald-700 rounded-md hover:bg-emerald-600 hover:border-emerald-600 hover:text-white px-3 py-1 text-[12px] font-bold transition-colors ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                      >
                         + {t('jvEntry.addCredit')}
                      </button>
@@ -158,7 +176,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
                   <div className="flex-1 overflow-y-auto bg-white">
                      <table className="w-full">
-                        <thead className="sticky top-0 bg-slate-50 text-[9px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                        <thead className="sticky top-0 bg-slate-50 text-[12px] font-bold text-slate-500 uppercase border-b border-slate-200">
                            <tr>
                               <th className="px-4 py-2 text-left">{t('jvEntry.selectAccount')}</th>
                               <th className="px-4 py-2 text-right w-32">{t('rojmel.amount')}</th>
@@ -167,9 +185,9 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                            {credits.map((item, i) => (
-                              <tr key={i} className="hover:bg-slate-50/75 group transition-colors">
+                              <tr key={i} onDoubleClick={() => { setEditIndex(i); setActiveSubModal('credit'); }} className="hover:bg-slate-50/75 group transition-colors">
                                  <td className="px-4 py-3">
-                                    <p className="font-bold text-slate-800 text-[13px] font-sans" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{formatBilingualText(item.account_name)}</p>
+                                    <p className="font-bold text-slate-800 text-[13px] font-sans" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{getAccountDisplayName(item)}</p>
                                     <p className="text-[10px] text-slate-400 italic mt-0.5">{item.particulars || t('jvEntry.noNarrative') || 'No narrative'}</p>
                                  </td>
                                  <td className="px-4 py-3 text-right font-bold text-emerald-600 text-sm font-mono italic">
@@ -184,7 +202,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                            ))}
                            {credits.length === 0 && (
                               <tr>
-                                 <td colSpan="3" className="px-4 py-12 text-center text-slate-300 uppercase tracking-widest text-[9px] italic">
+                                 <td colSpan="3" className="px-4 py-12 text-center text-slate-300 uppercase tracking-widest text-[12px] italic">
                                     {t('jvEntry.noEntries')}
                                  </td>
                               </tr>
@@ -194,7 +212,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                   </div>
 
                   <div className="p-3 px-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('jvEntry.creditTotal')}</span>
+                     <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">{t('jvEntry.creditTotal')}</span>
                      <span className="font-bold font-mono text-emerald-600 text-[15px] italic">₹{totalCredit.toFixed(2)}</span>
                   </div>
                </div>
@@ -208,7 +226,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                      </span>
                      <button
                         onClick={() => { setEditIndex(null); setActiveSubModal('debit'); }}
-                        className={`bg-white border border-blue-200 text-[#1d5f84] rounded-md hover:bg-[#1d5f84] hover:border-[#1d5f84] hover:text-white px-3 py-1 text-[9px] font-bold transition-colors ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                        className={`bg-white border border-blue-200 text-[#1d5f84] rounded-md hover:bg-[#1d5f84] hover:border-[#1d5f84] hover:text-white px-3 py-1 text-[12px] font-bold transition-colors ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                      >
                         + {t('jvEntry.addDebit')}
                      </button>
@@ -216,7 +234,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
                   <div className="flex-1 overflow-y-auto bg-white">
                      <table className="w-full">
-                        <thead className="sticky top-0 bg-slate-50 text-[9px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                        <thead className="sticky top-0 bg-slate-50 text-[12px] font-bold text-slate-500 uppercase border-b border-slate-200">
                            <tr>
                               <th className="px-4 py-2 text-left">{t('jvEntry.selectAccount')}</th>
                               <th className="px-4 py-2 text-right w-32">{t('rojmel.amount')}</th>
@@ -225,9 +243,9 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                            {debits.map((item, i) => (
-                              <tr key={i} className="hover:bg-slate-50/75 group transition-colors">
+                              <tr key={i} onDoubleClick={() => { setEditIndex(i); setActiveSubModal('debit'); }} className="hover:bg-slate-50/75 group transition-colors">
                                  <td className="px-4 py-3">
-                                    <p className="font-bold text-slate-800 text-[13px] font-sans" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{formatBilingualText(item.account_name)}</p>
+                                    <p className="font-bold text-slate-800 text-[13px] font-sans" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{getAccountDisplayName(item)}</p>
                                     <p className="text-[10px] text-slate-400 italic mt-0.5">{item.particulars || t('jvEntry.noNarrative') || 'No narrative'}</p>
                                  </td>
                                  <td className="px-4 py-3 text-right font-bold text-[#1d5f84] text-sm font-mono italic">
@@ -242,7 +260,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                            ))}
                            {debits.length === 0 && (
                               <tr>
-                                 <td colSpan="3" className="px-4 py-12 text-center text-slate-300 uppercase tracking-widest text-[9px] italic">
+                                 <td colSpan="3" className="px-4 py-12 text-center text-slate-300 uppercase tracking-widest text-[12px] italic">
                                     {t('jvEntry.noEntries')}
                                  </td>
                               </tr>
@@ -252,7 +270,7 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
                   </div>
 
                   <div className="p-3 px-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('jvEntry.debitTotal')}</span>
+                     <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">{t('jvEntry.debitTotal')}</span>
                      <span className="font-bold font-mono text-[#1d5f84] text-[15px] italic">₹{totalDebit.toFixed(2)}</span>
                   </div>
                </div>
@@ -261,14 +279,24 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
             {/* Action Bar */}
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between rounded-b-lg">
                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest italic">
-                  * {t('jvEntry.commitNote') || 'Fiscal Balances must be standardized (Credit = Debit) for Commit.'}
+                  * {t('jvEntry.commitNote')}
                </p>
                <div className="flex gap-3">
+                                    {editId && (
+                                       <button 
+                                          onClick={handleDelete}
+                                          disabled={loading}
+                                          className={`px-5 py-2 bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 font-bold transition rounded-md text-[10px] tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                                       >
+                                          <Trash2 size={14} />
+                                          {t('common.delete') || 'DELETE'}
+                                       </button>
+                                    )}
                   <button onClick={onClose} className={`px-5 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold transition rounded-md text-[10px] tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                      {t('common.cancel') || 'Cancel'}
                   </button>
-                  <button 
-                     onClick={handleSave} 
+                  <button
+                     onClick={handleSave}
                      disabled={loading || totalCredit === 0 || totalCredit !== totalDebit}
                      className={`px-8 py-2 bg-[#1d5f84] hover:bg-[#154662] disabled:grayscale disabled:opacity-50 text-white font-bold transition rounded-md flex items-center justify-center gap-2 text-[10px] tracking-widest shadow-sm ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                   >
@@ -316,17 +344,18 @@ export default function JVEntryModal({ company, initialDate, editId = null, onCl
 
 function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, company }) {
    const { t, i18n } = useTranslation();
+   const isGu = i18n.language === 'gu';
    const isCredit = type === 'credit';
    const themeColor = isCredit ? 'emerald' : 'blue';
-   
+
    const [accountId, setAccountId] = useState(initialData?.account_id || '');
    const [selectedAccount, setSelectedAccount] = useState(null);
    const [searchCode, setSearchCode] = useState(initialData?.account_id ? String(initialData.account_id) : '');
-   const [searchText, setSearchText] = useState(initialData?.account_name || '');
+   const [searchText, setSearchText] = useState(initialData?.account_name_gu || initialData?.account_name || '');
 
    const [memberId, setMemberId] = useState(initialData?.member_id || '');
-   const [memberName, setMemberName] = useState(initialData?.member_name || '');
-   const [memberSearch, setMemberSearch] = useState(initialData?.member_name || '');
+   const [memberName, setMemberName] = useState(initialData?.member_name_gu || initialData?.member_name || '');
+   const [memberSearch, setMemberSearch] = useState(initialData?.member_name_gu || initialData?.member_name || '');
    const [members, setMembers] = useState([]);
    const [showMemberDropdown, setShowMemberDropdown] = useState(false);
 
@@ -362,9 +391,12 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
       } catch (err) { }
    };
 
+   const getAccountDisplayName = (acc) => isGu ? (acc?.account_name_gu || acc?.account_name || '') : (acc?.account_name || acc?.account_name_gu || '');
+   const getMemberDisplayName = (member) => isGu ? (member?.member_name_gu || member?.member_name || '') : (member?.member_name || member?.member_name_gu || '');
+
    const filteredAccounts = accounts.filter(a => {
       const codeMatch = searchCode ? (String(a.id).includes(searchCode) || (a.phone && String(a.phone).includes(searchCode))) : true;
-      const nameMatch = searchText ? a.account_name.toLowerCase().includes(searchText.toLowerCase()) : true;
+      const nameMatch = searchText ? getAccountDisplayName(a).toLowerCase().includes(searchText.toLowerCase()) : true;
       return codeMatch && nameMatch;
    });
 
@@ -372,7 +404,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
       setAccountId(acc.id);
       setSelectedAccount(acc);
       setSearchCode(String(acc.id));
-      setSearchText(acc.account_name);
+      setSearchText(getAccountDisplayName(acc));
       setShowDropdown(false);
       // Auto focus next logic
       setTimeout(() => {
@@ -412,9 +444,11 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
       if (!accountId || !amount) return;
       onAdd({
          account_id: parseInt(accountId),
-         account_name: searchText || 'Account Node',
+         account_name: searchText || getAccountDisplayName(selectedAccount) || 'Account Node',
+         account_name_gu: isGu ? (searchText || getAccountDisplayName(selectedAccount) || '') : (selectedAccount?.account_name_gu || ''),
          member_id: memberId || null,
          member_name: memberName || '',
+         member_name_gu: isGu ? (memberName || '') : (selectedAccount?.member_name_gu || ''),
          amount: parseFloat(amount),
          reference_no: refNo,
          particulars: particulars || (memberName ? `${searchText} - ${memberName}` : searchText) || ''
@@ -426,12 +460,12 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
 
    return (
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[1200] flex items-center justify-center p-6 animate-in fade-in duration-300">
-         <div className="bg-white border border-slate-200 rounded-lg w-full max-w-lg shadow-2xl overflow-hidden flex flex-col font-mono text-xs">
-            
+         <div className="bg-white border border-slate-200 rounded-lg w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col font-mono text-sm">
+
             <div className={`px-5 py-3.5 ${isCredit ? 'bg-emerald-50' : 'bg-slate-50'} border-b border-slate-200 flex items-center justify-between`}>
                <div className="flex items-center gap-2">
                   <Database size={16} className={isCredit ? 'text-emerald-600' : 'text-[#1d5f84]'} />
-                  <span className={`text-[11px] font-bold tracking-widest ${isCredit ? 'text-emerald-800' : 'text-[#1d5f84]'} ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
+                  <span className={`text-[12px] font-bold tracking-widest ${isCredit ? 'text-emerald-800' : 'text-[#1d5f84]'} ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                      {t('jvEntry.allocationTitle', { action: actionLabel, type: typeLabel })}
                   </span>
                </div>
@@ -448,7 +482,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                      <input
                         ref={codeRef}
                         type="text"
-                        placeholder="CODE"
+                        placeholder={t('jvEntry.codePlaceholder')}
                         value={searchCode}
                         onChange={(e) => { setSearchCode(e.target.value); setShowDropdown(true); }}
                         onFocus={() => setShowDropdown(true)}
@@ -459,12 +493,12 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         <input
                            ref={nameRef}
                            type="text"
-                           placeholder="SEARCH ACCOUNT NAME..."
+                           placeholder={t('jvEntry.searchAccountPlaceholder')}
                            value={searchText}
                            onChange={(e) => { setSearchText(e.target.value); setShowDropdown(true); }}
                            onFocus={() => setShowDropdown(true)}
                            onKeyDown={handleSearchKeyDown}
-                           className={`w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 h-10 ${i18n.language === 'gu' ? '' : 'uppercase'}`}
+                           className={`w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 h-10 ${isGu ? '' : 'uppercase'}`}
                            style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}
                         />
                         {showDropdown && (
@@ -475,7 +509,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                                     onClick={() => handleAccountSelect(acc)}
                                     className={`px-4 py-2.5 flex justify-between items-center cursor-pointer transition-colors ${selectedIndex === idx ? `bg-[#1d5f84] text-white` : 'hover:bg-slate-50 text-slate-800'}`}
                                  >
-                                    <span className="text-[13px] font-bold" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{acc.account_name_gu || acc.account_name}</span>
+                                    <span className="text-[13px] font-bold" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{getAccountDisplayName(acc)}</span>
                                     <span className={`text-[10px] font-bold ${selectedIndex === idx ? 'text-blue-100' : 'text-slate-400'}`}>#{acc.id}</span>
                                  </div>
                               ))}
@@ -495,7 +529,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         <input
                            ref={memberInputRef}
                            type="text"
-                           placeholder="SEARCH SABHASAD / MEMBER..."
+                           placeholder={t('jvEntry.searchMemberPlaceholder')}
                            value={memberSearch}
                            onChange={(e) => { setMemberSearch(e.target.value); setShowMemberDropdown(true); }}
                            onFocus={() => setShowMemberDropdown(true)}
@@ -505,19 +539,19 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                         />
                         {showMemberDropdown && memberSearch.length > 0 && (
                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-md z-[1300] max-h-40 overflow-y-auto divide-y divide-slate-100">
-                              {members.filter(m => m.member_name.toLowerCase().includes(memberSearch.toLowerCase())).map(m => (
+                              {members.filter(m => getMemberDisplayName(m).toLowerCase().includes(memberSearch.toLowerCase())).map(m => (
                                  <div
                                     key={m.id}
                                     onClick={() => {
                                        setMemberId(m.id);
-                                       setMemberName(m.member_name);
-                                       setMemberSearch(m.member_name);
+                                       setMemberName(getMemberDisplayName(m));
+                                       setMemberSearch(getMemberDisplayName(m));
                                        setShowMemberDropdown(false);
                                        focusNext(amountRef);
                                     }}
                                     className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex justify-between items-center group transition-colors"
                                  >
-                                    <span className="text-[12px] font-bold text-slate-700 tracking-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{m.member_name_gu || m.member_name}</span>
+                                    <span className="text-[12px] font-bold text-slate-700 tracking-tight" style={{ fontFamily: "'Prompt', 'Noto Sans Gujarati', sans-serif" }}>{getMemberDisplayName(m)}</span>
                                     <span className="text-[10px] font-bold text-slate-400 font-mono">#{m.member_code}</span>
                                  </div>
                               ))}
@@ -545,11 +579,11 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                      <input
                         ref={refNoRef}
                         type="text"
-                        placeholder="OPTIONAL"
+                        placeholder={t('jvEntry.optionalPlaceholder')}
                         onKeyDown={e => e.key === 'Enter' && focusNext(partRef)}
                         value={refNo}
                         onChange={e => setRefNo(e.target.value)}
-                        className="w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 text-xs h-11 uppercase"
+                        className="w-full border border-slate-300 rounded-md bg-white px-3 py-1.5 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-800 text-sm h-11 uppercase"
                      />
                   </div>
                </div>
@@ -562,7 +596,7 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                      value={particulars}
                      onChange={e => setParticulars(e.target.value)}
                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
-                     className={`w-full border border-slate-300 rounded-md bg-white px-3 py-2 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-600 text-[11px] h-20 resize-none italic ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
+                     className={`w-full border border-slate-300 rounded-md bg-white px-3 py-2 focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-600 text-[12px] h-20 resize-none italic ${isGu ? 'font-sans' : 'uppercase'}`}
                   />
                </div>
             </div>
@@ -571,8 +605,8 @@ function SubEntryModal({ type, date, accounts, onClose, onAdd, initialData, comp
                <button onClick={onClose} className={`px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold transition rounded-md text-[10px] tracking-widest ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}>
                   {t('common.cancel') || 'Cancel'}
                </button>
-               <button 
-                  onClick={handleSubmit} 
+               <button
+                  onClick={handleSubmit}
                   disabled={!accountId || !amount || (selectedAccount?.is_subledger === 1 && !memberId)}
                   className={`px-8 py-2.5 ${isCredit ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1d5f84] hover:bg-[#154662]'} text-white font-bold transition rounded-md text-[10px] tracking-widest shadow-sm disabled:grayscale disabled:opacity-50 ${i18n.language === 'gu' ? 'font-sans' : 'uppercase'}`}
                >

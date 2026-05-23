@@ -97,7 +97,7 @@ function CompanySetup() {
         try {
           const u = JSON.parse(localStorage.getItem('user') || '{}')
           localStorage.setItem('user', JSON.stringify({ ...u, company_id: data.id }))
-        } catch {}
+        } catch { }
       }
     } catch (e) {
       if (e.response?.status !== 404) console.error(e)
@@ -230,14 +230,14 @@ function CompanySetup() {
       {(saving || yearSaving) && <Loading />}
 
       <div className="max-w-[1600px] mx-auto px-4 py-4">
-        
+
         {/* Main Container */}
         <div className="bg-white border border-slate-200 rounded-lg flex flex-col relative shadow-none overflow-hidden">
-          
+
           {/* Unified Header Bar */}
           <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 select-none">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
+              <span className="text-sm font-extrabold text-[#1d5f84] uppercase tracking-wider flex items-center gap-2">
                 <Building2 size={14} className="text-[#1d5f84]" />
                 {t('company.title')}
               </span>
@@ -257,14 +257,14 @@ function CompanySetup() {
               {company ? (
                 <button
                   onClick={openCompanyModal}
-                  className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+                  className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
                 >
                   <Edit3 size={13} /> {t('company.editCompany')}
                 </button>
               ) : (
                 <button
                   onClick={openCompanyModal}
-                  className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[11px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
+                  className="h-7 flex items-center gap-1.5 px-3 bg-[#1d5f84] hover:bg-[#154662] border border-[#1d5f84] text-white text-[12px] font-bold rounded-md transition shadow-sm cursor-pointer uppercase tracking-wider"
                 >
                   <Plus size={13} /> {t('company.setupCompany')}
                 </button>
@@ -277,10 +277,10 @@ function CompanySetup() {
             {!company && (
               <div className="flex flex-col items-center justify-center py-24 gap-4 text-slate-400 border border-dashed border-slate-300 bg-white rounded-lg">
                 <Building2 size={48} strokeWidth={1} className="text-slate-300" />
-                <p className="text-xs font-mono uppercase tracking-widest">{t('company.noCompany')}</p>
+                <p className="text-sm font-mono uppercase tracking-widest">{t('company.noCompany')}</p>
                 <button
                   onClick={openCompanyModal}
-                  className="bg-[#1d5f84] hover:bg-[#154662] text-white text-xs font-bold px-6 py-2 rounded-md transition cursor-pointer"
+                  className="bg-[#1d5f84] hover:bg-[#154662] text-white text-sm font-bold px-6 py-2 rounded-md transition cursor-pointer"
                 >
                   {t('company.initializeCompany')}
                 </button>
@@ -292,21 +292,21 @@ function CompanySetup() {
                 {/* Stat cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-sm flex flex-col justify-between">
-                    <span className={`text-[9px] font-bold text-slate-400 tracking-widest ${t('company.companyName').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.companyName')}</span>
+                    <span className={`text-[12px] font-bold text-slate-400 tracking-widest ${t('company.companyName').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.companyName')}</span>
                     <span className={`text-[13px] font-bold text-slate-800 mt-1 truncate ${i18n.language === 'gu' ? 'font-prompt' : 'font-sans'}`}>{displayCompanyName(company)}</span>
                   </div>
                   <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-sm flex flex-col justify-between">
-                    <span className={`text-[9px] font-bold text-slate-400 tracking-widest ${t('company.gstNumber').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.gstNumber')}</span>
+                    <span className={`text-[12px] font-bold text-slate-400 tracking-widest ${t('company.gstNumber').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.gstNumber')}</span>
                     <span className="text-[13px] font-bold force-en notranslate text-slate-800 mt-1" translate="no">{company.gst_number || '—'}</span>
                   </div>
                   <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-sm flex flex-col justify-between">
-                    <span className={`text-[9px] font-bold text-slate-400 tracking-widest ${t('company.activeFinancialYear').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.activeFinancialYear')}</span>
+                    <span className={`text-[12px] font-bold text-slate-400 tracking-widest ${t('company.activeFinancialYear').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.activeFinancialYear')}</span>
                     <span className="text-[13px] font-bold font-sans text-[#1d5f84] mt-1">
                       {activeYear?.year_label || '—'}
                     </span>
                   </div>
                   <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-sm flex flex-col justify-between">
-                    <span className={`text-[9px] font-bold text-slate-400 tracking-widest ${t('company.currency').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.currency')}</span>
+                    <span className={`text-[12px] font-bold text-slate-400 tracking-widest ${t('company.currency').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.currency')}</span>
                     <span className="text-[13px] font-bold force-en notranslate text-slate-800 mt-1" translate="no">{company.currency || 'INR'}</span>
                   </div>
                 </div>
@@ -319,7 +319,7 @@ function CompanySetup() {
                     <div className="px-4 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Building2 size={14} className="text-[#1d5f84]" />
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('company.companyProfile')}</span>
+                        <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">{t('company.companyProfile')}</span>
                       </div>
                       <button onClick={openCompanyModal} className="p-1 text-slate-400 hover:text-[#1d5f84] transition rounded-md cursor-pointer" title={t('company.edit')}>
                         <Edit3 size={14} />
@@ -350,7 +350,7 @@ function CompanySetup() {
                       <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2 text-slate-400">
                           <Database size={12} />
-                          <span className="text-[9px] force-en font-bold uppercase tracking-widest">ID: #{company.id}</span>
+                          <span className="text-[12px] force-en font-bold uppercase tracking-widest">ID: #{company.id}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-emerald-600">
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -365,8 +365,8 @@ function CompanySetup() {
                     <div className="px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-[#1d5f84]" />
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('company.financialYears')}</span>
-                        <span className={`bg-slate-200 text-slate-600 force-en text-[9px] font-bold px-1.5 py-0.5 rounded-sm`}>
+                        <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">{t('company.financialYears')}</span>
+                        <span className={`bg-slate-200 text-slate-600 force-en text-[12px] font-bold px-1.5 py-0.5 rounded-sm`}>
                           {financialYears.length} {t('company.records')}
                         </span>
                       </div>
@@ -404,19 +404,19 @@ function CompanySetup() {
                           <tbody className="divide-y divide-slate-100 text-slate-700">
                             {financialYears.map(fy => (
                               <tr key={fy.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-4 py-2.5 font-bold text-[11px] border-r border-slate-100 font-sans">{fy.year_label}</td>
-                                <td className="px-4 py-2.5 text-slate-500 border-r border-slate-100 text-[11px] force-en font-mono font-bold whitespace-nowrap">
+                                <td className="px-4 py-2.5 font-bold text-[12px] border-r border-slate-100 font-sans">{fy.year_label}</td>
+                                <td className="px-4 py-2.5 text-slate-500 border-r border-slate-100 text-[12px] force-en font-mono font-bold whitespace-nowrap">
                                   {fy.start_date ? new Date(fy.start_date).toLocaleDateString('en-GB') : '—'}
                                   {' – '}
                                   {fy.end_date ? new Date(fy.end_date).toLocaleDateString('en-GB') : '—'}
                                 </td>
                                 <td className="px-4 py-2.5 border-r border-slate-100 text-center">
                                   {fy.is_active ? (
-                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 text-[9px] font-bold tracking-widest ${t('company.active').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>
+                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 text-[12px] font-bold tracking-widest ${t('company.active').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>
                                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t('company.active')}
                                     </span>
                                   ) : (
-                                    <span className={`px-2 py-0.5 rounded-sm bg-slate-100 text-slate-500 text-[9px] tracking-widest ${t('company.inactive').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.inactive')}</span>
+                                    <span className={`px-2 py-0.5 rounded-sm bg-slate-100 text-slate-500 text-[12px] tracking-widest ${t('company.inactive').match(/[a-z]/i) ? 'uppercase' : 'font-sans'}`}>{t('company.inactive')}</span>
                                   )}
                                 </td>
                                 <td className="px-4 py-2.5 text-center">
@@ -457,7 +457,7 @@ function CompanySetup() {
                   <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                     {company ? t('company.editSettings') : t('company.initCompany')}
                   </h2>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">
                     {t('company.configOrgProfile')}
                   </p>
                 </div>
@@ -469,7 +469,7 @@ function CompanySetup() {
 
             <div className="flex-1 overflow-y-auto p-5 scroller-airy">
               {formErrors.length > 0 && (
-                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-md text-rose-800 text-[11px] flex items-start gap-2">
+                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-md text-rose-800 text-[12px] flex items-start gap-2">
                   <AlertCircle size={14} className="mt-0.5 shrink-0" />
                   <ul className="list-disc list-inside space-y-1 font-bold">
                     {formErrors.map((e, i) => <li key={i}>{e}</li>)}
@@ -491,7 +491,7 @@ function CompanySetup() {
                           type="text"
                           value={companyForm.company_name}
                           onChange={(e) => setCompanyForm({ ...companyForm, company_name: e.target.value })}
-                          className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 text-xs"
+                          className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-bold text-slate-700 text-sm"
                           required
                         />
                       </div>
@@ -504,7 +504,7 @@ function CompanySetup() {
                           type="text"
                           value={companyForm.company_name_gu}
                           onChange={(e) => setCompanyForm({ ...companyForm, company_name_gu: e.target.value })}
-                          className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt font-bold text-slate-700 text-xs"
+                          className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt font-bold text-slate-700 text-sm"
                           placeholder="દા.ત. ડાંગર સિસ્ટમ"
                         />
                       </div>
@@ -514,19 +514,19 @@ function CompanySetup() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <ModalField label={t('company.gstNumber')}>
-                    <input ref={gstRef} type="text" value={companyForm.gst_number || ''} 
+                    <input ref={gstRef} type="text" value={companyForm.gst_number || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, gst_number: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, bankRef)}
                       placeholder={t('company.gstNumber') + "..."} className={inputCls + ' force-en'} />
                   </ModalField>
                   <ModalField label={t('company.bankAccountNo')}>
-                    <input ref={bankRef} type="text" value={companyForm.company_account_no || ''} 
+                    <input ref={bankRef} type="text" value={companyForm.company_account_no || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, company_account_no: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, currencyRef)}
                       placeholder={t('company.bankAccountNo')} className={inputCls + ' force-en'} />
                   </ModalField>
                   <ModalField label={t('company.currency')}>
-                    <select ref={currencyRef} value={companyForm.currency || 'INR'} 
+                    <select ref={currencyRef} value={companyForm.currency || 'INR'}
                       onChange={e => setCompanyForm(p => ({ ...p, currency: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, addressRef)}
                       className={inputCls + ' force-en'}>
@@ -538,19 +538,19 @@ function CompanySetup() {
                 <SectionLabel>{t('company.contactDetails')}</SectionLabel>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <ModalField label={t('company.address')} className="md:col-span-2">
-                    <textarea ref={addressRef} value={companyForm.address || ''} 
+                    <textarea ref={addressRef} value={companyForm.address || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, address: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, emailRef)}
                       placeholder={t('company.enterAddress')} rows={2} className={inputCls + ' resize-none'} />
                   </ModalField>
                   <ModalField label={t('company.email')}>
-                    <input ref={emailRef} type="email" value={companyForm.email || ''} 
+                    <input ref={emailRef} type="email" value={companyForm.email || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, email: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, phoneRef)}
                       placeholder={t('company.enterEmail')} className={inputCls + ' force-en'} />
                   </ModalField>
                   <ModalField label={t('company.phone')}>
-                    <input ref={phoneRef} type="tel" value={companyForm.phone || ''} 
+                    <input ref={phoneRef} type="tel" value={companyForm.phone || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, phone: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, fyStartRef)}
                       placeholder={t('company.enterPhone')} className={inputCls + ' force-en'} />
@@ -560,13 +560,13 @@ function CompanySetup() {
                 <SectionLabel>{t('company.fyDetails')}</SectionLabel>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
                   <ModalField label={t('company.fyStart')} required>
-                    <input ref={fyStartRef} type="date" value={companyForm.financial_year_start || ''} 
+                    <input ref={fyStartRef} type="date" value={companyForm.financial_year_start || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, financial_year_start: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, fyEndRef)}
                       className={inputCls + ' force-en'} />
                   </ModalField>
                   <ModalField label={t('company.fyEnd')} required>
-                    <input ref={fyEndRef} type="date" value={companyForm.financial_year_end || ''} 
+                    <input ref={fyEndRef} type="date" value={companyForm.financial_year_end || ''}
                       onChange={e => setCompanyForm(p => ({ ...p, financial_year_end: e.target.value }))}
                       onKeyDown={e => handleKeyDown(e, null, handleCompanySubmit)}
                       className={inputCls + ' force-en'} />
@@ -605,7 +605,7 @@ function CompanySetup() {
                   <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                     {editingYear ? t('company.editFy') : t('company.addFy')}
                   </h2>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">{t('company.fiscalPeriodConfig')}</p>
+                  <p className="text-[12px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">{t('company.fiscalPeriodConfig')}</p>
                 </div>
               </div>
               <button onClick={() => setShowYearModal(false)} className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-md transition cursor-pointer">
@@ -621,13 +621,13 @@ function CompanySetup() {
               </ModalField>
               <div className="grid grid-cols-2 gap-4">
                 <ModalField label={t('company.startDate')} required>
-                  <input ref={yearStartRef} type="date" value={yearForm.start} 
+                  <input ref={yearStartRef} type="date" value={yearForm.start}
                     onChange={e => setYearForm(p => ({ ...p, start: e.target.value }))}
                     onKeyDown={e => handleKeyDown(e, yearEndRef)}
                     className={inputCls + ' force-en'} />
                 </ModalField>
                 <ModalField label={t('company.endDate')} required>
-                  <input ref={yearEndRef} type="date" value={yearForm.end} 
+                  <input ref={yearEndRef} type="date" value={yearForm.end}
                     onChange={e => setYearForm(p => ({ ...p, end: e.target.value }))}
                     onKeyDown={e => handleKeyDown(e, null, handleYearSubmit)}
                     className={inputCls + ' force-en'} />
@@ -655,12 +655,12 @@ function CompanySetup() {
 
 // ── Helpers ──
 
-const inputCls = 'w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt text-slate-700 font-bold text-xs shadow-sm'
+const inputCls = 'w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:border-[#1d5f84] focus:ring-1 focus:ring-[#1d5f84] outline-none transition font-prompt text-slate-700 font-bold text-sm shadow-sm'
 
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[9px] font-bold uppercase tracking-widest text-[#1d5f84]">{children}</span>
+      <span className="text-[12px] font-bold uppercase tracking-widest text-[#1d5f84]">{children}</span>
       <div className="flex-1 h-px bg-slate-100" />
     </div>
   )
@@ -679,15 +679,15 @@ function ModalField({ label, children, required, className }) {
 
 function Field({ icon, label, value, isGujarati }) {
   const labelLower = String(label).toLowerCase();
-  const isTechnical = labelLower.includes('email') || 
-                      labelLower.includes('gst') || 
-                      labelLower.includes('phone') || 
-                      labelLower.includes('bank') || 
-                      String(value).includes('@') ||
-                      label.includes('ઈમેલ') || // Email
-                      label.includes('જીએસટી') || // GST
-                      label.includes('ફોન') || // Phone
-                      label.includes('બેંક'); // Bank
+  const isTechnical = labelLower.includes('email') ||
+    labelLower.includes('gst') ||
+    labelLower.includes('phone') ||
+    labelLower.includes('bank') ||
+    String(value).includes('@') ||
+    label.includes('ઈમેલ') || // Email
+    label.includes('જીએસટી') || // GST
+    label.includes('ફોન') || // Phone
+    label.includes('બેંક'); // Bank
   const isGujaratiLabel = label.match(/[^\x00-\x7F]/);
 
   return (
@@ -696,8 +696,8 @@ function Field({ icon, label, value, isGujarati }) {
         {icon}
       </div>
       <div>
-        <p className={`text-[9px] font-bold text-slate-400 tracking-widest ${isGujaratiLabel ? 'font-sans' : 'uppercase'}`}>{label}</p>
-        <p 
+        <p className={`text-[12px] font-bold text-slate-400 tracking-widest ${isGujaratiLabel ? 'font-sans' : 'uppercase'}`}>{label}</p>
+        <p
           className={`text-[13px] font-bold text-slate-700 mt-0.5 ${isTechnical ? 'force-en notranslate' : (isGujarati ? 'font-prompt' : 'font-sans uppercase')}`}
           translate={isTechnical ? "no" : "yes"}
         >

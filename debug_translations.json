@@ -1,0 +1,84 @@
+{
+  "en_village": {
+    "nameRequired": "Village name is required.",
+    "alreadyExists": "Village name already exists. Please use a unique name.",
+    "updateSuccess": "Village updated successfully.",
+    "registerSuccess": "Village registered successfully.",
+    "saveFailed": "Save failed. Please try again.",
+    "deleteSuccess": "Village deleted successfully.",
+    "deleteFailed": "Delete failed.",
+    "loadFailed": "Failed to load villages."
+  },
+  "gu_village": {
+    "nameRequired": "ગામનું નામ આવશ્યક છે.",
+    "alreadyExists": "ગામનું નામ પહેલેથી જ છે. કૃપા કરીને અનન્ય નામનો ઉપયોગ કરો.",
+    "updateSuccess": "ગામ સફળતાપૂર્વક અપડેટ થયું.",
+    "registerSuccess": "ગામ સફળતાપૂર્વક નોંધાયેલું છે.",
+    "saveFailed": "સેવ કરવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "deleteSuccess": "ગામ સફળતાપૂર્વક કાઢી નાખ્યું.",
+    "deleteFailed": "ડિલીટ કરવામાં નિષ્ફળ.",
+    "loadFailed": "ગામો લોડ કરવામાં નિષ્ફળ."
+  },
+  "en_member": {
+    "memberUpdated": "Member updated successfully.",
+    "memberRegistered": "Member registered successfully.",
+    "failedToSaveMember": "Failed to save member.",
+    "statusUpdateFailed": "Status update failed.",
+    "deleteFailed": "Delete failed.",
+    "memberAlreadyDeleted": "Member already deleted.",
+    "nameRequired": "Member Name is required.",
+    "nameExists": "Member name already exists. Please use a unique name.",
+    "memberSaved": "Member saved successfully."
+  },
+  "gu_member": {
+    "memberUpdated": "સભાસદ સફળતાપૂર્વક અપડેટ થયો.",
+    "memberRegistered": "સભાસદ સફળતાપૂર્વક નોંધાયો.",
+    "failedToSaveMember": "સભાસદ સાચવવામાં નિષ્ફળ.",
+    "statusUpdateFailed": "સ્થિતિ અપડેટ કરવામાં નિષ્ફળ.",
+    "deleteFailed": "કાઢી નાખવામાં નિષ્ફળ.",
+    "memberAlreadyDeleted": "સભાસદ પહેલાથી જ કાઢી નાખવામાં આવ્યો છે.",
+    "nameRequired": "સભાસદનું નામ આવશ્યક છે.",
+    "nameExists": "સભાસદનું નામ પહેલાથી અસ્તિત્વમાં છે. કૃપા કરીને અનન્ય નામનો ઉપયોગ કરો.",
+    "memberSaved": "સભાસદ સફળતાપૂર્વક સાચવવામાં આવ્યો."
+  },
+  "en_account_errors": {
+    "noCompany": "No company found. Please create a company in Company Master.",
+    "companyDescription": "We couldn't load the company information. This usually happens if no company has been created yet or the connection to the server was lost.",
+    "retry": "Retry Connection",
+    "failedLoadContext": "Failed to load company context. Please check if backend is running.",
+    "failedLoadAccounts": "Failed to load accounts.",
+    "failedUpdateStatus": "Failed to update account status.",
+    "deleteFailed": "Delete failed.",
+    "failedLoadBalance": "Failed to load balance.",
+    "nameRequired": "Account name is required.",
+    "nameExists": "Account name already exists. Please use a unique name.",
+    "failedSave": "Failed to save account."
+  },
+  "gu_account_errors": {
+    "noCompany": "કોઈ કંપની મળી નથી. કૃપા કરીને કંપની માસ્ટરમાં કંપની બનાવો.",
+    "companyDescription": "અમે કંપનીની માહિતી લોડ કરી શક્યા નથી. આ સામાન્ય રીતે ત્યારે થાય છે જો હજુ સુધી કોઈ કંપની બનાવવામાં આવી ન હોય અથવા સર્વર સાથેનું જોડાણ કપાઈ ગયું હોય.",
+    "retry": "ફરી પ્રયાસ કરો",
+    "failedLoadContext": "કંપની લોડ કરવામાં નિષ્ફળ. કૃપા કરીને તપાસો કે બેકએન્ડ ચાલુ છે.",
+    "failedLoadAccounts": "ખાતા લોડ કરવામાં નિષ્ફળ.",
+    "failedUpdateStatus": "ખાતાની સ્થિતિ અપડેટ કરવામાં નિષ્ફળ.",
+    "deleteFailed": "કાઢી નાખવામાં નિષ્ફળ.",
+    "failedLoadBalance": "બેલેન્સ લોડ કરવામાં નિષ્ફળ.",
+    "nameRequired": "ખાતાનું નામ આવશ્યક છે.",
+    "nameExists": "ખાતાનું નામ પહેલાથી અસ્તિત્વમાં છે. કૃપા કરીને અનન્ય નામનો ઉપયોગ કરો.",
+    "failedSave": "ખાતું સાચવવામાં નિષ્ફળ."
+  },
+  "en_account_messages": {
+    "accountSaved": "Account saved successfully.",
+    "accountUpdatedSuccessfully": "Account updated successfully.",
+    "accountRegisteredSuccessfully": "Account registered successfully.",
+    "statusUpdatedSuccessfully": "Account status updated successfully.",
+    "accountDeletedSuccessfully": "Account deleted successfully."
+  },
+  "gu_account_messages": {
+    "accountSaved": "ખાતું સફળતાપૂર્વક સાચવવામાં આવ્યું.",
+    "accountUpdatedSuccessfully": "ખાતું સફળતાપૂર્વક અપડેટ થયું.",
+    "accountRegisteredSuccessfully": "ખાતું સફળતાપૂર્વક નોંધાયું.",
+    "statusUpdatedSuccessfully": "ખાતાની સ્થિતિ સફળતાપૂર્વક અપડેટ થઈ.",
+    "accountDeletedSuccessfully": "ખાતું સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું."
+  }
+}
